@@ -46,8 +46,18 @@ func main() {
 	// 3. Ensure Schema
 	ensureSchema(ctx, conn)
 
-	// 4. Run once and exit (suitable for cron)
+	// 4. Run loop
+	fmt.Println("⏳ Starting collection loop (interval: 1 minute)...")
+	
+	// Collect immediately on start
 	collectAndStore(ctx, conn, hostName, osName)
+
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		collectAndStore(ctx, conn, hostName, osName)
+	}
 }
 
 func collectAndStore(ctx context.Context, conn *pgx.Conn, hostName string, osName string) {
@@ -117,7 +127,7 @@ func getConnStr() string {
 	port := getEnv("DB_PORT", "5432")
 	user := getEnv("DB_USER")
 	dbname := getEnv("DB_NAME")
-	password := os.Getenv("DB_PASSWORD")
+	password := os.Getenv("SERVER_DB_PASSWORD")
 
 	if host == "" {
 		log.Fatal("❌ DB_HOST is not set")
@@ -129,7 +139,7 @@ func getConnStr() string {
 		log.Fatal("❌ DB_NAME is not set")
 	}
 	if password == "" {
-		log.Fatal("❌ DB_PASSWORD is not set")
+		log.Fatal("❌ SERVER_DB_PASSWORD is not set")
 	}
 
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
