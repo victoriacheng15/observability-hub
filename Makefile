@@ -1,4 +1,3 @@
-# Makefile for home-server setup
 help:
 	@echo "Available commands:"
 	@echo "  make create            - Create necessary docker volumes"
@@ -10,6 +9,9 @@ help:
 	@echo "  make promtail-up       - Start the promtail log collector"
 	@echo "  make promtail-down     - Stop the promtail log collector"
 	@echo "  make promtail-update   - Restart the promtail log collector"
+	@echo "  make metrics-up        - Start the system-metrics collector"
+	@echo "  make metrics-down      - Stop the system-metrics collector"
+	@echo "  make metrics-update    - Restart the system-metrics collector"
 
 # Docker Volume Management
 create:
