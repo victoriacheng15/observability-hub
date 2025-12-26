@@ -14,7 +14,7 @@ import (
 func main() {
 	godotenv.Load(".env", "../.env")
 
-	db := utils.InitPostgres()
+	db := utils.InitPostgres("postgres")
 	mongoClient := utils.InitMongo()
 
 	// Initialize the reading service

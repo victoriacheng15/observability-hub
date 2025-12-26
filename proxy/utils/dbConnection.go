@@ -13,35 +13,36 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func InitPostgres() *sql.DB {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
+}
+
+func getRequiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("❌ %s is not set in environment variables", key)
+	}
+	return value
+}
+
+func InitPostgres(driverName string) *sql.DB {
+	host := getRequiredEnv("DB_HOST")
+	port := getEnv("DB_PORT", "5432")
+	user := getRequiredEnv("DB_USER")
 	password := os.Getenv("SERVER_DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-
-	if host == "" {
-		log.Fatal("❌ DB_HOST is not set in environment variables")
-	}
-
-	if user == "" {
-		log.Fatal("❌ DB_USER is not set in environment variables")
-	}
-
-	if dbname == "" {
-		log.Fatal("❌ DB_NAME is not set in environment variables")
-	}
-
-	if port == "" {
-		port = "5432"
-	}
+	dbname := getRequiredEnv("DB_NAME")
 
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname,
 	)
 
-	db, err := sql.Open("postgres", connStr)
+	// If using sqlmock, the connection string might need to be ignored or specific
+	// For now, we keep the logic as is.
+	db, err := sql.Open(driverName, connStr)
 	if err != nil {
 		log.Fatalf("❌ Failed to open database connection: %v", err)
 	}
@@ -57,10 +58,7 @@ func InitPostgres() *sql.DB {
 }
 
 func InitMongo() *mongo.Client {
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI == "" {
-		log.Fatal("❌ MONGO_URI is not set in environment variables")
-	}
+	mongoURI := getRequiredEnv("MONGO_URI")
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
 	if err != nil {

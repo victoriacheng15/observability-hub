@@ -3,12 +3,14 @@ module proxy
 go 1.25.2
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	go.mongodb.org/mongo-driver v1.17.6
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
