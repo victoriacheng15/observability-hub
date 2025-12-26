@@ -38,18 +38,17 @@ func TestSyncReadingHandler(t *testing.T) {
 			MongoClient: mt.Client,
 		}
 
-
 		// 1. Postgres: Create Table
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// 2. Mongo: Find
+			// 2. Mongo: Find
 		objID := primitive.NewObjectID()
 		firstDoc := bson.D{
-			{"_id", objID},
-			{"status", "ingested"},
-			{"event_type", "cpu_reading"},
-			{"payload", bson.D{{"value", 99}}},
+			{Key: "_id", Value: objID},
+			{Key: "status", Value: "ingested"},
+			{Key: "event_type", Value: "cpu_reading"},
+			{Key: "payload", Value: bson.D{{Key: "value", Value: 99}}},
 		}
 
 		// mtest mocks the response from the server.
@@ -73,11 +72,10 @@ func TestSyncReadingHandler(t *testing.T) {
 		// The handler updates the status to "processed".
 		// mtest expects an "update" command to be sent. We queue a success response.
 		mt.AddMockResponses(bson.D{
-			{"ok", 1},
-			{"n", 1},
-			{"nModified", 1},
+			{Key: "ok", Value: 1},
+			{Key: "n", Value: 1},
+			{Key: "nModified", Value: 1},
 		})
-
 		// --- EXECUTION ---
 		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
 		w := httptest.NewRecorder()
