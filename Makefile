@@ -3,6 +3,7 @@ help:
 	@echo "  make create            - Create necessary docker volumes"
 	@echo "  make backup            - Backup docker volumes"
 	@echo "  make restore           - Restore docker volumes from backup"
+	@echo "  make metrics-build     - Build the system metrics collector"
 	@echo "  make proxy-up          - Start the go proxy server"
 	@echo "  make proxy-down        - Stop the go proxy server"
 	@echo "  make proxy-update      - Rebuild and restart the go proxy server"
@@ -22,6 +23,11 @@ backup:
 restore:
 	@echo "Running restore volume script..."
 	@./scripts/manage_volume.sh restore
+
+# System Metrics Collector
+metrics-build:
+	@echo "Building system metrics collector..."
+	@go build -o metrics-collector.exe main.go
 
 # Go Proxy Server Management
 proxy-up:
