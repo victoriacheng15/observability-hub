@@ -3,7 +3,7 @@ help:
 	@echo "  make create            - Create necessary docker volumes"
 	@echo "  make backup            - Backup docker volumes"
 	@echo "  make restore           - Restore docker volumes from backup"
-	@echo "  make web-build         - Build the web application"
+	@echo "  make page-build        - Build the GitHu Page"
 	@echo "  make metrics-build     - Build the system metrics collector"
 	@echo "  make proxy-up          - Start the go proxy server"
 	@echo "  make proxy-down        - Stop the go proxy server"
@@ -25,7 +25,7 @@ restore:
 	@echo "Running restore volume script..."
 	@./scripts/manage_volume.sh restore
 
-# GitHub Pages Web Application Build
+# GitHub Pages Build
 page-build:
 	@echo "Running page build..."
 	@cd page && go build -o page.exe ./main.go && ./page.exe
