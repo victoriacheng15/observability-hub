@@ -96,8 +96,6 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 		} else {
 			processedCount++
 		}
-
-		processedCount++
 	}
 
 	log.Printf("✅ ETL_SUCCESS: Processed batch of %d documents", processedCount)
