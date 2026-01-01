@@ -10,6 +10,7 @@ VOLUMES=(
   postgres_data
   grafana_data
   loki_data
+  promtail_data
 )
 
 # --- LOGGING ---

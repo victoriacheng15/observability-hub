@@ -31,8 +31,21 @@ services:
       - "3100:3100"
     volumes:
       - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml
-      - loki_data:/tmp/loki
+      - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail_server
+    volumes:
+      - ./docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail_data:/var/lib/promtail
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
     restart: unless-stopped
 
 volumes:
@@ -41,4 +54,6 @@ volumes:
   grafana_data:
     external: true
   loki_data:
+    external: true
+  promtail_data:
     external: true

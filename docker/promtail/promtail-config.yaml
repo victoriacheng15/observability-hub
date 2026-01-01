@@ -3,10 +3,10 @@ server:
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /var/lib/promtail/positions.yaml
 
 clients:
-  - url: http://localhost:3100/loki/api/v1/push
+  - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
   - job_name: docker
@@ -14,13 +14,30 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
+      # 1. Clean container name: remove leading slash
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
+      
+      # 2. Set default job name to 'docker'
+      - target_label: 'job'
+        replacement: 'docker'
+
+      # 3. Allow containers to override job name via label 'logging_jobname'
       - source_labels: ['__meta_docker_container_label_logging_jobname']
+        regex: '(.+)'
         target_label: 'job'
+
+      # 4. Map log stream (stdout/stderr)
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+
+      # 5. Drop logs from Promtail itself to avoid feedback loops
+      - source_labels: ['container']
+        regex: 'promtail'
+        action: drop
+
+      # 6. Construct the path to the log file
       - source_labels: ['__meta_docker_container_id']
         target_label: '__path__'
         replacement: '/var/lib/docker/containers/$1/*-json.log'
