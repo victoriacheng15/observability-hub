@@ -6,50 +6,41 @@ on:
     paths:
       - 'proxy/**'
       - 'system-metrics/**'
+      - 'page/**'
   push:
     branches: [main]
     paths:
       - 'proxy/**'
       - 'system-metrics/**'
-
+      - 'page/**'
+  
 env:
   go-version: '1.25'
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6.0.0
       - uses: actions/setup-go@v6.1.0
         with:
           go-version: ${{ env.go-version }}
 
-      - name: Check gofmt (Proxy)
+      - name: Check gofmt
         run: |
-          cd proxy
-          if [ $(gofmt -l . | wc -l) -gt 0 ]; then
-            echo "❌ Proxy code not formatted. Run: gofmt -w proxy/"
-            gofmt -l .
+          unformatted=$(gofmt -l proxy system-metrics page 2>/dev/null || true)
+          if [ -n "$unformatted" ]; then
+            echo "❌ Code not formatted. Run: gofmt -w proxy/ system-metrics/ page/"
+            echo "$unformatted"
             exit 1
           fi
-          echo "✅ Proxy code is properly formatted"
+          echo "✅ All code is properly formatted"
 
-      - name: Run go vet (Proxy)
-        run: cd proxy && go vet ./...
-
-      - name: Check gofmt (Metrics)
+      - name: Run go vet
         run: |
-          cd system-metrics
-          if [ $(gofmt -l . | wc -l) -gt 0 ]; then
-            echo "❌ Metrics code not formatted. Run: gofmt -w system-metrics/"
-            gofmt -l .
-            exit 1
-          fi
-          echo "✅ Metrics code is properly formatted"
-
-      - name: Run go vet (Metrics)
-        run: cd system-metrics && go vet ./...
+          cd proxy && go vet ./...
+          cd ../system-metrics && go vet ./...
+          cd ../page && go vet ./...
 
   test:
     runs-on: ubuntu-latest
@@ -60,10 +51,8 @@ jobs:
         with:
           go-version: ${{ env.go-version }}
 
-      # Test Proxy Service
-      - name: Run tests (Proxy)
-        run: cd proxy && go test ./... -v
-
-      # Test Metrics Service
-      - name: Run tests (Metrics)
-        run: cd system-metrics && go test ./... -v
+      - name: Run tests
+        run: |
+          cd proxy && go test ./... -v
+          cd ../system-metrics && go test ./... -v
+          cd ../page && go test ./... -v
