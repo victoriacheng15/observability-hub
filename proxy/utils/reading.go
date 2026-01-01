@@ -25,30 +25,16 @@ func (s *ReadingService) ReadingHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := s.DB.Exec(`CREATE TABLE IF NOT EXISTS reading_analytics (
-		id SERIAL PRIMARY KEY,
-		mongo_id TEXT UNIQUE NOT NULL,
-		event_type TEXT,
-		payload JSONB,
-		created_at TIMESTAMP DEFAULT NOW()
-	)`)
-	if err != nil {
+	ctx := context.TODO()
+
+	if err := s.ensureReadingAnalyticsTable(); err != nil {
 		log.Printf("❌ ETL_ERROR: Failed to create reading_analytics table: %v", err)
 		http.Error(w, "Failed to ensure database schema", 500)
 		return
 	}
 
-	dbName := os.Getenv("MONGO_DB_NAME")
-	collection := os.Getenv("MONGO_COLLECTION")
-	coll := s.MongoClient.Database(dbName).Collection(collection)
-
-	// 1. Extract: Find documents where status is "ingested"
-	ctx := context.TODO()
-	filter := bson.M{"status": "ingested"}
-	// Limit to batch size of 10 to avoid timeouts
-	opts := options.Find().SetLimit(10)
-
-	cursor, err := coll.Find(ctx, filter, opts)
+	coll := s.getMongoCollection()
+	cursor, err := s.fetchIngestedDocuments(ctx, coll)
 	if err != nil {
 		log.Printf("❌ ETL_ERROR: Failed to query Mongo: %v", err)
 		http.Error(w, "Failed to query Mongo", 500)
@@ -56,6 +42,40 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	}
 	defer cursor.Close(ctx)
 
+	processedCount := s.processDocuments(ctx, cursor, coll)
+
+	log.Printf("✅ ETL_SUCCESS: Processed batch of %d documents", processedCount)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":          "success",
+		"processed_count": processedCount,
+	})
+}
+
+func (s *ReadingService) ensureReadingAnalyticsTable() error {
+	_, err := s.DB.Exec(`CREATE TABLE IF NOT EXISTS reading_analytics (
+		id SERIAL PRIMARY KEY,
+		mongo_id TEXT UNIQUE NOT NULL,
+		event_type TEXT,
+		payload JSONB,
+		created_at TIMESTAMP DEFAULT NOW()
+	)`)
+	return err
+}
+
+func (s *ReadingService) getMongoCollection() *mongo.Collection {
+	dbName := os.Getenv("MONGO_DB_NAME")
+	collection := os.Getenv("MONGO_COLLECTION")
+	return s.MongoClient.Database(dbName).Collection(collection)
+}
+
+func (s *ReadingService) fetchIngestedDocuments(ctx context.Context, coll *mongo.Collection) (*mongo.Cursor, error) {
+	filter := bson.M{"status": "ingested"}
+	opts := options.Find().SetLimit(10)
+	return coll.Find(ctx, filter, opts)
+}
+
+func (s *ReadingService) processDocuments(ctx context.Context, cursor *mongo.Cursor, coll *mongo.Collection) int {
 	processedCount := 0
 
 	for cursor.Next(ctx) {
@@ -65,43 +85,43 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 			continue
 		}
 
-		// Get the ObjectID to update later
 		objID, ok := doc["_id"].(primitive.ObjectID)
 		if !ok {
 			log.Printf("⚠️ ETL_WARN: Document missing ObjectID")
 			continue
 		}
 
-		// 2. Load: Insert into Postgres as JSONB
-		eventType, _ := doc["event_type"].(string)
-		jsonData, _ := json.Marshal(doc)
-
-		_, err = s.DB.Exec(
-			`INSERT INTO reading_analytics (mongo_id, event_type, payload, created_at) 
-			 VALUES ($1, $2, $3, NOW())
-			 ON CONFLICT (mongo_id) DO NOTHING`,
-			objID.Hex(), eventType, jsonData,
-		)
-
-		if err != nil {
+		if err := s.insertIntoPostgres(doc, objID); err != nil {
 			log.Printf("❌ ETL_ERROR: Failed to insert into Postgres (ID: %s): %v", objID.Hex(), err)
 			continue
 		}
 
-		// 3. Update Source: Mark as processed in Mongo (Commented out for testing)
-		update := bson.M{"$set": bson.M{"status": "processed"}}
-		_, err = coll.UpdateOne(ctx, bson.M{"_id": objID}, update)
-		if err != nil {
+		if err := s.updateMongoStatus(ctx, coll, objID); err != nil {
 			log.Printf("⚠️ ETL_WARN: Failed to update Mongo status (ID: %s): %v", objID.Hex(), err)
 		} else {
 			processedCount++
 		}
 	}
 
-	log.Printf("✅ ETL_SUCCESS: Processed batch of %d documents", processedCount)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":          "success",
-		"processed_count": processedCount,
-	})
+	return processedCount
+}
+
+func (s *ReadingService) insertIntoPostgres(doc bson.M, objID primitive.ObjectID) error {
+	eventType, _ := doc["event_type"].(string)
+	delete(doc, "status")
+	jsonData, _ := json.Marshal(doc)
+
+	_, err := s.DB.Exec(
+		`INSERT INTO reading_analytics (mongo_id, event_type, payload, created_at) 
+		 VALUES ($1, $2, $3, NOW())
+		 ON CONFLICT (mongo_id) DO NOTHING`,
+		objID.Hex(), eventType, jsonData,
+	)
+	return err
+}
+
+func (s *ReadingService) updateMongoStatus(ctx context.Context, coll *mongo.Collection, objID primitive.ObjectID) error {
+	update := bson.M{"$set": bson.M{"status": "processed"}}
+	_, err := coll.UpdateOne(ctx, bson.M{"_id": objID}, update)
+	return err
 }

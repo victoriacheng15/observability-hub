@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	godotenv.Load(".env", "../.env")
+	godotenv.Load(".env")
+	godotenv.Load("../.env")
 
 	db := utils.InitPostgres("postgres")
 	mongoClient := utils.InitMongo()
