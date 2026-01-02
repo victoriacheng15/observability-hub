@@ -347,29 +347,61 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: var(--space-xl);
+            grid-template-columns: 1fr;
+            gap: var(--space-lg);
         }
 
         .dashboard-item {
             background: var(--card-bg);
             border-radius: var(--radius-main);
-            overflow: hidden;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 6px -1px var(--shadow);
+            transition: border-color 0.2s;
 
-            img {
-                border: 1px solid var(--white);
+            &[open] {
+                border-color: var(--primary);
             }
         }
 
-        .dashboard-caption {
+        .dashboard-summary {
             padding: var(--space-md);
-            text-align: center;
-            font-weight: 500;
-            color: var(--text-main);
-            background: var(--card-bg);
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-heading);
+            list-style: none; /* Hide default arrow */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            &::-webkit-details-marker {
+                display: none;
+            }
+
+            &:after {
+                content: '→';
+                color: var(--primary);
+                transition: transform 0.2s;
+            }
+
+            &:hover {
+                color: var(--primary);
+            }
+        }
+
+        .dashboard-item[open] .dashboard-summary:after {
+            transform: rotate(90deg);
+        }
+
+        .dashboard-image-wrapper {
+            padding: 0 var(--space-md) var(--space-md) var(--space-md);
             border-top: 1px solid var(--border-light);
+            padding-top: var(--space-md);
+
+            img {
+                border-radius: calc(var(--radius-main) / 2);
+                border: 1px solid var(--border-light);
+                width: 100%;
+            }
         }
     </style>
 </head>

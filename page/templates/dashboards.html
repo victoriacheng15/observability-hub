@@ -10,14 +10,15 @@
 {{range .Dashboards.Categories}}
 <section class="dashboard-category" aria-label="{{ .Name }}">
     <h2>{{ .Name }}</h2>
-    <p>{{ .Description }}</p>
     
     <div class="dashboard-grid">
         {{range .Items}}
-        <figure class="dashboard-item">
-            <img src="{{ .ImagePath }}" alt="{{ .Caption }}">
-            <figcaption class="dashboard-caption">{{ .Caption }}</figcaption>
-        </figure>
+        <details class="dashboard-item">
+            <summary class="dashboard-summary">{{ .Caption }}</summary>
+            <div class="dashboard-image-wrapper">
+                <img src="{{ .ImagePath }}" alt="{{ .Caption }}" loading="lazy">
+            </div>
+        </details>
         {{end}}
     </div>
 </section>

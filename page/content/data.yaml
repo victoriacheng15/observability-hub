@@ -22,14 +22,13 @@ dashboards:
   page_title: "System Dashboards"
   categories:
     - name: "System Metrics"
-      description: "Real-time infrastructure monitoring."
       items:
-        - caption: "Full System - 30m"
-          image_path: "/assets/img/yyyy-dd-dd_system_metrics_30min.png"
-        - caption: "Full System - 24h"
-          image_path: "/assets/img/yyyy-dd-dd_system_metrics_24h.png"
-        - caption: "Full System - 7d"
-          image_path: "/assets/img/yyyy-dd-dd_system_metrics_7d.png"
+        - caption: "Last 30 Minutes: Granular Real-time Analysis"
+          image_path: "assets/img/2026-01-02_system_metrics_30m.png"
+        - caption: "Last 24 Hours: Daily Trends & Peak Usage"
+          image_path: "assets/img/2026-01-02_system_metrics_24h.png"
+        - caption: "Last 7 Days: Capacity Planning & Weekly Patterns"
+          image_path: "assets/img/2026-01-02_system_metrics_7d.png"
 
 evolution:
   page_title: "Project Evolution"

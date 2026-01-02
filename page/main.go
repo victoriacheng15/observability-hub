@@ -56,9 +56,8 @@ type DashboardItem struct {
 }
 
 type DashboardCategory struct {
-	Name        string          `yaml:"name"`
-	Description string          `yaml:"description"`
-	Items       []DashboardItem `yaml:"items"`
+	Name  string          `yaml:"name"`
+	Items []DashboardItem `yaml:"items"`
 }
 
 type Dashboards struct {
