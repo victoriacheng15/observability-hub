@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -12,6 +12,12 @@ func WithLogging(next http.HandlerFunc) http.HandlerFunc {
 		start := time.Now()
 		// We could wrap ResponseWriter to capture status code, but for now we keep it simple
 		next(w, r)
-		log.Printf("METHOD=%s PATH=%s REMOTE=%s DURATION=%v", r.Method, r.URL.Path, r.RemoteAddr, time.Since(start))
+
+		slog.Info("request_processed",
+			"http_method", r.Method,
+			"path", r.URL.Path,
+			"remote_ip", r.RemoteAddr,
+			"duration", time.Since(start).String(),
+		)
 	}
 }

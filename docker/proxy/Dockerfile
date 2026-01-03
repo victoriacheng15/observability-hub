@@ -4,18 +4,24 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
-# Copy the root .env file to the current directory (which is /app)
+# Copy the shared package first
+COPY pkg/ ./pkg/
+
+# Copy the proxy service
+COPY proxy/ ./proxy/
+
+# Copy the root .env if needed (though usually handled by docker-compose)
 COPY .env .
 
-# Copy go.mod and go.sum from the proxy directory
-COPY proxy/go.mod proxy/go.sum ./
+WORKDIR /app/proxy
+
+# Download dependencies (now it can find ../pkg/logger)
 RUN go mod download
 
-# Copy the rest of the proxy source code
-COPY proxy/ .
+# Build the binary
+RUN go build -o /app/proxy_server .
 
-RUN go build -o proxy_server .
-
+WORKDIR /app
 EXPOSE 8085
 
 CMD ["./proxy_server"]

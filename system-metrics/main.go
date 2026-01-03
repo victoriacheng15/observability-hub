@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"time"
 
+	"logger"
 	"system-metrics/collectors"
 
 	"github.com/jackc/pgx/v5"
@@ -16,6 +17,9 @@ import (
 )
 
 func main() {
+	// Initialize structured logging
+	logger.Setup("system-metrics")
+
 	// Load .env (current or parent)
 	_ = godotenv.Load()
 	_ = godotenv.Load("../.env")
@@ -23,7 +27,8 @@ func main() {
 	// 1. Initial Detection
 	hInfo, err := host.Info()
 	if err != nil {
-		log.Fatalf("❌ Error getting host info: %v", err)
+		slog.Error("host_info_failed", "error", err)
+		os.Exit(1)
 	}
 	osName := fmt.Sprintf("%s %s", hInfo.Platform, hInfo.PlatformVersion)
 
@@ -37,7 +42,8 @@ func main() {
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to PostgreSQL: %v", err)
+		slog.Error("db_connection_failed", "error", err)
+		os.Exit(1)
 	}
 	defer conn.Close(ctx)
 
@@ -79,18 +85,17 @@ func collectAndStore(ctx context.Context, conn *pgx.Conn, hostName string, osNam
 			now, hostName, osName, m.mType, payloadJSON,
 		)
 		if err != nil {
-			errMsg := fmt.Sprintf("❌ Failed to insert %s metric: %v", m.mType, err)
-			log.Println(errMsg)
-			insertErrors = append(insertErrors, errMsg)
+			slog.Error("db_insert_failed", "metric_type", m.mType, "error", err)
+			insertErrors = append(insertErrors, err.Error())
 		}
 	}
 
 	// Log success only at the top of the hour and if no errors
 	if now.Minute() == 0 {
 		if len(insertErrors) == 0 {
-			fmt.Printf("[%s] ✅ Metrics stored in database.\n", now.Format("15:04:05"))
+			slog.Info("metrics_collected", "status", "success")
 		} else {
-			fmt.Printf("[%s] ⚠️ Metrics collection completed with %d error(s).\n", now.Format("15:04:05"), len(insertErrors))
+			slog.Warn("metrics_collected", "status", "partial_failure", "error_count", len(insertErrors))
 		}
 	}
 }
@@ -106,13 +111,15 @@ func ensureSchema(ctx context.Context, conn *pgx.Conn) {
 		);
 	`)
 	if err != nil {
-		log.Fatalf("❌ Failed to ensure schema: %v", err)
+		slog.Error("schema_init_failed", "error", err)
+		os.Exit(1)
 	}
 
 	// Enable hypertable if TimescaleDB is available
 	_, err = conn.Exec(ctx, "SELECT create_hypertable('system_metrics', 'time', if_not_exists => true);")
 	if err != nil {
-		log.Printf("ℹ️ Hypertable check: %v (ignoring if not using TimescaleDB)", err)
+		// Just info, as we might be running on standard Postgres
+		slog.Info("hypertable_check", "status", "skipped_or_failed", "detail", err)
 	}
 }
 
@@ -128,16 +135,20 @@ func getConnStr() string {
 	password := os.Getenv("SERVER_DB_PASSWORD")
 
 	if host == "" {
-		log.Fatal("❌ DB_HOST is not set")
+		slog.Error("env_var_missing", "key", "DB_HOST")
+		os.Exit(1)
 	}
 	if user == "" {
-		log.Fatal("❌ DB_USER is not set")
+		slog.Error("env_var_missing", "key", "DB_USER")
+		os.Exit(1)
 	}
 	if dbname == "" {
-		log.Fatal("❌ DB_NAME is not set")
+		slog.Error("env_var_missing", "key", "DB_NAME")
+		os.Exit(1)
 	}
 	if password == "" {
-		log.Fatal("❌ SERVER_DB_PASSWORD is not set")
+		slog.Error("env_var_missing", "key", "SERVER_DB_PASSWORD")
+		os.Exit(1)
 	}
 
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",

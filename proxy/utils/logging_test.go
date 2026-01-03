@@ -59,16 +59,16 @@ func TestWithLogging(t *testing.T) {
 
 			// Verify log output
 			logOutput := buf.String()
-			if !strings.Contains(logOutput, "METHOD="+tt.method) {
+			if !strings.Contains(logOutput, "http_method="+tt.method) {
 				t.Errorf("log missing method: expected %s, got %s", tt.method, logOutput)
 			}
-			if !strings.Contains(logOutput, "PATH="+tt.path) {
+			if !strings.Contains(logOutput, "path="+tt.path) {
 				t.Errorf("log missing path: expected %s, got %s", tt.path, logOutput)
 			}
-			if !strings.Contains(logOutput, "REMOTE="+tt.remoteAddr) {
+			if !strings.Contains(logOutput, "remote_ip="+tt.remoteAddr) {
 				t.Errorf("log missing remote addr: expected %s, got %s", tt.remoteAddr, logOutput)
 			}
-			if !strings.Contains(logOutput, "DURATION=") {
+			if !strings.Contains(logOutput, "duration=") {
 				t.Errorf("log missing duration: %s", logOutput)
 			}
 		})

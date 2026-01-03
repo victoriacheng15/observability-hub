@@ -1,17 +1,22 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"proxy/utils"
+
+	"logger"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func main() {
+	// Initialize structured logging first
+	logger.Setup("proxy")
+
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 
@@ -35,6 +40,9 @@ func main() {
 	http.HandleFunc("/api/reading", utils.WithLogging(readingService.ReadingHandler))
 	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 
-	log.Printf("🚀 The GO proxy listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	slog.Info("🚀 The GO proxy listening on port", "port", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		slog.Error("Server failed to start", "error", err)
+		os.Exit(1)
+	}
 }
