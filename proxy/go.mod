@@ -7,7 +7,10 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	go.mongodb.org/mongo-driver v1.17.6
+	logger v0.0.0
 )
+
+replace logger => ../pkg/logger
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

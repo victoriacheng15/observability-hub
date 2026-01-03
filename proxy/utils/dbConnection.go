@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"time"
 
@@ -23,7 +23,8 @@ func getEnv(key, fallback string) string {
 func getRequiredEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		log.Fatalf("❌ %s is not set in environment variables", key)
+		slog.Error("env_var_missing", "key", key)
+		os.Exit(1)
 	}
 	return value
 }
@@ -44,15 +45,17 @@ func InitPostgres(driverName string) *sql.DB {
 	// For now, we keep the logic as is.
 	db, err := sql.Open(driverName, connStr)
 	if err != nil {
-		log.Fatalf("❌ Failed to open database connection: %v", err)
+		slog.Error("db_connection_failed", "database", "postgres", "error", err)
+		os.Exit(1)
 	}
 
 	// Critical: test the connection before proceeding
 	if err := db.Ping(); err != nil {
-		log.Fatalf("❌ Failed to ping database (check container/network): %v", err)
+		slog.Error("db_ping_failed", "database", "postgres", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("✅ Successfully connected to PostgreSQL")
+	slog.Info("db_connected", "database", "postgres")
 
 	return db
 }
@@ -62,16 +65,18 @@ func InitMongo() *mongo.Client {
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to MongoDB: %v", err)
+		slog.Error("db_connection_failed", "database", "mongodb", "error", err)
+		os.Exit(1)
 	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx, nil); err != nil {
-		log.Fatalf("❌ Failed to ping MongoDB: %v", err)
+		slog.Error("db_ping_failed", "database", "mongodb", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("✅ Connected to MongoDB")
+	slog.Info("db_connected", "database", "mongodb")
 	return client
 }

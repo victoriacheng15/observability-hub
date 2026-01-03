@@ -6,7 +6,10 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
 	github.com/shirou/gopsutil/v4 v4.25.11
+	logger v0.0.0
 )
+
+replace logger => ../pkg/logger
 
 require (
 	github.com/ebitengine/purego v0.9.1 // indirect
