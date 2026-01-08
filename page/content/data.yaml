@@ -70,3 +70,4 @@ evolution:
         - Launched the project portal to visualize system evolution and technical constraints.
         - Formalized a "Documentation as Code" standard, treating architectural decisions (RFCs) as first-class artifacts.
         - Implemented a unified logging strategy using a shared 'pkg/logger' module to ensure consistent structured observability across all services.
+        - Automated reading analytics ingestion using systemd timers for reliable, journal-backed scheduling.

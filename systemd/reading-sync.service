@@ -1,0 +1,15 @@
+[Unit]
+Description=Trigger Reading Analytics Sync
+Wants=reading-sync.timer
+After=network.target
+
+[Service]
+Type=oneshot
+User=server
+ExecStart=/usr/bin/curl -X POST http://localhost:8080/api/sync/reading
+# Standardize logging for journald
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

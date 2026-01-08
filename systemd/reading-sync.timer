@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily Sync for Reading Analytics
+
+[Timer]
+# Run every day at 10:00 AM
+OnCalendar=*-*-* 10:00:00
+# Ensure catch-up if the machine was off
+Persistent=true
+# Prevent thundering herd (30m window)
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target

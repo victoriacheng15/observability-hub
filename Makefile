@@ -1,17 +1,19 @@
 help:
 	@echo "Available commands:"
-	@echo "  make rfc               - Create a new RFC (Architecture Decision Record)"
-	@echo "  make create            - Create necessary docker volumes"
-	@echo "  make backup            - Backup docker volumes"
-	@echo "  make restore           - Restore docker volumes from backup"
-	@echo "  make go-format         - Format and simplify Go code"
-	@echo "  make go-test           - Run Go tests"
-	@echo "  make go-cov            - Run tests with coverage report"
-	@echo "  make page-build        - Build the GitHu Page"
-	@echo "  make metrics-build     - Build the system metrics collector"
-	@echo "  make proxy-up          - Start the go proxy server"
-	@echo "  make proxy-down        - Stop the go proxy server"
-	@echo "  make proxy-update      - Rebuild and restart the go proxy server"
+	@echo "  make rfc                - Create a new RFC (Architecture Decision Record)"
+	@echo "  make create             - Create necessary docker volumes"
+	@echo "  make backup             - Backup docker volumes"
+	@echo "  make restore            - Restore docker volumes from backup"
+	@echo "  make go-format          - Format and simplify Go code"
+	@echo "  make go-test            - Run Go tests"
+	@echo "  make go-cov             - Run tests with coverage report"
+	@echo "  make page-build         - Build the GitHu Page"
+	@echo "  make metrics-build      - Build the system metrics collector"
+	@echo "  make proxy-up           - Start the go proxy server"
+	@echo "  make proxy-down         - Stop the go proxy server"
+	@echo "  make proxy-update       - Rebuild and restart the go proxy server"
+	@echo "  make install-services   - Install all systemd units from ./systemd"
+	@echo "  make uninstall-services - Uninstall all systemd units from ./systemd"
 
 # Architecture Decision Record Creation
 rfc:
@@ -73,3 +75,28 @@ proxy-down:
 
 proxy-update: proxy-down proxy-up
 	@echo "Proxy server updated."
+
+# Systemd Service Management
+install-services:
+	@echo "Installing all systemd units from ./systemd/..."
+	@sudo cp systemd/*.service /etc/systemd/system/ 2>/dev/null || true
+	@sudo cp systemd/*.timer /etc/systemd/system/ 2>/dev/null || true
+	@sudo systemctl daemon-reload
+	@echo "Enabling and starting timers..."
+	@for timer in $$(ls systemd/*.timer 2>/dev/null); do \
+		timer_name=$$(basename $$timer); \
+		sudo systemctl enable $$timer_name; \
+		sudo systemctl start $$timer_name; \
+	done
+	@echo "Installation complete."
+
+uninstall-services:
+	@echo "Uninstalling all systemd units found in ./systemd/..."
+	@for unit in $$(ls systemd/*.service systemd/*.timer 2>/dev/null); do \
+		unit_name=$$(basename $$unit); \
+		sudo systemctl stop $$unit_name || true; \
+		sudo systemctl disable $$unit_name || true; \
+		sudo rm /etc/systemd/system/$$unit_name || true; \
+	done
+	@sudo systemctl daemon-reload
+	@echo "Uninstallation complete."

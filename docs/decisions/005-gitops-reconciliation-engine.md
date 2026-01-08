@@ -10,6 +10,14 @@ The primary bottleneck is the manual overhead and state drift that occurs when t
 
 While merging via `gh pr merge -s -d` handles local synchronization, web-based merges leave the server's local repository behind. This requires manual intervention (`git pull origin main`) to sync the "live" state with the "git" state, leading to unnecessary manual commands and potential human error in keeping services up to date.
 
+## Validation & Technical Spike
+
+Before committing to a full GitOps engine, the Systemd Timer approach was validated through the implementation of the `reading-sync` service. This spike confirmed the suitability of Linux primitives for this use case by verifying:
+
+- **Journald Integration**: Native log capture and rotation.
+- **Reliability**: Use of the `Persistent=true` flag to handle catch-up during downtime.
+- **Maintainability**: Deployment via generic Makefile targets for system-wide service management.
+
 ## Proposed Solution
 
 Implement a "Pull-based" synchronization agent managed by **Systemd Timers**. To maintain simplicity and ensure stability, the rollout follows a structured three-phase roadmap:
