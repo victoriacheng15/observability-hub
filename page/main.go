@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -46,6 +47,7 @@ type Event struct {
 	Title            string     `yaml:"title"`
 	Description      string     `yaml:"description"`
 	DescriptionLines []string   `yaml:"-"`
+	FormattedDate    string     `yaml:"-"`
 	Artifacts        []Artifact `yaml:"artifacts"`
 }
 
@@ -99,8 +101,9 @@ func main() {
 		log.Fatalf("Failed to load data: %v", err)
 	}
 
-	// Process Descriptions
+	// Process Descriptions and Dates
 	for i := range data.Evolution.Events {
+		// 1. Process description lines
 		lines := strings.Split(data.Evolution.Events[i].Description, "\n")
 		var cleanLines []string
 		for _, line := range lines {
@@ -111,6 +114,16 @@ func main() {
 			}
 		}
 		data.Evolution.Events[i].DescriptionLines = cleanLines
+
+		// 2. Process and format date
+		t, err := time.Parse("2006-01-02", data.Evolution.Events[i].Date)
+		if err != nil {
+			// Fallback to raw string if parsing fails
+			log.Printf("Warning: failed to parse date %s: %v", data.Evolution.Events[i].Date, err)
+			data.Evolution.Events[i].FormattedDate = data.Evolution.Events[i].Date
+		} else {
+			data.Evolution.Events[i].FormattedDate = t.Format("Jan 02, 2006")
+		}
 	}
 
 	// Reverse Evolution Events (Newest First)

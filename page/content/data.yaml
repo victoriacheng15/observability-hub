@@ -40,22 +40,22 @@ evolution:
   page_title: "Project Evolution"
   intro_text: "From experimenting with local infrastructure to building a focused observability tool—driven by telemetry needs."
   events:
-    - date: "2025-11"
+    - date: "2025-11-20"
       title: "Built a Reliable Local Lab"
       description: |
         - Set up a Docker environment with core services: Jenkins, PostgreSQL, InfluxDB, and more.
         - Automated volume management, backups, and service isolation with custom scripts.
         - Evaluated storage options—chose PostgreSQL for its flexibility over specialized time-series databases.
-    - date: "2025-12 (early)"
-      title: "Explored Grafana & Telemetry"
+    - date: "2025-12-25"
+      title: "Telemetry Engine Initialization"
       artifacts:
         - name: "RFC 001: Postgres vs InfluxDB"
           url: "docs/decisions/001-postgres-vs-influxdb.md"
       description: |
         - Built a lightweight Go proxy to emit structured telemetry: HTTP requests, errors, and health events.
         - Adopted PostgreSQL with JSONB to unify logs and metrics in a single, flexible schema, moving away from InfluxDB.
-    - date: "2025-12 (late)"
-      title: "Hybrid Cloud Integration"
+    - date: "2025-12-31"
+      title: "Hybrid Cloud Architecture"
       artifacts:
         - name: "RFC 002: Cloud-to-Local Bridge"
           url: "docs/decisions/002-cloud-to-local-bridge.md"
@@ -63,17 +63,26 @@ evolution:
         - Designed a secure "Store-and-Forward" bridge to ingest telemetry from Azure Functions into the local private network.
         - Implemented a polling consumer in Go to bypass NAT restrictions without exposing ports or maintaining VPNs.
         - Decoupled stateless collectors from persistent storage to enable independent scaling.
-    - date: "2026-01"
-      title: "Platform Maturity & Knowledge Engine"
+    - date: "2026-01-01"
+      title: "Project Portal Launch"
+      description: |
+        - Released the self-hosted visualization portal to track system evolution and technical constraints.
+        - Implemented a unified dashboard for real-time system metrics and personal reading analytics.
+    - date: "2026-01-03"
+      title: "Standardization & Logging"
       artifacts:
         - name: "RFC 003: Shared Logging Library"
           url: "docs/decisions/003-shared-logging-library.md"
+      description: |
+        - Implemented a unified logging strategy using a shared 'pkg/logger' module to ensure consistent structured observability across all services.
+        - Formalized a "Documentation as Code" standard, treating architectural decisions (RFCs) as first-class artifacts.
+    - date: "2026-01-08"
+      title: "Automated Insights & GitOps Strategy"
+      artifacts:
         - name: "RFC 004: Spatial Telemetry keyboard"
           url: "docs/decisions/004-spatial-telemetry-keyboard.md"
         - name: "RFC 005: GitOps Reconciliation"
           url: "docs/decisions/005-gitops-reconciliation-engine.md"
       description: |
-        - Launched the project portal to visualize system evolution and technical constraints.
-        - Formalized a "Documentation as Code" standard, treating architectural decisions (RFCs) as first-class artifacts.
-        - Implemented a unified logging strategy using a shared 'pkg/logger' module to ensure consistent structured observability across all services.
-        - Automated reading analytics ingestion and system metrics collection using systemd timers for reliable, journal-backed scheduling.
+        - Automated reading analytics ingestion using systemd timers for reliable, journal-backed scheduling.
+        - Validated GitOps strategy for automated repository synchronization and configuration management.

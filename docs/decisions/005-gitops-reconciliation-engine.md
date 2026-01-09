@@ -12,11 +12,12 @@ While merging via `gh pr merge -s -d` handles local synchronization, web-based m
 
 ## Validation & Technical Spike
 
-Before committing to a full GitOps engine, the Systemd Timer approach was validated through the implementation of the `reading-sync` service. This spike confirmed the suitability of Linux primitives for this use case by verifying:
+Before committing to a full GitOps engine, the Systemd Timer approach was validated through the implementation of the `reading-sync` and `system-metrics` services. This spike confirmed the suitability of Linux primitives for this use case by verifying:
 
 - **Journald Integration**: Native log capture and rotation.
 - **Reliability**: Use of the `Persistent=true` flag to handle catch-up during downtime.
 - **Maintainability**: Deployment via generic Makefile targets for system-wide service management.
+- **Unified Scheduling**: Benchmarking systemd's ability to manage diverse telemetry collectors (API polling vs. system probing) consistently.
 
 ## Proposed Solution
 
@@ -54,7 +55,7 @@ fi
 ## Comparison / Alternatives Considered
 
 - **ArgoCD / Flux:** While powerful, these tools introduce significant resource overhead (RAM/CPU) for a single-node homelab. A Bash-based agent provides $O(1)$ overhead.
-- **Standard Cron:** Functional but limited. While Cron is the standard for scheduled tasks, we are explicitly choosing Systemd Timers to **evaluate** their suitability for infrastructure orchestration. This decision is driven by a desire to benchmark Systemd's native dependency management and logging capabilities against the traditional Cron approach.
+- **Standard Cron:** Functional but limited. While Cron is the standard for scheduled tasks, we are explicitly choosing Systemd Timers to **evaluate** their suitability for infrastructure unified scheduling. This decision is driven by a desire to benchmark Systemd's native dependency management and logging capabilities against the traditional Cron approach.
 
 ## Failure Modes (Operational Excellence)
 

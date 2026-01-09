@@ -11,7 +11,7 @@
 <ul class="timeline">
     {{range .Evolution.Events}}
     <li>
-        <time class="timeline-date" datetime="{{ .Date }}">{{ .Date }}</time>
+        <time class="timeline-date" datetime="{{ .Date }}">{{ .FormattedDate }}</time>
         <article class="timeline-content">
             <h3>{{ .Title }}</h3>
             <ul>
@@ -22,10 +22,8 @@
             {{if .Artifacts}}
             <div class="rfc-tags">
                 {{range .Artifacts}}
-                <a href="https://github.com/victoriacheng15/observability-platform/blob/main/{{ .URL }}" 
-                    class="btn-rfc" 
-                    target="_blank" 
-                    rel="noopener noreferrer">
+                <a href="https://github.com/victoriacheng15/observability-platform/blob/main/{{ .URL }}" class="btn-rfc"
+                    target="_blank" rel="noopener noreferrer">
                     📄 {{ .Name }}
                 </a>
                 {{end}}
