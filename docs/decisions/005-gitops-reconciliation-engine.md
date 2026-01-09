@@ -1,8 +1,8 @@
 # RFC 005: Centralized GitOps Reconciliation Engine
 
-**Status:** Proposed
-**Date:** 2026-01-03
-**Author:** Victoria Cheng
+- **Status:** Proposed
+- **Date:** 2026-01-03
+- **Author:** Victoria Cheng
 
 ## The Problem
 

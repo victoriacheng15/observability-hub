@@ -1,8 +1,8 @@
 # RFC 003: Shared Structured Logging Library
 
-**Status:** Accepted
-**Date:** 2026-01-03
-**Author:** Victoria Cheng
+- **Status:** Accepted
+- **Date:** 2026-01-03
+- **Author:** Victoria Cheng
 
 ## The Problem
 

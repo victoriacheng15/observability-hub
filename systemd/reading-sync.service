@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=oneshot
 User=server
-ExecStart=/usr/bin/curl -X POST http://localhost:8080/api/sync/reading
+ExecStart=/usr/bin/curl -X POST http://localhost:8085/api/sync/reading
 # Standardize logging for journald
 StandardOutput=journal
 StandardError=journal

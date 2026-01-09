@@ -1,8 +1,8 @@
 # RFC 004: Spatial Keyboard Telemetry Pipeline
 
-**Status:** Proposed
-**Date:** 2026-01-03
-**Author:** Victoria Cheng
+- **Status:** Proposed
+- **Date:** 2026-01-03
+- **Author:** Victoria Cheng
 
 ## The Problem
 
