@@ -1,8 +1,8 @@
 # RFC 001: PostgreSQL vs. InfluxDB for Metrics Storage
 
-**Status:** Accepted
-**Date:** 2025-11-01
-**Author:** Victoria Cheng
+- **Status:** Accepted
+- **Date:** 2025-11-01
+- **Author:** Victoria Cheng
 
 ## The Problem
 

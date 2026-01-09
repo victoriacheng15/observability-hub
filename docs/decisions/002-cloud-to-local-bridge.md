@@ -1,8 +1,8 @@
 # RFC 002: Cloud-to-Homelab Telemetry Bridge
 
-**Status:** Accepted
-**Date:** 2025-12-01
-**Author:** Victoria Cheng
+- **Status:** Accepted
+- **Date:** 2025-12-01
+- **Author:** Victoria Cheng
 
 ## The Problem
 
