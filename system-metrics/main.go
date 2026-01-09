@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"db"
 	"logger"
 	"system-metrics/collectors"
 
@@ -38,7 +39,11 @@ func main() {
 	}
 
 	// 2. Database Connection
-	connStr := getConnStr()
+	connStr, err := db.GetPostgresDSN()
+	if err != nil {
+		slog.Error("db_config_failed", "error", err)
+		os.Exit(1)
+	}
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
@@ -121,46 +126,4 @@ func ensureSchema(ctx context.Context, conn *pgx.Conn) {
 		// Just info, as we might be running on standard Postgres
 		slog.Info("hypertable_check", "status", "skipped_or_failed", "detail", err)
 	}
-}
-
-func getConnStr() string {
-	if connStr := os.Getenv("DATABASE_URL"); connStr != "" {
-		return connStr
-	}
-
-	host := getEnv("DB_HOST")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER")
-	dbname := getEnv("DB_NAME")
-	password := os.Getenv("SERVER_DB_PASSWORD")
-
-	if host == "" {
-		slog.Error("env_var_missing", "key", "DB_HOST")
-		os.Exit(1)
-	}
-	if user == "" {
-		slog.Error("env_var_missing", "key", "DB_USER")
-		os.Exit(1)
-	}
-	if dbname == "" {
-		slog.Error("env_var_missing", "key", "DB_NAME")
-		os.Exit(1)
-	}
-	if password == "" {
-		slog.Error("env_var_missing", "key", "SERVER_DB_PASSWORD")
-		os.Exit(1)
-	}
-
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
-}
-
-func getEnv(key string, fallback ...string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	if len(fallback) > 0 {
-		return fallback[0]
-	}
-	return ""
 }

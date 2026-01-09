@@ -34,7 +34,7 @@ restore:
 
 go-format:
 	@echo "Formatting Go code..."
-	@gofmt -w -s ./proxy ./system-metrics ./page
+	@gofmt -w -s ./proxy ./system-metrics ./page ./pkg
 
 go-test:
 	@echo "Running Go tests..."

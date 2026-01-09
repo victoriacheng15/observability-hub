@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -11,6 +10,8 @@ import (
 	_ "github.com/lib/pq"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"db"
 )
 
 func getEnv(key, fallback string) string {
@@ -30,16 +31,11 @@ func getRequiredEnv(key string) string {
 }
 
 func InitPostgres(driverName string) *sql.DB {
-	host := getRequiredEnv("DB_HOST")
-	port := getEnv("DB_PORT", "5432")
-	user := getRequiredEnv("DB_USER")
-	password := os.Getenv("SERVER_DB_PASSWORD")
-	dbname := getRequiredEnv("DB_NAME")
-
-	connStr := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC",
-		host, port, user, password, dbname,
-	)
+	connStr, err := db.GetPostgresDSN()
+	if err != nil {
+		slog.Error("db_config_failed", "error", err)
+		os.Exit(1)
+	}
 
 	// If using sqlmock, the connection string might need to be ignored or specific
 	// For now, we keep the logic as is.

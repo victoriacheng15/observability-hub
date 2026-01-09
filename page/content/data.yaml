@@ -86,3 +86,12 @@ evolution:
       description: |
         - Automated reading analytics ingestion using systemd timers for reliable, journal-backed scheduling.
         - Validated GitOps strategy for automated repository synchronization and configuration management.
+    - date: "2026-01-09"
+      title: "Standardized Postgres Database Configuration"
+      artifacts:
+        - name: "RFC 006: Shared Database Connection"
+          url: "docs/decisions/006-shared-database-module.md"
+      description: |
+        - Centralized database connection logic into a shared module (pkg/db) to ensure consistency.
+        - Enforced standardized defaults (e.g., UTC timezone) for all service database interactions.
+        - Refactored proxy and system-metrics to consume the shared database module.
