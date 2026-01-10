@@ -40,7 +40,19 @@ fi
 
 # 2. Sync Logic
 cd "$REPO_PATH"
-if ! git fetch origin main --quiet; then
+
+TARGET_BRANCH="main"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
+    log "WARN" "Current branch ($CURRENT_BRANCH) is not $TARGET_BRANCH. Switching..."
+    if ! git checkout "$TARGET_BRANCH"; then
+        log "ERROR" "Failed to switch to $TARGET_BRANCH. Check for uncommitted changes."
+        exit 1
+    fi
+fi
+
+if ! git fetch origin "$TARGET_BRANCH" --quiet; then
     log "ERROR" "Failed to fetch from origin. Check network/permissions."
     exit 1
 fi
