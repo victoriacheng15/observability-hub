@@ -6,7 +6,7 @@ The System Metrics Collector (`system-metrics/`) is a lightweight agent designed
 
 - **Runtime**: Go (compiled binary).
 - **Library**: `gopsutil` for cross-platform hardware statistics.
-- **Target**: Pushes data directly to the `system_metrics` table in PostgreSQL.
+- **Target**: Pushes data directly to the `system_metrics` table in PostgreSQL (TimescaleDB).
 
 ### Metrics Collected
 

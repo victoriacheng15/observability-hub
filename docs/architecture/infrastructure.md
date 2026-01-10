@@ -1,15 +1,16 @@
 # Infrastructure & Deployment
 
-The infrastructure layer manages storage, log aggregation, and visualization, orchestrated via Docker Compose.
+The infrastructure layer manages storage, log aggregation, and visualization, orchestrated via Docker Compose, and maintained by a host-level GitOps agent.
 
 ## Component Details
 
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **PostgreSQL** | Primary Storage | Central store for time-series metrics (`system_metrics`) and analytical data (`reading_analytics`). |
+| **PostgreSQL (TimescaleDB)** | Primary Storage | Central store for time-series metrics (`system_metrics`) and analytical data (`reading_analytics`). |
 | **Loki** | Log Aggregation | Indexes metadata (labels) from logs pushed by Promtail. |
 | **Grafana** | Visualization | Unified dashboard connecting to PostgreSQL (Metrics) and Loki (Logs). |
 | **Promtail** | Log Agent | Discovers Docker logs, attaches tags (container name, job), and pushes to Loki. |
+| **GitOps Reconciliation Agent** | Deployment Automation | Host-level Systemd agent ensuring the local repository (and thus deployed services) remains synchronized with the remote Git repository. |
 
 ## Data Flow: Promtail Logging
 
@@ -30,7 +31,8 @@ sequenceDiagram
 
 - **Orchestration**: `docker-compose.yml` for local and server environments.
 - **Automation**: `Makefile` for lifecycle management (backup, restore, restart).
-- **Persistence**: External Docker volumes (`postgres_data`, `grafana_data`, `loki_data`).
+- **Persistence**: External Docker volumes (`postgres_data`, `grafana_data`, `loki_data`) for **PostgreSQL (TimescaleDB)**, Grafana, and Loki respectively.
+- **Host-level Sync**: `systemd` timers and services for GitOps-driven repository synchronization.
 
 ## Configuration & Security
 

@@ -12,27 +12,10 @@ A personal telemetry system that collects **system metrics** and **application e
 
 ## 🎨 Design Philosophy
 
-- **Continuous Contextual Telemetry:** Built to understand system behavior over time through continuous telemetry rather than one-off checks.
-- **Systemic Health Monitoring:** Tracks host health, debugs pipeline failures, and connects infrastructure metrics to application events.
-- **Data Ownership:** Prioritizes 100% self-hosted infrastructure and long-term data retention without cloud dependencies.
-- **Simplicity & Reliability:** Employs scheduled, stateless, and idempotent services over complex, heavy-weight agents.
-- **Scale-Ready Storage:** Leverages TimescaleDB (PostgreSQL) for efficient time-series analysis and historical tracking.
-
----
-
-## 📚 Architectural Approach & Documentation
-
-| Component | Approach |
-| :--- | :--- |
-| **Collectors** | Scheduled, stateless, and idempotent services. |
-| **Storage** | **TimescaleDB** with JSONB for unified metric/event storage. |
-| **Visualization** | **Grafana** dashboards separated by concern (infra vs. app). |
-| **Observability** | **Loki** (logs) and a **Go proxy** (ETL) for full telemetry coverage. |
-
-For deep dives into the system's inner workings:
-
-- **[Architecture](./docs/architecture/README.md)**: System context, component diagrams, and data flows.
-- **[Decisions](./docs/decisions/README.md)**: Architectural Decision Records (ADRs) explaining the "Why."
+- **Holistic System Monitoring:** Tracks host health and application events through continuous telemetry, providing a unified view of system behavior over time.
+- **Data Ownership & Self-Hosting:** Prioritizes self-hosted infrastructure for long-term data retention and full control, without cloud dependencies.
+- **Reliability through Automation:** Employs simple, stateless services and a GitOps reconciliation engine to ensure a resilient, self-healing deployment that matches the declared state in Git.
+- **Scale-Ready Storage:** Leverages PostgreSQL with TimescaleDB for efficient, long-term time-series analysis and flexible data correlation.
 
 ---
 
@@ -45,18 +28,132 @@ For deep dives into the system's inner workings:
 
 ---
 
-## 🔍 What It Does
+## 📚 Architectural Approach & Documentation
 
-| Capability | Details |
-| :--- | :--- |
-| **System Metrics** | Collects CPU, memory, disk, and network stats via a lightweight Go collector (`gopsutil`). |
-| **App Events** | Tracks application events from [personal reading analytics dashboard](https://github.com/victoriacheng15/personal-reading-analytics-dashboard). |
-| **Storage** | Stores data in **TimescaleDB (PostgreSQL)** using a flexible JSONB schema for cross-type querying. |
-| **Visualization** | **Grafana** dashboards for **Infrastructure Health** (metrics) and **Application Telemetry** (trends). |
-| **Reliability** | Ensures durability via automated volume backups and idempotent collectors. |
+This section provides a deeper look into the system's structure, components, and data flow.
+
+### System Architecture Diagram
+
+This diagram shows the high-level flow of data from collection to visualization.
+
+```mermaid
+flowchart LR
+    subgraph "Data Sources"
+        A[External Apps] --> B(MongoDB Atlas);
+        C[Host Machine] --> D(system-metrics service);
+    end
+
+    subgraph "ETL & Storage (This Repo)"
+        B --> E(Go proxy service);
+        D --> F(PostgreSQL / TimescaleDB);
+        E --> F;
+    end
+
+    subgraph "Visualization & Logging"
+        F --> G(Grafana);
+        H(Loki);
+    end
+
+    G -- Screenshots --> I(Static Portfolio Site);
+```
+
+### Component Breakdown
+
+This table lists the main services and components within the observability hub, along with their responsibilities and location within the repository.
+
+| Service / Component | Responsibility | Location |
+| :------------------ | :------------- | :------- |
+| **system-metrics** | A lightweight Go collector that gathers CPU, memory, disk, and network stats. | `system-metrics/` |
+| **proxy** | A Go service acting as an API gateway and ETL engine for external data (e.g., MongoDB events). | `proxy/` |
+| **page** | A Go static-site generator that builds the public-facing portfolio page. | `page/` |
+| **PostgreSQL** | Primary time-series database for all metric and event data (with TimescaleDB and PostGIS extensions). | `docker-compose.yml` |
+| **Grafana** | Primary visualization and dashboarding tool. | `docker-compose.yml` |
+| **Loki** | Log aggregation system for all services. | `docker-compose.yml` |
+| **Promtail** | Agent that ships host and container logs to Loki. | `docker-compose.yml` |
+| **gitops-sync** | A `systemd` service that ensures the running state on the host matches the Git repository. | `systemd/` |
+| **Shared Libraries** | Reusable Go packages providing standardized logging, database connections, and common utilities. | `pkg/` |
+| **Automation Scripts** | Collection of `scripts/` for maintenance, setup, and operational tasks. | `scripts/` |
+
+### Data Flow
+
+The system processes two main types of data: application events and host system metrics.
+
+1. **Application Events:**
+    - External applications write event logs to a cloud-hosted MongoDB Atlas instance.
+    - The `proxy` service polls the MongoDB collection, performs necessary transformations, and writes the processed events to the PostgreSQL database.
+2. **Host System Metrics:**
+    - The `system-metrics` Go binary runs on the host machine, typically managed by `systemd`.
+    - It collects CPU, Memory, Disk, and Network statistics at regular intervals.
+    - The collected metrics are then written directly to the PostgreSQL database.
+3. **Visualization:**
+    - Grafana uses PostgreSQL as its primary data source to visualize both application events and system metrics on a unified set of dashboards, providing comprehensive insights.
+4. **Logging:**
+    - Currently, the `proxy` service and other host processes generate logs that are collected by Promtail and shipped to Loki for centralized log aggregation and querying.
+    - (Future improvement: Integrate `system-metrics` logs into Loki for comprehensive system-wide log aggregation.)
+
+For deep dives into the system's inner workings:
+
+- **[Detailed Architecture Docs](./docs/architecture/README.md)**: System context, component diagrams, and data flows.
+- **[Decision Records](./docs/decisions/README.md)**: Architectural Decision Records (ADRs) explaining the "Why" behind key technical choices.
 
 ---
 
-## 🚀 Explore the Live Site
+## 🚀 Getting Started (Local Development)
 
-[Explore Live Telemetry & System Evolution](https://victoriacheng15.github.io/observability-hub/)
+This guide will help you set up and run the `observability-hub` locally using Docker Compose.
+
+### Prerequisites
+
+Ensure you have the following installed on your system:
+
+- [Go](https://go.dev/doc/install) (version 1.21 or newer)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
+- `make` (GNU Make)
+
+### 1. Configuration
+
+The project uses a `.env` file to manage environment variables, especially for database connections and API keys.
+
+```bash
+# Start by copying the example file
+cp .env.example .env
+```
+
+You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL, and other services as required.
+
+### 2. Build and Run the Stack
+
+Bring up all services defined in `docker-compose.yml` with a single command:
+
+```bash
+make up
+```
+
+This command will:
+
+- Build all necessary Docker images for the Go services.
+- Start and provision all containerized services (PostgreSQL, Grafana, Loki, Promtail).
+- The `-d` flag runs the services in the background.
+
+To view the logs of all running services:
+
+```bash
+docker compose logs -f
+```
+
+### 3. Verification
+
+Once the services are up and running, you can verify their functionality:
+
+- **Grafana Dashboards:** Access Grafana at `http://localhost:3001`.
+  - Default login: `admin` / `grafana`
+  - You should see your provisioned data sources and dashboards.
+- **Static Portfolio Site:** The `page` service builds your public portfolio site into the `page/dist` directory. You can inspect the generated static HTML files there.
+
+### 4. Stopping the Stack
+
+To stop and remove all running services and their associated containers, volumes, and networks:
+
+```bash
+make down
+```

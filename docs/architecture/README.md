@@ -11,6 +11,7 @@ graph TD
     subgraph "Host Environment"
         Hardware[Host Hardware]
         Docker[Docker Containers]
+        GitOpsAgent[GitOps Reconciliation Agent]
     end
 
     subgraph "External Data"
@@ -46,6 +47,8 @@ graph TD
     Docker -->|Logs| Promtail
     Promtail -->|Pushes Logs| Loki
     
+    GitOpsAgent -->|Manages Code Synchronization| Hardware
+    
     PG -->|Query Metrics| Grafana
     Loki -->|Query Logs| Grafana
 ```
@@ -54,9 +57,10 @@ graph TD
 
 | Component | Description |
 | :----------- | :------------- |
-| **[Proxy Service](./proxy-service.md)** | Architecture of the Go-based API Gateway and ETL Engine. |
-| **[System Metrics](./system-metrics.md)** | Details on the custom host telemetry collector (`gopsutil`). |
+| **[Proxy Service](./proxy-service.md)** | Architecture of the Go-based API Gateway and ETL Engine. It bridges external data sources with the PostgreSQL. |
+| **[System Metrics](./system-metrics.md)** | Details on the custom host telemetry collector (`gopsutil`). Pushes data directly to the `system_metrics` table in PostgreSQL (TimescaleDB). |
 | **[Infrastructure](./infrastructure.md)** | Deployment (Docker), Storage (Postgres/Loki), and Security config. |
+| **[GitOps Reconciliation](./../decisions/005-gitops-reconciliation-engine.md)** | Systemd-driven agent for automated, self-healing repository synchronization. |
 
 ## Related Documentation
 
