@@ -67,3 +67,15 @@ else
     # INFO level can be filtered out in Grafana to reduce noise
     log "INFO" "Already in sync."
 fi
+
+# 3. Cleanup Logic (delete all local branches except main)
+log "INFO" "Cleaning up local branches..."
+
+LOCAL_BRANCHES=$(git branch --format='%(refname:short)' 2>/dev/null | grep -v '^main$' || true)
+if [[ -n "$LOCAL_BRANCHES" ]]; then
+    log "INFO" "Local branches to delete: ${LOCAL_BRANCHES}"
+    echo "$LOCAL_BRANCHES" | xargs -r git branch -D
+    log "SUCCESS" "Deleted local branches: ${LOCAL_BRANCHES}"
+else
+    log "INFO" "No local branches to delete"
+fi
