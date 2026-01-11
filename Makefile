@@ -1,6 +1,8 @@
 help:
 	@echo "Available commands:"
 	@echo "  make rfc                - Create a new RFC (Architecture Decision Record)"
+	@echo "  make up                 - Start all docker containers"
+	@echo "  make down               - Stop all docker containers"
 	@echo "  make create             - Create necessary docker volumes"
 	@echo "  make backup             - Backup docker volumes"
 	@echo "  make restore            - Restore docker volumes from backup"
@@ -19,6 +21,13 @@ help:
 # Architecture Decision Record Creation
 rfc:
 	@./scripts/create_rfc.sh
+
+# Docker Compose Management
+up:
+	@docker compose up -d
+
+down:
+	@docker compose down
 
 # Docker Volume Management
 create:

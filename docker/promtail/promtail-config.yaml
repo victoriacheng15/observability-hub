@@ -13,7 +13,6 @@ scrape_configs:
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
-    
     # Pipeline stages parse the content of the log line
     pipeline_stages:
       - json:
@@ -53,3 +52,25 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_id']
         target_label: '__path__'
         replacement: '/var/lib/docker/containers/$1/*-json.log'
+  - job_name: systemd-journal
+    journal:
+      max_age: 48h
+      path: /var/log/journal
+      labels:
+        job: systemd-journal
+    relabel_configs:
+      # Extract the Systemd Unit name (e.g., gitops-sync@observability-hub.service)
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+    pipeline_stages:
+      # 1. Filter: Drop everything NOT from our custom project services
+      - match:
+          selector: '{unit!~"(gitops-sync@.+|reading-sync|system-metrics).service"}'
+          action: drop
+      # 2. Parse: Extract our custom Logfmt fields
+      - regex:
+          expression: 'repo=(?P<repo>\S+) level=(?P<level>\S+) msg="(?P<msg>.*)"'
+      # 3. Label: Promote extracted fields to indexed labels for Grafana querying
+      - labels:
+          repo:
+          level:

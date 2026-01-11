@@ -106,3 +106,8 @@ evolution:
       description: |
         - Implemented a secure GitOps reconciliation engine using templated Systemd units (@) to automate repository synchronization.
         - Adopted an "Allowlist" pattern for repository access control and "Logfmt" for native observability integration.
+    - date: "2026-01-11"
+      title: "Initial Systemd Log Ingestion via Promtail" 
+      description: |
+        - Established a pipeline to ingest systemd journal logs into Loki using Promtail, providing foundational observability for host-level services.
+        - Implemented initial log parsing and labeling for key systemd units (gitops-sync, reading-sync, and system-metrics).
