@@ -41,12 +41,6 @@ fi
 # 2. Sync Logic
 cd "$REPO_PATH"
 
-# Safety Barrier: Check for uncommitted changes
-if [[ -n $(git status --porcelain) ]]; then
-    log "ERROR" "Uncommitted changes detected. Aborting sync to prevent data loss."
-    exit 1
-fi
-
 TARGET_BRANCH="main"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
