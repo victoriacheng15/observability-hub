@@ -13,7 +13,7 @@
 
 {{define "content"}}
 <section class="features" aria-label="Key Features">
-    {{range .Landing.Features}}
+    {{range .Landing.Philosophy}}
     <article class="feature-card">
         <div class="feature-icon" aria-hidden="true">
              {{if eq .Icon "rocket"}}🚀{{else if eq .Icon "database"}}💾{{else if eq .Icon "chart-line"}}📈{{else}}✨{{end}}

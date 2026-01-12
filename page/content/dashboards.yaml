@@ -1,0 +1,16 @@
+page_title: "System Dashboards"
+categories:
+  - name: "Personal Reading Analytics Dashboard"
+    items:
+      - caption: "Last 7 Days: Weekly Overview"
+        image_path: "assets/img/reading-analytics/2026-01-09_reading_analytics_7d.png"
+      - caption: "Last 30 Days: Monthly Overview"
+        image_path: "assets/img/reading-analytics/2026-01-09_reading_analytics_30d.png"
+  - name: "System Metrics"
+    items:
+      - caption: "Last 30 Minutes: Granular Real-time Analysis"
+        image_path: "assets/img/system-metrics/2026-01-02_system_metrics_30m.png"
+      - caption: "Last 24 Hours: Daily Trends & Peak Usage"
+        image_path: "assets/img/system-metrics/2026-01-02_system_metrics_24h.png"
+      - caption: "Last 7 Days: Capacity Planning & Weekly Patterns"
+        image_path: "assets/img/system-metrics/2026-01-02_system_metrics_7d.png"

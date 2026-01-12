@@ -32,9 +32,9 @@ type Hero struct {
 }
 
 type Landing struct {
-	PageTitle string    `yaml:"page_title"`
-	Hero      Hero      `yaml:"hero"`
-	Features  []Feature `yaml:"features"`
+	PageTitle  string    `yaml:"page_title"`
+	Hero       Hero      `yaml:"hero"`
+	Philosophy []Feature `yaml:"philosophy"`
 }
 
 type Artifact struct {
@@ -54,7 +54,7 @@ type Event struct {
 type Evolution struct {
 	PageTitle string  `yaml:"page_title"`
 	IntroText string  `yaml:"intro_text"`
-	Events    []Event `yaml:"events"`
+	Timeline  []Event `yaml:"timeline"`
 }
 
 type DashboardItem struct {
@@ -73,9 +73,10 @@ type Dashboards struct {
 }
 
 type SiteData struct {
-	Landing    Landing    `yaml:"landing"`
-	Evolution  Evolution  `yaml:"evolution"`
-	Dashboards Dashboards `yaml:"dashboards"`
+	Landing    Landing
+	Evolution  Evolution
+	Dashboards Dashboards
+	Year       int
 }
 
 // --- Main Logic ---
@@ -91,65 +92,73 @@ func main() {
 
 	// 2. Copy Assets
 	if err := copyDir("assets", "dist/assets"); err != nil {
-		// It's okay if assets dir doesn't exist yet, just log it
 		log.Printf("Warning copying assets: %v", err)
 	}
 
-	// 3. Load Data
-	data, err := loadData("content/data.yaml")
-	if err != nil {
-		log.Fatalf("Failed to load data: %v", err)
+	// 3. Load Modular Data
+	var data SiteData
+	data.Year = time.Now().Year()
+
+	configs := []struct {
+		path string
+		dest interface{}
+	}{
+		{"content/landing.yaml", &data.Landing},
+		{"content/dashboards.yaml", &data.Dashboards},
+		{"content/evolution.yaml", &data.Evolution},
+	}
+
+	for _, cfg := range configs {
+		if err := loadYaml(cfg.path, cfg.dest); err != nil {
+			log.Fatalf("Critical data failure loading %s: %v", cfg.path, err)
+		}
 	}
 
 	// Process Descriptions and Dates
-	for i := range data.Evolution.Events {
+	for i := range data.Evolution.Timeline {
 		// 1. Process description lines
-		lines := strings.Split(data.Evolution.Events[i].Description, "\n")
+		lines := strings.Split(data.Evolution.Timeline[i].Description, "\n")
 		var cleanLines []string
 		for _, line := range lines {
 			trimmed := strings.TrimSpace(line)
 			if trimmed != "" {
-				// Remove leading dash if present
 				cleanLines = append(cleanLines, strings.TrimPrefix(trimmed, "- "))
 			}
 		}
-		data.Evolution.Events[i].DescriptionLines = cleanLines
+		data.Evolution.Timeline[i].DescriptionLines = cleanLines
 
 		// 2. Process and format date
-		t, err := time.Parse("2006-01-02", data.Evolution.Events[i].Date)
+		t, err := time.Parse("2006-01-02", data.Evolution.Timeline[i].Date)
 		if err != nil {
-			// Fallback to raw string if parsing fails
-			log.Printf("Warning: failed to parse date %s: %v", data.Evolution.Events[i].Date, err)
-			data.Evolution.Events[i].FormattedDate = data.Evolution.Events[i].Date
+			log.Printf("Warning: failed to parse date %s: %v", data.Evolution.Timeline[i].Date, err)
+			data.Evolution.Timeline[i].FormattedDate = data.Evolution.Timeline[i].Date
 		} else {
-			data.Evolution.Events[i].FormattedDate = t.Format("Jan 02, 2006")
+			data.Evolution.Timeline[i].FormattedDate = t.Format("Jan 02, 2006")
 		}
 	}
 
-	// Reverse Evolution Events (Newest First)
-	slices.Reverse(data.Evolution.Events)
+	// Reverse Timeline (Newest First)
+	slices.Reverse(data.Evolution.Timeline)
 
 	// 4. Render Pages
-	renderPage("index.html", "templates/index.html", data)
-	renderPage("evolution.html", "templates/evolution.html", data)
-	renderPage("dashboards.html", "templates/dashboards.html", data)
+	renderPage("index.html", "templates/index.html", &data)
+	renderPage("evolution.html", "templates/evolution.html", &data)
+	renderPage("dashboards.html", "templates/dashboards.html", &data)
 
 	fmt.Println("Site generated successfully in dist/")
 }
 
-func loadData(path string) (*SiteData, error) {
+func loadYaml(path string, out interface{}) error {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to open %s: %w", path, err)
 	}
 	defer f.Close()
 
-	var data SiteData
-	dec := yaml.NewDecoder(f)
-	if err := dec.Decode(&data); err != nil {
-		return nil, err
+	if err := yaml.NewDecoder(f).Decode(out); err != nil {
+		return fmt.Errorf("failed to decode %s: %w", path, err)
 	}
-	return &data, nil
+	return nil
 }
 
 func renderPage(outFile, tplFile string, data *SiteData) {
