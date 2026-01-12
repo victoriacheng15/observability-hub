@@ -23,7 +23,10 @@ Before committing to a full GitOps engine, the Systemd Timer approach was valida
 
 To maintain simplicity and ensure stability, the rollout follows a structured three-phase roadmap:
 
-- **Phase 1: Observability Hub Sync:** Initial rollout focusing exclusively on automating `git pull` for the `observability-hub` repository. This validates the Systemd/Bash mechanism and eliminates the manual overhead for the core platform.
+- **Phase 1: Observability Hub Sync:** Initial rollout focusing exclusively on automating `git pull` for the `observability-hub` repository. This validates the Systemd/Bash mechanism and eliminates the manual overhead for the core platform. (Updated: 2026-01-12)
+  - **State Enforcement:** Automatically validates and switches to the `main` branch to prevent drift.
+  - **Hygiene:** Implements automated cleanup of local branches (pruning) to maintain host cleanliness.
+  - **Safety Barriers:** Aborts operation if uncommitted changes are detected to prevent data loss.
 - **Phase 2: Project Expansion:** Expand the automated synchronization mechanism to other repositories within the homelab environment using Systemd templates.
 - **Phase 3: State Enforcement (Docker):** Once the synchronization mechanism is stable across all repositories, the agent will be expanded to trigger service restarts (e.g., `docker compose up -d`) to apply configuration changes automatically.
 
