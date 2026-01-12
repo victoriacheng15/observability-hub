@@ -67,10 +67,15 @@ scrape_configs:
       - match:
           selector: '{unit!~"(gitops-sync@.+|reading-sync|system-metrics).service"}'
           action: drop
-      # 2. Parse: Extract our custom Logfmt fields
-      - regex:
-          expression: 'repo=(?P<repo>\S+) level=(?P<level>\S+) msg="(?P<msg>.*)"'
-      # 3. Label: Promote extracted fields to indexed labels for Grafana querying
+      # 2. Parse: Expect JSON from all our services (Go & Bash)
+      - json:
+          expressions:
+            level: level
+            service: service
+            msg: msg
+            repo: repo
+      # 3. Label: Promote fields to indexed labels
       - labels:
-          repo:
           level:
+          service:
+          repo:
