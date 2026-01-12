@@ -75,8 +75,6 @@ else
 fi
 
 # 3. Cleanup Logic (delete all local branches except main)
-log "INFO" "Cleaning up local branches..."
-
 LOCAL_BRANCHES=$(git branch --format='%(refname:short)' 2>/dev/null | grep -v '^main$' || true)
 if [[ -n "$LOCAL_BRANCHES" ]]; then
     log "INFO" "Local branches to delete: ${LOCAL_BRANCHES}"
