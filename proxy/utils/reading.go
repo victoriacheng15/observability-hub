@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,7 +29,7 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	ctx := context.TODO()
 
 	if err := s.ensureReadingAnalyticsTable(); err != nil {
-		log.Printf("❌ ETL_ERROR: Failed to create reading_analytics table: %v", err)
+		slog.Error("ETL_ERROR: Failed to create reading_analytics table", "error", err)
 		http.Error(w, "Failed to ensure database schema", 500)
 		return
 	}
@@ -37,7 +37,7 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	coll := s.getMongoCollection()
 	cursor, err := s.fetchIngestedDocuments(ctx, coll)
 	if err != nil {
-		log.Printf("❌ ETL_ERROR: Failed to query Mongo: %v", err)
+		slog.Error("ETL_ERROR: Failed to query Mongo", "error", err)
 		http.Error(w, "Failed to query Mongo", 500)
 		return
 	}
@@ -45,7 +45,7 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 
 	processedCount := s.processDocuments(ctx, cursor, coll)
 
-	log.Printf("✅ ETL_SUCCESS: Processed batch of %d documents", processedCount)
+	slog.Info("ETL_SUCCESS: Processed batch", "count", processedCount)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":          "success",
@@ -93,23 +93,23 @@ func (s *ReadingService) processDocuments(ctx context.Context, cursor *mongo.Cur
 	for cursor.Next(ctx) {
 		var doc bson.M
 		if err := cursor.Decode(&doc); err != nil {
-			log.Printf("⚠️ ETL_WARN: Failed to decode document: %v", err)
+			slog.Warn("ETL_WARN: Failed to decode document", "error", err)
 			continue
 		}
 
 		objID, ok := doc["_id"].(primitive.ObjectID)
 		if !ok {
-			log.Printf("⚠️ ETL_WARN: Document missing ObjectID")
+			slog.Warn("ETL_WARN: Document missing ObjectID")
 			continue
 		}
 
 		if err := s.insertIntoPostgres(doc, objID); err != nil {
-			log.Printf("❌ ETL_ERROR: Failed to insert into Postgres (ID: %s): %v", objID.Hex(), err)
+			slog.Error("ETL_ERROR: Failed to insert into Postgres", "id", objID.Hex(), "error", err)
 			continue
 		}
 
 		if err := s.updateMongoStatus(ctx, coll, objID); err != nil {
-			log.Printf("⚠️ ETL_WARN: Failed to update Mongo status (ID: %s): %v", objID.Hex(), err)
+			slog.Warn("ETL_WARN: Failed to update Mongo status", "id", objID.Hex(), "error", err)
 		} else {
 			processedCount++
 		}

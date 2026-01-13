@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"bytes"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -136,6 +139,50 @@ func TestSyncReadingHandler(t *testing.T) {
 
 		if w.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", w.Code)
+		}
+	})
+
+	mt.Run("log_error_on_create_table_failure", func(mt *mtest.T) {
+		// Capture logs
+		var buf bytes.Buffer
+		// Save original logger to restore later (although tests run in parallel, this might be risky if parallel=true, but here it is sequential per function usually unless t.Parallel() is called)
+		// Since we are modifying a global, we should be careful.
+		// For this specific test, we replace the default logger.
+		origLogger := slog.Default()
+		defer slog.SetDefault(origLogger)
+
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+
+		service := &ReadingService{
+			DB:          db,
+			MongoClient: mt.Client,
+		}
+
+		// 1. Postgres: Create Table FAILS
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
+			WillReturnError(errors.New("db connection lost"))
+
+		// --- EXECUTION ---
+		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
+		w := httptest.NewRecorder()
+
+		service.SyncReadingHandler(w, req)
+
+		// --- ASSERTIONS ---
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", w.Code)
+		}
+
+		// Check if log contains the expected error message
+		logOutput := buf.String()
+		expectedLogPart := "ETL_ERROR: Failed to create reading_analytics table"
+		if !bytes.Contains(buf.Bytes(), []byte(expectedLogPart)) {
+			t.Errorf("expected log to contain %q, got %q", expectedLogPart, logOutput)
+		}
+
+		// Verify Postgres expectations
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("there were unfulfilled Postgres expectations: %s", err)
 		}
 	})
 }
