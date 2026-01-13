@@ -65,7 +65,7 @@ scrape_configs:
     pipeline_stages:
       # 1. Filter: Drop everything NOT from our custom project services
       - match:
-          selector: '{unit!~"(gitops-sync@.+|reading-sync|system-metrics).service"}'
+          selector: '{unit!~"(gitops-sync@.+|proxy|system-metrics).service"}'
           action: drop
       # 2. Parse: Expect JSON from all our services (Go & Bash)
       - json:
