@@ -16,12 +16,14 @@ The infrastructure layer manages storage, log aggregation, and visualization, or
 
 ```mermaid
 sequenceDiagram
-    participant Apps as Apps/Containers
+    participant Containers as Docker Containers
+    participant Systemd as Systemd Services
     participant Promtail as Promtail
     participant Loki as Loki
     participant Grafana as Grafana
 
-    Apps->>Promtail: Write to stdout/stderr
+    Containers->>Promtail: Write stdout/stderr
+    Systemd->>Promtail: Write Journal Logs
     Promtail->>Loki: Push logs with labels
     Grafana->>Loki: LogQL Query
     Loki-->>Grafana: Return log streams

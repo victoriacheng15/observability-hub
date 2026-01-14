@@ -38,23 +38,38 @@ This diagram shows the high-level flow of data from collection to visualization.
 
 ```mermaid
 flowchart LR
-    subgraph "Data Sources"
-        A[External Apps] --> B(MongoDB Atlas);
-        C[Host Machine] --> D(system-metrics service);
+    subgraph "External Sources"
+        Apps
+        Mongo(MongoDB Atlas)
     end
 
-    subgraph "ETL & Storage (This Repo)"
-        B --> E(Go proxy service);
-        D --> F(PostgreSQL / TimescaleDB);
-        E --> F;
+    subgraph "Internal Services"
+        DS[Docker Services]
+        SS[Systemd Services]
     end
 
-    subgraph "Visualization & Logging"
-        F --> G(Grafana);
-        H(Loki);
+    subgraph "Storage & Logs"
+        PG(PostgreSQL)
+        P(Promtail)
+        L(Loki)
     end
 
-    G -- Screenshots --> I(Static Portfolio Site);
+    subgraph Visualization
+        G(Grafana)
+    end
+
+    %% Data Pipeline
+    Apps -- Events --> Mongo
+    Mongo -- Pull --> DS
+    DS -- Write --> PG
+    SS -- Metrics --> PG
+    PG --> G
+
+    %% Logging Pipeline
+    DS -- Logs --> P
+    SS -- Logs --> P
+    P --> L
+    L --> G
 ```
 
 ### Component Breakdown
@@ -71,25 +86,35 @@ This table lists the main services and components within the observability hub, 
 | **Loki** | Log aggregation system for all services. | `docker-compose.yml` |
 | **Promtail** | Agent that ships host and container logs to Loki. | `docker-compose.yml` |
 | **gitops-sync** | A `systemd` service that ensures the running state on the host matches the Git repository. | `systemd/` |
+| **reading-sync** | A `systemd` service that periodically triggers the `proxy` ETL process via API. | `systemd/` |
 | **Shared Libraries** | Reusable Go packages providing standardized logging, database connections, and common utilities. | `pkg/` |
 | **Automation Scripts** | Collection of `scripts/` for maintenance, setup, and operational tasks. | `scripts/` |
+
+### External Dependencies
+
+These components exist outside this repository but are integral to the data pipeline:
+
+| Dependency | Role |
+| :--- | :--- |
+| **Client Applications** | Sources of event data (e.g., Cover Craft, Personal Reading Analytics). |
+| **MongoDB Atlas** | Interim cloud storage used as a buffer/queue for external event logs. |
 
 ### Data Flow
 
 The system processes two main types of data: application events and host system metrics.
 
-1. **Application Events:**
-    - External applications write event logs to a cloud-hosted MongoDB Atlas instance.
-    - The `proxy` service polls the MongoDB collection, performs necessary transformations, and writes the processed events to the PostgreSQL database.
+1. **Application Events (ETL Pipeline):**
+    - **Source:** Client Applications (e.g., Cover Craft, Personal Reading Analytics Dashboard) write raw event logs to **MongoDB Atlas** (cloud).
+    - **Ingestion:** The **reading-sync** service periodically triggers the **proxy** service.
+    - **Transformation:** The **proxy** fetches new data from MongoDB, transforms it, and persists structured records into **PostgreSQL**.
 2. **Host System Metrics:**
-    - The `system-metrics` Go binary runs on the host machine, typically managed by `systemd`.
-    - It collects CPU, Memory, Disk, and Network statistics at regular intervals.
-    - The collected metrics are then written directly to the PostgreSQL database.
+    - The **system-metrics** service (running on the host) collects CPU, Memory, Disk, and Network statistics.
+    - Metrics are flushed directly to **PostgreSQL** at regular intervals.
 3. **Visualization:**
-    - Grafana uses PostgreSQL as its primary data source to visualize both application events and system metrics on a unified set of dashboards, providing comprehensive insights.
+    - **Grafana** queries **PostgreSQL** to visualize both application events and system health on unified dashboards.
 4. **Logging:**
-    - Currently, the `proxy` service and other host processes generate logs that are collected by Promtail and shipped to Loki for centralized log aggregation and querying.
-    - (Future improvement: Integrate `system-metrics` logs into Loki for comprehensive system-wide log aggregation.)
+    - **Unified Aggregation:** **Promtail** tails logs from Docker containers (like `proxy`) and Systemd units (like `system-metrics`).
+    - **Centralized Storage:** Logs are shipped to **Loki** and linked to metrics in Grafana for seamless correlation.
 
 For deep dives into the system's inner workings:
 
