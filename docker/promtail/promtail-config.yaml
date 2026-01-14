@@ -62,19 +62,24 @@ scrape_configs:
       # Extract the Systemd Unit name (e.g., gitops-sync@observability-hub.service)
       - source_labels: ['__journal__systemd_unit']
         target_label: 'unit'
+      # 1. Early Drop: Only keep logs from our custom services
+      - source_labels: ['unit']
+        regex: '(gitops-sync@.+|reading-sync|system-metrics)\.service'
+        action: keep
+      # 2. Robustness: Derive 'service' label directly from the Unit name
+      - source_labels: ['unit']
+        regex: '(gitops-sync|reading-sync|system-metrics).*'
+        target_label: 'service'
+        replacement: '$1'
     pipeline_stages:
-      # 1. Filter: Drop everything NOT from our custom project services
-      - match:
-          selector: '{unit!~"(gitops-sync@.+|proxy|system-metrics).service"}'
-          action: drop
-      # 2. Parse: Expect JSON from all our services (Go & Bash)
+      # Parse: Expect JSON from all our services (Go & Bash)
       - json:
           expressions:
             level: level
             service: service
             msg: msg
             repo: repo
-      # 3. Label: Promote fields to indexed labels
+      # Label: Promote fields to indexed labels
       - labels:
           level:
           service:

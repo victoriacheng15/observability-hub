@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,7 +27,7 @@ func (s *ReadingService) ReadingHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.TODO()
+	ctx := r.Context()
 
 	if err := s.ensureReadingAnalyticsTable(); err != nil {
 		slog.Error("ETL_ERROR: Failed to create reading_analytics table", "error", err)
@@ -45,12 +46,18 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 
 	processedCount := s.processDocuments(ctx, cursor, coll)
 
-	slog.Info("ETL_SUCCESS: Processed batch", "count", processedCount)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	res := map[string]interface{}{
+		"service":         "reading-sync",
 		"status":          "success",
 		"processed_count": processedCount,
-	})
+		"timestamp":       time.Now().UTC(),
+	}
+
+	slog.Info("ETL_SUCCESS: Processed batch", "details", res)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(res)
 }
 
 func (s *ReadingService) ensureReadingAnalyticsTable() error {
