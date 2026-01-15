@@ -71,6 +71,9 @@ timeline:
       - Implemented initial log parsing and labeling for key systemd units (gitops-sync, reading-sync, and system-metrics).
   - date: "2026-01-14"
     title: "Phase 2 Kickoff: Multi-Repo Expansion"
+    artifacts:
+      - name: "RFC 005: GitOps Reconciliation"
+        url: "docs/decisions/005-gitops-reconciliation-engine.md"
     description: |
       - Expanded the GitOps reliability boundary to include the 'mehub' repository, validating the multi-tenant capability of the sync engine.
       - Optimized the reconciliation interval from 5m to 15m to balance freshness with operational stability.
