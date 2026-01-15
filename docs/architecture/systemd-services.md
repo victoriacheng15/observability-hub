@@ -18,7 +18,7 @@ The system consists of three main service families, each with a `.service` unit 
 | **`reading-sync`** | `oneshot` | Daily (10:00 AM) | **ETL Trigger**: Calls the Proxy Service API (`/api/sync/reading`) to sync MongoDB data to Postgres. |
 | **`system-metrics`** | `oneshot` | Every 1 min | **Telemetry**: Collects host hardware stats (CPU/RAM/Disk/Net) and flushes them to the database. |
 
-## Operational Excellence (Senior+ Patterns)
+## Operational Excellence
 
 Our systemd configurations employ several production-grade patterns:
 
