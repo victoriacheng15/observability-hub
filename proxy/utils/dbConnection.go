@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
+	"db"
+
 	_ "github.com/lib/pq"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"db"
 )
 
 func getEnv(key, fallback string) string {
@@ -57,7 +57,11 @@ func InitPostgres(driverName string) *sql.DB {
 }
 
 func InitMongo() *mongo.Client {
-	mongoURI := getRequiredEnv("MONGO_URI")
+	mongoURI, err := db.GetMongoURI()
+	if err != nil {
+		slog.Error("db_config_failed", "error", err)
+		os.Exit(1)
+	}
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
 	if err != nil {

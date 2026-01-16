@@ -22,7 +22,7 @@ func TestHomeHandler(t *testing.T) {
 			path:                "/",
 			expectedStatus:      http.StatusOK,
 			expectedContentType: "application/json",
-			expectedMessage:     "Welcome to the Observability Platform.",
+			expectedMessage:     "Welcome to the Observability Hub.",
 		},
 	}
 

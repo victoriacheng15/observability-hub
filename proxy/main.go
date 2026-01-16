@@ -5,9 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"proxy/utils"
-
 	"logger"
+	"proxy/utils"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -20,12 +19,12 @@ func main() {
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 
-	db := utils.InitPostgres("postgres")
+	dbPostgres := utils.InitPostgres("postgres")
 	mongoClient := utils.InitMongo()
 
 	// Initialize the reading service
 	readingService := &utils.ReadingService{
-		DB:          db,
+		DB:          dbPostgres,
 		MongoClient: mongoClient,
 	}
 

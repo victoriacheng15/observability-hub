@@ -6,14 +6,16 @@ import (
 	"strings"
 )
 
-// GetPostgresDSN returns the formatted connection string based on environment variables.
-// It prioritizes DATABASE_URL if set. Otherwise, it constructs the DSN from:
-// DB_HOST, DB_PORT, DB_USER, SERVER_DB_PASSWORD, DB_NAME.
-// It enforces critical defaults like timezone=UTC and sslmode=disable.
+func GetMongoURI() (string, error) {
+	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		return "", fmt.Errorf("missing required environment variable: MONGO_URI")
+	}
+	return uri, nil
+}
+
 func GetPostgresDSN() (string, error) {
 	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
-		// If DATABASE_URL is provided, we assume it's correctly formatted.
-		// We could append defaults, but usually DATABASE_URL is self-contained.
 		return dsn, nil
 	}
 
