@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"page/schema"
 )
 
 func TestLoadYaml(t *testing.T) {
@@ -33,7 +35,7 @@ principles:
 		}
 		tmpFile.Close()
 
-		var landing Landing
+		var landing schema.Landing
 		if err := loadYaml(tmpFile.Name(), &landing); err != nil {
 			t.Fatalf("loadYaml failed for landing: %v", err)
 		}
@@ -66,7 +68,7 @@ timeline:
 		}
 		tmpFile.Close()
 
-		var evolution Evolution
+		var evolution schema.Evolution
 		if err := loadYaml(tmpFile.Name(), &evolution); err != nil {
 			t.Fatalf("loadYaml failed for evolution: %v", err)
 		}
@@ -318,8 +320,8 @@ func TestRenderPage(t *testing.T) {
 			}
 
 			// Mock SiteData
-			mockData := &SiteData{
-				Landing: Landing{
+			mockData := &schema.SiteData{
+				Landing: schema.Landing{
 					PageTitle: tc.mockDataTitle,
 				},
 			}

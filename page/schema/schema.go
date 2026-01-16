@@ -1,4 +1,4 @@
-package main
+package schema
 
 // SnapshotItem represents a single snapshot image with its caption and path.
 type SnapshotItem struct {

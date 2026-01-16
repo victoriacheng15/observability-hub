@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"page/schema"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,7 +31,7 @@ func main() {
 	}
 
 	// 3. Load Modular Data
-	var data SiteData
+	var data schema.SiteData
 	data.Year = time.Now().Year()
 
 	configs := []struct {
@@ -100,7 +102,7 @@ func loadYaml(path string, out interface{}) error {
 	return nil
 }
 
-func renderPage(outFile, tplFile string, data *SiteData) error {
+func renderPage(outFile, tplFile string, data *schema.SiteData) error {
 	// Always parse base.html + the specific page template
 	tmpl, err := template.ParseFiles("templates/base.html", tplFile)
 	if err != nil {
