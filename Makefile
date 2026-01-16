@@ -61,7 +61,7 @@ go-cov:
 # GitHub Pages Build
 page-build:
 	@echo "Running page build..."
-	@cd page && go build -o page.exe ./main.go && ./page.exe
+	@cd page && go build -o page.exe . && ./page.exe && rm page.exe
 
 # System Metrics Collector
 metrics-build:

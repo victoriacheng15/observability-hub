@@ -5,8 +5,8 @@ hero:
   cta_text: "See the Journey"
   cta_link: "evolution.html"
   cta2_text: "View Dashboards"
-  cta2_link: "dashboards.html"
-philosophy:
+  cta2_link: "snapshots.html"
+principles:
   - title: "Unified Observability"
     description: "Eliminates data silos by correlating host metrics with application events, providing a 'Golden Path' for platform-wide telemetry."
     icon: "chart-line"
