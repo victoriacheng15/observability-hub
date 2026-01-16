@@ -400,6 +400,14 @@
             transform: rotate(90deg);
         }
 
+        .snapshot-item {
+            padding: var(--space-md);
+        }
+
+        .snapshot-caption {
+            margin-bottom: var(--space-md);
+        }
+
         .dashboard-image-wrapper {
             padding: 0 var(--space-md) var(--space-md) var(--space-md);
             border-top: 1px solid var(--border-light);
@@ -409,6 +417,38 @@
                 border-radius: calc(var(--radius-main) / 2);
                 border: 1px solid var(--border-light);
                 width: 100%;
+            }
+        }
+    
+        .status-card {
+            background: var(--card-bg);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-main);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-xxl);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            box-shadow: 0 4px 6px -1px var(--shadow);
+
+            .status-item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+                align-items: center;
+
+                .status-label {
+                    font-size: var(--font-sm);
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+            
+                .status-value {
+                    font-size: var(--font-lg);
+                    font-weight: bold;
+                    color: var(--primary);
+                }
             }
         }
     </style>
@@ -421,7 +461,7 @@
                 <a href="index.html" class="logo" style="color: var(--white); text-decoration: none;">{{ .Landing.PageTitle }}</a>
                 <ul>
                     <li><a href="index.html">Home</a></li>
-                    <li><a href="dashboards.html">Dashboards</a></li>
+                    <li><a href="snapshots.html">Snapshots</a></li>
                     <li><a href="evolution.html">Evolution</a></li>
                 </ul>
             </nav>

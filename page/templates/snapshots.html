@@ -1,0 +1,50 @@
+{{define "title"}}{{ .Snapshots.PageTitle }}{{end}}
+
+{{define "header_extra"}}
+<div class="hero">
+    <h1>{{ .Snapshots.PageTitle }}</h1>
+</div>
+{{end}}
+
+{{define "content"}}
+<section class="status-card-section" aria-label="Snapshot Status">
+    <div class="status-card">
+        <div class="status-item">
+            <span class="status-label">Last Updated</span>
+            <span class="status-value">{{ .Snapshots.LastUpdated }}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Next Update</span>
+            <span class="status-value">{{ .Snapshots.NextUpdate }}</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Report Window</span>
+            <span class="status-value">{{ .Snapshots.ReportWindow }}</span>
+        </div>
+    </div>
+</section>
+
+{{range .Snapshots.Categories}}
+<section class="dashboard-category" aria-label="{{ .Name }}">
+    <h2>{{ .Name }}</h2>
+    
+    {{range .History}}
+    <details class="dashboard-item">
+        <summary class="dashboard-summary"><h3>{{ .Period }}</h3></summary>
+        <div class="dashboard-grid">
+            {{range .Items}}
+            <div class="snapshot-item">
+                <figure>
+                    <figcaption class="snapshot-caption">{{ .Caption }}</figcaption>
+                    <div class="snapshot-image-wrapper">
+                        <img src="{{ .ImagePath }}" alt="{{ .Caption }}" loading="lazy">
+                    </div>
+                </figure>
+            </div>
+            {{end}}
+        </div>
+    </details>
+    {{end}}
+</section>
+{{end}}
+{{end}}

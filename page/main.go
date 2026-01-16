@@ -14,73 +14,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// --- Data Models ---
-
-type Feature struct {
-	Title       string `yaml:"title"`
-	Description string `yaml:"description"`
-	Icon        string `yaml:"icon"`
-}
-
-type Hero struct {
-	Title    string `yaml:"title"`
-	Subtitle string `yaml:"subtitle"`
-	CtaText  string `yaml:"cta_text"`
-	CtaLink  string `yaml:"cta_link"`
-	Cta2Text string `yaml:"cta2_text"`
-	Cta2Link string `yaml:"cta2_link"`
-}
-
-type Landing struct {
-	PageTitle  string    `yaml:"page_title"`
-	Hero       Hero      `yaml:"hero"`
-	Philosophy []Feature `yaml:"philosophy"`
-}
-
-type Artifact struct {
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
-}
-
-type Event struct {
-	Date             string     `yaml:"date"`
-	Title            string     `yaml:"title"`
-	Description      string     `yaml:"description"`
-	DescriptionLines []string   `yaml:"-"`
-	FormattedDate    string     `yaml:"-"`
-	Artifacts        []Artifact `yaml:"artifacts"`
-}
-
-type Evolution struct {
-	PageTitle string  `yaml:"page_title"`
-	IntroText string  `yaml:"intro_text"`
-	Timeline  []Event `yaml:"timeline"`
-}
-
-type DashboardItem struct {
-	Caption   string `yaml:"caption"`
-	ImagePath string `yaml:"image_path"`
-}
-
-type DashboardCategory struct {
-	Name  string          `yaml:"name"`
-	Items []DashboardItem `yaml:"items"`
-}
-
-type Dashboards struct {
-	PageTitle  string              `yaml:"page_title"`
-	Categories []DashboardCategory `yaml:"categories"`
-}
-
-type SiteData struct {
-	Landing    Landing
-	Evolution  Evolution
-	Dashboards Dashboards
-	Year       int
-}
-
-// --- Main Logic ---
-
 func main() {
 	// 1. Cleanup dist
 	if err := os.RemoveAll("dist"); err != nil {
@@ -104,7 +37,7 @@ func main() {
 		dest interface{}
 	}{
 		{"content/landing.yaml", &data.Landing},
-		{"content/dashboards.yaml", &data.Dashboards},
+		{"content/snapshots.yaml", &data.Snapshots},
 		{"content/evolution.yaml", &data.Evolution},
 	}
 
@@ -141,9 +74,15 @@ func main() {
 	slices.Reverse(data.Evolution.Timeline)
 
 	// 4. Render Pages
-	renderPage("index.html", "templates/index.html", &data)
-	renderPage("evolution.html", "templates/evolution.html", &data)
-	renderPage("dashboards.html", "templates/dashboards.html", &data)
+	if err := renderPage("index.html", "templates/index.html", &data); err != nil {
+		log.Fatalf("Failed to render index.html: %v", err)
+	}
+	if err := renderPage("evolution.html", "templates/evolution.html", &data); err != nil {
+		log.Fatalf("Failed to render evolution.html: %v", err)
+	}
+	if err := renderPage("snapshots.html", "templates/snapshots.html", &data); err != nil {
+		log.Fatalf("Failed to render snapshots.html: %v", err)
+	}
 
 	fmt.Println("Site generated successfully in dist/")
 }
@@ -161,23 +100,25 @@ func loadYaml(path string, out interface{}) error {
 	return nil
 }
 
-func renderPage(outFile, tplFile string, data *SiteData) {
+func renderPage(outFile, tplFile string, data *SiteData) error {
 	// Always parse base.html + the specific page template
 	tmpl, err := template.ParseFiles("templates/base.html", tplFile)
 	if err != nil {
-		log.Fatalf("Failed to parse templates for %s: %v", outFile, err)
+		return fmt.Errorf("failed to parse templates for %s: %w", outFile, err)
 	}
 
 	f, err := os.Create(filepath.Join("dist", outFile))
 	if err != nil {
-		log.Fatalf("Failed to create output file %s: %v", outFile, err)
+		return fmt.Errorf("failed to create output file %s: %w", outFile, err)
 	}
 	defer f.Close()
 
 	// Execute "base" which should include the specific page content
 	if err := tmpl.ExecuteTemplate(f, "base", data); err != nil {
-		log.Fatalf("Failed to execute template %s: %v", outFile, err)
+		return fmt.Errorf("failed to execute template %s: %w", outFile, err)
 	}
+
+	return nil
 }
 
 // copyDir recursively copies a directory tree, attempting to preserve permissions.
