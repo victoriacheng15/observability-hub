@@ -1,6 +1,6 @@
 # Self-Hosted Observability Hub
 
-A **production-grade telemetry platform** architected to demonstrate **SRE & Platform Engineering principles**: full-stack observability, **GitOps-driven infrastructure**, and standardized data ingestion. It unifies **system metrics**, **application events**, and **logs** into a single queryable layer using **PostgreSQL (TimescaleDB)** and **Loki**, visualized via **Grafana**.
+A resilient and reliability-focused telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana.
 
 ---
 
@@ -12,11 +12,11 @@ A **production-grade telemetry platform** architected to demonstrate **SRE & Pla
 
 ## 🏗️ Engineering Principles
 
-- **Unified Observability & Standardization:** Eliminates data silos by correlating host-level infrastructure metrics (CPU/Memory/IO) with application-level business events. This provides a **"Golden Path"** for telemetry, ensuring all services are observed via a consistent standard.
-- **API-Driven Abstraction:** The `proxy` service acts as a **Platform Interface**, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of ETL and efficient **TimescaleDB** storage.
-- **GitOps & Self-Healing:** Implements a custom **reconciliation engine** (`gitops-sync`) to enforce state consistency between the Git repository and the host, ensuring **configuration drift** is automatically corrected without manual intervention.
-- **Hybrid Runtime Architecture:** leverages the right tool for the job—containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
-- **High-Performance Storage:** Optimizes for high-volume time-series write throughput and geospatial analysis using **TimescaleDB** hypertables and **PostGIS**, avoiding the operational overhead of managing separate specialized databases.
+- **Unified Observability & Standardization:** Eliminates data silos by correlating host-level infrastructure metrics (CPU/Memory/IO) with application-level business events. This provides a "Golden Path" for telemetry, ensuring all services are observed via a consistent standard.
+- **API-Driven Abstraction:** The `proxy` service acts as a Platform Interface, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of ETL and efficient TimescaleDB storage.
+- **GitOps & Self-Healing:** Implements a custom reconciliation engine (`gitops-sync`) to enforce state consistency between the Git repository and the host, ensuring configuration drift is automatically corrected without manual intervention.
+- **Hybrid Runtime Architecture:** Leverages the right tool for the job—containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
+- **High-Performance Storage:** Optimizes for high-volume time-series write throughput and geospatial analysis using TimescaleDB hypertables and PostGIS, avoiding the operational overhead of managing separate specialized databases.
 
 ---
 
@@ -102,20 +102,20 @@ These components exist outside this repository but are integral to the data pipe
 
 ### Data Flow
 
-The system processes two main types of data: application events and host system metrics.
+The system categorizes data flow into three main streams, correlating events, container health, and host stability.
 
-1. **Application Events (ETL Pipeline):**
-    - **Source:** Client Applications (e.g., Cover Craft, Personal Reading Analytics Dashboard) write raw event logs to **MongoDB Atlas** (cloud).
-    - **Ingestion:** The **reading-sync** service periodically triggers the **proxy** service.
-    - **Transformation:** The **proxy** fetches new data from MongoDB, transforms it, and persists structured records into **PostgreSQL**.
-2. **Host System Metrics:**
-    - The **system-metrics** service (running on the host) collects CPU, Memory, Disk, and Network statistics.
-    - Metrics are flushed directly to **PostgreSQL** at regular intervals.
-3. **Visualization:**
-    - **Grafana** queries **PostgreSQL** to visualize both application events and system health on unified dashboards.
-4. **Logging:**
-    - **Unified Aggregation:** **Promtail** tails logs from Docker containers (like `proxy`) and Systemd units (like `system-metrics`).
-    - **Centralized Storage:** Logs are shipped to **Loki** and linked to metrics in Grafana for seamless correlation.
+1. **Application Events:**
+    - **Source:** Client Applications (e.g., Cover Craft, Personal Reading Analytics Dashboard) write events to MongoDB Atlas.
+    - **Process:** The reading-sync service (Systemd) triggers the proxy to fetch, transform, and persist records into PostgreSQL.
+    - **Dashboard:** Reading Analytics.
+2. **Docker Monitoring:**
+    - **Source:** Containerized services (Proxy, PostgreSQL, Loki, Grafana).
+    - **Collection:** Promtail scrapes container logs directly from the Docker socket.
+    - **Dashboard:** Docker Monitoring.
+3. **Systemd Monitoring:**
+    - **Source:** Host services and hardware telemetry.
+    - **Collection:** The system-metrics collector (automated via Systemd timer) flushes hardware stats to PostgreSQL, while Promtail scrapes journald for service logs.
+    - **Dashboards:** Systemd Monitoring and Homelab (hardware metrics).
 
 For deep dives into the system's inner workings:
 
@@ -126,11 +126,11 @@ For deep dives into the system's inner workings:
 
 ## 🚢 Deployment Strategy
 
-The platform employs a **Hybrid Deployment Model** to balance security, reliability, and convenience:
+The platform employs a Hybrid Deployment Model to balance security, reliability, and convenience:
 
 ### 1. Core Infrastructure (Pull-based GitOps)
 
-The critical observability stack (Postgres, Grafana, Proxy) and host configurations are managed by a **self-hosted reconciliation agent** (`gitops-sync`).
+The critical observability stack (Postgres, Grafana, Proxy) and host configurations are managed by a self-hosted reconciliation agent (`gitops-sync`).
 
 - **Mechanism:** A systemd timer triggers a local script every 15 minutes.
 - **Action:** Pulls the latest `main` branch, diffs the state, and applies changes (e.g., restarts services, updates crons).
@@ -138,7 +138,7 @@ The critical observability stack (Postgres, Grafana, Proxy) and host configurati
 
 ### 2. Public Portfolio (Push-based CI/CD)
 
-The static status page is built and deployed via **GitHub Actions**.
+The static status page is built and deployed via GitHub Actions.
 
 - **Mechanism:** Standard CI pipeline defined in `.github/workflows/deploy.yml`.
 - **Action:** Builds the Go `page` generator and deploys the output to GitHub Pages.
