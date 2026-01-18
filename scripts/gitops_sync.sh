@@ -102,6 +102,20 @@ if [[ "$LOCAL_HASH" != "$REMOTE_HASH" ]]; then
         log "ERROR" "Pull failed: $SAFE_OUTPUT"
         exit 1
     fi
+else
+    # Throttled heartbeat logging (Every 1 hour / 3600s)
+    THROTTLE_FILE="/tmp/gitops-sync-${REPO_NAME}.lastlog"
+    NOW=$(date +%s)
+    LAST_LOG=0
+
+    if [[ -f "$THROTTLE_FILE" ]]; then
+        LAST_LOG=$(cat "$THROTTLE_FILE")
+    fi
+
+    if (( NOW - LAST_LOG >= 3600 )); then
+        log "INFO" "Already in sync (Heartbeat)"
+        echo "$NOW" > "$THROTTLE_FILE"
+    fi
 fi
 
 # 3. Cleanup Logic (delete all local branches except main)
