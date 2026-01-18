@@ -14,8 +14,21 @@ VOLUMES=(
 )
 
 # --- LOGGING ---
-info()  { echo "[manage] $*"; }
-error() { echo "[manage] ERROR: $*" >&2; exit 1; }
+# Log helper for structured JSON output
+log() {
+    local level=$1
+    local msg=$2
+    jq -n -c \
+        --arg service "volume-manager" \
+        --arg level "$level" \
+        --arg msg "$msg" \
+        '{service: $service, level: $level, msg: $msg}'
+}
+
+error() {
+    log "ERROR" "$1"
+    exit 1
+}
 
 # --- VALIDATION ---
 validate_docker() {
@@ -29,50 +42,39 @@ validate_docker() {
 
 # --- CREATE VOLUMES FUNCTION ---
 create_volumes() {
-  info "Creating Docker volumes (if missing)..."
-
   validate_docker
 
   for vol in "${VOLUMES[@]}"; do
     [[ -z "$vol" ]] && continue
 
-    if docker volume inspect "$vol" &>/dev/null; then
-      info "Volume '$vol' already exists"
-    else
+    if ! docker volume inspect "$vol" &>/dev/null; then
       docker volume create "$vol" >/dev/null
-      info "Created volume: '$vol'"
+      log "INFO" "Created volume: '$vol'"
     fi
   done
-
-  info "Volume setup completed."
 }
 
 # --- BACKUP VOLUMES FUNCTION ---
 backup_volumes() {
-  info "Starting backup..."
-
   validate_docker
 
   # Stop services for consistency
-  info "Stopping Docker Compose services for consistent backup..."
   docker compose stop
 
   DATE=$(date +%Y-%m-%d)
   BACKUP_DIR="$BACKUP_BASE/$DATE"
   mkdir -p "$BACKUP_DIR"
 
-  info "Creating backup in: $BACKUP_DIR"
-  info "Volumes to back up: ${VOLUMES[*]}"
+  log "INFO" "Creating backup in $BACKUP_DIR for volumes: ${VOLUMES[*]}"
 
   for vol in "${VOLUMES[@]}"; do
     [[ -z "$vol" ]] && continue
 
     if ! docker volume inspect "$vol" &>/dev/null; then
-      info "WARNING: Volume '$vol' does not exist. Skipping."
+      log "WARN" "Volume '$vol' does not exist. Skipping."
       continue
     fi
 
-    info "Backing up: $vol"
     # Use container to backup (no sudo, no path assumptions)
     docker run --rm \
       -v "$vol":/volume \
@@ -81,20 +83,16 @@ backup_volumes() {
   done
 
   # Restart services
-  info "Restarting services..."
   docker compose start
 
   # Cleanup old backups
-  info "Removing backups older than $RETENTION_DAYS days..."
   find "$BACKUP_BASE" -maxdepth 1 -type d -name "20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]" -mtime +$RETENTION_DAYS -exec rm -rf {} + 2>/dev/null || true
 
-  info "Backup completed successfully!"
+  log "INFO" "Backup job completed successfully"
 }
 
 # --- RESTORE VOLUMES FUNCTION ---
 restore_volumes() {
-  info "Starting restore..."
-
   validate_docker
 
   BACKUP_DIR=$(ls -1dt "$BACKUP_BASE"/20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]/ 2>/dev/null | head -n1)
@@ -102,11 +100,10 @@ restore_volumes() {
     error "No dated backup folders found in: $BACKUP_BASE"
   fi
   BACKUP_DIR="${BACKUP_DIR%/}"
-  info "Using latest backup: $(basename "$BACKUP_DIR")"
+  log "INFO" "Restoring volumes from backup: $(basename "$BACKUP_DIR")"
 
-  info "Stopping Docker Compose services..."
   if ! docker compose down; then
-    info "WARNING: Some services may not have stopped cleanly."
+    log "WARN" "Some services may not have stopped cleanly."
   fi
 
   for vol in "${VOLUMES[@]}"; do
@@ -114,11 +111,9 @@ restore_volumes() {
 
     BACKUP_FILE="$BACKUP_DIR/${vol}.tar.gz"
     if [[ ! -f "$BACKUP_FILE" ]]; then
-      info "WARNING: Skipping $vol: backup file not found ($BACKUP_FILE)"
+      log "WARN" "Skipping $vol: backup file not found ($BACKUP_FILE)"
       continue
     fi
-
-    info "Restoring volume: $vol"
 
     if docker volume inspect "$vol" &>/dev/null; then
       docker volume rm -f "$vol" >/dev/null
@@ -136,13 +131,10 @@ restore_volumes() {
           postgres_data) chown -R 999:999 . ;; \
           *) echo \"No ownership fix needed for $vol\" ;; \
         esac"
-
-    info "Restored: $vol"
   done
 
-  info "Starting Docker Compose services..."
   if docker compose up -d; then
-    info "All services restarted successfully!"
+    log "INFO" "Restore completed and services restarted successfully!"
   else
     error "Failed to restart services. Check 'docker compose logs'."
   fi

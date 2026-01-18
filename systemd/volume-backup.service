@@ -1,0 +1,12 @@
+[Unit]
+Description=Backup Docker volumes using the management script
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/server/software/observability-hub/scripts/manage_volume.sh backup
+User=server
+
+[Install]
+WantedBy=multi-user.target
