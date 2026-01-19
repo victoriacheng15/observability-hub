@@ -1,5 +1,6 @@
 help:
 	@echo "Available commands:"
+	@echo "  make nix-<command>      - Run any make command inside nix-shell (e.g., make nix-go-test)"
 	@echo "  make rfc                - Create a new RFC (Architecture Decision Record)"
 	@echo "  make up                 - Start all docker containers"
 	@echo "  make down               - Stop all docker containers"
@@ -7,6 +8,7 @@ help:
 	@echo "  make backup             - Backup docker volumes"
 	@echo "  make restore            - Restore docker volumes from backup"
 	@echo "  make go-format          - Format and simplify Go code"
+	@echo "  make go-update          - Update Go dependencies (go get -u && go mod tidy)"
 	@echo "  make go-test            - Run Go tests"
 	@echo "  make go-cov             - Run tests with coverage report"
 	@echo "  make page-build         - Build the GitHu Page"
@@ -17,6 +19,11 @@ help:
 	@echo "  make install-services   - Install all systemd units from ./systemd"
 	@echo "  make reload-services    - Update systemd units (cp + daemon-reload)"
 	@echo "  make uninstall-services - Uninstall all systemd units from ./systemd"
+
+# Run any target inside nix-shell
+nix-%:
+	@nix-shell --run "make $*"
+
 
 # Architecture Decision Record Creation
 rfc:
@@ -45,6 +52,13 @@ restore:
 go-format:
 	@echo "Formatting Go code..."
 	@gofmt -w -s ./proxy ./system-metrics ./page ./pkg
+
+go-update:
+	@echo "Updating Go dependencies..."
+	@for dir in proxy system-metrics page pkg/db pkg/logger; do \
+		echo "Updating $$dir..."; \
+		(cd $$dir && go get -u ./... && go mod tidy); \
+	done
 
 go-test:
 	@echo "Running Go tests..."
