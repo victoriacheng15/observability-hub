@@ -82,24 +82,27 @@ if [[ -n $(git status --porcelain) ]]; then
     exit 1
 fi
 
+git branch --set-upstream-to=origin/main main >/dev/null 2>&1 || true
+
+# Atomic Fetch
 if ! git fetch origin "$TARGET_BRANCH" --quiet; then
     log "ERROR" "Failed to fetch from origin. Check network/permissions."
     exit 1
 fi
 
 LOCAL_HASH=$(git rev-parse HEAD)
-REMOTE_HASH=$(git rev-parse origin/main)
+REMOTE_HASH=$(git rev-parse "origin/$TARGET_BRANCH")
 
 if [[ "$LOCAL_HASH" != "$REMOTE_HASH" ]]; then
-    # Capture output to prevent raw text leaking to stdout (which breaks JSON parsing)
-    if OUTPUT=$(git pull origin main 2>&1); then
-        # Truncate output to protect JSON integrity in journald (max 2KB)
+    # Atomic Sync: Transition from git pull to git fetch + git merge --ff-only
+    # to prevent accidental merge commits and ensure clean fast-forwards.
+    if OUTPUT=$(git merge --ff-only "origin/$TARGET_BRANCH" 2>&1); then
         SAFE_OUTPUT=$(echo "$OUTPUT" | head -c 2048)
         if [[ ${#OUTPUT} -gt 2048 ]]; then SAFE_OUTPUT="${SAFE_OUTPUT}... (truncated)"; fi
-        log "INFO" "$SAFE_OUTPUT"
+        log "INFO" "Sync successful: $SAFE_OUTPUT"
     else
         SAFE_OUTPUT=$(echo "$OUTPUT" | head -c 2048)
-        log "ERROR" "Pull failed: $SAFE_OUTPUT"
+        log "ERROR" "Merge failed (non-fast-forward?): $SAFE_OUTPUT"
         exit 1
     fi
 else
