@@ -5,6 +5,7 @@ After=docker.service
 
 [Service]
 Type=oneshot
+WorkingDirectory=/home/server/software/observability-hub
 ExecStart=/home/server/software/observability-hub/scripts/manage_volume.sh backup
 User=server
 
