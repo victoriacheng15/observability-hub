@@ -77,3 +77,11 @@ timeline:
     description: |
       - Expanded the GitOps reliability boundary to include the 'mehub' repository, validating the multi-tenant capability of the sync engine.
       - Optimized the reconciliation interval from 5m to 15m to balance freshness with operational stability.
+  - date: "2026-01-19"
+    title: "Orchestration Exploration: k3s Spike"
+    artifacts:
+      - name: "RFC 007: k3s Shadow Deployment"
+        url: "docs/decisions/007-k3s-shadow-deployment-orchestration.md"
+    description: |
+      - Initiated a "Shadow Deployment" spike for k3s orchestration, successfully validating outbound networking and cross-platform isolation.
+      - Introduced a "Safe-Mode" feature toggle (`SKIP_DB_INIT`) in the Go proxy to decouple database dependencies during infrastructure prototyping.

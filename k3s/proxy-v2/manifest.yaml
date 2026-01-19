@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy-v2
+  labels:
+    app: proxy-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxy-v2
+  template:
+    metadata:
+      labels:
+        app: proxy-v2
+    spec:
+      containers:
+      - name: proxy-v2
+        image: proxy_v2:latest
+        imagePullPolicy: Never # Critical for local images
+        ports:
+        - containerPort: 8086
+        env:
+        - name: SKIP_DB_INIT
+          value: "true"
+        - name: PORT
+          value: "8086"
+        resources:
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-v2-service
+spec:
+  type: NodePort
+  selector:
+    app: proxy-v2
+  ports:
+    - protocol: TCP
+      port: 8086
+      targetPort: 8086
+      nodePort: 30080
