@@ -116,6 +116,9 @@ install-services:
 	@echo "Enabling GitOps for repos..."
 	@sudo systemctl enable --now gitops-sync@observability-hub.timer
 	@sudo systemctl enable --now gitops-sync@mehub.timer
+	@sudo systemctl enable --now gitops-sync@personal-reading-analytics.timer
+	@sudo systemctl enable --now gitops-sync@platform-actions.timer
+	@sudo systemctl enable --now gitops-sync@bioHub.timer
 	@echo "Installation complete."
 
 reload-services:
@@ -128,6 +131,9 @@ uninstall-services:
 	# 1. Explicitly handle known instances
 	@sudo systemctl disable --now gitops-sync@observability-hub.timer 2>/dev/null || true
 	@sudo systemctl disable --now gitops-sync@mehub.timer 2>/dev/null || true
+	@sudo systemctl disable --now gitops-sync@personal-reading-analytics.timer 2>/dev/null || true
+	@sudo systemctl disable --now gitops-sync@platform-actions.timer 2>/dev/null || true
+	@sudo systemctl disable --now gitops-sync@bioHub.timer 2>/dev/null || true
 	# 2. Generic cleanup for all units in ./systemd
 	@for unit in $$(ls systemd/*.service systemd/*.timer 2>/dev/null); do \
 		unit_name=$$(basename $$unit); \
