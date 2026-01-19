@@ -2,8 +2,17 @@
 set -euo pipefail
 
 # --- CONFIG ---
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_BASE="/home/server/backups"
 RETENTION_DAYS=7
+
+# Ensure we are in the project root for docker compose commands
+cd "$PROJECT_ROOT"
+
+if [[ ! -f "docker-compose.yml" ]]; then
+    echo "Error: docker-compose.yml not found in $PROJECT_ROOT" >&2
+    exit 1
+fi
 
 # Embedded volume list as a clean Bash array
 VOLUMES=(

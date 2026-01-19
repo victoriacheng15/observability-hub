@@ -64,11 +64,11 @@ scrape_configs:
         target_label: 'unit'
       # 1. Early Drop: Only keep logs from our custom services
       - source_labels: ['unit']
-        regex: '(gitops-sync@.+|reading-sync|system-metrics)\.service'
+        regex: '(gitops-sync@.+|reading-sync|system-metrics|volume-backup)\.service'
         action: keep
       # 2. Robustness: Derive 'service' label directly from the Unit name
       - source_labels: ['unit']
-        regex: '(gitops-sync|reading-sync|system-metrics).*'
+        regex: '(gitops-sync|reading-sync|system-metrics|volume-backup).*'
         target_label: 'service'
         replacement: '$1'
     pipeline_stages:
