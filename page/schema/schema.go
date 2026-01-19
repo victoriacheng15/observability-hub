@@ -15,6 +15,7 @@ type SnapshotMonth struct {
 // SnapshotCategory represents a high-level grouping of snapshots, like "Reading Analytics".
 type SnapshotCategory struct {
 	Name    string          `yaml:"name"`
+	Note    string          `yaml:"note"`
 	History []SnapshotMonth `yaml:"history"`
 }
 

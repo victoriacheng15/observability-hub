@@ -1,6 +1,6 @@
 # Self-Hosted Observability Hub
 
-A resilient and reliability-focused telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana.
+A resilient and reliability-focused unified telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana.
 
 ---
 
@@ -13,7 +13,7 @@ A resilient and reliability-focused telemetry platform architected to demonstrat
 ## 🏗️ Engineering Principles
 
 - **Unified Observability & Standardization:** Eliminates data silos by correlating host-level infrastructure metrics (CPU/Memory/IO) with application-level business events. This provides a "Golden Path" for telemetry, ensuring all services are observed via a consistent standard.
-- **API-Driven Abstraction:** The `proxy` service acts as a Platform Interface, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of ETL and efficient TimescaleDB storage.
+- **API-Driven Abstraction:** The `proxy` service acts as a Platform Interface, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of Data Pipeline and efficient TimescaleDB storage.
 - **GitOps & Self-Healing:** Implements a custom reconciliation engine (`gitops-sync`) to enforce state consistency between the Git repository and the host, ensuring configuration drift is automatically corrected without manual intervention.
 - **Hybrid Runtime Architecture:** Leverages the right tool for the job—containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
 - **High-Performance Storage:** Optimizes for high-volume time-series write throughput and geospatial analysis using TimescaleDB hypertables and PostGIS, avoiding the operational overhead of managing separate specialized databases.
@@ -80,14 +80,14 @@ This table lists the main services and components within the observability hub, 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
 | **system-metrics** | A lightweight Go collector that gathers CPU, memory, disk, and network stats. | `system-metrics/` |
-| **proxy** | A Go service acting as an API gateway and ETL engine for external data (e.g., MongoDB events). | `proxy/` |
+| **proxy** | A Go service acting as an API gateway and Data Pipeline engine for external data (e.g., MongoDB events). | `proxy/` |
 | **page** | A Go static-site generator that builds the public-facing portfolio page. | `page/` |
 | **PostgreSQL** | Primary time-series database for all metric and event data (with TimescaleDB and PostGIS extensions). | `docker-compose.yml` |
 | **Grafana** | Primary visualization and dashboarding tool. | `docker-compose.yml` |
 | **Loki** | Log aggregation system for all services. | `docker-compose.yml` |
 | **Promtail** | Agent that ships host and container logs to Loki. | `docker-compose.yml` |
 | **gitops-sync** | A `systemd` service that ensures the running state on the host matches the Git repository. | `systemd/` |
-| **reading-sync** | A `systemd` service that periodically triggers the `proxy` ETL process via API. | `systemd/` |
+| **reading-sync** | A `systemd` service that periodically triggers the `proxy` Data Pipeline process via API. | `systemd/` |
 | **Shared Libraries** | Reusable Go packages providing standardized logging, database connections, and common utilities. | `pkg/` |
 | **Automation Scripts** | Collection of `scripts/` for maintenance, setup, and operational tasks. | `scripts/` |
 

@@ -27,6 +27,9 @@
 {{range .Snapshots.Categories}}
 <section class="dashboard-category" aria-label="{{ .Name }}">
     <h2>{{ .Name }}</h2>
+    {{ if .Note }}
+    <p class="category-note"><em>Note: {{ .Note }}</em></p>
+    {{ end }}
     
     {{range .History}}
     <details class="dashboard-item">
