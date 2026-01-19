@@ -12,6 +12,7 @@ categories:
           - caption: "7-Day: Error Rate & Trend Analysis"
             image_path: "assets/img/systemd-journal/2026-01_7d.png"
   - name: "Application Telemetry (Reading Analytics)"
+    note: "Next update will transition to 7-Day and 30-Day windows for better trend visibility."
     history:
       - period: "January 2026"
         items:

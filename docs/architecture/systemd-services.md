@@ -15,7 +15,7 @@ The system consists of several main service families, each with a `.service` uni
 | Service Name | Type | Schedule | Responsibility |
 | :--- | :--- | :--- | :--- |
 | **`gitops-sync`** | `oneshot` | Every 15 min | **Reconciliation**: Pulls the latest Git code and applies changes (e.g., reloading units, syncing scripts). |
-| **`reading-sync`** | `oneshot` | Daily (10:00 AM) | **ETL Trigger**: Calls the Proxy Service API (`/api/sync/reading`) to sync MongoDB data to Postgres. |
+| **`reading-sync`** | `oneshot` | Daily (10:00 AM) | **Data Pipeline Trigger**: Calls the Proxy Service API (`/api/sync/reading`) to sync MongoDB data to Postgres. |
 | **`system-metrics`** | `oneshot` | Every 1 min | **Telemetry**: Collects host hardware stats (CPU/RAM/Disk/Net) and flushes them to the database. |
 | **`volume-backup`** | `oneshot` | Daily (01:00 AM) | **Backup**: Triggers `manage_volume.sh` to backup Docker volumes. |
 
@@ -31,7 +31,7 @@ Our systemd configurations employ several production-grade patterns:
 
 ### 1. The "Timer-Trigger" Pattern
 
-For periodic tasks like ETL or GitOps, we use the `oneshot` service pattern triggered by a timer. This ensures:
+For periodic tasks like Data Pipeline or GitOps, we use the `oneshot` service pattern triggered by a timer. This ensures:
 
 - **Idempotency**: Services are designed to run, complete their task, and exit.
 - **Resilience**: If a job fails, systemd handles the retry logic or logs the failure state without crashing a long-running daemon.

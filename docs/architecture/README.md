@@ -21,10 +21,10 @@ graph TD
     subgraph "Observability Hub"
         direction TB
         
-        subgraph "Collection & ETL"
+        subgraph "Collection & Data Pipeline"
             Metrics[System Metrics Collector]
             Sync[Reading Sync Service]
-            Proxy[Proxy Service / ETL]
+            Proxy[Proxy Service / Data Pipeline]
             Promtail[Promtail]
         end
 
@@ -40,7 +40,7 @@ graph TD
 
     %% Application Data Flow
     Apps -->|Events| Mongo
-    Sync -->|Triggers ETL| Proxy
+    Sync -->|Triggers Data Pipeline| Proxy
     Mongo -->|Reads Events| Proxy
     Proxy -->|Writes Structured Data| PG
 
@@ -67,10 +67,10 @@ graph TD
 
 | Component | Description |
 | :----------- | :------------- |
-| **[Proxy Service](./proxy-service.md)** | Architecture of the Go-based API Gateway and ETL Engine. Bridges external data (MongoDB) with PostgreSQL via triggered sync. |
+| **[Proxy Service](./proxy-service.md)** | Architecture of the Go-based API Gateway and Data Pipeline Engine. Bridges external data (MongoDB) with PostgreSQL via triggered sync. |
 | **[System Metrics](./system-metrics.md)** | Details on the custom host telemetry collector (`gopsutil`). Pushes data directly to the `system_metrics` table in PostgreSQL (TimescaleDB). |
 | **[Infrastructure](./infrastructure.md)** | Deployment (Docker), Storage (Postgres/Loki), and Security config. |
-| **[Systemd Services](./systemd-services.md)** | Automation architecture for GitOps, ETL triggers, and telemetry using systemd units and timers. |
+| **[Systemd Services](./systemd-services.md)** | Automation architecture for GitOps, Data Pipeline triggers, and telemetry using systemd units and timers. |
 | **[GitOps Reconciliation](./../decisions/005-gitops-reconciliation-engine.md)** | Systemd-driven agent for automated, self-healing repository synchronization. |
 
 ## Related Documentation

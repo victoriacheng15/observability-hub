@@ -1,6 +1,6 @@
 # Proxy Service Architecture
 
-The Proxy Service (`proxy/`) is a custom Go application that acts as the API gateway and ETL engine for the platform. It bridges external data sources with the PostgreSQL (TimescaleDB) storage.
+The Proxy Service (`proxy/`) is a custom Go application that acts as the API gateway and Data Pipeline engine for the platform. It bridges external data sources with the PostgreSQL (TimescaleDB) storage.
 
 ## Component Details
 
@@ -14,7 +14,7 @@ The Proxy Service (`proxy/`) is a custom Go application that acts as the API gat
 
 ### Endpoint Details
 
-#### ETL Engine (`/api/sync/reading`)
+#### Data Pipeline Engine (`/api/sync/reading`)
 
 This endpoint triggers the extraction, transformation, and loading of data.
 
@@ -24,7 +24,7 @@ This endpoint triggers the extraction, transformation, and loading of data.
 4. **Load**: Inserts records into the PostgreSQL (TimescaleDB) `reading_analytics` table.
 5. **Update**: Marks the original MongoDB documents as `status="processed"`.
 
-## Data Flow: Analytical ETL
+## Data Flow: Analytical Data Pipeline
 
 ```mermaid
 sequenceDiagram
