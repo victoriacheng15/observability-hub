@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func main() {
@@ -19,8 +21,15 @@ func main() {
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 
-	dbPostgres := utils.InitPostgres("postgres")
-	mongoClient := utils.InitMongo()
+	var dbPostgres *sql.DB
+	var mongoClient *mongo.Client
+
+	if os.Getenv("SKIP_DB_INIT") == "true" {
+		slog.Warn("⚠️  Running in SKIP_DB_INIT mode. Database features will be disabled.")
+	} else {
+		dbPostgres = utils.InitPostgres("postgres")
+		mongoClient = utils.InitMongo()
+	}
 
 	// Initialize the reading service
 	readingService := &utils.ReadingService{
@@ -36,6 +45,7 @@ func main() {
 
 	// Register HTTP handlers with logging middleware
 	http.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
+	http.HandleFunc("/api/dummy", utils.WithLogging(utils.DummyHandler))
 	http.HandleFunc("/api/reading", utils.WithLogging(readingService.ReadingHandler))
 	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 
