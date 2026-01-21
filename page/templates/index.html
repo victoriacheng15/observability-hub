@@ -16,7 +16,7 @@
     {{range .Landing.Principles}}
     <article class="feature-card">
         <div class="feature-icon" aria-hidden="true">
-             {{if eq .Icon "rocket"}}🚀{{else if eq .Icon "database"}}💾{{else if eq .Icon "chart-line"}}📈{{else}}✨{{end}}
+             {{if eq .Icon "rocket"}}🚀{{else if eq .Icon "database"}}💾{{else if eq .Icon "chart-line"}}📈{{else if eq .Icon "layers-half"}}🧱{{else if eq .Icon "shield-check"}}🛡️{{else if eq .Icon "cpu"}}🖥️{{else}}✨{{end}}
         </div>
         <h3>{{ .Title }}</h3>
         <p>{{ .Description }}</p>

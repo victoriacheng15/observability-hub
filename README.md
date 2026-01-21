@@ -12,11 +12,11 @@ A resilient and reliability-focused unified telemetry platform architected to de
 
 ## 🏗️ Engineering Principles
 
-- **Unified Observability & Standardization:** Eliminates data silos by correlating host-level infrastructure metrics (CPU/Memory/IO) with application-level business events. This provides a "Golden Path" for telemetry, ensuring all services are observed via a consistent standard.
-- **API-Driven Abstraction:** The `proxy` service acts as a Platform Interface, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of Data Pipeline and efficient TimescaleDB storage.
-- **GitOps & Self-Healing:** Implements a custom reconciliation engine (`gitops-sync`) to enforce state consistency between the Git repository and the host, ensuring configuration drift is automatically corrected without manual intervention.
-- **Hybrid Runtime Architecture:** Leverages the right tool for the job: containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
-- **High-Performance Storage:** Optimizes for high-volume time-series write throughput and geospatial analysis using TimescaleDB hypertables and PostGIS, avoiding the operational overhead of managing separate specialized databases.
+- **Unified Observability:** Correlation of infrastructure telemetry and application business events into a single, queryable plane. Full-stack visibility is the default state, ensuring all services are observed via a consistent, unified standard.
+- **Platform Abstraction:** Decoupling of data ingestion from storage engines. Standardized APIs provide stable interfaces for clients, allowing the underlying pipeline logic and database schemas to evolve without disrupting upstream producers.
+- **GitOps & State Convergence:** Enforcement of configuration consistency between version control and the running environment. Automated reconciliation engines detect and correct drift, ensuring the "Source of Truth" is always the reality.
+- **Hybrid Runtime Pragmatism:** Strategic deployment utilizing the most effective primitives for the task. Containerization provides isolation for stateless data services, while native host management (Systemd) is leveraged for performance-critical automation and hardware-level telemetry.
+
 
 ---
 
@@ -39,37 +39,39 @@ This diagram shows the high-level flow of data from collection to visualization.
 
 ```mermaid
 flowchart LR
-    subgraph "External Sources"
+    subgraph "External"
+        GH(GitHub Webhooks)
         Apps
         Mongo(MongoDB Atlas)
     end
 
-    subgraph "Internal Services"
-        DS[Docker Services]
-        SS[Systemd Services]
+    subgraph "Native Host Services (Systemd)"
+        Proxy[Proxy API & GitOps Trigger]
+        Gate[Tailscale Gate]
+        Metrics[Metrics Collector]
     end
 
-    subgraph "Storage & Logs"
+    subgraph "Data Infrastructure (Docker)"
         PG(PostgreSQL)
         P(Promtail)
         L(Loki)
-    end
-
-    subgraph Visualization
         G(Grafana)
     end
 
     %% Data Pipeline
+    GH -- Webhook --> Proxy
+    Proxy -- Sync --> GH
     Apps -- Events --> Mongo
-    Mongo -- Pull --> DS
-    DS -- Write --> PG
-    SS -- Metrics --> PG
+    Mongo -- Pull --> Proxy
+    Proxy -- Write --> PG
+    Metrics -- Telemetry --> PG
     PG --> G
 
     %% Logging Pipeline
-    DS -- Logs --> P
-    SS -- Logs --> P
-    P --> L
+    Proxy -- Logs --> P
+    Gate -- Logs --> P
+    Metrics -- Logs --> P
+    P -- Scrape Journal --> L
     L --> G
 ```
 
@@ -79,17 +81,16 @@ This table lists the main services and components within the observability hub, 
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
-| **system-metrics** | A lightweight Go collector that gathers CPU, memory, disk, and network stats. | `system-metrics/` |
-| **proxy** | A Go service acting as an API gateway and Data Pipeline engine for external data (e.g., MongoDB events). | `proxy/` |
-| **page** | A Go static-site generator that builds the public-facing portfolio page. | `page/` |
-| **PostgreSQL** | Primary time-series database for all metric and event data (with TimescaleDB and PostGIS extensions). | `docker-compose.yml` |
+| **proxy** | Native Go service acting as an API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `proxy/` |
+| **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
+| **system-metrics** | Lightweight Go collector for host CPU, memory, disk, and network stats. | `system-metrics/` |
+| **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
+| **PostgreSQL** | Primary time-series storage (TimescaleDB + PostGIS). | `docker-compose.yml` |
 | **Grafana** | Primary visualization and dashboarding tool. | `docker-compose.yml` |
 | **Loki** | Log aggregation system for all services. | `docker-compose.yml` |
-| **Promtail** | Agent that ships host and container logs to Loki. | `docker-compose.yml` |
-| **gitops-sync** | A `systemd` service that ensures the running state on the host matches the Git repository. | `systemd/` |
-| **reading-sync** | A `systemd` service that periodically triggers the `proxy` Data Pipeline process via API. | `systemd/` |
-| **Shared Libraries** | Reusable Go packages providing standardized logging, database connections, and common utilities. | `pkg/` |
-| **Automation Scripts** | Collection of `scripts/` for maintenance, setup, and operational tasks. | `scripts/` |
+| **Promtail** | Scrapes host (Journald) and container logs for delivery to Loki. | `docker-compose.yml` |
+| **gitops-sync** | Reconciliation script triggered by the Proxy to enforce repository state. | `scripts/` |
+| **reading-sync** | Systemd service that periodically triggers the `proxy` Data Pipeline. | `systemd/` |
 
 ### External Dependencies
 
@@ -126,15 +127,15 @@ For deep dives into the system's inner workings:
 
 ## 🚢 Deployment Strategy
 
-The platform employs a Hybrid Deployment Model to balance security, reliability, and convenience:
+The platform employs a Hybrid Deployment Model to balance security, reliability, and performance:
 
-### 1. Core Infrastructure (Pull-based GitOps)
+### 1. Event-Driven GitOps (Webhook-based)
 
-The critical observability stack (Postgres, Grafana, Proxy) and host configurations are managed by a self-hosted reconciliation agent (`gitops-sync`).
+Critical observability infrastructure and host configurations are managed by an automated reconciliation workflow.
 
-- **Mechanism:** A systemd timer triggers a local script every 15 minutes.
-- **Action:** Pulls the latest `main` branch, diffs the state, and applies changes (e.g., restarts services, updates crons).
-- **Benefit:** Eliminates the need for inbound SSH access or sensitive secrets in external CI pipelines.
+- **Mechanism:** GitHub sends a **Webhook** event (Push or PR Merge) to the Proxy service.
+- **Action:** The Proxy validates the request signature and executes the local `gitops_sync.sh` script to update the repository and reload services.
+- **Benefit:** Real-time updates and improved security by ensuring the public entry point (via Tailscale Funnel) is managed dynamically based on system state.
 
 ### 2. Public Portfolio (Push-based CI/CD)
 
