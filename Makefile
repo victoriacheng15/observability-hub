@@ -112,12 +112,14 @@ install-services:
 		timer_name=$$(basename $$timer); \
 		sudo systemctl enable --now $$timer_name; \
 	done
+	@echo "Enabling Tailscale Gate..."
+	@sudo systemctl enable --now tailscale-gate.service
 	@echo "Enabling GitOps for repos..."
-	@sudo systemctl enable --now gitops-sync@observability-hub.timer
-	@sudo systemctl enable --now gitops-sync@mehub.timer
-	@sudo systemctl enable --now gitops-sync@personal-reading-analytics.timer
-	@sudo systemctl enable --now gitops-sync@platform-actions.timer
-	@sudo systemctl enable --now gitops-sync@bioHub.timer
+# 	@sudo systemctl enable --now gitops-sync@observability-hub.timer
+# 	@sudo systemctl enable --now gitops-sync@mehub.timer
+# 	@sudo systemctl enable --now gitops-sync@personal-reading-analytics.timer
+# 	@sudo systemctl enable --now gitops-sync@platform-actions.timer
+# 	@sudo systemctl enable --now gitops-sync@bioHub.timer
 	@echo "Installation complete."
 
 reload-services:
@@ -128,6 +130,7 @@ reload-services:
 uninstall-services:
 	@echo "Stopping and disabling all project units..."
 	# 1. Explicitly handle known instances
+	@sudo systemctl disable --now tailscale-gate.service 2>/dev/null || true
 	@sudo systemctl disable --now gitops-sync@observability-hub.timer 2>/dev/null || true
 	@sudo systemctl disable --now gitops-sync@mehub.timer 2>/dev/null || true
 	@sudo systemctl disable --now gitops-sync@personal-reading-analytics.timer 2>/dev/null || true

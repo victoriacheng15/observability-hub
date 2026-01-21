@@ -48,6 +48,7 @@ func main() {
 	http.HandleFunc("/api/dummy", utils.WithLogging(utils.DummyHandler))
 	http.HandleFunc("/api/reading", utils.WithLogging(readingService.ReadingHandler))
 	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
+	http.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
 
 	slog.Info("🚀 The GO proxy listening on port", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
