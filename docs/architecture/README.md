@@ -1,79 +1,79 @@
 # Observability Hub Architecture
 
-This document serves as the entry point for the system's architecture.
+This directory contains the detailed architectural blueprints for the Observability Hub. The system follows a hybrid model, utilizing Docker for core data services and native Systemd units for host-level automation and data pipelines.
 
-## System Context
+## 🗺️ System Context
 
-The hub integrates standard observability tools with custom Go services.
+The hub integrates standard observability tools with custom Go services to provide a resilient, self-healing telemetry platform.
 
 ```mermaid
 graph TD
     subgraph "External Sources"
-        Apps[Client Apps]
+        GitHub[GitHub Webhooks]
         Mongo[(MongoDB Atlas)]
     end
 
     subgraph "Host Environment"
         Hardware[Host Hardware]
-        HostServices[Host Systemd Services]
+        subgraph HostServices [Native Services]
+            Proxy[Proxy Service]
+            Gate[Tailscale Gate]
+            Metrics[Metrics Collector]
+        end
     end
 
-    subgraph "Observability Hub"
+    subgraph "Data Platform (Docker)"
         direction TB
-        
-        subgraph "Collection & Data Pipeline"
-            Metrics[System Metrics Collector]
-            Sync[Reading Sync Service]
-            Proxy[Proxy Service / Data Pipeline]
-            Promtail[Promtail]
-        end
-
-        subgraph "Storage"
-            PG[(PostgreSQL)]
-            Loki[(Loki)]
-        end
-
-        subgraph "Visualization"
-            Grafana[Grafana]
-        end
+        Promtail[Promtail]
+        Loki[(Loki)]
+        PG[(PostgreSQL)]
+        Grafana[Grafana]
     end
 
-    %% Application Data Flow
-    Apps -->|Events| Mongo
-    Sync -->|Triggers Data Pipeline| Proxy
-    Mongo -->|Reads Events| Proxy
-    Proxy -->|Writes Structured Data| PG
+    %% Data Flow
+    GitHub -->|Webhooks| Proxy
+    Proxy -->|Executes| Sync[gitops_sync.sh]
+    Mongo -->|Data| Proxy
+    Proxy -->|Writes| PG
+    Hardware -->|Telemetry| Metrics
+    Metrics -->|Writes| PG
 
-    %% System Metrics Flow
-    Hardware -->|Stats: CPU, RAM, Disk, Net| Metrics
-    Metrics -->|Writes Metrics| PG
-
-    %% GitOps & Automation
-    HostServices -->|Manages| Metrics
-    HostServices -->|Manages| Sync
-
-    %% Logging Flow
-    Proxy -.->|Docker Logs| Promtail
-    HostServices -.->|Systemd Logs| Promtail
-    Metrics -.->|Systemd Logs| Promtail
-    Promtail -->|Pushes Logs| Loki
-
-    %% Visualization
-    PG -->|Query Data| Grafana
-    Loki -->|Query Logs| Grafana
+    %% Logging
+    HostServices -.->|Journal| Promtail
+    Promtail -->|Pushes| Loki
+    PG -->|Visualizes| Grafana
+    Loki -->|Visualizes| Grafana
 ```
 
-## Detailed Architecture Documents
+---
 
-| Component | Description |
-| :----------- | :------------- |
-| **[Proxy Service](./proxy-service.md)** | Architecture of the Go-based API Gateway and Data Pipeline Engine. Bridges external data (MongoDB) with PostgreSQL via triggered sync. |
-| **[System Metrics](./system-metrics.md)** | Details on the custom host telemetry collector (`gopsutil`). Pushes data directly to the `system_metrics` table in PostgreSQL (TimescaleDB). |
-| **[Infrastructure](./infrastructure.md)** | Deployment (Docker), Storage (Postgres/Loki), and Security config. |
-| **[Systemd Services](./systemd-services.md)** | Automation architecture for GitOps, Data Pipeline triggers, and telemetry using systemd units and timers. |
-| **[GitOps Reconciliation](./../decisions/005-gitops-reconciliation-engine.md)** | Systemd-driven agent for automated, self-healing repository synchronization. |
+## 📂 Documentation Domains
 
-## Related Documentation
+### 🧠 [Core Concepts](./core-concepts/)
 
-- **[Decisions](../decisions/)**: Architecture Decision Records (ADRs).
-- **[Planning](../planning/)**: Future trends and RFC drafts.
+Fundamental patterns and cross-cutting concerns that define how the system operates.
+
+- **[Automation & GitOps](./core-concepts/automation.md)**: Webhook-driven reconciliation and self-healing patterns.
+- **[Observability](./core-concepts/observability.md)**: Standards for JSON logging, Journald integration, and Promtail pipelines.
+
+### 🏗️ [Infrastructure](./infrastructure/)
+
+The runtime environment and foundational deployment strategies.
+
+- **[Deployment Model](./infrastructure/deployment.md)**: Details on the hybrid Docker/Systemd orchestration.
+- **[Security](./infrastructure/security.md)**: Tailscale Funnel gating, HMAC authentication, and isolation boundaries.
+
+### ⚙️ [Services](./services/)
+
+Deep dives into the logic and implementation of specific system components.
+
+- **[Proxy Service](./services/proxy.md)**: The API Gateway, Data Pipeline, and GitOps listener.
+- **[System Metrics](./services/system-metrics.md)**: The host telemetry collector.
+- **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
+
+---
+
+## 🔗 Related Resources
+
+- **[ADRs](../decisions/)**: Architecture Decision Records.
+- **[Planning](../planning.md)**: Future trends and implementation roadmaps.

@@ -1,6 +1,6 @@
 # Proxy Service Architecture
 
-The Proxy Service (`proxy/`) is a custom Go application that acts as the API gateway and Data Pipeline engine for the platform. It bridges external data sources with the PostgreSQL (TimescaleDB) storage.
+The Proxy Service (`proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
 
 ## Component Details
 
@@ -9,10 +9,19 @@ The Proxy Service (`proxy/`) is a custom Go application that acts as the API gat
 | Endpoint | Method | Purpose |
 | :--- | :--- | :--- |
 | `/` | GET | Returns a JSON welcome message. |
-| `/api/reading` | GET | Placeholder for future reading retrieval features. |
+| `/api/webhook/gitops` | POST | **GitOps Trigger**: Handles GitHub webhooks (Push/PR events) to sync local repositories. |
 | `/api/sync/reading` | GET | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
 
 ### Endpoint Details
+
+#### GitOps Automation (`/api/webhook/gitops`)
+
+This endpoint enables event-driven deployment.
+
+1. **Verify**: Validates the `X-Hub-Signature-256` header using the `GITHUB_WEBHOOK_SECRET`.
+2. **Filter**: Inspects the `X-GitHub-Event` and JSON payload to ensure the change is a **Push** to `main` or a **Merged PR** targeting `main`.
+3. **Trigger**: Executes the local `scripts/gitops_sync.sh` script in the background.
+4. **Log**: Broadcasts success/failure details to the system journal for observability.
 
 #### Data Pipeline Engine (`/api/sync/reading`)
 
