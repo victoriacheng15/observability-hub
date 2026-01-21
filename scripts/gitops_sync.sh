@@ -10,12 +10,23 @@ BASE_DIR="/home/server/software"
 log() {
     local level=$1
     local msg=$2
-    jq -n -c \
+    local json_payload
+    
+    # Generate JSON payload
+    json_payload=$(jq -n -c \
         --arg service "gitops-sync" \
         --arg repo "${REPO_NAME:-unknown}" \
         --arg level "$level" \
         --arg msg "$msg" \
-        '{service: $service, repo: $repo, level: $level, msg: $msg}'
+        '{service: $service, repo: $repo, level: $level, msg: $msg}')
+
+    # 1. Output to stdout (captured by Go parent process)
+    echo "$json_payload"
+
+    # 2. Send directly to system journal (viewable via `journalctl -t gitops-sync`)
+    if command -v logger >/dev/null 2>&1; then
+        logger -t "gitops-sync" "$json_payload" || true
+    fi
 }
 
 # 1. Validation Logic (Security Barrier)
@@ -76,12 +87,6 @@ if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
     fi
 fi
 
-# Safety Barrier: Check for uncommitted changes AFTER switching
-if [[ -n $(git status --porcelain) ]]; then
-    log "ERROR" "Uncommitted changes detected. Aborting sync to prevent data loss."
-    exit 1
-fi
-
 git branch --set-upstream-to=origin/main main >/dev/null 2>&1 || true
 
 # Atomic Fetch
@@ -106,19 +111,7 @@ if [[ "$LOCAL_HASH" != "$REMOTE_HASH" ]]; then
         exit 1
     fi
 else
-    # Throttled heartbeat logging (Every 1 hour / 3600s)
-    THROTTLE_FILE="/tmp/gitops-sync-${REPO_NAME}.lastlog"
-    NOW=$(date +%s)
-    LAST_LOG=0
-
-    if [[ -f "$THROTTLE_FILE" ]]; then
-        LAST_LOG=$(cat "$THROTTLE_FILE")
-    fi
-
-    if (( NOW - LAST_LOG >= 3600 )); then
-        log "INFO" "Already in sync (Heartbeat)"
-        echo "$NOW" > "$THROTTLE_FILE"
-    fi
+    log "INFO" "Already in sync."
 fi
 
 # 3. Cleanup Logic (delete all local branches except main)
