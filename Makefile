@@ -24,7 +24,6 @@ help:
 nix-%:
 	@nix-shell --run "make $*"
 
-
 # Architecture Decision Record Creation
 rfc:
 	@./scripts/create_rfc.sh
