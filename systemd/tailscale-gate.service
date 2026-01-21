@@ -1,0 +1,14 @@
+[Unit]
+Description=Tailscale Funnel Gatekeeper Loop
+After=docker.service tailscaled.service
+Requires=docker.service tailscaled.service
+
+[Service]
+ExecStart=/home/server/software/observability-hub/scripts/tailscale-gate.sh
+Restart=always
+RestartSec=60
+# Ensures the script is prioritized during high RAM usage
+OOMScoreAdjust=-500
+
+[Install]
+WantedBy=multi-user.target
