@@ -94,7 +94,13 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !shouldTrigger {
-		slog.Info("Ignored webhook", "event", eventType, "ref", payload.Ref, "action", payload.Action, "merged", payload.PullRequest.Merged)
+		slog.Info("Ignored webhook",
+			"repo", payload.Repository.Name,
+			"event", eventType,
+			"ref", payload.Ref,
+			"action", payload.Action,
+			"merged", payload.PullRequest.Merged,
+		)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Ignored: Not a push to main or merged PR to main"))
 		return
@@ -102,15 +108,13 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	repoName := payload.Repository.Name
 	if repoName == "" {
-		slog.Warn("Repository name missing in payload")
+		slog.Warn("Repository name missing in payload", "event", eventType)
 		http.Error(w, "Repository name missing", http.StatusBadRequest)
 		return
 	}
 
-	// Security Gate: Validate repo name or ensure it's a known repository
-	// For now, we'll proceed as it's passed to gitops_sync.sh which should handle it
 	go func(repo string) {
-		slog.Info("Triggering GitOps sync via webhook", "repo", repo)
+		slog.Info("Triggering GitOps sync via webhook", "repo", repo, "event", eventType)
 		// We use an absolute path to the script for reliability
 		cmd := exec.Command("/home/server/software/observability-hub/scripts/gitops_sync.sh", repo)
 		output, err := cmd.CombinedOutput()
