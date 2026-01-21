@@ -1,6 +1,6 @@
 # RFC 005: Centralized GitOps Reconciliation Engine
 
-- **Status:** Accepted
+- **Status:** Superseded by [RFC 008](./008-gitops-via-proxy-webhook.md)
 - **Date:** 2026-01-03
 - **Author:** Victoria Cheng
 
