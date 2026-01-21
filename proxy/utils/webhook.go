@@ -14,18 +14,35 @@ import (
 	"strings"
 )
 
-// Payload represents the payload from GitHub webhook push events
+// Payload represents the payload from GitHub webhook events
 type Payload struct {
+	Ref        string `json:"ref"`
+	Action     string `json:"action"`
 	Repository struct {
 		Name string `json:"name"`
 	} `json:"repository"`
-	Ref string `json:"ref"`
+	PullRequest struct {
+		Merged bool `json:"merged"`
+		Base   struct {
+			Ref string `json:"ref"`
+		} `json:"base"`
+	} `json:"pull_request"`
 }
 
 // WebhookHandler handles GitHub push event webhooks to trigger GitOps sync
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	eventType := r.Header.Get("X-GitHub-Event")
+	slog.Info("Received webhook", "event", eventType)
+
+	// Gracefully handle ping events
+	if eventType == "ping" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Pong"))
 		return
 	}
 
@@ -64,11 +81,22 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only trigger on main branch pushes
-	if payload.Ref != "refs/heads/main" {
-		slog.Info("Ignored webhook for non-main branch", "ref", payload.Ref)
+	shouldTrigger := false
+
+	// Case 1: Push to main
+	if eventType == "push" && payload.Ref == "refs/heads/main" {
+		shouldTrigger = true
+	}
+
+	// Case 2: PR merged to main
+	if eventType == "pull_request" && payload.Action == "closed" && payload.PullRequest.Merged && payload.PullRequest.Base.Ref == "main" {
+		shouldTrigger = true
+	}
+
+	if !shouldTrigger {
+		slog.Info("Ignored webhook", "event", eventType, "ref", payload.Ref, "action", payload.Action, "merged", payload.PullRequest.Merged)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ignored non-main branch"))
+		w.Write([]byte("Ignored: Not a push to main or merged PR to main"))
 		return
 	}
 
