@@ -103,4 +103,4 @@ dbname=homelab
 sslmode=disable
 ```
 
-> 🔒 **Security tip**: Store credentials in environment variables or a secrets manager — never hardcode!
+> 🔒 **Security tip**: Store credentials in environment variables or a secrets manager; never hardcode!

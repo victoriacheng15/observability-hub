@@ -43,4 +43,4 @@ A distributed IoT pipeline consisting of three tiers:
 
 ## Conclusion
 
-This architecture provides a high-signal portfolio piece that demonstrates full-stack systems engineering—from hardware-level C++ to cloud-native Go and advanced SQL.
+This architecture provides a high-signal portfolio piece that demonstrates full-stack systems engineering, from hardware-level C++ to cloud-native Go and advanced SQL.

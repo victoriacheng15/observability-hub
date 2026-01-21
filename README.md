@@ -15,7 +15,7 @@ A resilient and reliability-focused unified telemetry platform architected to de
 - **Unified Observability & Standardization:** Eliminates data silos by correlating host-level infrastructure metrics (CPU/Memory/IO) with application-level business events. This provides a "Golden Path" for telemetry, ensuring all services are observed via a consistent standard.
 - **API-Driven Abstraction:** The `proxy` service acts as a Platform Interface, decoupling data ingestion from storage. Client apps (like Cover Craft) emit events to a simple endpoint (MongoDB), while the platform handles the complexity of Data Pipeline and efficient TimescaleDB storage.
 - **GitOps & Self-Healing:** Implements a custom reconciliation engine (`gitops-sync`) to enforce state consistency between the Git repository and the host, ensuring configuration drift is automatically corrected without manual intervention.
-- **Hybrid Runtime Architecture:** Leverages the right tool for the job—containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
+- **Hybrid Runtime Architecture:** Leverages the right tool for the job: containerizing stateless services (Docker) while running privileged automation agents directly on the host (Systemd) for reliability and access to kernel-level stats.
 - **High-Performance Storage:** Optimizes for high-volume time-series write throughput and geospatial analysis using TimescaleDB hypertables and PostGIS, avoiding the operational overhead of managing separate specialized databases.
 
 ---
