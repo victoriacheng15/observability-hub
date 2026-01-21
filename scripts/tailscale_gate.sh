@@ -1,5 +1,5 @@
 #!/bin/bash
-CONTAINER="proxy_server"
+SERVICE_NAME="proxy.service"
 CHECK_INTERVAL_MINS="5"
 RETRY_MISSING_MINS="5"
 
@@ -16,20 +16,11 @@ log() {
         '{service: $service, level: $level, msg: $msg}'
 }
 
-log "INFO" "Service started. Monitoring $CONTAINER."
+log "INFO" "Service started. Monitoring $SERVICE_NAME."
 
 while true; do
-    # 1. EXISTENCE CHECK
-    if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$" ; then
-        log "WARN" "Container $CONTAINER not found. Retrying in ${RETRY_MISSING_MINS}m."
-        sleep "$RETRY_SECONDS"
-        continue
-    fi
-
-    # 2. RUNNING STATUS CHECK
-    IS_RUNNING=$(docker inspect -f '{{.State.Running}}' $CONTAINER 2>/dev/null)
-
-    if [ "$IS_RUNNING" == "true" ]; then
+    # 1. RUNNING STATUS CHECK
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
         # Ensure Serve is set (Internal)
         tailscale serve --bg --https=8443 http://localhost:8085 > /dev/null 2>&1
         # Ensure Funnel is set (Public) - using the confirmed working syntax
@@ -41,6 +32,6 @@ while true; do
         log "WARN" "Proxy DOWN - Funnel CLOSED"
     fi
 
-    # 3. STANDARD BREATHER
+    # 2. STANDARD BREATHER
     sleep "$SLEEP_SECONDS"
 done

@@ -4,7 +4,7 @@ After=docker.service tailscaled.service
 Requires=docker.service tailscaled.service
 
 [Service]
-ExecStart=/home/server/software/observability-hub/scripts/tailscale-gate.sh
+ExecStart=/home/server/software/observability-hub/scripts/tailscale_gate.sh
 Restart=always
 RestartSec=60
 # Ensures the script is prioritized during high RAM usage
