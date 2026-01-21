@@ -84,22 +84,21 @@ metrics-build:
 	@cd system-metrics && go build -o metrics-collector.exe main.go
 
 # Go Proxy Server Management
-proxy-up:
-	@echo "Starting proxy server..."
-	@docker build -t proxy_server -f ./docker/proxy/Dockerfile .
-	@docker run -d \
-		--name proxy_server \
-		--restart unless-stopped \
-		--network host \
-		proxy_server
+proxy-build:
+	@echo "Building proxy server binary..."
+	@cd proxy && go build -o proxy_server .
+
+proxy-up: proxy-build
+	@echo "Starting proxy service (Systemd)..."
+	@sudo systemctl enable --now proxy.service
 
 proxy-down:
-	@echo "Stopping proxy server..."
-	@docker stop proxy_server || true
-	@docker rm proxy_server || true
+	@echo "Stopping proxy service..."
+	@sudo systemctl stop proxy.service
 
-proxy-update: proxy-down proxy-up
-	@echo "Proxy server updated."
+proxy-update: proxy-build
+	@echo "Updating proxy service..."
+	@sudo systemctl restart proxy.service
 
 # Systemd Service Management
 install-services:
@@ -114,7 +113,9 @@ install-services:
 	done
 	@echo "Enabling Tailscale Gate..."
 	@sudo systemctl enable --now tailscale-gate.service
-	@echo "Enabling GitOps for repos..."
+	@echo "Enabling Proxy Server..."
+	@sudo systemctl enable --now proxy.service
+# 	@echo "Enabling GitOps for repos..."
 # 	@sudo systemctl enable --now gitops-sync@observability-hub.timer
 # 	@sudo systemctl enable --now gitops-sync@mehub.timer
 # 	@sudo systemctl enable --now gitops-sync@personal-reading-analytics.timer
