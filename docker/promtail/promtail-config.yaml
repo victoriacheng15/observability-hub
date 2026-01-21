@@ -43,9 +43,9 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_log_stream']
         target_label: 'stream'
 
-      # 5. Drop logs from Promtail itself to avoid feedback loops
+      # 5. Drop logs from Promtail and Loki to avoid feedback loops and noise
       - source_labels: ['container']
-        regex: 'promtail'
+        regex: 'promtail|loki'
         action: drop
 
       # 6. Construct the path to the log file
@@ -62,13 +62,27 @@ scrape_configs:
       # Extract the Systemd Unit name (e.g., gitops-sync@observability-hub.service)
       - source_labels: ['__journal__systemd_unit']
         target_label: 'unit'
-      # 1. Early Drop: Only keep logs from our custom services
-      - source_labels: ['unit']
-        regex: '(gitops-sync@.+|reading-sync|system-metrics|volume-backup)\.service'
+      
+      # Extract the Syslog Identifier (e.g., gitops-sync from logger -t)
+      - source_labels: ['__journal_syslog_identifier']
+        target_label: 'syslog_identifier'
+
+      # 1. Early Drop: Keep logs from our services OR explicit syslog tags
+      - source_labels: ['unit', 'syslog_identifier']
+        separator: ';'
+        regex: '(gitops-sync@.+|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate)\.service;.*|.*;gitops-sync'
         action: keep
+
       # 2. Robustness: Derive 'service' label directly from the Unit name
       - source_labels: ['unit']
-        regex: '(gitops-sync|reading-sync|system-metrics|volume-backup).*'
+        regex: '(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*'
+        target_label: 'service'
+        replacement: '$1'
+
+      # 3. Fallback: If service is still empty (e.g. logger command), use syslog_identifier
+      - source_labels: ['service', 'syslog_identifier']
+        separator: ';'
+        regex: ';(.+)'
         target_label: 'service'
         replacement: '$1'
     pipeline_stages:
