@@ -24,6 +24,7 @@ func TestWebhookHandler(t *testing.T) {
 
 	tests := map[string]struct {
 		method         string
+		eventType      string
 		envSecret      string
 		body           map[string]interface{}
 		headerSig      string // Optional override
@@ -35,18 +36,28 @@ func TestWebhookHandler(t *testing.T) {
 			envSecret:      testSecret,
 			expectedStatus: http.StatusMethodNotAllowed,
 		},
+		"ping_event": {
+			method:         http.MethodPost,
+			eventType:      "ping",
+			envSecret:      testSecret,
+			expectedStatus: http.StatusOK,
+			expectedBody:   "Pong",
+		},
 		"missing_secret_in_env": {
 			method:         http.MethodPost,
+			eventType:      "push",
 			envSecret:      "",
 			expectedStatus: http.StatusInternalServerError,
 		},
 		"missing_signature_header": {
 			method:         http.MethodPost,
+			eventType:      "push",
 			envSecret:      testSecret,
 			expectedStatus: http.StatusUnauthorized,
 		},
 		"invalid_signature": {
 			method:    http.MethodPost,
+			eventType: "push",
 			envSecret: testSecret,
 			body: map[string]interface{}{
 				"ref": "refs/heads/main",
@@ -56,6 +67,7 @@ func TestWebhookHandler(t *testing.T) {
 		},
 		"ignored_branch_dev": {
 			method:    http.MethodPost,
+			eventType: "push",
 			envSecret: testSecret,
 			body: map[string]interface{}{
 				"ref": "refs/heads/dev",
@@ -64,13 +76,33 @@ func TestWebhookHandler(t *testing.T) {
 				},
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   "Ignored non-main branch",
+			expectedBody:   "Ignored: Not a push to main or merged PR to main",
 		},
 		"success_main_branch": {
 			method:    http.MethodPost,
+			eventType: "push",
 			envSecret: testSecret,
 			body: map[string]interface{}{
 				"ref": "refs/heads/main",
+				"repository": map[string]string{
+					"name": "test-repo",
+				},
+			},
+			expectedStatus: http.StatusAccepted,
+			expectedBody:   "Sync triggered for test-repo",
+		},
+		"success_pr_merge": {
+			method:    http.MethodPost,
+			eventType: "pull_request",
+			envSecret: testSecret,
+			body: map[string]interface{}{
+				"action": "closed",
+				"pull_request": map[string]interface{}{
+					"merged": true,
+					"base": map[string]string{
+						"ref": "main",
+					},
+				},
 				"repository": map[string]string{
 					"name": "test-repo",
 				},
@@ -100,6 +132,10 @@ func TestWebhookHandler(t *testing.T) {
 			req := httptest.NewRequest(tt.method, "/api/webhook/gitops", bytes.NewReader(bodyBytes))
 
 			// Prepare Headers
+			if tt.eventType != "" {
+				req.Header.Set("X-GitHub-Event", tt.eventType)
+			}
+
 			if tt.method == http.MethodPost && tt.envSecret != "" {
 				if tt.headerSig != "" {
 					req.Header.Set("X-Hub-Signature-256", tt.headerSig)
