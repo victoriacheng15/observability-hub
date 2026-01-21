@@ -1,6 +1,6 @@
 # RFC 007: k3s Shadow Deployment & Orchestration
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-01-19
 - **Author:** Victoria Cheng
 
