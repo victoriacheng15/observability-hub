@@ -1,97 +1,116 @@
 page_title: "Project Evolution"
 intro_text: "From experimenting with local infrastructure to building a focused observability tool: driven by telemetry needs."
-timeline:
-  - date: "2025-11-20"
-    title: "Reliable Local Lab"
-    description: |
-      - Establish core Docker infrastructure with automated volume management and backups.
-      - Selected PostgreSQL over niche TSDBs for long-term flexibility and reduced maintenance.
-  - date: "2025-12-25"
-    title: "Telemetry Engine Initialization"
-    artifacts:
-      - name: "RFC 001: Postgres vs InfluxDB"
-        url: "docs/decisions/001-postgres-vs-influxdb.md"
-    description: |
-      - Built a lightweight Go proxy to emit structured telemetry for health and error tracking.
-      - Unified logs and metrics into a single PostgreSQL JSONB schema, simplifying the data model.
-  - date: "2025-12-31"
-    title: "Hybrid Cloud Architecture"
-    artifacts:
-      - name: "RFC 002: Cloud-to-Local Bridge"
-        url: "docs/decisions/002-cloud-to-local-bridge.md"
-    description: |
-      - Designed a secure "Store-and-Forward" bridge to ingest Azure Function telemetry without exposing local ports.
-      - Decoupled stateless collectors from persistent storage to enable independent scaling.
-  - date: "2026-01-01"
-    title: "Project Portal Launch"
-    description: |
-      - Released a self-hosted visualization portal to track system evolution and technical constraints.
-      - Unified real-time system metrics and personal analytics via snapshots.
-  - date: "2026-01-03"
-    title: "Standardization & Logging"
-    artifacts:
-      - name: "RFC 003: Shared Logging Library"
-        url: "docs/decisions/003-shared-logging-library.md"
-    description: |
-      - Implemented a shared 'pkg/logger' to enforce consistent structured observability across all services.
-      - Formalized 'Documentation as Code' by treating architectural decisions (RFCs) as first-class artifacts.
-  - date: "2026-01-08"
-    title: "Automated Insights & GitOps"
-    artifacts:
-      - name: "RFC 004: Spatial Telemetry Keyboard"
-        url: "docs/decisions/004-spatial-telemetry-keyboard.md"
-      - name: "RFC 005: GitOps Reconciliation"
-        url: "docs/decisions/005-gitops-reconciliation-engine.md"
-    description: |
-      - Automating data ingestion using reliable, journal-backed Systemd timers.
-      - Validated GitOps strategy for automated repository synchronization.
-  - date: "2026-01-09"
-    title: "Shared Database Module"
-    artifacts:
-      - name: "RFC 006: Shared Database Connection"
-        url: "docs/decisions/006-shared-database-module.md"
-    description: |
-      - Standardized connection configuration and DSN generation in 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
-      - Eliminated configuration drift by refactoring services to use the shared configuration module.
-  - date: "2026-01-10"
-    title: "GitOps Infrastructure: Phase 1"
-    artifacts:
-      - name: "RFC 005: GitOps Reconciliation"
-        url: "docs/decisions/005-gitops-reconciliation-engine.md"
-    description: |
-      - Implemented a secure, templated GitOps reconciliation engine for automated sync.
-      - Adopted 'Logfmt' and 'Allowlist' patterns for better observability and security.
-  - date: "2026-01-11"
-    title: "Host-Level Observability" 
-    description: |
-      - established a pipeline to ingest Systemd journal logs into Loki via Promtail.
-      - Implemented parsing and labeling for key infrastructure units.
-  - date: "2026-01-14"
-    title: "GitOps Infrastructure: Phase 2"
-    artifacts:
-      - name: "RFC 005: GitOps Reconciliation"
-        url: "docs/decisions/005-gitops-reconciliation-engine.md"
-    description: |
-      - Scaled the GitOps engine to support multi-tenant synchronization across multiple repositories.
-      - Optimized reconciliation intervals to balance data freshness with operational stability.
-  - date: "2026-01-19"
-    title: "Orchestration Spike: k3s"
-    artifacts:
-      - name: "RFC 007: k3s Shadow Deployment"
-        url: "docs/decisions/007-k3s-shadow-deployment-orchestration.md"
-    description: |
-      - Validated k3s orchestration via a 'Shadow Deployment,' proving cross-platform networking.
-      - Introduced 'Safe-Mode' feature toggles to decouple database dependencies during prototyping.
-  - date: "2026-01-21"
-    title: "Standardization & Event-Driven Pivot"
-    artifacts:
-      - name: "RFC 008: GitOps via Proxy Webhook"
-        url: "docs/decisions/008-gitops-via-proxy-webhook.md"
-      - name: "RFC 009: Standardized DB Connection"
-        url: "docs/decisions/009-standardized-db-connection-methods.md"
-      - name: "RFC 010: Integrate HashiCorp Vault"
-        url: "docs/decisions/010-integrate-hashicorp-vault.md"
-    description: |
-      - Pivot from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
-      - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
-      - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
+chapters:
+  - title: "The Genesis"
+    period: "Nov 20, 2025 - Dec 31, 2025"
+    intro: "Infrastructure Foundations & Telemetry Prototypes"
+    timeline:
+      - date: "2025-11-20"
+        title: "Reliable Local Lab"
+        description: |
+          - Establish core Docker infrastructure with automated volume management and backups.
+          - Selected PostgreSQL over specialized TSDBs for long-term flexibility and reduced maintenance.
+      - date: "2025-12-25"
+        title: "Telemetry Engine Initialization"
+        artifacts:
+          - name: "RFC 001: Postgres vs InfluxDB"
+            url: "docs/decisions/001-postgres-vs-influxdb.md"
+        description: |
+          - Built a lightweight Go proxy to emit structured telemetry for health and error tracking.
+          - Unified logs and metrics into a single PostgreSQL JSONB schema, simplifying the data model.
+      - date: "2025-12-31"
+        title: "Hybrid Cloud Architecture"
+        artifacts:
+          - name: "RFC 002: Cloud-to-Local Bridge"
+            url: "docs/decisions/002-cloud-to-local-bridge.md"
+        description: |
+          - Designed a secure "Store-and-Forward" bridge to ingest Azure Function telemetry without exposing local ports.
+          - Decoupled stateless collectors from persistent storage to enable independent scaling.
+
+  - title: "The Platform Core"
+    period: "Jan 01, 2026 - Jan 09, 2026"
+    intro: "Standardization, Visualization, and Process"
+    timeline:
+      - date: "2026-01-01"
+        title: "Project Portal Launch"
+        description: |
+          - Released a self-hosted visualization portal to track system evolution and technical constraints.
+          - Unified real-time system metrics and personal analytics via snapshots.
+      - date: "2026-01-03"
+        title: "Standardization & Logging"
+        artifacts:
+          - name: "RFC 003: Shared Logging Library"
+            url: "docs/decisions/003-shared-logging-library.md"
+        description: |
+          - Implemented a shared 'pkg/logger' to enforce consistent structured observability across all services.
+          - Formalized 'Documentation as Code' by treating architectural decisions (RFCs) as first-class artifacts.
+      - date: "2026-01-08"
+        title: "Automated Insights & GitOps"
+        artifacts:
+          - name: "RFC 004: Spatial Telemetry Keyboard"
+            url: "docs/decisions/004-spatial-telemetry-keyboard.md"
+          - name: "RFC 005: GitOps Reconciliation"
+            url: "docs/decisions/005-gitops-reconciliation-engine.md"
+        description: |
+          - Automating data ingestion using reliable, journal-backed Systemd timers.
+          - Validated GitOps strategy for automated repository synchronization.
+      - date: "2026-01-09"
+        title: "Shared Database Module"
+        artifacts:
+          - name: "RFC 006: Shared Database Connection"
+            url: "docs/decisions/006-shared-database-module.md"
+        description: |
+          - Standardized connection configuration and DSN generation in 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
+          - Eliminated configuration drift by refactoring services to use the shared configuration module.
+
+  - title: "GitOps & Host Observability"
+    period: "Jan 10, 2026 - Jan 14, 2026"
+    intro: "Stabilizing and scaling single-node infrastructure."
+    timeline:
+      - date: "2026-01-10"
+        title: "GitOps Infrastructure: Phase 1"
+        artifacts:
+          - name: "RFC 005: GitOps Reconciliation"
+            url: "docs/decisions/005-gitops-reconciliation-engine.md"
+        description: |
+          - Implemented a secure, templated GitOps reconciliation engine for automated sync.
+          - Adopted 'Logfmt' and 'Allowlist' patterns for better observability and security.
+      - date: "2026-01-11"
+        title: "Host-Level Observability" 
+        description: |
+          - established a pipeline to ingest Systemd journal logs into Loki via Promtail.
+          - Implemented parsing and labeling for key infrastructure units.
+      - date: "2026-01-14"
+        title: "GitOps Infrastructure: Phase 2"
+        artifacts:
+          - name: "RFC 005: GitOps Reconciliation"
+            url: "docs/decisions/005-gitops-reconciliation-engine.md"
+        description: |
+          - Scaled the GitOps engine to support multi-tenant synchronization across multiple repositories.
+          - Optimized reconciliation intervals to balance data freshness with operational stability.
+
+  - title: "Orchestration & Event-Driven Pivot"
+    period: "Jan 19, 2026 - Present"
+    intro: "Scaling beyond static host-management: pivoting from polling-based timers to event-driven webhooks and k3s orchestration."
+    timeline:
+      - date: "2026-01-19"
+        title: "Orchestration Spike: k3s"
+        artifacts:
+          - name: "RFC 007: k3s Shadow Deployment"
+            url: "docs/decisions/007-k3s-shadow-deployment-orchestration.md"
+        description: |
+          - Validated k3s orchestration via a 'Shadow Deployment,' proving cross-platform networking.
+          - Introduced 'Safe-Mode' feature toggles to decouple database dependencies during prototyping.
+      - date: "2026-01-21"
+        title: "Standardization & Event-Driven Pivot"
+        artifacts:
+          - name: "RFC 008: GitOps via Proxy Webhook"
+            url: "docs/decisions/008-gitops-via-proxy-webhook.md"
+          - name: "RFC 009: Standardized DB Connection"
+            url: "docs/decisions/009-standardized-db-connection-methods.md"
+          - name: "RFC 010: Integrate HashiCorp Vault"
+            url: "docs/decisions/010-integrate-hashicorp-vault.md"
+        description: |
+          - Pivot from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
+          - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
+          - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
