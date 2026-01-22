@@ -51,8 +51,8 @@ timeline:
       - name: "RFC 006: Shared Database Connection"
         url: "docs/decisions/006-shared-database-module.md"
     description: |
-      - Centralized connection logic into 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
-      - Eliminated configuration drift by refactoring services to use the shared module.
+      - Standardized connection configuration and DSN generation in 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
+      - Eliminated configuration drift by refactoring services to use the shared configuration module.
   - date: "2026-01-10"
     title: "GitOps Infrastructure: Phase 1"
     artifacts:
@@ -89,6 +89,9 @@ timeline:
         url: "docs/decisions/008-gitops-via-proxy-webhook.md"
       - name: "RFC 009: Standardized DB Connection"
         url: "docs/decisions/009-standardized-db-connection-methods.md"
+      - name: "RFC 010: Integrate HashiCorp Vault"
+        url: "docs/decisions/010-integrate-hashicorp-vault.md"
     description: |
       - Pivot from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
-      - Adopted 'Paved Road' philosophy by centralizing connection logic, reducing boilerplate and architectural drift.
+      - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
+      - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.

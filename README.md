@@ -17,7 +17,6 @@ A resilient and reliability-focused unified telemetry platform architected to de
 - **GitOps & State Convergence:** Enforcement of configuration consistency between version control and the running environment. Automated reconciliation engines detect and correct drift, ensuring the "Source of Truth" is always the reality.
 - **Hybrid Runtime Pragmatism:** Strategic deployment utilizing the most effective primitives for the task. Containerization provides isolation for stateless data services, while native host management (Systemd) is leveraged for performance-critical automation and hardware-level telemetry.
 
-
 ---
 
 ## 🛠️ Tech Stack
