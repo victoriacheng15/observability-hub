@@ -404,6 +404,70 @@
             padding: var(--space-md);
         }
 
+        /* Chapter Styles */
+        .chapter {
+            background: var(--card-bg);
+            border-radius: var(--radius-main);
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 6px -1px var(--shadow);
+            margin-bottom: var(--space-xl);
+            transition: border-color 0.2s;
+
+            &[open] {
+                border-color: var(--primary);
+            }
+        }
+
+        .chapter-header {
+            padding: var(--space-lg);
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+
+            &::-webkit-details-marker {
+                display: none;
+            }
+
+            h2 {
+                color: var(--primary);
+                font-size: var(--font-lg);
+                margin-right: auto;
+            }
+
+            .period {
+                color: var(--text-muted);
+                font-size: var(--font-sm);
+            }
+
+            &:after {
+                content: '→';
+                color: var(--primary);
+                transition: transform 0.2s;
+            }
+
+            &:hover h2 {
+                text-decoration: underline;
+            }
+        }
+
+        .chapter[open] .chapter-header:after {
+            transform: rotate(90deg);
+        }
+
+        .chapter-body {
+            padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
+            border-top: 1px solid var(--border-light);
+            padding-top: var(--space-lg);
+
+            .intro {
+                font-style: italic;
+                color: var(--text-muted-light);
+                margin-bottom: var(--space-xl);
+            }
+        }
+
         .snapshot-caption {
             margin-bottom: var(--space-md);
         }

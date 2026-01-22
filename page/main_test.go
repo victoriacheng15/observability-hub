@@ -52,10 +52,14 @@ principles:
 		tmpContent := `
 page_title: "Test Evolution"
 intro_text: "Test Intro"
-timeline:
-  - date: "2024-01-01"
-    title: "Event 1"
-    description: "Desc 1"
+chapters:
+  - title: "Chapter 1"
+    period: "2024"
+    intro: "Chapter Intro"
+    timeline:
+      - date: "2024-01-01"
+        title: "Event 1"
+        description: "Desc 1"
 `
 		tmpFile, err := os.CreateTemp("", "evolution-*.yaml")
 		if err != nil {
@@ -76,8 +80,11 @@ timeline:
 		if evolution.PageTitle != "Test Evolution" {
 			t.Errorf("Expected 'Test Evolution', got '%s'", evolution.PageTitle)
 		}
-		if len(evolution.Timeline) != 1 {
-			t.Errorf("Expected 1 timeline event, got %d", len(evolution.Timeline))
+		if len(evolution.Chapters) != 1 {
+			t.Errorf("Expected 1 chapter, got %d", len(evolution.Chapters))
+		}
+		if len(evolution.Chapters[0].Events) != 1 {
+			t.Errorf("Expected 1 event in Chapter 0, got %d", len(evolution.Chapters[0].Events))
 		}
 	})
 }

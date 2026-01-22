@@ -8,29 +8,42 @@
 {{end}}
 
 {{define "content"}}
-<ul class="timeline">
-    {{range .Evolution.Timeline}}
-    <li>
-        <time class="timeline-date" datetime="{{ .Date }}">{{ .FormattedDate }}</time>
-        <article class="timeline-content">
-            <h3>{{ .Title }}</h3>
-            <ul>
-                {{range .DescriptionLines}}
-                <li>{{ . }}</li>
-                {{end}}
+{{ $total := len .Evolution.Chapters }}
+{{ range $i, $c := .Evolution.Chapters }}
+    {{ $isFirst := eq $i 0 }}
+    <details class="chapter" {{ if $isFirst }}open{{ end }}>
+        <summary class="chapter-header">
+            <h2>Chapter {{ sub $total $i }}: {{ $c.Title }}</h2>
+            <span class="period">{{ $c.Period }}</span>
+        </summary>
+        <section class="chapter-body">
+            <p class="intro">{{ $c.Intro }}</p>
+            <ul class="timeline">
+                {{ range $c.Events }}
+                <li>
+                    <time class="timeline-date" datetime="{{ .Date }}">{{ .FormattedDate }}</time>
+                    <article class="timeline-content">
+                        <h3>{{ .Title }}</h3>
+                        <ul>
+                            {{ range .DescriptionLines }}
+                            <li>{{ . }}</li>
+                            {{ end }}
+                        </ul>
+                        {{if .Artifacts}}
+                        <div class="rfc-tags">
+                            {{range .Artifacts}}
+                            <a href="https://github.com/victoriacheng15/observability-hub/blob/main/{{ .URL }}" class="btn-rfc"
+                                target="_blank" rel="noopener noreferrer">
+                                📄 {{ .Name }}
+                            </a>
+                            {{end}}
+                        </div>
+                        {{end}}
+                    </article>
+                </li>
+                {{ end }}
             </ul>
-            {{if .Artifacts}}
-            <div class="rfc-tags">
-                {{range .Artifacts}}
-                <a href="https://github.com/victoriacheng15/observability-platform/blob/main/{{ .URL }}" class="btn-rfc"
-                    target="_blank" rel="noopener noreferrer">
-                    📄 {{ .Name }}
-                </a>
-                {{end}}
-            </div>
-            {{end}}
-        </article>
-    </li>
-    {{end}}
-</ul>
+        </section>
+    </details>
+{{ end }}
 {{end}}

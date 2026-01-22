@@ -68,11 +68,19 @@ type Event struct {
 	Artifacts        []Artifact `yaml:"artifacts"`
 }
 
+// Chapter represents a collection of events in a specific phase of the project.
+type Chapter struct {
+	Title  string  `yaml:"title"`
+	Period string  `yaml:"period"`
+	Intro  string  `yaml:"intro"`
+	Events []Event `yaml:"timeline"`
+}
+
 // Evolution holds the data for the evolution timeline page.
 type Evolution struct {
-	PageTitle string  `yaml:"page_title"`
-	IntroText string  `yaml:"intro_text"`
-	Timeline  []Event `yaml:"timeline"`
+	PageTitle string    `yaml:"page_title"`
+	IntroText string    `yaml:"intro_text"`
+	Chapters  []Chapter `yaml:"chapters"`
 }
 
 // SiteData is the top-level structure holding all data for the site.

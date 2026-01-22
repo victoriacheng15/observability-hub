@@ -49,31 +49,37 @@ func main() {
 		}
 	}
 
-	// Process Descriptions and Dates
-	for i := range data.Evolution.Timeline {
-		// 1. Process description lines
-		lines := strings.Split(data.Evolution.Timeline[i].Description, "\n")
-		var cleanLines []string
-		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if trimmed != "" {
-				cleanLines = append(cleanLines, strings.TrimPrefix(trimmed, "- "))
+	// Process Descriptions and Dates for each Chapter
+	for ci := range data.Evolution.Chapters {
+		for ei := range data.Evolution.Chapters[ci].Events {
+			event := &data.Evolution.Chapters[ci].Events[ei]
+
+			// 1. Process description lines
+			lines := strings.Split(event.Description, "\n")
+			var cleanLines []string
+			for _, line := range lines {
+				trimmed := strings.TrimSpace(line)
+				if trimmed != "" {
+					cleanLines = append(cleanLines, strings.TrimPrefix(trimmed, "- "))
+				}
+			}
+			event.DescriptionLines = cleanLines
+
+			// 2. Process and format date
+			t, err := time.Parse("2006-01-02", event.Date)
+			if err != nil {
+				log.Printf("Warning: failed to parse date %s: %v", event.Date, err)
+				event.FormattedDate = event.Date
+			} else {
+				event.FormattedDate = t.Format("Jan 02, 2006")
 			}
 		}
-		data.Evolution.Timeline[i].DescriptionLines = cleanLines
-
-		// 2. Process and format date
-		t, err := time.Parse("2006-01-02", data.Evolution.Timeline[i].Date)
-		if err != nil {
-			log.Printf("Warning: failed to parse date %s: %v", data.Evolution.Timeline[i].Date, err)
-			data.Evolution.Timeline[i].FormattedDate = data.Evolution.Timeline[i].Date
-		} else {
-			data.Evolution.Timeline[i].FormattedDate = t.Format("Jan 02, 2006")
-		}
+		// Reverse Events within each chapter (Newest First)
+		slices.Reverse(data.Evolution.Chapters[ci].Events)
 	}
 
-	// Reverse Timeline (Newest First)
-	slices.Reverse(data.Evolution.Timeline)
+	// Reverse Chapters (Newest First)
+	slices.Reverse(data.Evolution.Chapters)
 
 	// 4. Render Pages
 	if err := renderPage("index.html", "templates/index.html", &data); err != nil {
@@ -103,8 +109,18 @@ func loadYaml(path string, out interface{}) error {
 }
 
 func renderPage(outFile, tplFile string, data *schema.SiteData) error {
+	// Add template functions
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+	}
+
 	// Always parse base.html + the specific page template
-	tmpl, err := template.ParseFiles("templates/base.html", tplFile)
+	tmpl, err := template.New(filepath.Base(tplFile)).Funcs(funcMap).ParseFiles("templates/base.html", tplFile)
 	if err != nil {
 		return fmt.Errorf("failed to parse templates for %s: %w", outFile, err)
 	}
