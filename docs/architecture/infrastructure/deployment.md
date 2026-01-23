@@ -12,6 +12,7 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 | **Promtail** | Log Agent | Dockerized agent that scrapes both Docker container logs and the **Host Systemd Journal**. |
 | **Proxy Service** | API & GitOps Trigger | Native Go binary running as a Systemd service. Handles webhooks and data pipelines. |
 | **Tailscale Gate** | Security Agent | Native script ensuring the Public Funnel is only open when the Proxy is healthy. |
+| **Volume Backup** | Backup Agent | Native script to backup Docker volumes. |
 
 ## Data Flow: Unified Logging
 
@@ -33,7 +34,7 @@ sequenceDiagram
 ## Deployment Strategy
 
 - **Orchestration**: `docker-compose.yml` for data infrastructure (Postgres, Grafana, Loki, Promtail).
-- **Native Services**: Systemd units for the **Proxy**, **Tailscale Gate**, and **Metrics Collector**.
+- **Native Services**: Systemd units for the **Proxy**, **Tailscale Gate**, **Metrics Collector**, and **Volume Backup**.
 - **Automation**: `Makefile` for lifecycle management (build, restart, install).
 - **Persistence**: External Docker volumes (`postgres_data`, etc.) for container data.
 - **Event-Driven Sync**: GitHub Webhooks trigger the local `gitops_sync.sh` via the Proxy service.
