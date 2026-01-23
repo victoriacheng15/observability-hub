@@ -14,11 +14,12 @@ The system consists of several main service families, each with a `.service` uni
 
 | Service Name | Type | Schedule / Trigger | Responsibility |
 | :--- | :--- | :--- | :--- |
-| **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
 | **`tailscale-gate`** | `simple` | Continuous | **Security**: Monitors Proxy health and toggles Tailscale Funnel access. |
+| **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
 | **`gitops-sync`** | `oneshot` | **Webhook** | **Reconciliation**: Triggered by Proxy to pull latest code and apply changes. |
-| **`reading-sync`** | `oneshot` | Daily (10:00 AM) | **Data Pipeline Trigger**: Calls Proxy API to sync MongoDB data to Postgres. |
+| **`reading-sync`** | `oneshot` | Twice Daily (00:00, 12:00) | **Data Pipeline Trigger**: Calls Proxy API to sync MongoDB data to Postgres. |
 | **`system-metrics`** | `oneshot` | Every 1 min | **Telemetry**: Collects host hardware stats and flushes them to the database. |
+| **`volume-backup`** | `oneshot` | Daily (01:00 AM) | **Backup**: Management script to backup Docker volumes. |
 
 ## Operational Excellence
 

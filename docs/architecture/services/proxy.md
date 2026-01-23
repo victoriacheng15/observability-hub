@@ -10,7 +10,7 @@ The Proxy Service (`proxy/`) is a custom Go application that acts as the API gat
 | :--- | :--- | :--- |
 | `/` | GET | Returns a JSON welcome message. |
 | `/api/webhook/gitops` | POST | **GitOps Trigger**: Handles GitHub webhooks (Push/PR events) to sync local repositories. |
-| `/api/sync/reading` | GET | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
+| `/api/sync/reading` | POST | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
 
 ### Endpoint Details
 
