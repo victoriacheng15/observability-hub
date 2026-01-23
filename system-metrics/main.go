@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -12,7 +13,6 @@ import (
 	"logger"
 	"system-metrics/collectors"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/shirou/gopsutil/v4/host"
 )
@@ -39,18 +39,13 @@ func main() {
 	}
 
 	// 2. Database Connection
-	connStr, err := db.GetPostgresDSN()
-	if err != nil {
-		slog.Error("db_config_failed", "error", err)
-		os.Exit(1)
-	}
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, connStr)
+	conn, err := db.ConnectPostgres("postgres")
 	if err != nil {
 		slog.Error("db_connection_failed", "error", err)
 		os.Exit(1)
 	}
-	defer conn.Close(ctx)
+	defer conn.Close()
 
 	// 3. Ensure Schema
 	ensureSchema(ctx, conn)
@@ -59,7 +54,7 @@ func main() {
 	collectAndStore(ctx, conn, hostName, osName)
 }
 
-func collectAndStore(ctx context.Context, conn *pgx.Conn, hostName string, osName string) {
+func collectAndStore(ctx context.Context, conn *sql.DB, hostName string, osName string) {
 	now := time.Now().UTC().Truncate(time.Second)
 
 	// Collect
@@ -85,7 +80,7 @@ func collectAndStore(ctx context.Context, conn *pgx.Conn, hostName string, osNam
 			continue
 		}
 		payloadJSON, _ := json.Marshal(m.payload)
-		_, err := conn.Exec(ctx,
+		_, err := conn.ExecContext(ctx,
 			"INSERT INTO system_metrics (time, host, os, metric_type, payload) VALUES ($1, $2, $3, $4, $5)",
 			now, hostName, osName, m.mType, payloadJSON,
 		)
@@ -105,8 +100,8 @@ func collectAndStore(ctx context.Context, conn *pgx.Conn, hostName string, osNam
 	}
 }
 
-func ensureSchema(ctx context.Context, conn *pgx.Conn) {
-	_, err := conn.Exec(ctx, `
+func ensureSchema(ctx context.Context, conn *sql.DB) {
+	_, err := conn.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS system_metrics (
 			time TIMESTAMPTZ(0) NOT NULL,
 			host TEXT NOT NULL,
@@ -121,7 +116,7 @@ func ensureSchema(ctx context.Context, conn *pgx.Conn) {
 	}
 
 	// Enable hypertable if TimescaleDB is available
-	_, err = conn.Exec(ctx, "SELECT create_hypertable('system_metrics', 'time', if_not_exists => true);")
+	_, err = conn.ExecContext(ctx, "SELECT create_hypertable('system_metrics', 'time', if_not_exists => true);")
 	if err != nil {
 		// Just info, as we might be running on standard Postgres
 		slog.Info("hypertable_check", "status", "skipped_or_failed", "detail", err)

@@ -13,9 +13,7 @@ help:
 	@echo "  make go-cov             - Run tests with coverage report"
 	@echo "  make page-build         - Build the GitHu Page"
 	@echo "  make metrics-build      - Build the system metrics collector"
-	@echo "  make proxy-up           - Start the go proxy server"
-	@echo "  make proxy-down         - Stop the go proxy server"
-	@echo "  make proxy-update       - Rebuild and restart the go proxy server"
+	@echo "  make proxy-build        - Build and restart the go proxy server"
 	@echo "  make install-services   - Install all systemd units from ./systemd"
 	@echo "  make reload-services    - Update systemd units (cp + daemon-reload)"
 	@echo "  make uninstall-services - Uninstall all systemd units from ./systemd"
@@ -81,41 +79,32 @@ page-build:
 # System Metrics Collector
 metrics-build:
 	@echo "Building system metrics collector..."
-	@cd system-metrics && go build -o metrics-collector.exe main.go
+	@cd system-metrics && go build -o metrics-collector main.go
+	@sudo systemctl restart system-metrics.service
 
 # Go Proxy Server Management
 proxy-build:
-	@echo "Building proxy server binary..."
+	@echo "Updating Proxy..."
 	@cd proxy && go build -o proxy_server .
-
-proxy-up: proxy-build
-	@echo "Starting proxy service (Systemd)..."
-	@sudo systemctl enable --now proxy.service
-
-proxy-down:
-	@echo "Stopping proxy service..."
-	@sudo systemctl stop proxy.service
-
-proxy-update: proxy-build
-	@echo "Updating proxy service..."
 	@sudo systemctl restart proxy.service
 
 # Systemd Service Management
+
+# Define exact units to install
+ACTIVE_UNITS = proxy.service tailscale-gate.service system-metrics.service \
+               system-metrics.timer reading-sync.service reading-sync.timer \
+               volume-backup.service volume-backup.timer
+
 install-services:
-	@echo "Installing all systemd units as symlinks..."
-	@sudo ln -sf $(CURDIR)/systemd/*.service /etc/systemd/system/
-	@sudo ln -sf $(CURDIR)/systemd/*.timer /etc/systemd/system/
-	@sudo systemctl daemon-reload
-	@echo "Enabling regular timers..."
-	@for timer in $$(ls systemd/*.timer 2>/dev/null | grep -v "@"); do \
-		timer_name=$$(basename $$timer); \
-		sudo systemctl enable --now $$timer_name; \
+	@echo "🔗 Linking active units..."
+	@for unit in $(ACTIVE_UNITS); do \
+		sudo ln -sf $(CURDIR)/systemd/$$unit /etc/systemd/system/$$unit; \
 	done
-	@echo "Enabling Tailscale Gate..."
-	@sudo systemctl enable --now tailscale-gate.service
-	@echo "Enabling Proxy Server..."
-	@sudo systemctl enable --now proxy.service
-	@echo "Installation complete."
+	@sudo systemctl daemon-reload
+	@echo "🟢 Enabling services..."
+	@sudo systemctl enable --now proxy.service tailscale-gate.service
+	@echo "⏰ Enabling timers..."
+	@sudo systemctl enable --now system-metrics.timer reading-sync.timer volume-backup.timer
 
 reload-services:
 	@echo "Reloading systemd units..."
@@ -123,16 +112,10 @@ reload-services:
 	@echo "Configuration reloaded. Changes in ./systemd are active (timers may need restart)."
 
 uninstall-services:
-	@echo "Stopping and disabling all project units..."
-	# 1. Explicitly handle known instances
-	@sudo systemctl disable --now proxy.service 2>/dev/null || true
-	@sudo systemctl disable --now tailscale-gate.service 2>/dev/null || true
-	# 2. Generic cleanup for all units in ./systemd
-	@for unit in $$(ls systemd/*.service systemd/*.timer 2>/dev/null); do \
-		unit_name=$$(basename $$unit); \
-		sudo systemctl stop $$unit_name 2>/dev/null || true; \
-		sudo systemctl disable $$unit_name 2>/dev/null || true; \
-		sudo rm /etc/systemd/system/$$unit_name 2>/dev/null || true; \
+	@echo "🛑 Nuclear Cleanup: Stopping and removing all project units..."
+	@for unit in $$(ls systemd/ 2>/dev/null); do \
+		sudo systemctl disable --now $$unit 2>/dev/null || true; \
+		sudo rm /etc/systemd/system/$$unit 2>/dev/null || true; \
 	done
 	@sudo systemctl daemon-reload
-	@echo "Uninstallation complete. Systemd is clean."
+	@echo "🧹 Systemd is clean."

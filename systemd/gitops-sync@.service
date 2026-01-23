@@ -1,8 +1,0 @@
-[Unit]
-Description=GitOps Sync for %i
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/home/server/software/observability-hub/scripts/gitops_sync.sh %i
-User=server
