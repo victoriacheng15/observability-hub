@@ -12,9 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
-// Payload represents the payload from GitHub webhook events
+var repoLocks sync.Map
+
 type Payload struct {
 	Ref        string `json:"ref"`
 	Action     string `json:"action"`
@@ -114,6 +116,13 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func(repo string) {
+		// Acquire lock for this specific repository
+		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
+		mu := val.(*sync.Mutex)
+
+		mu.Lock()
+		defer mu.Unlock()
+
 		slog.Info("Triggering GitOps sync via webhook", "repo", repo, "event", eventType)
 		// We use an absolute path to the script for reliability
 		cmd := exec.Command("/home/server/software/observability-hub/scripts/gitops_sync.sh", repo)
