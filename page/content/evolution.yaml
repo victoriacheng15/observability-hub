@@ -111,6 +111,16 @@ chapters:
           - name: "RFC 010: Integrate HashiCorp Vault"
             url: "docs/decisions/010-integrate-hashicorp-vault.md"
         description: |
-          - Pivot from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
-          - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
+          - Proposed pivoting from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
+          - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
+      - date: "2026-01-23"
+        title: "Implementation: Webhook GitOps & DB Standards"
+        artifacts:
+          - name: "RFC 008: GitOps via Proxy Webhook"
+            url: "docs/decisions/008-gitops-via-proxy-webhook.md"
+          - name: "RFC 009: Standardized DB Connection"
+            url: "docs/decisions/009-standardized-db-connection-methods.md"
+        description: |
+          - Decommissioned legacy Docker proxy and systemd timers, fully migrating to a native systemd service with webhook-based triggering.
+          - Centralized database connection in 'pkg/db' to enforce architectural consistency.

@@ -1,6 +1,6 @@
 # RFC 008: GitOps via Proxy Webhook
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-01-21
 - **Author:** Victoria Cheng
 

@@ -1,6 +1,6 @@
 # RFC 009: Standardized Database Connection Methods
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-01-21
 - **Author:** Victoria Cheng
 
