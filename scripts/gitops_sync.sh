@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_NAME=${1:-""}
-ALLOWED_REPOS=("observability-hub" "mehub" "personal-reading-analytics" "platform-actions" bioHub)
+ALLOWED_REPOS=("observability-hub" "mehub" "personal-reading-analytics" "platform-actions" "bioHub" "cover-craft")
 BASE_DIR="/home/server/software"
 
 # Log helper using jq for safe JSON generation
@@ -110,8 +110,6 @@ if [[ "$LOCAL_HASH" != "$REMOTE_HASH" ]]; then
         log "ERROR" "Merge failed (non-fast-forward?): $SAFE_OUTPUT"
         exit 1
     fi
-else
-    log "INFO" "Already in sync."
 fi
 
 # 3. Cleanup Logic (delete all local branches except main)
