@@ -1,16 +1,16 @@
-# RFC 004: Spatial Keyboard Telemetry Pipeline
+# ADR 004: Spatial Keyboard Telemetry Pipeline
 
-- **Status:** Proposed
+- **Status:** Superseded
 - **Date:** 2026-01-03
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
 Standard input monitoring (keyloggers or counters) lacks the physical context of *where* interactions happen. For ergonomic analysis, heatmapping, and advanced hardware telemetry, we need a way to map raw Linux input events to physical coordinates on a 2D plane.
 
 Existing solutions are either platform-specific (Windows-only), high-latency (Python-based), or closed-source. We need a low-level, high-performance bridge that can ship this data from an "Edge" device (Desktop) to a "Control Plane" (Laptop) without impacting system performance.
 
-## Proposed Solution
+## Decision Outcome
 
 A distributed IoT pipeline consisting of three tiers:
 
@@ -24,23 +24,20 @@ A distributed IoT pipeline consisting of three tiers:
 - **Distributed Architecture:** Decouples the data collection (Desktop) from the visualization (Laptop), allowing the observability hub to remain centralized.
 - **Spatial Focus:** By using PostGIS, we can perform advanced spatial queries (e.g., "distance traveled between keypresses") that are impossible in standard time-series databases.
 
-## Comparison / Alternatives Considered
+## Consequences
 
-| Feature | Python / Node Script | C++ Agent (Proposed) |
-| :--- | :--- | :--- |
-| **Resource Usage** | Moderate CPU / High RAM | Near-zero CPU / < 5MB RAM |
-| **Kernel Interface** | Wrapper libraries (Heavy) | Direct `ioctl` (Native) |
-| **Latentcy** | GC Pauses possible | Deterministic |
-| **Portability** | Requires Runtime (interpreter) | Static Binary |
+### Positive
 
-## Failure Modes (Operational Excellence)
+- **Performance:** Near-zero CPU / < 5MB RAM usage on the edge.
+- **Latency:** Deterministic behavior (no GC pauses).
+- **Analysis:** Enables spatial queries via PostGIS.
 
-| Scenario | Impact | Mitigation |
-| :--- | :--- | :--- |
-| **Network Loss** | Data cannot be shipped. | Agent implements an in-memory ring buffer (10k events) using FIFO. |
-| **High Load** | DB pressure. | Go Proxy uses worker pools and batch inserts. |
-| **Device Swap** | Scancodes change. | Configuration-driven mapping via `layout.json`. |
+### Negative/Trade-offs
 
-## Conclusion
+- **Complexity:** Requires managing a C++ build chain alongside Go.
+- **Portability:** Tightly coupled to Linux `ioctl` and specific hardware layouts.
 
-This architecture provides a high-signal portfolio piece that demonstrates full-stack systems engineering, from hardware-level C++ to cloud-native Go and advanced SQL.
+## Planned Verification
+
+- [ ] **Manual Check:** Verify keypresses appear on the spatial heatmap.
+- [ ] **Automated Tests:** Unit tests for scancode-to-coordinate mapping.

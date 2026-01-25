@@ -1,18 +1,18 @@
-# RFC 002: Cloud-to-Homelab Telemetry Bridge
+# ADR 002: Cloud-to-Homelab Telemetry Bridge
 
 - **Status:** Accepted
 - **Date:** 2025-12-01
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
 Telemetry generated in Azure Functions (Cover Craft / Reading App) needs to be visualized in the local Grafana instance.
 
 **Constraint:** The local environment is behind a residential firewall (NAT). Inbound HTTP connections from Azure are restricted for security reasons. The goal is to avoid the complexity of maintaining a VPN for a single-purpose logging use case.
 
-## Proposed Solution (The "Pull Model")
+## Decision Outcome
 
-Use a shared **MongoDB** instance (Atlas) as an intermediate "Buffer" or Store-and-Forward node.
+Use a shared **MongoDB** instance (Atlas) as an intermediate "Buffer" or Store-and-Forward node (The "Pull Model").
 
 - **Producer (Azure):** The Azure Function writes event logs to MongoDB with `status: "ingested"`.
 - **Consumer (Local Go Proxy):** A local service polls MongoDB once per day.
@@ -37,14 +37,20 @@ sequenceDiagram
     end
 ```
 
-## Alternatives Considered
+## Consequences
 
-| Alternative | Pros | Cons | Decision |
-| :--- | :--- | :--- | :--- |
-| **VPN / Tailscale** | Direct secure connection. | High operational complexity for a simple logging use case. | Rejected |
-| **Port Forwarding** | Free, easy to setup. | **Security Risk.** Exposes home network to the public internet. | Rejected |
-| **MongoDB Bridge** | Secure (Outbound only), Free tier, simple implementation. | Polling introduces slight latency (not real-time). | **Accepted** |
+### Positive
 
-## Implementation Details
+- **Security:** Secure (Outbound only), no need to expose home network.
+- **Cost:** Uses Free Tier of MongoDB Atlas.
+- **Simplicity:** Simple implementation compared to VPN/Tailscale.
 
-The synchronization logic is handled by the `proxy/utils/reading.go` service. It follows a **Fetch -> Insert -> Acknowledge** transaction pattern to ensure data consistency.
+### Negative/Trade-offs
+
+- **Latency:** Polling introduces slight latency (not real-time).
+- **Dependency:** Adds dependency on external MongoDB availability.
+
+## Verification
+
+- [x] **Manual Check:** Verify new records appear in Postgres after daily sync.
+- [x] **Automated Tests:** `proxy/utils/reading_test.go` integration tests.

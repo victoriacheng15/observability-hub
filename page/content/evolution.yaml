@@ -13,7 +13,7 @@ chapters:
       - date: "2025-12-25"
         title: "Telemetry Engine Initialization"
         artifacts:
-          - name: "RFC 001: Postgres vs InfluxDB"
+          - name: "ADR 001: Postgres vs InfluxDB"
             url: "docs/decisions/001-postgres-vs-influxdb.md"
         description: |
           - Built a lightweight Go proxy to emit structured telemetry for health and error tracking.
@@ -21,7 +21,7 @@ chapters:
       - date: "2025-12-31"
         title: "Hybrid Cloud Architecture"
         artifacts:
-          - name: "RFC 002: Cloud-to-Local Bridge"
+          - name: "ADR 002: Cloud-to-Local Bridge"
             url: "docs/decisions/002-cloud-to-local-bridge.md"
         description: |
           - Designed a secure "Store-and-Forward" bridge to ingest Azure Function telemetry without exposing local ports.
@@ -39,17 +39,17 @@ chapters:
       - date: "2026-01-03"
         title: "Standardization & Logging"
         artifacts:
-          - name: "RFC 003: Shared Logging Library"
+          - name: "ADR 003: Shared Logging Library"
             url: "docs/decisions/003-shared-logging-library.md"
         description: |
           - Implemented a shared 'pkg/logger' to enforce consistent structured observability across all services.
-          - Formalized 'Documentation as Code' by treating architectural decisions (RFCs) as first-class artifacts.
+          - Formalized 'Documentation as Code' by treating architectural decisions (ADRs) as first-class artifacts.
       - date: "2026-01-08"
         title: "Automated Insights & GitOps"
         artifacts:
-          - name: "RFC 004: Spatial Telemetry Keyboard"
+          - name: "ADR 004: Spatial Telemetry Keyboard"
             url: "docs/decisions/004-spatial-telemetry-keyboard.md"
-          - name: "RFC 005: GitOps Reconciliation"
+          - name: "ADR 005: GitOps Reconciliation"
             url: "docs/decisions/005-gitops-reconciliation-engine.md"
         description: |
           - Automating data ingestion using reliable, journal-backed Systemd timers.
@@ -57,7 +57,7 @@ chapters:
       - date: "2026-01-09"
         title: "Shared Database Module"
         artifacts:
-          - name: "RFC 006: Shared Database Connection"
+          - name: "ADR 006: Shared Database Connection"
             url: "docs/decisions/006-shared-database-module.md"
         description: |
           - Standardized connection configuration and DSN generation in 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
@@ -70,7 +70,7 @@ chapters:
       - date: "2026-01-10"
         title: "GitOps Infrastructure: Phase 1"
         artifacts:
-          - name: "RFC 005: GitOps Reconciliation"
+          - name: "ADR 005: GitOps Reconciliation"
             url: "docs/decisions/005-gitops-reconciliation-engine.md"
         description: |
           - Implemented a secure, templated GitOps reconciliation engine for automated sync.
@@ -83,7 +83,7 @@ chapters:
       - date: "2026-01-14"
         title: "GitOps Infrastructure: Phase 2"
         artifacts:
-          - name: "RFC 005: GitOps Reconciliation"
+          - name: "ADR 005: GitOps Reconciliation"
             url: "docs/decisions/005-gitops-reconciliation-engine.md"
         description: |
           - Scaled the GitOps engine to support multi-tenant synchronization across multiple repositories.
@@ -96,7 +96,7 @@ chapters:
       - date: "2026-01-19"
         title: "Orchestration Spike: k3s"
         artifacts:
-          - name: "RFC 007: k3s Shadow Deployment"
+          - name: "ADR 007: k3s Shadow Deployment"
             url: "docs/decisions/007-k3s-shadow-deployment-orchestration.md"
         description: |
           - Validated k3s orchestration via a 'Shadow Deployment,' proving cross-platform networking.
@@ -104,11 +104,11 @@ chapters:
       - date: "2026-01-21"
         title: "Standardization & Event-Driven Pivot"
         artifacts:
-          - name: "RFC 008: GitOps via Proxy Webhook"
+          - name: "ADR 008: GitOps via Proxy Webhook"
             url: "docs/decisions/008-gitops-via-proxy-webhook.md"
-          - name: "RFC 009: Standardized DB Connection"
+          - name: "ADR 009: Standardized DB Connection"
             url: "docs/decisions/009-standardized-db-connection-methods.md"
-          - name: "RFC 010: Integrate HashiCorp Vault"
+          - name: "ADR 010: Integrate HashiCorp Vault"
             url: "docs/decisions/010-integrate-hashicorp-vault.md"
         description: |
           - Proposed pivoting from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
@@ -117,9 +117,9 @@ chapters:
       - date: "2026-01-23"
         title: "Implementation: Webhook GitOps & DB Standards"
         artifacts:
-          - name: "RFC 008: GitOps via Proxy Webhook"
+          - name: "ADR 008: GitOps via Proxy Webhook"
             url: "docs/decisions/008-gitops-via-proxy-webhook.md"
-          - name: "RFC 009: Standardized DB Connection"
+          - name: "ADR 009: Standardized DB Connection"
             url: "docs/decisions/009-standardized-db-connection-methods.md"
         description: |
           - Decommissioned legacy Docker proxy and systemd timers, fully migrating to a native systemd service with webhook-based triggering.
