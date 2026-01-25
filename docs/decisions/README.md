@@ -23,34 +23,33 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 ---
 
-## 📝 RFC Template
+## 📝 ADR Template
 
 To create a new proposal, copy the block below into a new `.md` file.
 
 ```markdown
-# RFC [00X]: [Descriptive Title]
+# ADR [00X]: [Descriptive Title]
 
-- **Status:** Proposed | Accepted | Superseded  
-- **Date:** YYYY-MM-DD  
+- **Status:** Proposed | Accepted | Superseded
+- **Date:** YYYY-MM-DD
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
-Identify the issue or opportunity. Why does this need to change?
+What specific issue triggered this change?
 
-## Proposed Solution
+## Decision Outcome
 
-Technical details of the implementation. Use code snippets or diagrams.
+What was the chosen architectural path?
 
-## Comparison / Alternatives Considered
+## Consequences
 
-What else could we have done? Why is this path better?
+- **Positive:** (e.g., Faster development, resolved dependency drift).
+- **Negative/Trade-offs:** (e.g., Added complexity to the CI/CD pipeline).
 
-## Failure Modes (Operational Excellence)
+## Verification
 
-How does this break? How will we know when it's failing in production?
+- [ ] **Manual Check:** (e.g., Verified logs/UI locally).
+- [ ] **Automated Tests:** (e.g., `make nix-go-test` passed).
 
-## Conclusion
-
-Final summary and next steps.
 ```

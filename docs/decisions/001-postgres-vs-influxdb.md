@@ -1,16 +1,16 @@
-# RFC 001: PostgreSQL vs. InfluxDB for Metrics Storage
+# ADR 001: PostgreSQL vs. InfluxDB for Metrics Storage
 
 - **Status:** Accepted
 - **Date:** 2025-11-01
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
 The observability system requires a storage engine to hold system metrics (CPU, Memory, Disk, Network) collected from the homelab.
 
 Initially, **InfluxDB** was considered due to its specialized nature as a Time-Series Database (TSDB). However, this introduced architectural questions regarding long-term maintenance and data flexibility.
 
-## Proposed Solution (PostgreSQL + JSONB)
+## Decision Outcome
 
 Switch to **PostgreSQL** using the `JSONB` data type for metrics storage, with the option to use **TimescaleDB** if performance limits are reached.
 
@@ -21,15 +21,19 @@ Switch to **PostgreSQL** using the `JSONB` data type for metrics storage, with t
 - **Flexibility:** JSONB allows storing unstructured telemetry data without strict schema migrations, which is ideal for an evolving observability project.
 - **Operational Simplicity:** One backup strategy, one container to monitor, and one set of security patches to manage.
 
-## Comparison
+## Consequences
 
-| Feature | InfluxDB | PostgreSQL (JSONB) |
-| :--- | :--- | :--- |
-| **Performance** | Optimized for high-write TS data. | Excellent for mid-range volume; expandable via TimescaleDB. |
-| **Language** | InfluxQL / Flux (Niche). | SQL (Industry Standard). |
-| **Ecosystem** | Strong within TIG stack. | Massive; works with every tool on earth. |
-| **Maintenance** | High (Another DB to manage). | Low (Consolidated into existing DB). |
+### Positive
 
-## Conclusion
+- **Ecosystem:** Massive ecosystem; works with every tool on earth.
+- **Maintenance:** Low operational overhead (consolidated into existing DB).
+- **Language:** Uses SQL (Industry Standard) instead of InfluxQL/Flux (Niche).
 
-While InfluxDB is a powerful tool for massive scale, the operational overhead and niche query language make it less ideal for a self-hosted homelab environment compared to the flexibility and ubiquity of PostgreSQL.
+### Negative/Trade-offs
+
+- **Performance:** PostgreSQL is excellent for mid-range volume but less optimized for high-write TS data compared to InfluxDB (though expandable via TimescaleDB).
+
+## Verification
+
+- [x] **Architecture Check:** Confirm `docker-compose.yml` runs a `postgres` service and **does not** run `influxdb`.
+- [x] **Code Check:** Verify `go.mod` depends on `lib/pq` (Postgres driver) and not `influxdb-client-go`.

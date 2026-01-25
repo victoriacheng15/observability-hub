@@ -1,51 +1,38 @@
-# RFC 006: Shared Database Configuration Module
+# ADR 006: Shared Database Configuration Module
 
 - **Status:** Accepted
 - **Date:** 2026-01-09
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
 As the platform expands to include multiple services (`proxy`, `system-metrics`) connecting to the same PostgreSQL database, configuration logic has become duplicated and inconsistent.
 
-- **Drift Risk:** Services maintain separate connection strings. Changing a default (e.g., enforcing `sslmode` or changing `timezone`) requires updates across multiple codebases.
-- **Code Duplication:** Environment variable parsing logic (`DB_HOST`, `DB_PORT`, etc.) is repeated in every service.
-- **Timezone Ambiguity:** Some services (like `system-metrics`) were missing the `timezone=UTC` flag, potentially leading to inconsistent data storage.
+- **Drift Risk:** Services maintain separate connection strings.
+- **Code Duplication:** Environment variable parsing logic is repeated.
+- **Timezone Ambiguity:** Some services were missing `timezone=UTC`.
 
-## Proposed Solution (Shared `pkg/db`)
+## Decision Outcome
 
-Extract the database connection configuration into a shared `pkg/db` module, following the "Paved Road" pattern established by `pkg/logger`.
+Extract the database connection configuration into a **Shared `pkg/db` Module**, following the "Paved Road" pattern.
 
 ### The "Single Source of Truth" Approach
 
 A root-level module `pkg/db` will centralize how services connect to persistence layers. This module enforces "safe by default" configurations (e.g., `timezone=UTC`, `sslmode=disable`) and handles environment variable parsing.
 
-### Interface Design
+## Consequences
 
-The module provides a standardized function to generate the Data Source Name (DSN). It respects the `DATABASE_URL` environment variable if present, otherwise it constructs the DSN from individual components.
+### Positive
 
-```go
-package db
+- **Consistency:** Connection logic is enforced by the library.
+- **Maintenance:** Updates are centralized in `pkg/db`.
+- **Reliability:** Defaults like `timezone=UTC` are applied universally.
 
-// GetPostgresDSN returns the formatted connection string based on environment variables.
-// It prioritizes DATABASE_URL if set, otherwise it uses DB_HOST, DB_PORT, etc.
-func GetPostgresDSN() (string, error)
-```
+### Negative/Trade-offs
 
-## Comparison / Alternatives Considered
+- **Dependency:** Services must rely on the shared module.
 
-| Feature | Ad-Hoc Configuration (Old) | Shared `db` Module (Proposed) |
-| :--- | :--- | :--- |
-| **Consistency** | High risk of drift | Enforced by library |
-| **Maintenance** | Manual updates in all services | Centralized in `pkg/db` |
-| **Timezone** | Manual/Inconsistent | Forced `UTC` by default |
-| **Simplicity** | Boilerplate in every `main.go` | Clean service initialization |
+## Verification
 
-## Failure Modes (Operational Excellence)
-
-- **Missing Configuration:** If required environment variables are missing, the module returns a descriptive error.
-- **Dependency Bloat:** The module does not import SQL drivers, ensuring it remains lightweight and compatible with any driver (`lib/pq`, `pgx`, etc.) chosen by the service.
-
-## Conclusion
-
-Standardizing database configuration is a critical step towards architectural maturity. It ensures that all services interact with the persistence layer in a predictable, consistent, and observable manner.
+- [x] **Manual Check:** Verify services connect successfully.
+- [x] **Automated Tests:** `pkg/db` unit tests for DSN generation.

@@ -21,10 +21,10 @@ DEFAULT_ID=$(printf "%03d" "$NEXT_ID_NUM")
 exec < /dev/tty
 
 echo "-------------------------------------------------"
-echo "  Create New RFC (Architecture Decision Record)"
+echo "  Create New ADR (Architecture Decision Record)"
 echo "-------------------------------------------------"
 
-read -p "RFC ID [$DEFAULT_ID]: " USER_ID
+read -p "ADR ID [$DEFAULT_ID]: " USER_ID
 ID="${USER_ID:-$DEFAULT_ID}"
 
 DEFAULT_TITLE="New Feature"
@@ -45,31 +45,30 @@ DATE=$(date +%Y-%m-%d)
 
 # - Generate File Content
 cat <<EOF > "$FILENAME"
-# RFC ${ID}: ${TITLE}
+# ADR [${ID}]: ${TITLE}
 
-- *Status:** Proposed | Accepted | Superseded
+- **Status:** Proposed | Accepted | Superseded
 - **Date:** ${DATE}
 - **Author:** Victoria Cheng
 
-## The Problem
+## Context and Problem Statement
 
-Identify the issue or opportunity. Why does this need to change?
+What specific issue triggered this change?
 
-## Proposed Solution
+## Decision Outcome
 
-Technical details of the implementation. Use code snippets or diagrams.
+What was the chosen architectural path?
 
-## Comparison / Alternatives Considered
+## Consequences
 
-What else could we have done? Why is this path better?
+- **Positive:** (e.g., Faster development, resolved dependency drift).
+- **Negative/Trade-offs:** (e.g., Added complexity to the CI/CD pipeline).
 
-## Failure Modes (Operational Excellence)
+## Verification
 
-How does this break? How will we know when it's failing in production?
+- [ ] **Manual Check:** (e.g., Verified logs/UI locally).
+- [ ] **Automated Tests:** (e.g., \`make nix-go-test\` passed).
 
-## Conclusion
-
-Final summary and next steps.
 EOF
 
 
