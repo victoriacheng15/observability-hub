@@ -11,6 +11,7 @@ import (
 
 	"db"
 	"logger"
+	"secrets"
 	"system-metrics/collectors"
 
 	"github.com/joho/godotenv"
@@ -38,19 +39,26 @@ func main() {
 		hostName = "homelab"
 	}
 
-	// 2. Database Connection
+	// 2. Initialize Secrets Provider
+	secretStore, err := secrets.NewBaoProvider()
+	if err != nil {
+		slog.Error("secret_provider_init_failed", "error", err)
+		os.Exit(1)
+	}
+
+	// 3. Database Connection
 	ctx := context.Background()
-	conn, err := db.ConnectPostgres("postgres")
+	conn, err := db.ConnectPostgres("postgres", secretStore)
 	if err != nil {
 		slog.Error("db_connection_failed", "error", err)
 		os.Exit(1)
 	}
 	defer conn.Close()
 
-	// 3. Ensure Schema
+	// 4. Ensure Schema
 	ensureSchema(ctx, conn)
 
-	// 4. Collect and Store Once
+	// 5. Collect and Store Once
 	collectAndStore(ctx, conn, hostName, osName)
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"logger"
 	"proxy/utils"
+	"secrets"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -27,7 +28,14 @@ func main() {
 	if os.Getenv("SKIP_DB_INIT") == "true" {
 		slog.Warn("⚠️  Running in SKIP_DB_INIT mode. Database features will be disabled.")
 	} else {
-		dbPostgres = utils.InitPostgres("postgres")
+		// Initialize Secrets Provider
+		secretStore, err := secrets.NewBaoProvider()
+		if err != nil {
+			slog.Error("secret_provider_init_failed", "error", err)
+			os.Exit(1)
+		}
+
+		dbPostgres = utils.InitPostgres("postgres", secretStore)
 		mongoClient = utils.InitMongo()
 	}
 

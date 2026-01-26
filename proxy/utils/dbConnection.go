@@ -6,12 +6,13 @@ import (
 	"os"
 
 	"db"
+	"secrets"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func InitPostgres(driverName string) *sql.DB {
-	database, err := db.ConnectPostgres(driverName)
+func InitPostgres(driverName string, store secrets.SecretStore) *sql.DB {
+	database, err := db.ConnectPostgres(driverName, store)
 	if err != nil {
 		slog.Error("db_connection_failed", "database", "postgres", "error", err)
 		os.Exit(1)
