@@ -1,7 +1,7 @@
 # ADR 010: Integrate OpenBao
 
 - **Status:** Accepted
-- **Date:** 2026-01-26
+- **Date:** 2026-01-22
 - **Author:** Victoria Cheng
 
 ## Context and Problem Statement
@@ -41,5 +41,5 @@ Integrate **OpenBao** as the centralized source of truth for all sensitive confi
 
 ## Planned Verification
 
-- [ ] **Manual Check:** Verify services can fetch secrets from OpenBao.
-- [ ] **Automated Tests:** `pkg/secrets` unit tests with mocked client.
+- [x] **Manual Check:** Verify services can fetch secrets from OpenBao.
+- [x] **Automated Tests:** `pkg/secrets` unit tests with mocked client.
