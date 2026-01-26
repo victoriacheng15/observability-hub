@@ -3,6 +3,7 @@
 pkgs.mkShell {
   packages = with pkgs; [
     go
+    openbao
   ];
 
   shellHook = ''

@@ -34,3 +34,6 @@ go.work.sum
 # .vscode/
 /proxy/proxy_server
 /system-metrics/metrics-collector
+
+# OpenBao Data
+data/

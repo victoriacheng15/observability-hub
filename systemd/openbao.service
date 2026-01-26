@@ -1,0 +1,20 @@
+[Unit]
+Description=OpenBao Secret Manager
+Documentation=https://openbao.org/
+After=network.target
+
+[Service]
+Type=simple
+User=server
+WorkingDirectory=/home/server/software/observability-hub
+# Use nix-shell to ensure 'bao' is available in the environment
+ExecStart=/nix/var/nix/profiles/default/bin/nix-shell --run "bao server -config=config/bao-local.hcl"
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Prevent swapping of memory to disk (crucial for secrets security)
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

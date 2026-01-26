@@ -80,7 +80,7 @@ page-build:
 metrics-build:
 	@echo "Building system metrics collector..."
 	@cd system-metrics && go build -o metrics-collector main.go
-	@sudo systemctl restart system-metrics.service
+	@sudo systemctl restart system-metrics.timer
 
 # Go Proxy Server Management
 proxy-build:
@@ -93,7 +93,7 @@ proxy-build:
 # Define exact units to install
 ACTIVE_UNITS = proxy.service tailscale-gate.service system-metrics.service \
                system-metrics.timer reading-sync.service reading-sync.timer \
-               volume-backup.service volume-backup.timer
+               volume-backup.service volume-backup.timer openbao.service
 
 install-services:
 	@echo "🔗 Linking active units..."
@@ -102,7 +102,7 @@ install-services:
 	done
 	@sudo systemctl daemon-reload
 	@echo "🟢 Enabling services..."
-	@sudo systemctl enable --now proxy.service tailscale-gate.service
+	@sudo systemctl enable --now proxy.service tailscale-gate.service openbao.service
 	@echo "⏰ Enabling timers..."
 	@sudo systemctl enable --now system-metrics.timer reading-sync.timer volume-backup.timer
 
@@ -110,6 +110,10 @@ reload-services:
 	@echo "Reloading systemd units..."
 	@sudo systemctl daemon-reload
 	@echo "Configuration reloaded. Changes in ./systemd are active (timers may need restart)."
+
+# OpenBao Management
+bao-status:
+	@nix-shell --run "export BAO_ADDR='http://127.0.0.1:8200' && bao status"
 
 uninstall-services:
 	@echo "🛑 Nuclear Cleanup: Stopping and removing all project units..."

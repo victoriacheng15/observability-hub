@@ -8,15 +8,17 @@ import (
 	"strings"
 	"time"
 
+	"secrets"
+
 	_ "github.com/lib/pq"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ConnectPostgres establishes a connection to PostgreSQL and verifies it with a Ping.
-// It returns a standard *sql.DB interface.
-func ConnectPostgres(driverName string) (*sql.DB, error) {
-	dsn, err := GetPostgresDSN()
+// It accepts a SecretStore to retrieve credentials from OpenBao with env fallbacks.
+func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, error) {
+	dsn, err := GetPostgresDSN(store)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +35,8 @@ func ConnectPostgres(driverName string) (*sql.DB, error) {
 	return db, nil
 }
 
-// ConnectMongo establishes a connection to MongoDB Atlas and verifies it with a Ping.
+// ConnectMongo establishes a connection to MongoDB.
+// Note: Currently still relies on environment variables.
 func ConnectMongo() (*mongo.Client, error) {
 	uri, err := GetMongoURI()
 	if err != nil {
@@ -59,39 +62,33 @@ func ConnectMongo() (*mongo.Client, error) {
 }
 
 func GetMongoURI() (string, error) {
-	uri := os.Getenv("MONGO_URI")
+	uri := strings.TrimSpace(os.Getenv("MONGO_URI"))
 	if uri == "" {
 		return "", fmt.Errorf("missing required environment variable: MONGO_URI")
 	}
 	return uri, nil
 }
 
-func GetPostgresDSN() (string, error) {
+// GetPostgresDSN constructs the DSN using the SecretStore.
+func GetPostgresDSN(store secrets.SecretStore) (string, error) {
+	// 1. Priority: DATABASE_URL (for local dev/testing override)
 	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
 		return dsn, nil
 	}
 
-	host := getEnv("DB_HOST", "")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "")
-	password := os.Getenv("SERVER_DB_PASSWORD")
-	dbname := getEnv("DB_NAME", "")
+	// Path relative to the KV mount (e.g., 'secret').
+	// The SDK handles adding '/data/' internally for KV V2.
+	const secretPath = "observability-hub/postgres"
+
+	// Retrieve values with fallbacks to environment variables or defaults
+	host := store.GetSecret(secretPath, "host", getEnv("DB_HOST", "localhost"))
+	port := store.GetSecret(secretPath, "port", getEnv("DB_PORT", "5432"))
+	user := store.GetSecret(secretPath, "user", getEnv("DB_USER", "server"))
+	dbname := store.GetSecret(secretPath, "dbname", getEnv("DB_NAME", "homelab"))
+	password := store.GetSecret(secretPath, "server_db_password", os.Getenv("SERVER_DB_PASSWORD"))
 
 	if host == "" || user == "" || dbname == "" || password == "" {
-		var missing []string
-		if host == "" {
-			missing = append(missing, "DB_HOST")
-		}
-		if user == "" {
-			missing = append(missing, "DB_USER")
-		}
-		if dbname == "" {
-			missing = append(missing, "DB_NAME")
-		}
-		if password == "" {
-			missing = append(missing, "SERVER_DB_PASSWORD")
-		}
-		return "", fmt.Errorf("missing required environment variables: %s", strings.Join(missing, ", "))
+		return "", fmt.Errorf("missing required database credentials (host, user, dbname, or password)")
 	}
 
 	return fmt.Sprintf(
