@@ -65,7 +65,7 @@ chapters:
 
   - title: "GitOps & Host Observability"
     period: "Jan 10, 2026 - Jan 14, 2026"
-    intro: "Stabilizing and scaling single-node infrastructure."
+    intro: "Scaling single-node infrastructure via templated GitOps automation and deep host-level visibility via systemd-journal integration."
     timeline:
       - date: "2026-01-10"
         title: "GitOps Infrastructure: Phase 1"
@@ -90,7 +90,7 @@ chapters:
           - Optimized reconciliation intervals to balance data freshness with operational stability.
 
   - title: "Orchestration & Event-Driven Pivot"
-    period: "Jan 19, 2026 - Present"
+    period: "Jan 19, 2026 - Jan 23, 2026"
     intro: "Scaling beyond static host-management: pivoting from polling-based timers to event-driven webhooks and k3s orchestration."
     timeline:
       - date: "2026-01-19"
@@ -124,3 +124,16 @@ chapters:
         description: |
           - Decommissioned legacy Docker proxy and systemd timers, fully migrating to a native systemd service with webhook-based triggering.
           - Centralized database connection in 'pkg/db' to enforce architectural consistency.
+
+  - title: "Vault via OpenBao"
+    period: "Jan 26, 2026 - Present"
+    intro: "Establishing a secure, centralized secret store to eliminate static environment variable management."
+    timeline:
+      - date: "2026-01-26"
+        title: "OpenBao Implementation"
+        artifacts:
+          - name: "ADR 010: Integrate OpenBao"
+            url: "docs/decisions/010-integrate-openbao.md"
+        description: |
+          - Replaced static environment variables with a secure OpenBao secret store.
+          - Integrated dynamic credential retrieval into all core platform services.

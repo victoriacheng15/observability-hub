@@ -419,32 +419,50 @@
         }
 
         .chapter-header {
-            padding: var(--space-lg);
+            padding: var(--space-md);
             cursor: pointer;
             list-style: none;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: var(--space-lg);
 
             &::-webkit-details-marker {
                 display: none;
             }
 
-            h2 {
-                color: var(--primary);
-                font-size: var(--font-lg);
-                margin-right: auto;
+            .summary-line {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+
+                h2 {
+                    color: var(--primary);
+                    font-size: var(--font-lg);
+                }
+
+                .summary-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--space-md);
+                    
+                    .period {
+                        color: var(--text-muted);
+                        font-size: var(--font-sm);
+                    }
+
+                    &:after {
+                        content: '→';
+                        color: var(--primary);
+                        transition: transform 0.2s;
+                    }
+                }
             }
 
-            .period {
-                color: var(--text-muted);
+            .intro {
+                font-style: italic;
+                color: var(--text-muted-light);
                 font-size: var(--font-sm);
-            }
-
-            &:after {
-                content: '→';
-                color: var(--primary);
-                transition: transform 0.2s;
             }
 
             &:hover h2 {
@@ -452,14 +470,13 @@
             }
         }
 
-        .chapter[open] .chapter-header:after {
+        .chapter[open] .summary-meta:after {
             transform: rotate(90deg);
         }
 
         .chapter-body {
-            padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
+            padding: var(--space-md);
             border-top: 1px solid var(--border-light);
-            padding-top: var(--space-lg);
 
             .intro {
                 font-style: italic;
