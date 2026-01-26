@@ -10,12 +10,7 @@ updates:
           - "*"
 
   - package-ecosystem: "gomod"
-    directory: "/pkg/db"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "gomod"
-    directory: "/pkg/logger"
+    directory: "/page"
     schedule:
       interval: "weekly"
 
@@ -30,6 +25,16 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
-    directory: "/page"
+    directory: "/pkg/db"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/pkg/logger"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/pkg/secrets"
     schedule:
       interval: "weekly"

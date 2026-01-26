@@ -7,12 +7,14 @@ on:
       - 'proxy/**'
       - 'system-metrics/**'
       - 'page/**'
+      - 'pkg/**'
   push:
     branches: [main]
     paths:
       - 'proxy/**'
       - 'system-metrics/**'
       - 'page/**'
+      - 'pkg/**'
   
 env:
   go-version: '1.25'
@@ -29,22 +31,15 @@ jobs:
             proxy/go.sum
             system-metrics/go.sum
             page/go.sum
+            pkg/db/go.sum
+            pkg/logger/go.sum
+            pkg/secrets/go.sum
 
       - name: Check gofmt
-        run: |
-          unformatted=$(gofmt -l proxy system-metrics page 2>/dev/null || true)
-          if [ -n "$unformatted" ]; then
-            echo "❌ Code not formatted. Run: gofmt -w proxy/ system-metrics/ page/"
-            echo "$unformatted"
-            exit 1
-          fi
-          echo "✅ All code is properly formatted"
+        run: make go-format && git diff --exit-code
 
       - name: Run go vet
-        run: |
-          cd proxy && go vet ./...
-          cd ../system-metrics && go vet ./...
-          cd ../page && go vet ./...
+        run: make go-vet
 
   test:
     runs-on: ubuntu-latest
@@ -58,9 +53,9 @@ jobs:
             proxy/go.sum
             system-metrics/go.sum
             page/go.sum
+            pkg/db/go.sum
+            pkg/logger/go.sum
+            pkg/secrets/go.sum
 
       - name: Run tests
-        run: |
-          cd proxy && go test ./... -v
-          cd ../system-metrics && go test ./... -v
-          cd ../page && go test ./... -v
+        run: make go-test

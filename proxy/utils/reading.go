@@ -21,11 +21,6 @@ type ReadingService struct {
 	MongoClient *mongo.Client
 }
 
-func (s *ReadingService) ReadingHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"placeholder": "reading placeholder still"})
-}
-
 func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -75,8 +70,8 @@ func (s *ReadingService) ensureReadingAnalyticsTable() error {
 }
 
 func (s *ReadingService) getMongoCollection() *mongo.Collection {
-	dbName := os.Getenv("MONGO_DB_NAME")
-	collection := os.Getenv("MONGO_COLLECTION")
+	dbName := "reading-analytics"
+	collection := "articless"
 	return s.MongoClient.Database(dbName).Collection(collection)
 }
 

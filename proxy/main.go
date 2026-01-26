@@ -25,19 +25,15 @@ func main() {
 	var dbPostgres *sql.DB
 	var mongoClient *mongo.Client
 
-	if os.Getenv("SKIP_DB_INIT") == "true" {
-		slog.Warn("⚠️  Running in SKIP_DB_INIT mode. Database features will be disabled.")
-	} else {
-		// Initialize Secrets Provider
-		secretStore, err := secrets.NewBaoProvider()
-		if err != nil {
-			slog.Error("secret_provider_init_failed", "error", err)
-			os.Exit(1)
-		}
-
-		dbPostgres = utils.InitPostgres("postgres", secretStore)
-		mongoClient = utils.InitMongo()
+	// Initialize Secrets Provider
+	secretStore, err := secrets.NewBaoProvider()
+	if err != nil {
+		slog.Error("secret_provider_init_failed", "error", err)
+		os.Exit(1)
 	}
+
+	dbPostgres = utils.InitPostgres("postgres", secretStore)
+	mongoClient = utils.InitMongo(secretStore)
 
 	// Initialize the reading service
 	readingService := &utils.ReadingService{
@@ -53,8 +49,7 @@ func main() {
 
 	// Register HTTP handlers with logging middleware
 	http.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
-	http.HandleFunc("/api/dummy", utils.WithLogging(utils.DummyHandler))
-	http.HandleFunc("/api/reading", utils.WithLogging(readingService.ReadingHandler))
+	http.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
 	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 	http.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
 

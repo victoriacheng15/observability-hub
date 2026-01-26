@@ -36,9 +36,9 @@ func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, err
 }
 
 // ConnectMongo establishes a connection to MongoDB.
-// Note: Currently still relies on environment variables.
-func ConnectMongo() (*mongo.Client, error) {
-	uri, err := GetMongoURI()
+// It accepts a SecretStore to retrieve the connection URI from OpenBao.
+func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
+	uri, err := GetMongoURI(store)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,12 @@ func ConnectMongo() (*mongo.Client, error) {
 	return client, nil
 }
 
-func GetMongoURI() (string, error) {
-	uri := strings.TrimSpace(os.Getenv("MONGO_URI"))
+func GetMongoURI(store secrets.SecretStore) (string, error) {
+	const secretPath = "observability-hub/mongo"
+
+	// Fetch from OpenBao with fallback to legacy MONGO_URI env var
+	uri := strings.TrimSpace(store.GetSecret(secretPath, "uri", os.Getenv("MONGO_URI")))
+
 	if uri == "" {
 		return "", fmt.Errorf("missing required environment variable: MONGO_URI")
 	}
