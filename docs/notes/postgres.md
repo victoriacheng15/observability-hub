@@ -21,6 +21,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
 ✅ This gives the `server` user:
+
 - **Full ownership** of the `homelab` database
 - Ability to create/modify **all objects** (tables, functions, etc.) inside `homelab`
 - **No access** to other databases (e.g., `postgres`)
@@ -40,6 +41,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 - `\l` → list all databases
 
 💡 **Prompt clues**:
+
 - `postgres=#` → superuser
 - `server=>` → regular user
 
@@ -72,12 +74,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO server;
 ## Test as the `server` User
 
 From host terminal:
+
 ```
 # Connect to your dedicated DB
 docker exec -it postgres_server psql -U server -d homelab
 ```
 
 Inside `psql`:
+
 ```
 SELECT current_user;        -- should return 'server'
 SELECT version();           -- should work
@@ -94,6 +98,7 @@ SELECT * FROM test;
 ## For Your Go Application
 
 Use this connection string:
+
 ```
 host=localhost
 port=5432

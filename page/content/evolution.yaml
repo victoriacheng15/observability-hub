@@ -108,12 +108,12 @@ chapters:
             url: "docs/decisions/008-gitops-via-proxy-webhook.md"
           - name: "ADR 009: Standardized DB Connection"
             url: "docs/decisions/009-standardized-db-connection-methods.md"
-          - name: "ADR 010: Integrate HashiCorp Vault"
-            url: "docs/decisions/010-integrate-hashicorp-vault.md"
+          - name: "ADR 010: Integrate OpenBao"
+            url: "docs/decisions/010-integrate-openbao.md"
         description: |
           - Proposed pivoting from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
-          - Proposed HashiCorp Vault for centralized secret management to explore advanced security patterns.
+          - Proposed OpenBao for centralized secret management, prioritizing truly open-source (MPL 2.0) infrastructure.
       - date: "2026-01-23"
         title: "Implementation: Webhook GitOps & DB Standards"
         artifacts:
