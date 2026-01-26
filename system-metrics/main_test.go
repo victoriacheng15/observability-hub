@@ -8,12 +8,22 @@ import (
 	"db"
 )
 
+// simpleMockStore implements secrets.SecretStore for testing
+type simpleMockStore struct{}
+
+func (m *simpleMockStore) GetSecret(path, key, fallback string) string {
+	return fallback
+}
+func (m *simpleMockStore) Close() error { return nil }
+
 func TestGetPostgresDSN_DatabaseURL(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/db")
 	defer os.Unsetenv("DATABASE_URL")
 
+	mock := &simpleMockStore{}
+
 	expected := "postgres://user:pass@localhost:5432/db"
-	result, err := db.GetPostgresDSN()
+	result, err := db.GetPostgresDSN(mock)
 	if err != nil {
 		t.Errorf("GetPostgresDSN() error = %v", err)
 	}
@@ -35,7 +45,9 @@ func TestGetPostgresDSN_Parts(t *testing.T) {
 		os.Unsetenv("SERVER_DB_PASSWORD")
 	}()
 
-	result, err := db.GetPostgresDSN()
+	mock := &simpleMockStore{}
+
+	result, err := db.GetPostgresDSN(mock)
 	if err != nil {
 		t.Errorf("GetPostgresDSN() error = %v", err)
 	}
@@ -60,7 +72,9 @@ func TestGetPostgresDSN_MissingRequired(t *testing.T) {
 		os.Unsetenv("SERVER_DB_PASSWORD")
 	}()
 
-	_, err := db.GetPostgresDSN()
+	mock := &simpleMockStore{}
+
+	_, err := db.GetPostgresDSN(mock)
 	if err == nil {
 		t.Error("GetPostgresDSN() expected error for missing env vars, got nil")
 	}

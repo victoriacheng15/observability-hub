@@ -35,6 +35,15 @@ func init() {
 	sql.Register("mock-postgres", &mockDriver{})
 }
 
+// --- Mock Secret Store ---
+
+type simpleMockStore struct{}
+
+func (m *simpleMockStore) GetSecret(path, key, fallback string) string {
+	return fallback
+}
+func (m *simpleMockStore) Close() error { return nil }
+
 // --- Tests ---
 
 func TestInitPostgres_Success(t *testing.T) {
@@ -54,7 +63,8 @@ func TestInitPostgres_Success(t *testing.T) {
 		os.Unsetenv("SERVER_DB_PASSWORD")
 	}()
 
-	db := InitPostgres("mock-postgres")
+	mockStore := &simpleMockStore{}
+	db := InitPostgres("mock-postgres", mockStore)
 
 	if db == nil {
 		t.Fatal("Expected db instance, got nil")
@@ -65,7 +75,8 @@ func TestInitPostgres_Success(t *testing.T) {
 func TestInitPostgres_MissingEnv(t *testing.T) {
 	if os.Getenv("BE_CRASHER") == "1" {
 		os.Unsetenv("DB_HOST") // Ensure it's missing
-		InitPostgres("mock-postgres")
+		mockStore := &simpleMockStore{}
+		InitPostgres("mock-postgres", mockStore)
 		return
 	}
 
