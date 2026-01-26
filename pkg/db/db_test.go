@@ -45,12 +45,30 @@ func TestGetPostgresDSN_WithSecretStore(t *testing.T) {
 
 func TestGetMongoURI_MissingEnv(t *testing.T) {
 	os.Unsetenv("MONGO_URI")
+	mock := &simpleMockStore{} // returns fallback
 
-	uri, err := GetMongoURI()
+	uri, err := GetMongoURI(mock)
 	if err == nil {
 		t.Error("Expected error when MONGO_URI is missing, got nil")
 	}
 	if uri != "" {
 		t.Errorf("Expected empty URI when MONGO_URI is missing, got %s", uri)
+	}
+}
+
+func TestGetMongoURI_WithSecretStore(t *testing.T) {
+	expected := "mongodb://user:pass@localhost:27017"
+	mock := &simpleMockStore{
+		values: map[string]string{
+			"uri": expected,
+		},
+	}
+
+	uri, err := GetMongoURI(mock)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if uri != expected {
+		t.Errorf("Expected URI %q, got %q", expected, uri)
 	}
 }

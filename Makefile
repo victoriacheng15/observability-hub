@@ -46,30 +46,40 @@ restore:
 	@echo "Running restore volume script..."
 	@./scripts/manage_volume.sh restore
 
+# Go Project Configuration
+GO_DIRS = proxy system-metrics page pkg/db pkg/logger pkg/secrets
+
 go-format:
 	@echo "Formatting Go code..."
-	@gofmt -w -s ./proxy ./system-metrics ./page ./pkg
+	@gofmt -w -s $(GO_DIRS)
+
+go-vet:
+	@echo "Running go vet..."
+	@for dir in $(GO_DIRS); do \
+		echo "Vetting $$dir..."; \
+		(cd $$dir && go vet ./...); \
+	done
 
 go-update:
 	@echo "Updating Go dependencies..."
-	@for dir in proxy system-metrics page pkg/db pkg/logger; do \
+	@for dir in $(GO_DIRS); do \
 		echo "Updating $$dir..."; \
 		(cd $$dir && go get -u ./... && go mod tidy); \
 	done
 
 go-test:
 	@echo "Running Go tests..."
-	@cd proxy && go test ./...
-	@cd system-metrics && go test ./...
-	@cd page && go test ./...
-	@cd pkg/db && go test ./...
-	@cd pkg/logger && go test ./...
+	@for dir in $(GO_DIRS); do \
+		echo "Testing $$dir..."; \
+		(cd $$dir && go test ./... -v); \
+	done
 
 go-cov:
 	@echo "Running tests with coverage..."
-	@cd proxy && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out
-	@cd system-metrics && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out
-	@cd page && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out
+	@for dir in $(GO_DIRS); do \
+		echo "Coverage for $$dir..."; \
+		(cd $$dir && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out); \
+	done
 
 # GitHub Pages Build
 page-build:

@@ -22,8 +22,8 @@ func InitPostgres(driverName string, store secrets.SecretStore) *sql.DB {
 	return database
 }
 
-func InitMongo() *mongo.Client {
-	client, err := db.ConnectMongo()
+func InitMongo(store secrets.SecretStore) *mongo.Client {
+	client, err := db.ConnectMongo(store)
 	if err != nil {
 		slog.Error("db_connection_failed", "database", "mongodb", "error", err)
 		os.Exit(1)

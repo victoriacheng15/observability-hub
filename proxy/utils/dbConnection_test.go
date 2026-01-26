@@ -92,7 +92,8 @@ func TestInitPostgres_MissingEnv(t *testing.T) {
 func TestInitMongo_MissingEnv(t *testing.T) {
 	if os.Getenv("MONGO_CRASHER") == "1" {
 		os.Unsetenv("MONGO_URI")
-		InitMongo()
+		mockStore := &simpleMockStore{}
+		InitMongo(mockStore)
 		return
 	}
 
@@ -110,7 +111,8 @@ func TestInitMongo_ConnectionFail(t *testing.T) {
 	// We use a dummy URI that should cause Ping to fail.
 	if os.Getenv("MONGO_PING_CRASHER") == "1" {
 		os.Setenv("MONGO_URI", "mongodb://localhost:27017") // Assuming no mongo running
-		InitMongo()
+		mockStore := &simpleMockStore{}
+		InitMongo(mockStore)
 		return
 	}
 

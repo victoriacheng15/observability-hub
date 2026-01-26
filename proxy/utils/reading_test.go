@@ -26,14 +26,6 @@ func TestSyncReadingHandler(t *testing.T) {
 	// Setup Mongo Mock
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 
-	// Set Env Vars for the handler to read
-	os.Setenv("MONGO_DB_NAME", "testdb")
-	os.Setenv("MONGO_COLLECTION", "testcoll")
-	defer func() {
-		os.Unsetenv("MONGO_DB_NAME")
-		os.Unsetenv("MONGO_COLLECTION")
-	}()
-
 	mt.Run("success_sync_one_document", func(mt *mtest.T) {
 		// Prepare Service with mock DBs
 		service := &ReadingService{
@@ -42,7 +34,6 @@ func TestSyncReadingHandler(t *testing.T) {
 		}
 
 		// 1. Postgres: Create Table
-		// We match the prefix roughly or the main part
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -60,9 +51,10 @@ func TestSyncReadingHandler(t *testing.T) {
 		}
 
 		// mtest mocks the response from the server.
+		// Namespace must match hardcoded values in reading.go
 		mt.AddMockResponses(mtest.CreateCursorResponse(
 			1,
-			"testdb.testcoll",
+			"reading-analytics.articless",
 			mtest.FirstBatch,
 			firstDoc,
 		))
@@ -126,9 +118,9 @@ func TestSyncReadingHandler(t *testing.T) {
 
 		mt.AddMockResponses(mtest.CreateCursorResponse(
 			1,
-			"testdb.testcoll",
+			"reading-analytics.articless",
 			mtest.FirstBatch,
-			bson.D{}, // Empty batch for this test, just checking query construction doesn't crash
+			bson.D{}, // Empty batch for this test
 		))
 
 		// --- EXECUTION ---
