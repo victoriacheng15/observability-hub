@@ -90,7 +90,7 @@ chapters:
           - Optimized reconciliation intervals to balance data freshness with operational stability.
 
   - title: "Orchestration & Event-Driven Pivot"
-    period: "Jan 19, 2026 - Jan 23, 2026"
+    period: "Jan 19, 2026 - Jan 21, 2026"
     intro: "Scaling beyond static host-management: pivoting from polling-based timers to event-driven webhooks and k3s orchestration."
     timeline:
       - date: "2026-01-19"
@@ -108,32 +108,24 @@ chapters:
             url: "docs/decisions/008-gitops-via-proxy-webhook.md"
           - name: "ADR 009: Standardized DB Connection"
             url: "docs/decisions/009-standardized-db-connection-methods.md"
-          - name: "ADR 010: Integrate OpenBao"
-            url: "docs/decisions/010-integrate-openbao.md"
         description: |
           - Proposed pivoting from polling-based Systemd timers to event-driven webhooks to eliminate scaling bottlenecks.
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
-          - Proposed OpenBao for centralized secret management, prioritizing truly open-source (MPL 2.0) infrastructure.
-      - date: "2026-01-23"
-        title: "Implementation: Webhook GitOps & DB Standards"
-        artifacts:
-          - name: "ADR 008: GitOps via Proxy Webhook"
-            url: "docs/decisions/008-gitops-via-proxy-webhook.md"
-          - name: "ADR 009: Standardized DB Connection"
-            url: "docs/decisions/009-standardized-db-connection-methods.md"
-        description: |
-          - Decommissioned legacy Docker proxy and systemd timers, fully migrating to a native systemd service with webhook-based triggering.
-          - Centralized database connection in 'pkg/db' to enforce architectural consistency.
 
   - title: "Vault via OpenBao"
-    period: "Jan 26, 2026 - Present"
+    period: "Jan 22, 2026 - Present"
     intro: "Establishing a secure, centralized secret store to eliminate static environment variable management."
     timeline:
-      - date: "2026-01-26"
-        title: "OpenBao Implementation"
+      - date: "2026-01-22"
+        title: "The Security Blueprint"
         artifacts:
           - name: "ADR 010: Integrate OpenBao"
             url: "docs/decisions/010-integrate-openbao.md"
         description: |
-          - Replaced static environment variables with a secure OpenBao secret store.
-          - Integrated dynamic credential retrieval into all core platform services.
+          - Proposed transitioning to a centralized secret store to eliminate insecure static configuration files.
+          - Evaluated HashiCorp Vault vs. OpenBao, selecting the latter for its truly open-source (MPL 2.0) and community-governed foundation.
+      - date: "2026-01-26"
+        title: "OpenBao Implementation"
+        description: |
+          - Replaced static environment variables with a secure OpenBao secret store and provider-agnostic secrets library.
+          - Migrated 'system-metrics' and 'proxy' services to dynamic credential retrieval.
