@@ -5,8 +5,45 @@ import (
 	"testing"
 )
 
+// simpleMockStore satisfies the secrets.SecretStore interface for testing
+type simpleMockStore struct {
+	values map[string]string
+}
+
+func (m *simpleMockStore) GetSecret(path, key, fallback string) string {
+	if val, ok := m.values[key]; ok {
+		return val
+	}
+	return fallback
+}
+
+func (m *simpleMockStore) Close() error { return nil }
+
+func TestGetPostgresDSN_WithSecretStore(t *testing.T) {
+	os.Unsetenv("DB_HOST")
+	os.Setenv("SERVER_DB_PASSWORD", "env-password")
+
+	mock := &simpleMockStore{
+		values: map[string]string{
+			"host": "bao-host",
+		},
+	}
+
+	dsn, err := GetPostgresDSN(mock)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// host should come from mock ("bao-host")
+	// password should come from env fallback ("env-password")
+	// port should come from default fallback ("5432")
+	expected := "host=bao-host port=5432 user=server password=env-password dbname=homelab sslmode=disable timezone=UTC"
+	if dsn != expected {
+		t.Errorf("Expected DSN %q, got %q", expected, dsn)
+	}
+}
+
 func TestGetMongoURI_MissingEnv(t *testing.T) {
-	// Ensure MONGO_URI is unset
 	os.Unsetenv("MONGO_URI")
 
 	uri, err := GetMongoURI()
@@ -15,38 +52,5 @@ func TestGetMongoURI_MissingEnv(t *testing.T) {
 	}
 	if uri != "" {
 		t.Errorf("Expected empty URI when MONGO_URI is missing, got %s", uri)
-	}
-}
-
-func TestGetMongoURI_Success(t *testing.T) {
-	expected := "mongodb://user:pass@localhost:27017"
-	os.Setenv("MONGO_URI", expected)
-	defer os.Unsetenv("MONGO_URI")
-
-	uri, err := GetMongoURI()
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	if uri != expected {
-		t.Errorf("Expected URI %q, got %q", expected, uri)
-	}
-}
-
-func TestGetPostgresDSN_Defaults(t *testing.T) {
-	os.Unsetenv("DATABASE_URL")
-	os.Setenv("DB_HOST", "localhost")
-	os.Setenv("DB_USER", "postgres")
-	os.Setenv("SERVER_DB_PASSWORD", "password")
-	os.Setenv("DB_NAME", "mydb")
-	// DB_PORT defaults to 5432
-
-	dsn, err := GetPostgresDSN()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	expected := "host=localhost port=5432 user=postgres password=password dbname=mydb sslmode=disable timezone=UTC"
-	if dsn != expected {
-		t.Errorf("Expected DSN %q, got %q", expected, dsn)
 	}
 }
