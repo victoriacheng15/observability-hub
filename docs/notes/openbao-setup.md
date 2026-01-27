@@ -75,6 +75,39 @@ export BAO_TOKEN=<Root Token>
 nix-shell --run "export BAO_ADDR='http://127.0.0.1:8200' && bao token lookup"
 ```
 
+### Managing Secrets (KV Engine)
+
+Once the vault is unsealed and you are logged in, use these commands to manage secrets.
+
+**List Paths (Folders):**
+
+```bash
+# List all secret engines (mount points)
+bao secrets list
+
+# List paths inside the observability-hub folder
+bao kv list secret/observability-hub/
+```
+
+**Read Secrets (Keys & Values):**
+
+```bash
+# See all keys and values for a specific secret path
+bao kv get secret/observability-hub/postgres
+
+# Get only a specific field value (e.g., just the password)
+bao kv get -field=server_db_password secret/observability-hub/postgres
+```
+
+**Write/Update Secrets:**
+
+```bash
+# Create or update a secret path with one or more keys
+bao kv put secret/observability-hub/proxy \
+    webhook_secret="your-secret-key" \
+    another_key="value"
+```
+
 ---
 
 ## 4. Systemd Service (Production)
