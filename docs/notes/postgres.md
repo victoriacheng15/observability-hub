@@ -2,7 +2,7 @@
 
 ## What You Should Run (Recommended Setup)
 
-```
+```sql
 -- Create dedicated database
 CREATE DATABASE homelab;
 
@@ -51,7 +51,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 If you prefer explicit grants (e.g., shared DB), run after `\c homelab`:
 
-```
+```sql
 -- Grant schema usage
 GRANT USAGE ON SCHEMA public TO server;
 
@@ -75,14 +75,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO server;
 
 From host terminal:
 
-```
+```sql
 # Connect to your dedicated DB
 docker exec -it postgres_server psql -U server -d homelab
 ```
 
 Inside `psql`:
 
-```
+```sql
 SELECT current_user;        -- should return 'server'
 SELECT version();           -- should work
 CREATE TABLE test (id SERIAL, name TEXT);
@@ -92,20 +92,5 @@ SELECT * FROM test;
 ```
 
 ✅ If all commands succeed → your app user is ready for production!
-
----
-
-## For Your Go Application
-
-Use this connection string:
-
-```
-host=localhost
-port=5432
-user=server
-password=your_secure_password
-dbname=homelab
-sslmode=disable
-```
 
 > 🔒 **Security tip**: Store credentials in environment variables or a secrets manager; never hardcode!
