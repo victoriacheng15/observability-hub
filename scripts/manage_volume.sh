@@ -94,8 +94,21 @@ backup_volumes() {
   # Restart services
   docker compose start
 
-  # Cleanup old backups
-  find "$BACKUP_BASE" -maxdepth 1 -type d -name "20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]" -mtime +$RETENTION_DAYS -exec rm -rf {} + 2>/dev/null || true
+  # Cleanup old backups - Sort by name and keep the latest $RETENTION_DAYS
+  log "INFO" "Cleaning up backups older than $RETENTION_DAYS days..."
+  
+  # List folders matching date pattern, sort them, and get all but the latest N
+  OLD_BACKUPS=$(ls -1d "$BACKUP_BASE"/20[0-9][0-9]-[0-1][0-9]-[0-3][0-9]/ 2>/dev/null | sort | head -n -"$RETENTION_DAYS") || true
+  
+  if [[ -n "$OLD_BACKUPS" ]]; then
+      for folder in $OLD_BACKUPS; do
+          if rm -rf "$folder" 2>/dev/null; then
+              log "INFO" "Deleted old backup: $(basename "$folder")"
+          else
+              log "WARN" "Failed to delete $folder - check permissions (e.g., owned by root?)"
+          fi
+      done
+  fi
 
   log "INFO" "Backup job completed successfully"
 }
