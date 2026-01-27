@@ -71,7 +71,7 @@ func (s *ReadingService) ensureReadingAnalyticsTable() error {
 
 func (s *ReadingService) getMongoCollection() *mongo.Collection {
 	dbName := "reading-analytics"
-	collection := "articless"
+	collection := "articles"
 	return s.MongoClient.Database(dbName).Collection(collection)
 }
 
