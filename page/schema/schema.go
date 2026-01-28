@@ -71,7 +71,6 @@ type Event struct {
 // Chapter represents a collection of events in a specific phase of the project.
 type Chapter struct {
 	Title  string  `yaml:"title"`
-	Period string  `yaml:"period"`
 	Intro  string  `yaml:"intro"`
 	Events []Event `yaml:"timeline"`
 }

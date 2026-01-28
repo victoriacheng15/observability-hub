@@ -2,7 +2,6 @@ page_title: "Project Evolution"
 intro_text: "From experimenting with local infrastructure to building a focused observability tool: driven by telemetry needs."
 chapters:
   - title: "The Genesis"
-    period: "Nov 20, 2025 - Dec 31, 2025"
     intro: "Infrastructure Foundations & Telemetry Prototypes"
     timeline:
       - date: "2025-11-20"
@@ -28,7 +27,6 @@ chapters:
           - Decoupled stateless collectors from persistent storage to enable independent scaling.
 
   - title: "The Platform Core"
-    period: "Jan 01, 2026 - Jan 09, 2026"
     intro: "Standardization, Visualization, and Process"
     timeline:
       - date: "2026-01-01"
@@ -64,7 +62,6 @@ chapters:
           - Eliminated configuration drift by refactoring services to use the shared configuration module.
 
   - title: "GitOps & Host Observability"
-    period: "Jan 10, 2026 - Jan 14, 2026"
     intro: "Scaling single-node infrastructure via templated GitOps automation and deep host-level visibility via systemd-journal integration."
     timeline:
       - date: "2026-01-10"
@@ -90,7 +87,6 @@ chapters:
           - Optimized reconciliation intervals to balance data freshness with operational stability.
 
   - title: "Orchestration & Event-Driven Pivot"
-    period: "Jan 19, 2026 - Jan 21, 2026"
     intro: "Scaling beyond static host-management: pivoting from polling-based timers to event-driven webhooks and k3s orchestration."
     timeline:
       - date: "2026-01-19"
@@ -113,7 +109,6 @@ chapters:
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
 
   - title: "Vault via OpenBao"
-    period: "Jan 22, 2026 - Present"
     intro: "Establishing a secure, centralized secret store to eliminate static environment variable management."
     timeline:
       - date: "2026-01-22"
