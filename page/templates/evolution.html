@@ -13,12 +13,7 @@
     {{ $isFirst := eq $i 0 }}
     <details class="chapter" {{ if $isFirst }}open{{ end }}>
         <summary class="chapter-header">
-            <div class="summary-line">
-                <h2>Chapter {{ sub $total $i }}: {{ $c.Title }}</h2>
-                <div class="summary-meta">
-                    <span class="period">{{ $c.Period }}</span>
-                </div>
-            </div>
+            <h2>Chapter {{ sub $total $i }}: {{ $c.Title }}</h2>
             <p class="intro">{{ $c.Intro }}</p>
         </summary>
         <section class="chapter-body">

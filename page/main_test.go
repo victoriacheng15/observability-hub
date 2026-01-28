@@ -54,7 +54,6 @@ page_title: "Test Evolution"
 intro_text: "Test Intro"
 chapters:
   - title: "Chapter 1"
-    period: "2024"
     intro: "Chapter Intro"
     timeline:
       - date: "2024-01-01"
