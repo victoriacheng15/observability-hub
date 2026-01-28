@@ -62,27 +62,16 @@ TARGET_BRANCH="main"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
-    # Check if GitHub CLI is available for PR state detection
-    if command -v gh >/dev/null 2>&1; then
-        PR_STATE=$(gh pr view "$CURRENT_BRANCH" --json state --jq .state 2>/dev/null || echo "NONE")
-
-        if [[ "$PR_STATE" == "OPEN" ]]; then
-            log "INFO" "Active PR detected for branch ($CURRENT_BRANCH). Skipping sync to protect active work."
-            exit 0
-        elif [[ "$PR_STATE" == "NONE" ]]; then
-            log "INFO" "Local development branch detected ($CURRENT_BRANCH). Skipping sync."
-            exit 0
-        fi
-
-        # If MERGED or CLOSED, proceed with switching to main
-        log "WARN" "Branch ($CURRENT_BRANCH) PR is $PR_STATE. Switching to $TARGET_BRANCH..."
-    else
-        log "WARN" "Current branch ($CURRENT_BRANCH) is not $TARGET_BRANCH and gh CLI not found. Skipping sync."
+    # Check for uncommitted changes to TRACKED files (Dirty State)
+    # Ignores untracked files so scratch files don't block the sync
+    if [[ -n $(git status --untracked-files=no --porcelain) ]]; then
+        log "WARN" "Uncommitted changes detected on ($CURRENT_BRANCH). Skipping sync to prevent data loss."
         exit 0
     fi
 
+    # If the tree is clean, we can safely switch to main regardless of PR state
     if ! git checkout "$TARGET_BRANCH" >/dev/null 2>&1; then
-        log "ERROR" "Failed to switch to $TARGET_BRANCH. Check for uncommitted changes or conflicts."
+        log "ERROR" "Failed to switch to $TARGET_BRANCH. Check permissions."
         exit 1
     fi
 fi
