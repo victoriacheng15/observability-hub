@@ -6,41 +6,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}}{{ .Landing.PageTitle }}{{end}}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
     <style>
         :root {
             /* Colors */
             --primary: #08D9D6;
-            --primary-dark: #07bdb9;
-            --bg: #252A34;
-            --card-bg: #2d333e;
-            --white: #f5f5f5;
-            --text-main: #EAEAEA;
-            --text-heading: #f5f5f5;
-            --text-muted: #94a3b8;
-            --text-muted-light: #cbd5e1;
-            --accent: #FF2E63;
-            --accent-dark: #e62a59;
-            --border: rgba(234, 234, 234, 0.2);
-            --border-light: rgba(234, 234, 234, 0.1);
-            --shadow: rgba(0, 0, 0, 0.2);
+            --bg-h: 220;
+            --bg-s: 17%;
+            --bg-l: 17%;
+            --bg: hsl(var(--bg-h), var(--bg-s), var(--bg-l));
+            --card-bg: hsl(var(--bg-h), var(--bg-s), calc(var(--bg-l) + 4%));
+            --text-main: #f5f5f5;
+            --text-muted: #cbd5e1;
+            --accent: #e62a59;
+            --border-light: rgba(234, 234, 234, 0.08);
+            --border-main: 1px solid var(--border-light);
+            --shadow: rgba(8, 217, 214, 0.1);
+            --shadow-main: 0 4px 12px var(--shadow);
 
             /* Spacing */
-            --space-sm: 0.75rem;
+            --space-sm: 0.5rem;
             --space-md: 1rem;
             --space-lg: 1.5rem;
-            --space-xl: 1.75rem;
-            --space-xxl: 2rem;
+            --space-xl: 2rem;
+            --space-xxl: 3rem;
 
             /* Font Sizes */
-            --font-sm: 0.9rem;
+            --font-sm: 0.875rem;
             --font-base: 1rem;
-            --font-lg: 1.25rem;
-            --font-xl: 1.5rem;
-            --font-2xl: 1.75rem;
-            --font-3xl: 2rem;
+            --font-lg: 1.5rem;
+            --font-xl: 1.875rem;
+            --font-2xl: 2.25rem;
 
             /* Border Radius */
-            --radius-main: 10px;
+            --radius-main: 8px;
         }
 
         /* CSS Reset */
@@ -57,7 +58,7 @@
 
         /* Global Styling */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: var(--text-main);
             background-color: var(--bg);
@@ -74,7 +75,7 @@
         h4,
         h5,
         h6 {
-            color: var(--text-heading);
+            color: var(--text-main);
         }
 
         /* Layout */
@@ -87,22 +88,32 @@
         /* Header & Nav */
         header {
             background: var(--bg);
-            color: var(--text-heading);
+            color: var(--text-main);
             padding: var(--space-xxl) 0;
         }
 
         nav {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
+            gap: var(--space-xl);
+            text-align: center;
             margin-bottom: var(--space-xxl);
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: var(--border-main);
             padding-bottom: var(--space-md);
+
+            @media (min-width: 768px) {
+                flex-direction: row;
+                justify-content: space-between;
+                gap: 0;
+                text-align: left;
+            }
 
             .logo {
                 font-weight: bold;
                 font-size: var(--font-lg);
-                color: var(--primary);
+                color: var(--text-main);
+                text-decoration: none;
             }
 
             ul {
@@ -111,7 +122,7 @@
             }
 
             a {
-                color: var(--text-muted-light);
+                color: var(--text-muted);
                 text-decoration: none;
                 font-weight: 500;
                 transition: color 0.3s;
@@ -119,12 +130,6 @@
                 &:hover {
                     color: var(--primary);
                 }
-            }
-
-            @media (max-width: 768px) {
-                flex-direction: column;
-                gap: var(--space-xl);
-                text-align: center;
             }
         }
 
@@ -140,12 +145,12 @@
             padding: var(--space-lg) 0;
 
             .container {
-                border-top: 1px solid var(--border-light);
+                border-top: var(--border-main);
                 padding-top: var(--space-lg);
             }
 
             a {
-                color: var(--text-muted-light);
+                color: var(--text-muted);
                 text-decoration: none;
                 font-weight: 500;
                 transition: color 0.3s;
@@ -169,19 +174,19 @@
             text-decoration: none;
             border-radius: var(--radius-main);
             font-weight: 600;
-            transition: background 0.3s, transform 0.2s;
+            transition: opacity 0.3s, transform 0.2s;
 
             &:hover {
-                background: var(--primary-dark);
+                opacity: 0.9;
                 transform: translateY(-1px);
             }
 
             &.btn-secondary {
                 background: var(--accent);
-                color: var(--white);
+                color: var(--text-main);
 
                 &:hover {
-                    background: var(--accent-dark);
+                    opacity: 0.9;
                 }
             }
         }
@@ -191,18 +196,17 @@
             align-items: center;
             font-size: var(--font-sm);
             font-weight: 600;
-            padding: 0.3rem 0.6rem;
+            padding: calc(var(--space-sm) * 0.6) var(--space-sm);
             background: transparent;
             color: var(--primary);
             border: 1px solid var(--primary);
             border-radius: var(--radius-main);
             text-decoration: none;
             white-space: nowrap;
-            transition: all 0.2s ease;
+            transition: opacity 0.2s ease, transform 0.2s ease;
 
             &:hover {
-                background: var(--primary);
-                color: var(--bg);
+                opacity: 0.8;
                 transform: translateY(-1px);
             }
         }
@@ -221,13 +225,13 @@
             gap: var(--space-xl);
 
             h1 {
-                font-size: var(--font-xl);
+                font-size: var(--font-lg);
                 color: var(--primary);
             }
 
             p {
                 font-size: var(--font-lg);
-                color: var(--text-muted-light);
+                color: var(--text-muted);
             }
 
             .hero-actions {
@@ -250,8 +254,8 @@
             background: var(--card-bg);
             padding: var(--space-xl);
             border-radius: var(--radius-main);
-            border: 1px solid var(--border-light);
-            box-shadow: 0 4px 6px -1px var(--shadow);
+            border: var(--border-main);
+            box-shadow: var(--shadow-main);
             text-align: center;
             transition: transform 0.2s, border-color 0.2s;
 
@@ -261,7 +265,7 @@
             }
 
             .feature-icon {
-                font-size: var(--font-xl);
+                font-size: var(--font-lg);
                 color: var(--primary);
             }
 
@@ -280,7 +284,7 @@
             &:before {
                 content: '';
                 position: absolute;
-                left: 20px;
+                left: var(--space-lg);
                 top: 0;
                 bottom: 0;
                 width: 2px;
@@ -289,7 +293,7 @@
 
             li {
                 position: relative;
-                padding-left: 50px;
+                padding-left: var(--space-xxl);
             }
 
             .timeline-date {
@@ -303,8 +307,10 @@
                 &:before {
                     content: '';
                     position: absolute;
-                    left: -36px;
-                    top: 4px;
+                    /* Center dot on the line: line is at --space-lg, content is at --space-xxl */
+                    /* Offset = --space-lg - --space-xxl - half dot width */
+                    left: calc(var(--space-lg) - var(--space-xxl) - 5px);
+                    top: calc(var(--font-sm) / 2);
                     width: 12px;
                     height: 12px;
                     background: var(--primary);
@@ -318,8 +324,7 @@
                 background: var(--card-bg);
                 padding: var(--space-lg);
                 border-radius: var(--radius-main);
-                border: 1px solid var(--border-light);
-                box-shadow: 0 1px 3px 0 var(--shadow);
+                border: var(--border-main);
                 display: flex;
                 flex-direction: column ;
                 gap: var(--space-lg);
@@ -364,8 +369,8 @@
         .dashboard-item {
             background: var(--card-bg);
             border-radius: var(--radius-main);
-            border: 1px solid var(--border-light);
-            box-shadow: 0 4px 6px -1px var(--shadow);
+            border: var(--border-main);
+            box-shadow: var(--shadow-main);
             transition: border-color 0.2s;
 
             &[open] {
@@ -377,7 +382,7 @@
             padding: var(--space-md);
             cursor: pointer;
             font-weight: 600;
-            color: var(--text-heading);
+            color: var(--text-main);
             list-style: none; /* Hide default arrow */
             display: flex;
             justify-content: space-between;
@@ -410,8 +415,8 @@
         .chapter {
             background: var(--card-bg);
             border-radius: var(--radius-main);
-            border: 1px solid var(--border-light);
-            box-shadow: 0 4px 6px -1px var(--shadow);
+            border: var(--border-main);
+            box-shadow: var(--shadow-main);
             margin-bottom: var(--space-xl);
             transition: border-color 0.2s;
 
@@ -449,7 +454,7 @@
 
             .intro {
                 font-style: italic;
-                color: var(--text-muted-light);
+                color: var(--text-muted);
                 font-size: var(--font-sm);
             }
         }
@@ -460,11 +465,11 @@
 
         .chapter-body {
             padding: var(--space-md);
-            border-top: 1px solid var(--border-light);
+            border-top: var(--border-main);
 
             .intro {
                 font-style: italic;
-                color: var(--text-muted-light);
+                color: var(--text-muted);
                 margin-bottom: var(--space-xl);
             }
         }
@@ -473,14 +478,12 @@
             margin-bottom: var(--space-md);
         }
 
-        .dashboard-image-wrapper {
-            padding: 0 var(--space-md) var(--space-md) var(--space-md);
-            border-top: 1px solid var(--border-light);
-            padding-top: var(--space-md);
+        .snapshot-image-wrapper {
+            border-top: var(--border-main);
 
             img {
                 border-radius: calc(var(--radius-main) / 2);
-                border: 1px solid var(--border-light);
+                border: var(--border-main);
                 width: 100%;
             }
         }
@@ -491,15 +494,21 @@
             border-radius: var(--radius-main);
             padding: var(--space-lg);
             margin-bottom: var(--space-xxl);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-md);
-            box-shadow: 0 4px 6px -1px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+            box-shadow: var(--shadow-main);
+
+            @media (min-width: 768px) {
+                flex-direction: row;
+                justify-content: space-around;
+                align-items: center;
+            }
 
             .status-item {
                 display: flex;
                 flex-direction: column;
-                gap: 0.25rem;
+                gap: var(--space-sm);
                 align-items: center;
 
                 .status-label {
@@ -523,7 +532,7 @@
     <header>
         <div class="container">
             <nav aria-label="Main Navigation">
-                <a href="index.html" class="logo" style="color: var(--white); text-decoration: none;">{{ .Landing.PageTitle }}</a>
+                <a href="index.html" class="logo">{{ .Landing.PageTitle }}</a>
                 <ul>
                     <li><a href="index.html">Home</a></li>
                     <li><a href="snapshots.html">Snapshots</a></li>
