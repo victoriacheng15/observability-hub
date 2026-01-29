@@ -6,11 +6,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 )
+
+type errorReader struct{}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("read error")
+}
 
 func TestWebhookHandler(t *testing.T) {
 	testSecret := "test-secret-123"
@@ -129,10 +136,70 @@ func TestWebhookHandler(t *testing.T) {
 			expectedStatus: http.StatusAccepted,
 			expectedBody:   "Sync triggered for test-repo",
 		},
+		"invalid_json": {
+			method:    http.MethodPost,
+			eventType: "push",
+			envSecret: testSecret,
+			headerSig: "sha256=invalidbutformatted", // Will fail signature verify anyway if we don't mock it carefully
+			// We'll use a manually crafted request for this
+		},
+		"missing_repo_name": {
+			method:    http.MethodPost,
+			eventType: "push",
+			envSecret: testSecret,
+			body: map[string]interface{}{
+				"ref":        "refs/heads/main",
+				"repository": map[string]string{},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Repository name missing",
+		},
+		"invalid_signature_prefix": {
+			method:    http.MethodPost,
+			eventType: "push",
+			envSecret: testSecret,
+			body: map[string]interface{}{
+				"ref": "refs/heads/main",
+			},
+			headerSig:      "plain-text-signature",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		"body_read_error": {
+			expectedStatus: http.StatusInternalServerError,
+		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
+			if name == "invalid_json" {
+				os.Setenv("GITHUB_WEBHOOK_SECRET", testSecret)
+				defer os.Unsetenv("GITHUB_WEBHOOK_SECRET")
+				body := []byte("{invalid-json}")
+				req := httptest.NewRequest("POST", "/", bytes.NewReader(body))
+				req.Header.Set("X-GitHub-Event", "push")
+				req.Header.Set("X-Hub-Signature-256", generateSignature(testSecret, body))
+				w := httptest.NewRecorder()
+				WebhookHandler(w, req)
+				if w.Code != http.StatusBadRequest {
+					t.Errorf("Expected 400 for invalid JSON, got %d", w.Code)
+				}
+				return
+			}
+
+			if name == "body_read_error" {
+				os.Setenv("GITHUB_WEBHOOK_SECRET", testSecret)
+				defer os.Unsetenv("GITHUB_WEBHOOK_SECRET")
+				req := httptest.NewRequest("POST", "/", &errorReader{})
+				req.Header.Set("X-GitHub-Event", "push")
+				req.Header.Set("X-Hub-Signature-256", "sha256=any")
+				w := httptest.NewRecorder()
+				WebhookHandler(w, req)
+				if w.Code != http.StatusInternalServerError {
+					t.Errorf("Expected 500 for body read error, got %d", w.Code)
+				}
+				return
+			}
+
 			// Setup Environment
 			if tt.envSecret != "" {
 				os.Setenv("GITHUB_WEBHOOK_SECRET", tt.envSecret)
