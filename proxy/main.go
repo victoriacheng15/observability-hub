@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"db"
 	"logger"
 	"proxy/utils"
 	"secrets"
@@ -17,7 +18,7 @@ import (
 
 func main() {
 	// Initialize structured logging first
-	logger.Setup("proxy")
+	logger.Setup(os.Stdout, "proxy")
 
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
@@ -32,8 +33,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbPostgres = utils.InitPostgres("postgres", secretStore)
-	mongoClient = utils.InitMongo(secretStore)
+	dbPostgres = initPostgres("postgres", secretStore)
+	mongoClient = initMongo(secretStore)
 
 	// Initialize the reading service
 	readingService := &utils.ReadingService{
@@ -58,4 +59,26 @@ func main() {
 		slog.Error("Server failed to start", "error", err)
 		os.Exit(1)
 	}
+}
+
+func initPostgres(driverName string, store secrets.SecretStore) *sql.DB {
+	database, err := db.ConnectPostgres(driverName, store)
+	if err != nil {
+		slog.Error("db_connection_failed", "database", "postgres", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("db_connected", "database", "postgres")
+	return database
+}
+
+func initMongo(store secrets.SecretStore) *mongo.Client {
+	client, err := db.ConnectMongo(store)
+	if err != nil {
+		slog.Error("db_connection_failed", "database", "mongodb", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("db_connected", "database", "mongodb")
+	return client
 }

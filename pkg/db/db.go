@@ -15,6 +15,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Internal variables for testing
+var (
+	sqlOpen      = sql.Open
+	mongoConnect = mongo.Connect
+)
+
 // ConnectPostgres establishes a connection to PostgreSQL and verifies it with a Ping.
 // It accepts a SecretStore to retrieve credentials from OpenBao with env fallbacks.
 func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, error) {
@@ -23,7 +29,7 @@ func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, err
 		return nil, err
 	}
 
-	db, err := sql.Open(driverName, dsn)
+	db, err := sqlOpen(driverName, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open postgres connection: %w", err)
 	}
@@ -46,7 +52,7 @@ func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	client, err := mongoConnect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
 	}

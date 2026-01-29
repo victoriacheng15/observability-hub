@@ -9,9 +9,15 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+// vaultKVv2 defines the subset of KVv2 methods we use, allowing for easier mocking.
+type vaultKVv2 interface {
+	Get(ctx context.Context, path string) (*api.KVSecret, error)
+}
+
 // BaoProvider implements the SecretStore interface for OpenBao.
 type BaoProvider struct {
 	client *api.Client
+	kv     vaultKVv2
 }
 
 // NewBaoProvider initializes a new OpenBao client using environment variables.
@@ -34,22 +40,29 @@ func NewBaoProvider() (*BaoProvider, error) {
 		client.SetToken(token)
 	}
 
-	return &BaoProvider{client: client}, nil
+	return &BaoProvider{
+		client: client,
+		kv:     client.KVv2("secret"),
+	}, nil
 }
 
 // GetSecret retrieves a secret from OpenBao at the given path and key.
 // It follows the KV V2 secret engine format (secret/data/...).
 // If the secret is missing or the client fails, it returns the fallback value.
 func (b *BaoProvider) GetSecret(path, key, fallback string) string {
-	if b.client == nil {
+	if b.kv == nil {
 		return fallback
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	secret, err := b.client.KVv2("secret").Get(ctx, path)
+	secret, err := b.kv.Get(ctx, path)
 	if err != nil {
+		return fallback
+	}
+
+	if secret == nil || secret.Data == nil {
 		return fallback
 	}
 
