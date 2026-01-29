@@ -90,8 +90,8 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		shouldTrigger = true
 	}
 
-	// Case 2: PR merged to main
-	if eventType == "pull_request" && payload.Action == "closed" && payload.PullRequest.Merged && payload.PullRequest.Base.Ref == "main" {
+	// Case 2: PR closed on main (Merged flag is preferred but optional for redundancy)
+	if eventType == "pull_request" && payload.Action == "closed" && payload.PullRequest.Base.Ref == "main" {
 		shouldTrigger = true
 	}
 
@@ -104,18 +104,19 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 			"merged", payload.PullRequest.Merged,
 		)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ignored: Not a push to main or merged PR to main"))
+		w.Write([]byte("Ignored: Not a push to main or closed PR to main"))
 		return
 	}
 
 	repoName := payload.Repository.Name
+	isMerged := payload.PullRequest.Merged
 	if repoName == "" {
 		slog.Warn("Repository name missing in payload", "event", eventType)
 		http.Error(w, "Repository name missing", http.StatusBadRequest)
 		return
 	}
 
-	go func(repo string) {
+	go func(repo string, merged bool) {
 		// Acquire lock for this specific repository
 		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
 		mu := val.(*sync.Mutex)
@@ -123,7 +124,11 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 
-		slog.Info("Triggering GitOps sync via webhook", "repo", repo, "event", eventType)
+		slog.Info("Triggering GitOps sync via webhook",
+			"repo", repo,
+			"event", eventType,
+			"merged", merged,
+		)
 		// We use an absolute path to the script for reliability
 		cmd := exec.Command("/home/server/software/observability-hub/scripts/gitops_sync.sh", repo)
 		output, err := cmd.CombinedOutput()
@@ -132,7 +137,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			slog.Info("GitOps sync execution successful", "repo", repo, "output", string(output))
 		}
-	}(repoName)
+	}(repoName, isMerged)
 
 	w.WriteHeader(http.StatusAccepted)
 	fmt.Fprintf(w, "Sync triggered for %s", repoName)
