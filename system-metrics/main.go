@@ -19,8 +19,9 @@ import (
 )
 
 func main() {
-	// Initialize structured logging
-	logger.Setup("system-metrics")
+	// 1. Setup Logging
+	logger.Setup(os.Stdout, "system-metrics")
+	slog.Info("Starting System Metrics Collector", "version", "1.0.0")
 
 	// Load .env (current or parent)
 	_ = godotenv.Load()
@@ -48,11 +49,7 @@ func main() {
 
 	// 3. Database Connection
 	ctx := context.Background()
-	conn, err := db.ConnectPostgres("postgres", secretStore)
-	if err != nil {
-		slog.Error("db_connection_failed", "error", err)
-		os.Exit(1)
-	}
+	conn := initPostgres("postgres", secretStore)
 	defer conn.Close()
 
 	// 4. Ensure Schema
@@ -60,6 +57,17 @@ func main() {
 
 	// 5. Collect and Store Once
 	collectAndStore(ctx, conn, hostName, osName)
+}
+
+func initPostgres(driverName string, store secrets.SecretStore) *sql.DB {
+	database, err := db.ConnectPostgres(driverName, store)
+	if err != nil {
+		slog.Error("db_connection_failed", "database", "postgres", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("db_connected", "database", "postgres")
+	return database
 }
 
 func collectAndStore(ctx context.Context, conn *sql.DB, hostName string, osName string) {
