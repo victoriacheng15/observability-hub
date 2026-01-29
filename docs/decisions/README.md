@@ -4,7 +4,28 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 ---
 
-## Decision Lifecycle
+## 📂 Decision Log
+
+| ADR | Title | Status |
+| :--- | :--- | :--- |
+| **001** | [PostgreSQL vs. InfluxDB for Metrics Storage](./001-postgres-vs-influxdb.md) | 🔵 Accepted |
+| **002** | [Cloud-to-Homelab Telemetry Bridge](./002-cloud-to-local-bridge.md) | 🔵 Accepted |
+| **003** | [Shared Structured Logging Library](./003-shared-logging-library.md) | 🔵 Accepted |
+| **004** | [Spatial Keyboard Telemetry Pipeline](./004-spatial-telemetry-keyboard.md) | 🟡 Superseded |
+| **005** | [Centralized GitOps Reconciliation Engine](./005-gitops-reconciliation-engine.md) | 🟡 Superseded |
+| **006** | [Shared Database Configuration Module](./006-shared-database-module.md) | 🔵 Accepted |
+| **007** | [k3s Shadow Deployment & Orchestration](./007-k3s-shadow-deployment-orchestration.md) | 🔵 Accepted |
+| **008** | [GitOps via Proxy Webhook](./008-gitops-via-proxy-webhook.md) | 🔵 Accepted |
+| **009** | [Standardized Database Connection Methods](./009-standardized-db-connection-methods.md) | 🔵 Accepted |
+| **010** | [Integrate OpenBao](./010-integrate-openbao.md) | 🔵 Accepted |
+
+---
+
+## 🛠️ Process & Standards
+
+This section defines how we propose, evaluate, and document architectural changes.
+
+### Decision Lifecycle
 
 | Status | Meaning |
 | :--- | :--- |
@@ -12,18 +33,14 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 | **🔵 Accepted** | Implementation phase or completed. This is the current project standard. |
 | **🟡 Superseded** | Historical record. This decision has been replaced by a newer ADR. |
 
----
-
-## Conventions
+### Conventions
 
 - **File Naming:** `00X-descriptive-title.md`
 - **Dates:** Use ISO 8601 format (`YYYY-MM-DD`).
 - **Formatting:** Use hyphens (`-`) for all lists; no numbered lists.
 - **Automation:** Run `make rfc` to interactively generate a new file that follows these standards.
 
----
-
-## 📝 ADR Template
+### 📝 ADR Template
 
 To create a new proposal, copy the block below into a new `.md` file.
 
@@ -51,5 +68,4 @@ What was the chosen architectural path?
 
 - [ ] **Manual Check:** (e.g., Verified logs/UI locally).
 - [ ] **Automated Tests:** (e.g., `make nix-go-test` passed).
-
 ```

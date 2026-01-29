@@ -13,16 +13,17 @@ graph TD
         Mongo[(MongoDB Atlas)]
     end
 
-    subgraph "Host Environment"
+    subgraph HostEnvironment [Host Environment]
         Hardware[Host Hardware]
         subgraph HostServices [Native Services]
             Proxy[Proxy Service]
             Gate[Tailscale Gate]
             Metrics[Metrics Collector]
+            Bao[OpenBao Secret Store]
         end
     end
 
-    subgraph "Data Platform (Docker)"
+    subgraph DataPlatform [Data Platform (Docker)]
         direction TB
         Promtail[Promtail]
         Loki[(Loki)]
@@ -31,6 +32,7 @@ graph TD
     end
 
     %% Data Flow
+    Bao -.->|Secrets| HostServices
     GitHub -->|Webhooks| Proxy
     Proxy -->|Executes| Sync[gitops_sync.sh]
     Mongo -->|Data| Proxy
@@ -70,10 +72,3 @@ Deep dives into the logic and implementation of specific system components.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway, Data Pipeline, and GitOps listener.
 - **[System Metrics](./services/system-metrics.md)**: The host telemetry collector.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
-
----
-
-## 🔗 Related Resources
-
-- **[ADRs](../decisions/)**: Architecture Decision Records.
-- **[Planning](../planning.md)**: Future trends and implementation roadmaps.
