@@ -76,7 +76,7 @@ func TestWebhookHandler(t *testing.T) {
 				},
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   "Ignored: Not a push to main or merged PR to main",
+			expectedBody:   "Ignored: Not a push to main or closed PR to main",
 		},
 		"success_main_branch": {
 			method:    http.MethodPost,
@@ -99,6 +99,25 @@ func TestWebhookHandler(t *testing.T) {
 				"action": "closed",
 				"pull_request": map[string]interface{}{
 					"merged": true,
+					"base": map[string]string{
+						"ref": "main",
+					},
+				},
+				"repository": map[string]string{
+					"name": "test-repo",
+				},
+			},
+			expectedStatus: http.StatusAccepted,
+			expectedBody:   "Sync triggered for test-repo",
+		},
+		"success_pr_closed_not_merged": {
+			method:    http.MethodPost,
+			eventType: "pull_request",
+			envSecret: testSecret,
+			body: map[string]interface{}{
+				"action": "closed",
+				"pull_request": map[string]interface{}{
+					"merged": false,
 					"base": map[string]string{
 						"ref": "main",
 					},
