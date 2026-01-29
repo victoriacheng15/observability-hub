@@ -48,6 +48,7 @@ flowchart LR
         Proxy[Proxy API & GitOps Trigger]
         Gate[Tailscale Gate]
         Metrics[Metrics Collector]
+        Bao[OpenBao Secret Store]
     end
 
     subgraph "Data Infrastructure (Docker)"
@@ -64,6 +65,8 @@ flowchart LR
     Mongo -- Pull --> Proxy
     Proxy -- Write --> PG
     Metrics -- Telemetry --> PG
+    Bao -.->|Secrets| Proxy
+    Bao -.->|Secrets| Metrics
     PG --> G
 
     %% Logging Pipeline
@@ -83,6 +86,7 @@ This table lists the main services and components within the observability hub, 
 | **proxy** | Native Go service acting as an API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `proxy/` |
 | **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
 | **system-metrics** | Lightweight Go collector for host CPU, memory, disk, and network stats. | `system-metrics/` |
+| **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
 | **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
 | **PostgreSQL** | Primary time-series storage (TimescaleDB + PostGIS). | `docker-compose.yml` |
 | **Grafana** | Primary visualization and dashboarding tool. | `docker-compose.yml` |
@@ -117,10 +121,9 @@ The system categorizes data flow into three main streams, correlating events, co
     - **Collection:** The system-metrics collector (automated via Systemd timer) flushes hardware stats to PostgreSQL, while Promtail scrapes journald for service logs.
     - **Dashboards:** Systemd Monitoring and Homelab (hardware metrics).
 
-For deep dives into the system's inner workings:
+For deep dives into the system's inner workings, operational guides, and decision logs:
 
-- **[Detailed Architecture Docs](./docs/architecture/README.md)**: System context, component diagrams, and data flows.
-- **[Decision Records](./docs/decisions/README.md)**: Architectural Decision Records (ADRs) explaining the "Why" behind key technical choices.
+- **[Documentation Hub](./docs/README.md)**: Central entry point for Architecture, Decisions (ADRs), and Operational Notes.
 
 ---
 

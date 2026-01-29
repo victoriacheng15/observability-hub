@@ -4,15 +4,30 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 
 ## Component Details
 
+### 🗄️ Data Infrastructure (Docker)
+
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **PostgreSQL (TimescaleDB)** | Primary Storage | Dockerized central store for metrics and analytical data. |
-| **Loki** | Log Aggregation | Dockerized indexer for metadata-tagged logs. |
-| **Grafana** | Visualization | Dockerized UI connecting to Postgres and Loki. |
-| **Promtail** | Log Agent | Dockerized agent that scrapes both Docker container logs and the **Host Systemd Journal**. |
-| **Proxy Service** | API & GitOps Trigger | Native Go binary running as a Systemd service. Handles webhooks and data pipelines. |
-| **Tailscale Gate** | Security Agent | Native script ensuring the Public Funnel is only open when the Proxy is healthy. |
-| **Volume Backup** | Backup Agent | Native script to backup Docker volumes. |
+| **PostgreSQL** | Primary Storage | TimescaleDB + PostGIS for metrics and analytical data. |
+| **Loki** | Log Aggregation | Indexer for metadata-tagged logs. |
+| **Grafana** | Visualization | Unified dashboarding UI for Postgres and Loki. |
+| **Promtail** | Log Agent | Scrapes Docker container logs and the **Host Systemd Journal**. |
+
+### 🚀 Core Services (Native Go)
+
+| Component | Role | Details |
+| :--- | :--- | :--- |
+| **Proxy Service** | API Gateway | Handles webhooks, GitOps triggers, and Data Pipelines. |
+| **Metrics Collector** | Telemetry Agent | Collects host hardware statistics (CPU, RAM, Disk). |
+
+### 🛠️ Automation & Security (Native Script)
+
+| Component | Role | Details |
+| :--- | :--- | :--- |
+| **OpenBao** | Secret Store | Centralized, encrypted management for sensitive config. |
+| **Tailscale Gate** | Security Agent | Manages public funnel access based on service health. |
+| **Reading Sync** | Data Pipeline | Timer-triggered task to sync cloud data to local storage. |
+| **Volume Backup** | Backup Agent | Automated backup utility for Docker volumes. |
 
 ## Data Flow: Unified Logging
 
@@ -33,11 +48,11 @@ sequenceDiagram
 
 ## Deployment Strategy
 
-- **Orchestration**: `docker-compose.yml` for data infrastructure (Postgres, Grafana, Loki, Promtail).
-- **Native Services**: Systemd units for the **Proxy**, **Tailscale Gate**, **Metrics Collector**, and **Volume Backup**.
+- **Orchestration**: `docker-compose.yml` for data infrastructure.
+- **Native Services**: Systemd units for high-performance and host-level tasks.
 - **Automation**: `Makefile` for lifecycle management (build, restart, install).
-- **Persistence**: External Docker volumes (`postgres_data`, etc.) for container data.
-- **Event-Driven Sync**: GitHub Webhooks trigger the local `gitops_sync.sh` via the Proxy service.
+- **Persistence**: External Docker volumes for container data sustainability.
+- **Event-Driven Sync**: GitHub Webhooks trigger the local `gitops_sync.sh` via the Proxy.
 
 ## Configuration & Security
 
