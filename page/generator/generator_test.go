@@ -1,4 +1,4 @@
-package main
+package generator
 
 import (
 	"os"
@@ -214,6 +214,28 @@ func TestCopyDir(t *testing.T) {
 			expectError: true,
 			isDir:       false,
 		},
+		{
+			name: "ReadDir Failure",
+			setup: func(srcDir string) {
+				// Make source unreadable (execute only for traversal)
+				os.Chmod(srcDir, 0111)
+			},
+			verify:      func(dstDir string) {},
+			expectError: true,
+			isDir:       true,
+		},
+		{
+			name: "CopyFile Failure",
+			setup: func(srcDir string) {
+				// Create an unreadable file inside srcDir
+				badFile := filepath.Join(srcDir, "bad.txt")
+				os.WriteFile(badFile, []byte("fail"), 0644)
+				os.Chmod(badFile, 0000)
+			},
+			verify:      func(dstDir string) {},
+			expectError: true,
+			isDir:       true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -260,11 +282,200 @@ func TestCopyDir(t *testing.T) {
 	}
 }
 
+func TestBuild(t *testing.T) {
+	// Setup temporary source directory
+	srcDir, err := os.MkdirTemp("", "page-build-src")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(srcDir)
+
+	// Setup content/ structure
+	contentDir := filepath.Join(srcDir, "content")
+	if err := os.Mkdir(contentDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Create dummy yaml files
+	dummyYaml := []byte("page_title: Test\n")
+	if err := os.WriteFile(filepath.Join(contentDir, "landing.yaml"), dummyYaml, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(contentDir, "snapshots.yaml"), dummyYaml, 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Evolution needs special handling for chapters/events parsing
+	evoYaml := []byte(`
+page_title: Evolution
+chapters:
+  - title: C1
+    events:
+      - date: "2024-01-01"
+        description: "- Point 1\n\n- Point 2"
+      - date: "invalid-date"
+        description: "Single Line"
+`)
+	if err := os.WriteFile(filepath.Join(contentDir, "evolution.yaml"), evoYaml, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup templates/ structure
+	tplDir := filepath.Join(srcDir, "templates")
+	if err := os.Mkdir(tplDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	baseTpl := []byte(`{{define "base"}}<html>{{template "content" .}}</html>{{end}}`)
+	if err := os.WriteFile(filepath.Join(tplDir, "base.html"), baseTpl, 0644); err != nil {
+		t.Fatal(err)
+	}
+	pageTpl := []byte(`{{define "content"}}Page{{end}}`)
+	if err := os.WriteFile(filepath.Join(tplDir, "index.html"), pageTpl, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tplDir, "evolution.html"), pageTpl, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tplDir, "snapshots.html"), pageTpl, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup assets/ structure
+	assetsDir := filepath.Join(srcDir, "assets")
+	if err := os.Mkdir(assetsDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("Successful Build", func(t *testing.T) {
+		dstDir, err := os.MkdirTemp("", "page-build-dst")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(dstDir)
+
+		if err := Build(srcDir, dstDir); err != nil {
+			t.Fatalf("Build failed: %v", err)
+		}
+
+		// Verify output files exist
+		if _, err := os.Stat(filepath.Join(dstDir, "index.html")); os.IsNotExist(err) {
+			t.Error("index.html not created")
+		}
+		if _, err := os.Stat(filepath.Join(dstDir, "assets")); os.IsNotExist(err) {
+			t.Error("assets dir not created")
+		}
+	})
+
+	t.Run("Load Failure Last File", func(t *testing.T) {
+		dstDir, err := os.MkdirTemp("", "page-build-fail-last")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(dstDir)
+
+		srcFail, _ := os.MkdirTemp("", "src-fail-last")
+		defer os.RemoveAll(srcFail)
+
+		// Setup assets
+		os.Mkdir(filepath.Join(srcFail, "assets"), 0755)
+
+		// Setup content
+		contentFail := filepath.Join(srcFail, "content")
+		os.Mkdir(contentFail, 0755)
+		os.WriteFile(filepath.Join(contentFail, "landing.yaml"), dummyYaml, 0644)
+		os.WriteFile(filepath.Join(contentFail, "snapshots.yaml"), dummyYaml, 0644)
+		// Broken evolution.yaml
+		os.WriteFile(filepath.Join(contentFail, "evolution.yaml"), []byte("invalid: [ yaml"), 0644)
+
+		err = Build(srcFail, dstDir)
+		if err == nil {
+			t.Error("Expected error due to broken evolution.yaml, got nil")
+		}
+	})
+
+	t.Run("Missing Content File", func(t *testing.T) {
+		dstDir, err := os.MkdirTemp("", "page-build-fail")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(dstDir)
+
+		// Create a src dir missing files
+		emptySrc, _ := os.MkdirTemp("", "empty-src")
+		defer os.RemoveAll(emptySrc)
+
+		err = Build(emptySrc, dstDir)
+		if err == nil {
+			t.Error("Expected error due to missing content files, got nil")
+		}
+	})
+
+	t.Run("Render Write Failure", func(t *testing.T) {
+		// Let's test "Render Failure" by having a template that crashes during execution.
+		// We modify the template in a separate temp src dir.
+
+		brokenSrcDir, _ := os.MkdirTemp("", "broken-src")
+		defer os.RemoveAll(brokenSrcDir)
+
+		// Copy content to brokenSrcDir (simplified)
+		copyDir(contentDir, filepath.Join(brokenSrcDir, "content"))
+		// Create assets
+		os.Mkdir(filepath.Join(brokenSrcDir, "assets"), 0755)
+
+		// Create BROKEN templates
+		brokenTplDir := filepath.Join(brokenSrcDir, "templates")
+		os.Mkdir(brokenTplDir, 0755)
+		os.WriteFile(filepath.Join(brokenTplDir, "base.html"), baseTpl, 0644)
+		// Index template uses a function 'add' incorrectly?
+		// funcMap has "add". {{ add 1 "string" }} will panic or error.
+		badTpl := []byte(`{{define "content"}}{{ add 1 "string" }}{{end}}`)
+		os.WriteFile(filepath.Join(brokenTplDir, "index.html"), badTpl, 0644)
+		os.WriteFile(filepath.Join(brokenTplDir, "evolution.html"), pageTpl, 0644)
+		os.WriteFile(filepath.Join(brokenTplDir, "snapshots.html"), pageTpl, 0644)
+
+		dstDirRO, _ := os.MkdirTemp("", "dst-broken")
+		defer os.RemoveAll(dstDirRO)
+
+		err = Build(brokenSrcDir, dstDirRO)
+		if err == nil {
+			t.Error("Expected error due to bad template execution, got nil")
+		} else {
+			// Optional: check error message contains "executing"
+		}
+	})
+	t.Run("Cleanup Failure", func(t *testing.T) {
+		// Mock removeAll to fail
+		originalRemoveAll := removeAll
+		defer func() { removeAll = originalRemoveAll }()
+		removeAll = func(path string) error {
+			return os.ErrPermission
+		}
+
+		err := Build(srcDir, "dist-ignore")
+		if err == nil {
+			t.Error("Expected error due to removeAll failure, got nil")
+		}
+	})
+
+	t.Run("Mkdir Failure", func(t *testing.T) {
+		// Mock mkdirAll to fail
+		originalMkdirAll := mkdirAll
+		defer func() { mkdirAll = originalMkdirAll }()
+		mkdirAll = func(path string, perm os.FileMode) error {
+			return os.ErrPermission
+		}
+
+		err := Build(srcDir, "dist-ignore")
+		if err == nil {
+			t.Error("Expected error due to mkdirAll failure, got nil")
+		}
+	})
+}
+
 func TestRenderPage(t *testing.T) {
 	testCases := []struct {
 		name            string
 		baseTpl         string
 		pageTpl         string
+		outFileName     string
 		mockDataTitle   string
 		expectedError   bool
 		expectedContent string
@@ -280,7 +491,7 @@ func TestRenderPage(t *testing.T) {
 		{
 			name:            "Invalid Template Syntax",
 			baseTpl:         `{{define "base"}}<html><body>{{template "content" .}}</body></html>{{end}}`,
-			pageTpl:         `{{define "content"}}<h1>{{.Landing.PageTitle`, // Missing closing }} and {{end}}
+			pageTpl:         `{{define "content"}}<h1>{{.Landing.PageTitle`,
 			mockDataTitle:   "Test Render Page",
 			expectedError:   true,
 			expectedContent: "",
@@ -290,6 +501,15 @@ func TestRenderPage(t *testing.T) {
 			baseTpl:         `{{define "base"}}<html><body>{{template "content" .}}</body></html>{{end}}`,
 			pageTpl:         "non_existent.html",
 			mockDataTitle:   "Test Render Page",
+			expectedError:   true,
+			expectedContent: "",
+		},
+		{
+			name:            "Output Creation Failure",
+			baseTpl:         `{{define "base"}}OK{{end}}`,
+			pageTpl:         `{{define "content"}}OK{{end}}`,
+			outFileName:     "missing-dir/output.html", // Parent dir doesn't exist
+			mockDataTitle:   "Test",
 			expectedError:   true,
 			expectedContent: "",
 		},
@@ -311,16 +531,19 @@ func TestRenderPage(t *testing.T) {
 			}
 
 			// Create dummy base.html inside 'templates'
-			if err := os.WriteFile(filepath.Join(tmpTemplatesDir, "base.html"), []byte(tc.baseTpl), 0644); err != nil {
+			baseTplPath := filepath.Join(tmpTemplatesDir, "base.html")
+			if err := os.WriteFile(baseTplPath, []byte(tc.baseTpl), 0644); err != nil {
 				t.Fatal(err)
 			}
 
 			// Create dummy page template inside 'templates' if it's not a non-existent file test
 			pageTplFileName := "test_page.html"
+			pageTplPath := ""
 			if tc.pageTpl == "non_existent.html" {
-				pageTplFileName = "non_existent.html"
+				pageTplPath = filepath.Join(tmpTemplatesDir, "non_existent.html")
 			} else {
-				if err := os.WriteFile(filepath.Join(tmpTemplatesDir, pageTplFileName), []byte(tc.pageTpl), 0644); err != nil {
+				pageTplPath = filepath.Join(tmpTemplatesDir, pageTplFileName)
+				if err := os.WriteFile(pageTplPath, []byte(tc.pageTpl), 0644); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -347,8 +570,13 @@ func TestRenderPage(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			outFile := "output.html"
-			err = renderPage(outFile, "templates/"+pageTplFileName, mockData)
+			outName := "output.html"
+			if tc.outFileName != "" {
+				outName = tc.outFileName
+			}
+			outFile := filepath.Join("dist", outName)
+			// Updated call signature
+			err = renderPage(outFile, baseTplPath, pageTplPath, mockData)
 
 			if tc.expectedError {
 				if err == nil {
@@ -359,10 +587,9 @@ func TestRenderPage(t *testing.T) {
 					t.Fatalf("renderPage failed unexpectedly: %v", err)
 				}
 				// Verify output file
-				outputPath := filepath.Join("dist", outFile)
-				gotContent, err := os.ReadFile(outputPath)
+				gotContent, err := os.ReadFile(outFile)
 				if err != nil {
-					t.Fatalf("Failed to read output file at %s: %v", outputPath, err)
+					t.Fatalf("Failed to read output file at %s: %v", outFile, err)
 				}
 				if string(gotContent) != tc.expectedContent {
 					t.Errorf("Expected '%s', got '%s'", tc.expectedContent, string(gotContent))
