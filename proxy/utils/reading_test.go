@@ -110,15 +110,9 @@ func TestSyncReadingHandler(t *testing.T) {
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// 2. Mongo: Find
-		// We expect the 'find' command to have a 'limit' field set to 50.
-		// mtest doesn't make it super easy to inspect the command options directly in the wrapper without using AddMockResponses,
-		// but we can trust that if the code path is hit, the value is used.
-		// For a strict unit test, we'd mock the Find options or inspect the command monitor, but here we'll verify the flow completes.
-
 		mt.AddMockResponses(mtest.CreateCursorResponse(
 			1,
-			"reading-analytics.articless",
+			"reading-analytics.articles",
 			mtest.FirstBatch,
 			bson.D{}, // Empty batch for this test
 		))
@@ -134,12 +128,120 @@ func TestSyncReadingHandler(t *testing.T) {
 		}
 	})
 
+	mt.Run("mongo_find_error", func(mt *mtest.T) {
+		var buf bytes.Buffer
+		origLogger := slog.Default()
+		defer slog.SetDefault(origLogger)
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+
+		service := &ReadingService{
+			DB:          db,
+			MongoClient: mt.Client,
+		}
+
+		// 1. Postgres: Create Table SUCCESS
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// 2. Mongo: Find FAILS
+		mt.AddMockResponses(bson.D{{Key: "ok", Value: 0}, {Key: "errmsg", Value: "query failed"}})
+
+		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
+		w := httptest.NewRecorder()
+
+		service.SyncReadingHandler(w, req)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", w.Code)
+		}
+
+		if !bytes.Contains(buf.Bytes(), []byte("ETL_ERROR: Failed to query Mongo")) {
+			t.Errorf("expected log to contain query error, got %q", buf.String())
+		}
+	})
+
+	mt.Run("postgres_insert_error", func(mt *mtest.T) {
+		var buf bytes.Buffer
+		origLogger := slog.Default()
+		defer slog.SetDefault(origLogger)
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+
+		service := &ReadingService{
+			DB:          db,
+			MongoClient: mt.Client,
+		}
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		objID := primitive.NewObjectID()
+		mt.AddMockResponses(mtest.CreateCursorResponse(
+			1, "reading-analytics.articles", mtest.FirstBatch,
+			bson.D{{Key: "_id", Value: objID}, {Key: "status", Value: "ingested"}},
+		))
+
+		// Postgres Insert FAILS
+		mock.ExpectExec("INSERT INTO reading_analytics").
+			WillReturnError(errors.New("unique constraint violation"))
+
+		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
+		w := httptest.NewRecorder()
+
+		service.SyncReadingHandler(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", w.Code)
+		}
+
+		if !bytes.Contains(buf.Bytes(), []byte("ETL_ERROR: Failed to insert into Postgres")) {
+			t.Errorf("expected log to contain insert error, got %q", buf.String())
+		}
+	})
+
+	mt.Run("mongo_update_error", func(mt *mtest.T) {
+		var buf bytes.Buffer
+		origLogger := slog.Default()
+		defer slog.SetDefault(origLogger)
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+
+		service := &ReadingService{
+			DB:          db,
+			MongoClient: mt.Client,
+		}
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		objID := primitive.NewObjectID()
+		mt.AddMockResponses(mtest.CreateCursorResponse(
+			1, "reading-analytics.articles", mtest.FirstBatch,
+			bson.D{{Key: "_id", Value: objID}, {Key: "status", Value: "ingested"}},
+		))
+
+		// Postgres Success
+		mock.ExpectExec("INSERT INTO reading_analytics").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Mongo Update FAILS
+		mt.AddMockResponses(bson.D{{Key: "ok", Value: 0}, {Key: "errmsg", Value: "update failed"}})
+
+		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
+		w := httptest.NewRecorder()
+
+		service.SyncReadingHandler(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", w.Code)
+		}
+
+		if !bytes.Contains(buf.Bytes(), []byte("ETL_WARN: Failed to update Mongo status")) {
+			t.Errorf("expected log to contain update warning, got %q", buf.String())
+		}
+	})
+
 	mt.Run("log_error_on_create_table_failure", func(mt *mtest.T) {
 		// Capture logs
 		var buf bytes.Buffer
-		// Save original logger to restore later (although tests run in parallel, this might be risky if parallel=true, but here it is sequential per function usually unless t.Parallel() is called)
-		// Since we are modifying a global, we should be careful.
-		// For this specific test, we replace the default logger.
 		origLogger := slog.Default()
 		defer slog.SetDefault(origLogger)
 

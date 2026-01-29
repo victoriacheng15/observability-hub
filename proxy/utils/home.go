@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+var httpGet = http.Get
+
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome to the Observability Hub."})
@@ -13,7 +15,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Fetch from an external API (GitHub Zen) to test outbound connectivity
-	resp, err := http.Get("https://api.github.com/zen")
+	resp, err := httpGet("https://api.github.com/zen")
 	zenMessage := "Could not fetch Zen"
 	if err == nil {
 		defer resp.Body.Close()
