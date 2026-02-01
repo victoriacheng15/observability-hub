@@ -23,10 +23,20 @@ type ReadingService struct {
 
 func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	startTime := time.Now().UTC()
+	syncStatus := "success"
+	var syncErrorMessage string
+	processedCount := 0 // Initialize processedCount for defer
+
+	defer func() {
+		s.recordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage)
+	}()
 
 	if err := s.ensureReadingAnalyticsTable(); err != nil {
 		slog.Error("ETL_ERROR: Failed to create reading_analytics table", "error", err)
 		http.Error(w, "Failed to ensure database schema", 500)
+		syncStatus = "failure"
+		syncErrorMessage = err.Error()
 		return
 	}
 
@@ -35,15 +45,17 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		slog.Error("ETL_ERROR: Failed to query Mongo", "error", err)
 		http.Error(w, "Failed to query Mongo", 500)
+		syncStatus = "failure"
+		syncErrorMessage = err.Error()
 		return
 	}
 	defer cursor.Close(ctx)
 
-	processedCount := s.processDocuments(ctx, cursor, coll)
+	processedCount = s.processDocuments(ctx, cursor, coll)
 
 	res := map[string]interface{}{
 		"service":         "reading-sync",
-		"status":          "success",
+		"status":          syncStatus,
 		"processed_count": processedCount,
 		"timestamp":       time.Now().UTC(),
 	}
@@ -53,6 +65,17 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(res)
+}
+
+func (s *ReadingService) recordSyncHistory(ctx context.Context, startTime, endTime time.Time, status string, processedCount int, errorMessage string) {
+	_, err := s.DB.ExecContext(ctx,
+		`INSERT INTO reading_sync_history (start_time, end_time, status, processed_count, error_message)
+		VALUES ($1, $2, $3, $4, $5)`,
+		startTime, endTime, status, processedCount, errorMessage,
+	)
+	if err != nil {
+		slog.Error("ETL_ERROR: Failed to record sync history", "error", err)
+	}
 }
 
 func (s *ReadingService) ensureReadingAnalyticsTable() error {
