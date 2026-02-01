@@ -3,7 +3,6 @@ package generator
 import (
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,15 +31,7 @@ func Build(srcDir, dstDir string) error {
 		return fmt.Errorf("failed to create dist: %w", err)
 	}
 
-	// 2. Copy Assets
-	assetsSrc := filepath.Join(srcDir, "assets")
-	assetsDst := filepath.Join(dstDir, "assets")
-	if err := copyDir(assetsSrc, assetsDst); err != nil {
-		// Log warning but continue, as assets might not exist in all test cases
-		log.Printf("Warning copying assets: %v", err)
-	}
-
-	// 3. Load Modular Data
+	// 2. Load Modular Data
 	var data schema.SiteData
 	data.Year = time.Now().Year()
 
@@ -49,7 +40,6 @@ func Build(srcDir, dstDir string) error {
 		dest interface{}
 	}{
 		{filepath.Join(srcDir, "content/landing.yaml"), &data.Landing},
-		{filepath.Join(srcDir, "content/snapshots.yaml"), &data.Snapshots},
 		{filepath.Join(srcDir, "content/evolution.yaml"), &data.Evolution},
 	}
 
@@ -81,7 +71,7 @@ func Build(srcDir, dstDir string) error {
 				log.Printf("Warning: failed to parse date %s: %v", event.Date, err)
 				event.FormattedDate = event.Date
 			} else {
-				event.FormattedDate = t.Format("Jan 02, 2006")
+				event.FormattedDate = t.Format("2006-01-02")
 			}
 		}
 		// Reverse Events within each chapter (Newest First)
@@ -98,7 +88,6 @@ func Build(srcDir, dstDir string) error {
 	}{
 		{"index.html", "templates/index.html"},
 		{"evolution.html", "templates/evolution.html"},
-		{"snapshots.html", "templates/snapshots.html"},
 	}
 
 	for _, p := range pages {
@@ -155,70 +144,4 @@ func renderPage(outFile, baseFile, tplFile string, data *schema.SiteData) error 
 	}
 
 	return nil
-}
-
-// copyDir recursively copies a directory tree, attempting to preserve permissions.
-func copyDir(src, dst string) error {
-	src = filepath.Clean(src)
-	dst = filepath.Clean(dst)
-
-	si, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	if !si.IsDir() {
-		return fmt.Errorf("source is not a directory")
-	}
-
-	_, err = os.Stat(dst)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll(dst, si.Mode())
-		if err != nil {
-			return err
-		}
-	}
-
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range entries {
-		srcPath := filepath.Join(src, entry.Name())
-		dstPath := filepath.Join(dst, entry.Name())
-
-		if entry.IsDir() {
-			err = copyDir(srcPath, dstPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			// Copy file
-			if err = copyFile(srcPath, dstPath); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-	return out.Sync()
 }

@@ -2,10 +2,8 @@ page_title: "Self-Hosted Observability Hub"
 hero:
   title: "Monitor What Matters"
   subtitle: "Unified Telemetry & GitOps-Driven State Reconciliation: A Resilient Platform built on SRE and Platform Engineering Principles."
-  cta_text: "See the Journey"
+  cta_text: "See the Evolution"
   cta_link: "evolution.html"
-  cta2_text: "View Snapshots"
-  cta2_link: "snapshots.html"
 principles:
   - title: "Unified Observability"
     description: "Eliminates data silos by correlating infrastructure telemetry with business events into a single, queryable plane."

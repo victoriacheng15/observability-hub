@@ -1,33 +1,5 @@
 package schema
 
-// SnapshotItem represents a single snapshot image with its caption and path.
-type SnapshotItem struct {
-	Caption   string `yaml:"caption"`
-	ImagePath string `yaml:"image_path"`
-}
-
-// SnapshotMonth represents a monthly collection of snapshots for a specific category.
-type SnapshotMonth struct {
-	Period string         `yaml:"period"`
-	Items  []SnapshotItem `yaml:"items"`
-}
-
-// SnapshotCategory represents a high-level grouping of snapshots, like "Reading Analytics".
-type SnapshotCategory struct {
-	Name    string          `yaml:"name"`
-	Note    string          `yaml:"note"`
-	History []SnapshotMonth `yaml:"history"`
-}
-
-// Snapshots holds the overall structure for the snapshots page, including metadata and categories.
-type Snapshots struct {
-	PageTitle    string             `yaml:"page_title"`
-	LastUpdated  string             `yaml:"last_updated"`
-	NextUpdate   string             `yaml:"next_update"`
-	ReportWindow string             `yaml:"report_window"`
-	Categories   []SnapshotCategory `yaml:"categories"`
-}
-
 // Feature represents a single feature with a title, description, and icon.
 type Feature struct {
 	Title       string `yaml:"title"`
@@ -86,6 +58,5 @@ type Evolution struct {
 type SiteData struct {
 	Landing   Landing
 	Evolution Evolution
-	Snapshots Snapshots
 	Year      int
 }

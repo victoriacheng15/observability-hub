@@ -124,3 +124,17 @@ chapters:
         description: |
           - Replaced static environment variables with a secure OpenBao secret store and provider-agnostic secrets library.
           - Migrated 'system-metrics' and 'proxy' services to dynamic credential retrieval.
+
+  - title: "The K3s Era"
+    intro: "Evolving from container management to a Kubernetes platform. Standardizing on cloud-native patterns for true operational resilience."
+    timeline:
+      - date: "2026-02-01"
+        title: "Strategic Migration Planning"
+        artifacts:
+          - name: "ADR 011: Phased Migration Strategy"
+            url: "docs/decisions/011-phased-k3s-migration-strategy.md"
+          - name: "ADR 012: Migrate Promtail to Alloy"
+            url: "docs/decisions/012-migrate-promtail-to-alloy.md"
+        description: |
+          - Proposed a four-stage migration strategy (Alloy -> Loki -> Grafana -> Postgres) to move the entire observability stack into Kubernetes.
+          - Proposed migrating from legacy Promtail to Grafana Alloy as the unified telemetry brain, leveraging the 'Strangler Fig' pattern for zero-downtime.
