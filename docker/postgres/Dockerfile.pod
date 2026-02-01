@@ -1,0 +1,13 @@
+FROM postgres:17
+
+# Install extensions
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-17-timescaledb \
+        postgresql-17-postgis-3 \
+        postgresql-17-postgis-3-scripts && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configure PostgreSQL to preload TimescaleDB
+# This file is copied to /var/lib/postgresql/data/postgresql.conf on first run
+RUN echo "shared_preload_libraries = 'timescaledb'" >> /usr/share/postgresql/postgresql.conf.sample
