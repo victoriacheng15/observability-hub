@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-v2
+  labels:
+    app: postgres-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-v2
+  template:
+    metadata:
+      labels:
+        app: postgres-v2
+    spec:
+      containers:
+      - name: postgres
+        image: postgres_pod:latest
+        imagePullPolicy: Never # Use local image
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "postgres_password"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        emptyDir: {} # Temporary storage for experimental pod
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-v2-service
+spec:
+  type: NodePort
+  selector:
+    app: postgres-v2
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+      nodePort: 30432
