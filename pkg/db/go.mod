@@ -3,7 +3,7 @@ module db
 go 1.25.2
 
 require (
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.1
 	go.mongodb.org/mongo-driver v1.17.7
 	secrets v0.0.0
 )
