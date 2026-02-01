@@ -63,6 +63,9 @@
             color: var(--text-main);
             background-color: var(--bg);
             font-size: var(--font-base);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         ul {
@@ -525,6 +528,29 @@
                 }
             }
         }
+
+        .maintenance-banner {
+            margin-bottom: var(--space-xxl);
+        }
+
+        .maintenance-card {
+            background: rgba(230, 42, 89, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-main);
+            padding: var(--space-lg);
+            color: var(--text-main);
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(230, 42, 89, 0.2);
+
+            p {
+                font-size: var(--font-base);
+                line-height: 1.6;
+            }
+
+            strong {
+                color: var(--accent);
+            }
+        }
     </style>
 </head>
 
@@ -535,7 +561,6 @@
                 <a href="index.html" class="logo">{{ .Landing.PageTitle }}</a>
                 <ul>
                     <li><a href="index.html">Home</a></li>
-                    <li><a href="snapshots.html">Snapshots</a></li>
                     <li><a href="evolution.html">Evolution</a></li>
                 </ul>
             </nav>

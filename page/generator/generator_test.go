@@ -88,200 +88,6 @@ chapters:
 	})
 }
 
-func TestCopyFile(t *testing.T) {
-	testCases := []struct {
-		name        string
-		srcContent  string
-		setup       func(srcPath string)
-		expectError bool
-	}{
-		{
-			name:       "Successful Copy",
-			srcContent: "Hello, Gopher!",
-			setup: func(srcPath string) {
-				if err := os.WriteFile(srcPath, []byte("Hello, Gopher!"), 0644); err != nil {
-					t.Fatal(err)
-				}
-			},
-			expectError: false,
-		},
-		{
-			name:        "Source Not Found",
-			srcContent:  "",
-			setup:       func(srcPath string) { os.Remove(srcPath) },
-			expectError: true,
-		},
-		{
-			name:       "Empty Source File",
-			srcContent: "",
-			setup: func(srcPath string) {
-				if err := os.WriteFile(srcPath, []byte(""), 0644); err != nil {
-					t.Fatal(err)
-				}
-			},
-			expectError: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			srcFile, err := os.CreateTemp("", "src-*.txt")
-			if err != nil {
-				t.Fatal(err)
-			}
-			srcPath := srcFile.Name()
-			srcFile.Close() // Close immediately
-			defer os.Remove(srcPath)
-
-			dstFile, err := os.CreateTemp("", "dst-*.txt")
-			if err != nil {
-				t.Fatal(err)
-			}
-			dstPath := dstFile.Name()
-			dstFile.Close() // Close immediately
-			defer os.Remove(dstPath)
-
-			tc.setup(srcPath) // Pass only srcPath to setup
-
-			err = copyFile(srcPath, dstPath)
-
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("Expected an error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("copyFile failed: %v", err)
-				}
-				gotContent, readErr := os.ReadFile(dstPath)
-				if readErr != nil {
-					t.Fatalf("Failed to read destination file: %v", readErr)
-				}
-				if string(gotContent) != tc.srcContent {
-					t.Errorf("Expected '%s', got '%s'", tc.srcContent, string(gotContent))
-				}
-			}
-		})
-	}
-}
-
-func TestCopyDir(t *testing.T) {
-	testCases := []struct {
-		name        string
-		setup       func(srcDir string)
-		verify      func(dstDir string)
-		expectError bool
-		isDir       bool
-	}{
-		{
-			name: "Successful Directory Copy",
-			setup: func(srcDir string) {
-				if err := os.WriteFile(filepath.Join(srcDir, "file1.txt"), []byte("content1"), 0644); err != nil {
-					t.Fatal(err)
-				}
-				subDir := filepath.Join(srcDir, "sub-dir")
-				if err := os.Mkdir(subDir, 0755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(filepath.Join(subDir, "file2.txt"), []byte("content2"), 0644); err != nil {
-					t.Fatal(err)
-				}
-			},
-			verify: func(dstDir string) {
-				content1, err := os.ReadFile(filepath.Join(dstDir, "file1.txt"))
-				if err != nil {
-					t.Fatalf("Failed to read dst/file1.txt: %v", err)
-				}
-				if string(content1) != "content1" {
-					t.Errorf("Expected 'content1', got '%s'", string(content1))
-				}
-
-				content2, err := os.ReadFile(filepath.Join(dstDir, "sub-dir", "file2.txt"))
-				if err != nil {
-					t.Fatalf("Failed to read dst/sub-dir/file2.txt: %v", err)
-				}
-				if string(content2) != "content2" {
-					t.Errorf("Expected 'content2', got '%s'", string(content2))
-				}
-			},
-			expectError: false,
-			isDir:       true,
-		},
-		{
-			name:        "Source Not a Directory",
-			setup:       func(srcDir string) {},
-			verify:      func(dstDir string) {},
-			expectError: true,
-			isDir:       false,
-		},
-		{
-			name: "ReadDir Failure",
-			setup: func(srcDir string) {
-				// Make source unreadable (execute only for traversal)
-				os.Chmod(srcDir, 0111)
-			},
-			verify:      func(dstDir string) {},
-			expectError: true,
-			isDir:       true,
-		},
-		{
-			name: "CopyFile Failure",
-			setup: func(srcDir string) {
-				// Create an unreadable file inside srcDir
-				badFile := filepath.Join(srcDir, "bad.txt")
-				os.WriteFile(badFile, []byte("fail"), 0644)
-				os.Chmod(badFile, 0000)
-			},
-			verify:      func(dstDir string) {},
-			expectError: true,
-			isDir:       true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var srcPath string
-			var err error
-			if tc.isDir {
-				srcPath, err = os.MkdirTemp("", "src-dir-")
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer os.RemoveAll(srcPath)
-			} else {
-				srcFile, err := os.CreateTemp("", "src-file-")
-				if err != nil {
-					t.Fatal(err)
-				}
-				srcFile.Close()
-				srcPath = srcFile.Name()
-				defer os.Remove(srcPath)
-			}
-
-			dstDir, err := os.MkdirTemp("", "dst-dir-")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.RemoveAll(dstDir)
-
-			tc.setup(srcPath)
-
-			err = copyDir(srcPath, dstDir)
-
-			if tc.expectError {
-				if err == nil {
-					t.Errorf("Expected an error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Fatalf("copyDir failed: %v", err)
-				}
-				tc.verify(dstDir)
-			}
-		})
-	}
-}
-
 func TestBuild(t *testing.T) {
 	// Setup temporary source directory
 	srcDir, err := os.MkdirTemp("", "page-build-src")
@@ -298,9 +104,6 @@ func TestBuild(t *testing.T) {
 	// Create dummy yaml files
 	dummyYaml := []byte("page_title: Test\n")
 	if err := os.WriteFile(filepath.Join(contentDir, "landing.yaml"), dummyYaml, 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(contentDir, "snapshots.yaml"), dummyYaml, 0644); err != nil {
 		t.Fatal(err)
 	}
 	// Evolution needs special handling for chapters/events parsing
@@ -334,15 +137,6 @@ chapters:
 	if err := os.WriteFile(filepath.Join(tplDir, "evolution.html"), pageTpl, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(tplDir, "snapshots.html"), pageTpl, 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Setup assets/ structure
-	assetsDir := filepath.Join(srcDir, "assets")
-	if err := os.Mkdir(assetsDir, 0755); err != nil {
-		t.Fatal(err)
-	}
 
 	t.Run("Successful Build", func(t *testing.T) {
 		dstDir, err := os.MkdirTemp("", "page-build-dst")
@@ -359,8 +153,8 @@ chapters:
 		if _, err := os.Stat(filepath.Join(dstDir, "index.html")); os.IsNotExist(err) {
 			t.Error("index.html not created")
 		}
-		if _, err := os.Stat(filepath.Join(dstDir, "assets")); os.IsNotExist(err) {
-			t.Error("assets dir not created")
+		if _, err := os.Stat(filepath.Join(dstDir, "evolution.html")); os.IsNotExist(err) {
+			t.Error("evolution.html not created")
 		}
 	})
 
@@ -374,14 +168,10 @@ chapters:
 		srcFail, _ := os.MkdirTemp("", "src-fail-last")
 		defer os.RemoveAll(srcFail)
 
-		// Setup assets
-		os.Mkdir(filepath.Join(srcFail, "assets"), 0755)
-
 		// Setup content
 		contentFail := filepath.Join(srcFail, "content")
 		os.Mkdir(contentFail, 0755)
 		os.WriteFile(filepath.Join(contentFail, "landing.yaml"), dummyYaml, 0644)
-		os.WriteFile(filepath.Join(contentFail, "snapshots.yaml"), dummyYaml, 0644)
 		// Broken evolution.yaml
 		os.WriteFile(filepath.Join(contentFail, "evolution.yaml"), []byte("invalid: [ yaml"), 0644)
 
@@ -415,10 +205,10 @@ chapters:
 		brokenSrcDir, _ := os.MkdirTemp("", "broken-src")
 		defer os.RemoveAll(brokenSrcDir)
 
-		// Copy content to brokenSrcDir (simplified)
-		copyDir(contentDir, filepath.Join(brokenSrcDir, "content"))
-		// Create assets
-		os.Mkdir(filepath.Join(brokenSrcDir, "assets"), 0755)
+		// Setup content
+		os.Mkdir(filepath.Join(brokenSrcDir, "content"), 0755)
+		os.WriteFile(filepath.Join(brokenSrcDir, "content/landing.yaml"), dummyYaml, 0644)
+		os.WriteFile(filepath.Join(brokenSrcDir, "content/evolution.yaml"), evoYaml, 0644)
 
 		// Create BROKEN templates
 		brokenTplDir := filepath.Join(brokenSrcDir, "templates")
@@ -429,7 +219,6 @@ chapters:
 		badTpl := []byte(`{{define "content"}}{{ add 1 "string" }}{{end}}`)
 		os.WriteFile(filepath.Join(brokenTplDir, "index.html"), badTpl, 0644)
 		os.WriteFile(filepath.Join(brokenTplDir, "evolution.html"), pageTpl, 0644)
-		os.WriteFile(filepath.Join(brokenTplDir, "snapshots.html"), pageTpl, 0644)
 
 		dstDirRO, _ := os.MkdirTemp("", "dst-broken")
 		defer os.RemoveAll(dstDirRO)
