@@ -6,7 +6,7 @@ require (
 	db v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.1
 	github.com/shirou/gopsutil/v4 v4.25.12
 	logger v0.0.0
 	secrets v0.0.0
