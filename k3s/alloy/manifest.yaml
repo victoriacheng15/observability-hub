@@ -31,11 +31,11 @@ metadata:
     app.kubernetes.io/component: config
 data:
   config.alloy: |-
-    // WRITE: Push to local Docker-Loki
+    // WRITE: Push to local K3s-Loki
     // -------------------------------------------------------------------------
     loki.write "local_loki" {
       endpoint {
-        url = "http://" + sys.env("HOST_IP") + ":3100/loki/api/v1/push"
+        url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
       }
     }
     
@@ -59,21 +59,31 @@ data:
         target_label  = "unit"
       }
       rule {
-        source_labels = ["__journal__systemd_unit"]
+        source_labels = ["__journal_syslog_identifier"]
+        target_label  = "syslog_identifier"
+      }
+    
+      // Priority 1: Extract service from SYSLOG_IDENTIFIER
+      rule {
+        source_labels = ["__journal_syslog_identifier"]
         regex         = "(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*"
         target_label  = "service"
         replacement   = "$1"
       }
+    
+      // Priority 2: If service is still empty, extract from SYSTEMD_UNIT
       rule {
-        source_labels = ["__journal_syslog_identifier"]
-        target_label  = "syslog_identifier"
+        source_labels = ["service", "__journal__systemd_unit"]
+        regex         = ";(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*"
+        target_label  = "service"
+        replacement   = "$1"
       }
     }
     
     loki.process "journal_pipeline" {
-      // Filter: Keep only our specific services by dropping everything else
+      // Filter: Keep logs that match our specific services (either by unit or service label)
       stage.match {
-        selector = `{unit!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).service"}`
+        selector = `{unit!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).service", service!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate)"}`
         action   = "drop"
       }
     
@@ -318,10 +328,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: HOST_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
           ports:
             - containerPort: 12345
               name: http-metrics
@@ -353,7 +359,6 @@ spec:
             requests:
               cpu: 10m
               memory: 50Mi
-      hostNetwork: true
       dnsPolicy: ClusterFirst
       volumes:
         - name: config

@@ -16,9 +16,9 @@ Adopt **Grafana Alloy** as the unified telemetry collector, replacing the legacy
 
 The "Strangler Fig" pattern was used to migrate log sources incrementally:
 
-1.  **Phase 1 (Systemd):** Deploy Alloy as a k3s `DaemonSet`. It was configured to scrape the host's `systemd` journal and push logs to the existing Docker-Loki instance alongside Promtail. This proved the viability of the Alloy pipeline.
-2.  **Phase 2 (Verify):** Confirm in Grafana that Alloy is successfully ingesting `systemd` journal logs with full label parity.
-3.  **Phase 3 (Cutover - Planned):** The `promtail` container in Docker Compose can now be disabled, as Alloy has taken over its responsibilities for host-level services.
+1. **Phase 1 (Systemd):** Deploy Alloy as a k3s `DaemonSet`. It was configured to scrape the host's `systemd` journal and push logs to the existing Docker-Loki instance alongside Promtail. This proved the viability of the Alloy pipeline.
+2. **Phase 2 (Verify):** Confirm in Grafana that Alloy is successfully ingesting `systemd` journal logs with full label parity.
+3. **Phase 3 (Cutover - Planned):** The `promtail` container in Docker Compose can now be disabled, as Alloy has taken over its responsibilities for host-level services.
 
 ### Key Configuration Changes
 
