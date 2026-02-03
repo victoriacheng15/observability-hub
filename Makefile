@@ -12,6 +12,7 @@ help:
 	@echo "  make go-test            - Run Go tests"
 	@echo "  make go-cov             - Run tests with coverage report"
 	@echo "  make page-build         - Build the GitHu Page"
+	@echo "  make lint               - Lint markdown files with markdownlint-cli"
 	@echo "  make metrics-build      - Build the system metrics collector"
 	@echo "  make proxy-build        - Build and restart the go proxy server"
 	@echo "  make install-services   - Install all systemd units from ./systemd"
@@ -25,6 +26,12 @@ nix-%:
 # Architecture Decision Record Creation
 rfc:
 	@./scripts/create_rfc.sh
+
+# Markdown Linting
+LINT_IMAGE = ghcr.io/igorshubovych/markdownlint-cli:v0.44.0
+
+lint:
+	docker run --rm -v "$(PWD):/data" -w /data $(LINT_IMAGE) --fix "**/*.md"
 
 # Docker Compose Management
 up:

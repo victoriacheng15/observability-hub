@@ -1,0 +1,92 @@
+alloy:
+  extraEnv:
+    - name: HOST_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+  mounts:
+    extra:
+      - name: journal-logs
+        mountPath: /var/log/journal
+        readOnly: true
+      - name: machine-id
+        mountPath: /etc/machine-id
+        readOnly: true
+  configMap:
+    content: |-
+      // WRITE: Push to local Docker-Loki
+      // -------------------------------------------------------------------------
+      loki.write "local_loki" {
+        endpoint {
+          url = "http://" + sys.env("HOST_IP") + ":3100/loki/api/v1/push"
+        }
+      }
+
+      // -------------------------------------------------------------------------
+      // SOURCE: Systemd Journal
+      // -------------------------------------------------------------------------
+      loki.source.journal "systemd" {
+        forward_to    = [loki.process.journal_pipeline.receiver]
+        relabel_rules = loki.relabel.journal_relabel.rules
+        labels        = {
+          agent = "alloy",
+          job   = "systemd-journal",
+        }
+      }
+
+      loki.relabel "journal_relabel" {
+        forward_to = []
+
+        rule {
+          source_labels = ["__journal__systemd_unit"]
+          target_label  = "unit"
+        }
+        rule {
+          source_labels = ["__journal__systemd_unit"]
+          regex         = "(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*"
+          target_label  = "service"
+          replacement   = "$1"
+        }
+        rule {
+          source_labels = ["__journal_syslog_identifier"]
+          target_label  = "syslog_identifier"
+        }
+      }
+
+      loki.process "journal_pipeline" {
+        // Filter: Keep only our specific services by dropping everything else
+        stage.match {
+          selector = `{unit!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).service"}`
+          action   = "drop"
+        }
+
+        // Pipeline for survived logs
+        stage.json {
+          expressions = {
+            level   = "level",
+            service = "service",
+            msg     = "msg",
+          }
+        }
+
+        stage.labels {
+          values = {
+            level   = null,
+            service = null,
+          }
+        }
+
+        forward_to = [loki.write.local_loki.receiver]
+      }
+
+controller:
+  type: daemonset
+  hostNetwork: true
+  volumes:
+    extra:
+      - name: journal-logs
+        hostPath:
+          path: /var/log/journal
+      - name: machine-id
+        hostPath:
+          path: /etc/machine-id

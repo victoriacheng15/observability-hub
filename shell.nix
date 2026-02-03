@@ -4,9 +4,7 @@ pkgs.mkShell {
   packages = with pkgs; [
     go
     openbao
+    kubernetes-helm
+    k9s
   ];
-
-  shellHook = ''
-    echo "🚀 go:        $(go version)"
-  '';
 }
