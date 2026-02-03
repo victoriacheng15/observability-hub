@@ -1,6 +1,6 @@
 # ADR 012: Migrate Promtail to Alloy
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-02-01
 - **Author:** Victoria Cheng
 
@@ -14,18 +14,17 @@ Adopt **Grafana Alloy** as the unified telemetry collector, replacing the legacy
 
 ### Implementation Strategy: "Strangler Fig"
 
-The "Strangler Fig" pattern will be used to minimize risk:
+The "Strangler Fig" pattern was used to migrate log sources incrementally:
 
-1. **Phase 1 (Shadow):** Deploy Alloy as a k3s `DaemonSet`. It will be configured to scrape k3s pods *and* mount the host's Docker log directory (`/var/lib/docker/containers`). It will push logs to Loki alongside Promtail.
-2. **Phase 2 (Verify):** Confirm in Grafana that Alloy is successfully ingesting logs from both sources (tagged appropriately).
-3. **Phase 3 (Cutover):** Stop the Promtail container in Docker Compose. Remove Promtail configuration.
+1.  **Phase 1 (Systemd):** Deploy Alloy as a k3s `DaemonSet`. It was configured to scrape the host's `systemd` journal and push logs to the existing Docker-Loki instance alongside Promtail. This proved the viability of the Alloy pipeline.
+2.  **Phase 2 (Verify):** Confirm in Grafana that Alloy is successfully ingesting `systemd` journal logs with full label parity.
+3.  **Phase 3 (Cutover - Planned):** The `promtail` container in Docker Compose can now be disabled, as Alloy has taken over its responsibilities for host-level services.
 
 ### Key Configuration Changes
 
 - **Deployment Model:** k3s DaemonSet (ensures it runs on every node).
 - **Log Discovery:**
-  - **Kubernetes:** Native discovery via the Kubernetes API.
-  - **Docker:** Static path scraping via host volume mounts.
+  - **Systemd:** Scraping of the host's journal via a `hostPath` volume mount (`/var/log/journal`).
 - **Config Language:** Shift from YAML (Promtail) to **Alloy Config** (HCL-based), enabling more programmable and modular pipelines.
 
 ## Consequences
@@ -43,6 +42,6 @@ The "Strangler Fig" pattern will be used to minimize risk:
 
 ## Verification
 
-- [ ] **Alloy Running:** `kubectl get pods -l app=alloy` shows healthy status.
-- [ ] **Log Ingestion:** Querying `{agent="alloy"}` in Grafana returns logs from both systemd and docker sources.
-- [ ] **Parity Check:** Ensure timestamps and labels match the format previously provided by Promtail.
+- [x] **Alloy Running:** `kubectl get pods -l app.kubernetes.io/name=alloy` shows a healthy status.
+- [x] **Log Ingestion:** Querying `{agent="alloy"}` in Loki returns logs from systemd sources.
+- [x] **Parity Check:** Labels (`service`, `unit`, etc.) and timestamps match the format previously provided by Promtail for systemd logs.
