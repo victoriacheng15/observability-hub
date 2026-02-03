@@ -1,6 +1,6 @@
 # ADR 011: Phased Migration Strategy to K3s
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-02-01
 - **Author:** Victoria Cheng
 
@@ -18,7 +18,8 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 
 - **Phase 1: The Agent (Alloy)**
   - **Risk:** Low. If a failure occurs, only live logs are lost; historical data remains safe.
-  - **Goal:** Establish the telemetry pipeline in k3s. Run in "Shadow Mode" alongside Promtail first.
+  - **Goal:** Establish the telemetry pipeline in k3s by deploying Grafana Alloy to take over systemd journal log collection from Promtail.
+  - **Status:** Completed on 2026-02-02. Alloy is successfully collecting systemd journal logs and forwarding them to Docker-Loki.
 - **Phase 2: The Log Store (Loki)**
   - **Risk:** Medium. Requires moving log data.
   - **Goal:** Establish persistent storage (PVCs) in k3s. Verify K3s networking.
@@ -44,7 +45,7 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 
 ## Verification
 
-- [ ] **Phase 1 Complete:** Alloy running in k3s, logs appearing in Docker-Loki.
+- [x] **Phase 1 Complete:** Alloy running in k3s, logs appearing in Docker-Loki.
 - [ ] **Phase 2 Complete:** Loki running in k3s, accepting logs from Alloy.
 - [ ] **Phase 3 Complete:** Grafana running in k3s, visualizing k3s-Loki and Docker-Postgres.
 - [ ] **Phase 4 Complete:** Postgres running in k3s, application traffic switched over.

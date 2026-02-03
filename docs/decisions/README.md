@@ -18,8 +18,8 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 | **008** | [GitOps via Proxy Webhook](./008-gitops-via-proxy-webhook.md) | 🔵 Accepted |
 | **009** | [Standardized Database Connection Methods](./009-standardized-db-connection-methods.md) | 🔵 Accepted |
 | **010** | [Integrate OpenBao](./010-integrate-openbao.md) | 🔵 Accepted |
-| **011** | [Phased Migration Strategy to K3s](./011-phased-k3s-migration-strategy.md) | 🟢 Proposed |
-| **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🟢 Proposed |
+| **011** | [Phased Migration Strategy to K3s](./011-phased-k3s-migration-strategy.md) | 🔵 Accepted |
+| **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🔵 Accepted |
 
 ---
 

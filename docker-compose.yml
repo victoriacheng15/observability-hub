@@ -44,22 +44,6 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
-  promtail:
-    image: grafana/promtail:2.9.17
-    container_name: promtail_server
-    volumes:
-      - ./docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - promtail_data:/var/lib/promtail
-      - /var/log/journal:/var/log/journal:ro
-      - /etc/machine-id:/etc/machine-id:ro
-    command: -config.file=/etc/promtail/config.yaml
-    depends_on:
-      - loki
-    restart: unless-stopped
-    logging: *default-logging
-
 volumes:
   postgres_data:
     external: true 
@@ -67,5 +51,5 @@ volumes:
     external: true
   loki_data:
     external: true
-  promtail_data:
-    external: true
+
+# promtail
