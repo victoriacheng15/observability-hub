@@ -13,6 +13,11 @@ k3s-loki-up:
 	@$(KC) apply -f k3s/loki/manifest.yaml
 	@$(KC) rollout restart statefulset/loki
 
+k3s-grafana-up:
+	@echo "Deploying Grafana..."
+	@$(KC) apply -f k3s/grafana/manifest.yaml
+	@$(KC) rollout restart deployment/grafana
+
 # Observability
 k3s-status:
 	@echo "Namespace $(NS) Overview:"
@@ -23,6 +28,8 @@ k3s-logs-%:
 	@$(KC) logs -f $*
 
 # Backup Strategy (Scales down, archives, scales up)
+# TODO: Implement real backup logic for both StatefulSets and Deployments.
+# This needs to dynamically resolve the PVC host path and perform an archive.
 k3s-backup-%:
 	@echo "Backing up $*..."
 	@echo "Scaling down..."

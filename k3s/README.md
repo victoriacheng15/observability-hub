@@ -8,7 +8,7 @@ This directory contains Kubernetes manifests for the migration of the Observabil
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | **Grafana Alloy** | 🟢 **Active** | **Telemetry Collector.** Scrapes logs and forwards to K3s-Loki. |
 | **Phase 2** | **Loki** | 🟢 **Active** | **Log Store.** Replaced the Docker-Loki instance. |
-| **Phase 3** | **Grafana** | ⚪ Planned | **Visualization.** "Pane of Glass" moved to the cluster. |
+| **Phase 3** | **Grafana** | 🟢 **Active** | **Visualization.** "Pane of Glass" moved to the cluster. |
 | **Phase 4** | **PostgreSQL** | 🟡 Shadowing | **Core Data.** Currently prototyping stateful persistence (`postgres-v2`). |
 
 ---
@@ -130,7 +130,12 @@ In this phase, we move the "Pane of Glass" into the cluster.
 ### 3.1 Generate Grafana Manifests
 
 ```bash
-helm template grafana grafana/grafana \
+helm repo add grafana-community https://grafana-community.github.io/helm-charts
+helm repo update
+```
+
+```bash
+helm template grafana grafana-community/grafana \
   --namespace observability \
   -f k3s/grafana/values.yaml \
   > k3s/grafana/manifest.yaml
@@ -148,7 +153,29 @@ helm template grafana grafana/grafana \
 kubectl apply -f k3s/grafana/manifest.yaml
 ```
 
-### 3.3 Access UI
+### 3.3 Migration: Docker to K3s Data Transfer
+
+If migrating from Docker Compose, use these commands to copy the Grafana data volume to the K3s PersistentVolume.
+
+```bash
+# 1. Identify Paths
+DOCKER_PATH=$(docker volume inspect grafana_data --format '{{.Mountpoint}}')
+K3S_PATH=$(kubectl get pv $(kubectl get pvc -n observability -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].spec.volumeName}') -o jsonpath='{.spec.local.path}')
+
+# 2. Scale Down (Stop Writes)
+kubectl scale deployment grafana -n observability --replicas=0
+
+# 3. Copy Data (Archive Mode)
+sudo cp -a "$DOCKER_PATH/." "$K3S_PATH/"
+
+# 4. Fix Permissions (UID 472 = Grafana User)
+sudo chown -R 472:472 "$K3S_PATH"
+
+# 5. Scale Up
+kubectl scale deployment grafana -n observability --replicas=1
+```
+
+### 3.4 Access UI
 
 1. **Get Admin Password:**
 
@@ -161,37 +188,47 @@ kubectl apply -f k3s/grafana/manifest.yaml
 
 ---
 
-## 🧪 Phase 4: PostgreSQL (Shadow Prototype)
+## 🐘 Phase 4: PostgreSQL (Shadowing)
 
-*Note: This is strictly for testing storage patterns. It does not yet hold production data.*
+Currently in shadow mode to test storage patterns and extension compatibility (TimescaleDB/PostGIS).
 
-### 4.1 Import Image
+### 4.1 Build and Import Image
+
+Since we use a custom image with extensions, we must sideload it into the k3s node.
 
 ```bash
 docker save -o postgres_pod.tar postgres_pod:latest
-```
-
-**Note:** Saves your local Docker build into a tarball archive.
-
-```bash
 sudo k3s ctr images import postgres_pod.tar
-```
-
-**Note:** Sideloads the tarball into the internal k3s registry so the cluster can run the image without an external pull.
-
-```bash
 rm postgres_pod.tar
 ```
 
-**Note:** Removes the temporary archive to save disk space.
-
-### 4.2 Deploy Prototype
+### 4.2 Deploy PostgreSQL
 
 ```bash
 kubectl apply -f k3s/postgres/manifest.yaml
 ```
 
-**Note:** Deploys the experimental database resources.
+### 4.3 Migration: Docker to K3s Data Transfer
+
+Use these commands to migrate the relational data from the Docker volume.
+
+```bash
+# 1. Identify Paths
+DOCKER_PATH=$(docker volume inspect postgres_data --format '{{.Mountpoint}}')
+K3S_PATH=$(kubectl get pv $(kubectl get pvc postgres-pvc -n observability -o jsonpath='{.spec.volumeName}') -o jsonpath='{.spec.local.path}')
+
+# 2. Scale Down (Stop Writes)
+kubectl scale deployment postgres -n observability --replicas=0
+
+# 3. Copy Data (Archive Mode)
+sudo cp -a "$DOCKER_PATH/." "$K3S_PATH/"
+
+# 4. Fix Permissions (UID 999 = Postgres User)
+sudo chown -R 999:999 "$K3S_PATH"
+
+# 5. Scale Up
+kubectl scale deployment postgres -n observability --replicas=1
+```
 
 ---
 
@@ -200,18 +237,12 @@ kubectl apply -f k3s/postgres/manifest.yaml
 ### 1. Check Resources
 
 ```bash
-kubectl get pods -A
-# or 
-kubectl get pods -n observability -o wide
+kubectl get pods -A  # List all pods across all namespaces
+kubectl get svc -A   # List all services (NodePorts/IPs)
+kubectl get pvc -A   # List all persistent storage (PVCs)
 ```
 
-**Note:** Lists all pods in the cluster across all namespaces.
-
-```bash
-kubectl get svc -A
-```
-
-**Note:** Lists all services in the cluster, showing their internal and external (NodePort) IP addresses.
+**Note:** Use `-n observability` to filter for our specific stack (e.g., `kubectl get pods -n observability`).
 
 ### 2. Monitor State
 
