@@ -27,19 +27,13 @@ jobs:
       - uses: actions/setup-go@v6.2.0
         with:
           go-version: ${{ env.go-version }}
-          cache-dependency-path: |
-            proxy/go.sum
-            system-metrics/go.sum
-            page/go.sum
-            pkg/db/go.sum
-            pkg/logger/go.sum
-            pkg/secrets/go.sum
+          cache-dependency-path: "**/go.sum"
 
       - name: Check gofmt
-        run: make go-format && git diff --exit-code
+        run: make _go-format-internal && git diff --exit-code
 
       - name: Run go vet
-        run: make go-vet
+        run: make _go-lint-internal
 
   test:
     runs-on: ubuntu-latest
@@ -49,13 +43,7 @@ jobs:
       - uses: actions/setup-go@v6.2.0
         with:
           go-version: ${{ env.go-version }}
-          cache-dependency-path: |
-            proxy/go.sum
-            system-metrics/go.sum
-            page/go.sum
-            pkg/db/go.sum
-            pkg/logger/go.sum
-            pkg/secrets/go.sum
+          cache-dependency-path: "**/go.sum"
 
       - name: Run tests
-        run: make go-test
+        run: make _go-test-internal

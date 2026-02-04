@@ -39,28 +39,28 @@ _go-lint-internal:
 	@echo "Running go vet (as lint)..."
 	@for dir in $(GO_DIRS); do \
 		echo "Vetting $$dir..."; \
-		(cd $$dir && go vet ./...); \
+		(cd $$dir && go vet ./...) || exit 1; \
 	done
 
 _go-update-internal:
 	@echo "Updating Go dependencies..."
 	@for dir in $(GO_DIRS); do \
 		echo "Updating $$dir..."; \
-		(cd $$dir && go get -u ./... && go mod tidy); \
+		(cd $$dir && go get -u ./... && go mod tidy) || exit 1; \
 	done
 
 _go-test-internal:
 	@echo "Running Go tests..."
 	@for dir in $(GO_DIRS); do \
 		echo "Testing $$dir..."; \
-		(cd $$dir && go test ./... -v); \
+		(cd $$dir && go test ./... -v) || exit 1; \
 	done
 
 _go-cov-internal:
 	@echo "Running tests with coverage..."
 	@for dir in $(GO_DIRS); do \
 		echo "Coverage for $$dir..."; \
-		(cd $$dir && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out); \
+		(cd $$dir && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out) || exit 1; \
 	done
 
 _page-build-internal:
