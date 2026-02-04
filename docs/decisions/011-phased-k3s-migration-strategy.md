@@ -23,6 +23,7 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 - **Phase 2: The Log Store (Loki)**
   - **Risk:** Medium. Requires moving log data.
   - **Goal:** Establish persistent storage (PVCs) in k3s. Verify K3s networking.
+  - **Status:** Completed on 2026-02-03. Loki is running in k3s with 10Gi persistence. Historical data migrated from Docker. Alloy updated to use internal K3s-Loki.
 - **Phase 3: The UI (Grafana)**
   - **Risk:** Low/Medium. No critical state (dashboards can be re-imported).
   - **Goal:** Switch the "Pane of Glass" to run natively in the cluster.
@@ -46,6 +47,6 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 ## Verification
 
 - [x] **Phase 1 Complete:** Alloy running in k3s, logs appearing in Docker-Loki.
-- [ ] **Phase 2 Complete:** Loki running in k3s, accepting logs from Alloy.
+- [x] **Phase 2 Complete:** Loki running in k3s, accepting logs from Alloy.
 - [ ] **Phase 3 Complete:** Grafana running in k3s, visualizing k3s-Loki and Docker-Postgres.
 - [ ] **Phase 4 Complete:** Postgres running in k3s, application traffic switched over.

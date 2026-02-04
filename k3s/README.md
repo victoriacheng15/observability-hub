@@ -6,8 +6,8 @@ This directory contains Kubernetes manifests for the migration of the Observabil
 
 | Phase | Component | Status | Role |
 | :--- | :--- | :--- | :--- |
-| **Phase 1** | **Grafana Alloy** | 🟢 **Active** | **Telemetry Collector.** Scrapes logs and forwards to Docker-Loki. |
-| **Phase 2** | **Loki** | ⚪ Planned | **Log Store.** Will replace the Docker-Loki instance. |
+| **Phase 1** | **Grafana Alloy** | 🟢 **Active** | **Telemetry Collector.** Scrapes logs and forwards to K3s-Loki. |
+| **Phase 2** | **Loki** | 🟢 **Active** | **Log Store.** Replaced the Docker-Loki instance. |
 | **Phase 3** | **Grafana** | ⚪ Planned | **Visualization.** "Pane of Glass" moved to the cluster. |
 | **Phase 4** | **PostgreSQL** | 🟡 Shadowing | **Core Data.** Currently prototyping stateful persistence (`postgres-v2`). |
 
@@ -15,9 +15,9 @@ This directory contains Kubernetes manifests for the migration of the Observabil
 
 ## 🚀 Phase 1: Grafana Alloy (Active)
 
-We are using the "Strangler Fig" pattern: Alloy runs in k3s but sends data to the existing Docker-Loki instance.
+We are using the "Strangler Fig" pattern: Alloy runs in k3s and sends data to the internal K3s-Loki instance.
 
-### Generate Manifests
+### 1.1 Generate Alloy Manifests
 
 We use Helm to template the complex DaemonSet configuration.
 
@@ -40,7 +40,7 @@ helm template alloy grafana/alloy \
 - `--set-file ...`: Injects your custom River (HCL) scraping logic into the manifest.
 - `> manifest.yaml`: Saves the output to a file so it can be versioned and inspected before applying.
 
-### 2. Deploy
+### 1.2 Deploy Alloy
 
 ```bash
 kubectl apply -f k3s/namespace.yaml
@@ -54,7 +54,7 @@ kubectl apply -f k3s/alloy/manifest.yaml
 
 **Note:** Applies the generated manifest to the cluster, spinning up the Alloy pods on every node.
 
-### 3. Verify
+### 1.3 Verify Alloy
 
 ```bash
 kubectl logs -l app.kubernetes.io/name=alloy -n observability -f
@@ -62,15 +62,21 @@ kubectl logs -l app.kubernetes.io/name=alloy -n observability -f
 
 **Note:** Streams logs from the Alloy pods. Look for "Alloy is running" to confirm the telemetry engine is active.
 
+### 1.4 Reload Configuration
+
+If you update `k3s/alloy/values.yaml` and re-apply the manifest, you must restart the pods to pick up the new ConfigMap:
+
+```bash
+kubectl rollout restart daemonset alloy -n observability
+```
+
 ---
 
-## 🏗️ Phase 2: Loki (Planned)
+## 🏗️ Phase 2: Loki (Active)
 
-In this phase, we move the log storage into the cluster. This involves setting up persistent storage and updating Alloy to use internal cluster networking.
+Log storage is now running inside the cluster with persistent storage.
 
-### Generate Manifests (Loki)
-
-We will use the official Grafana Loki chart. Persistence will be handled via a `PersistentVolumeClaim` (PVC) using the local-path provisioner.
+### 2.1 Generate Loki Manifests
 
 ```bash
 helm template loki grafana/loki \
@@ -79,41 +85,79 @@ helm template loki grafana/loki \
   > k3s/loki/manifest.yaml
 ```
 
-### Configure Persistence
+### 2.2 Deploy Loki
 
-Ensure the `values.yaml` defines a standard single-binary deployment with filesystem storage:
-
-- `loki.storage.type: filesystem`
-- `loki.persistence.enabled: true`
-- `loki.persistence.size: 10Gi`
-
-### 3. Update Alloy
-
-Once Loki is running, update `k3s/alloy/values.yaml` to point to the internal service:
-
-```river
-loki.write "local_loki" {
-  endpoint {
-    url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
-  }
-}
+```bash
+kubectl apply -f k3s/loki/manifest.yaml
 ```
 
-**Note:** We can then disable `hostNetwork: true` in Alloy as it no longer needs to reach the host IP.
-
-### 4. Verify
+### 2.3 Verify Persistence
 
 ```bash
 kubectl get pvc -n observability
 ```
 
-**Note:** Confirm the volume is bound. Then check Loki logs to ensure it is accepting writes from Alloy.
+**Note:** Confirm the `storage-loki-0` volume is `Bound`.
+
+### 2.4 Migration: Docker to K3s Data Transfer
+
+If migrating from Docker Compose, use these commands to copy the Loki data volume to the K3s PersistentVolume.
+
+```bash
+# 1. Identify Paths
+DOCKER_PATH=$(docker volume inspect loki_data --format '{{.Mountpoint}}')
+K3S_PATH=$(kubectl get pv $(kubectl get pvc storage-loki-0 -n observability -o jsonpath='{.spec.volumeName}') -o jsonpath='{.spec.local.path}')
+
+# 2. Scale Down (Stop Writes)
+kubectl scale statefulset loki -n observability --replicas=0
+
+# 3. Copy Data (Archive Mode)
+sudo cp -a "$DOCKER_PATH/." "$K3S_PATH/"
+
+# 4. Fix Permissions (UID 10001 = Loki User)
+sudo chown -R 10001:10001 "$K3S_PATH"
+
+# 5. Scale Up
+kubectl scale statefulset loki -n observability --replicas=1
+```
 
 ---
 
 ## 📊 Phase 3: Grafana (Planned)
 
-*Placeholder: Manifests will be added once the data layer (Loki/Postgres) is stable.*
+In this phase, we move the "Pane of Glass" into the cluster.
+
+### 3.1 Generate Grafana Manifests
+
+```bash
+helm template grafana grafana/grafana \
+  --namespace observability \
+  -f k3s/grafana/values.yaml \
+  > k3s/grafana/manifest.yaml
+```
+
+**Key Configuration (`values.yaml`):**
+
+- **Persistence:** Enabled (10Gi) to save dashboards/users.
+- **Datasources:** Automatically provisions `Loki` (URL: `http://loki-gateway.observability:80`).
+- **Service:** `NodePort` for external access (e.g., port 30000).
+
+### 3.2 Deploy Grafana
+
+```bash
+kubectl apply -f k3s/grafana/manifest.yaml
+```
+
+### 3.3 Access UI
+
+1. **Get Admin Password:**
+
+   ```bash
+   kubectl get secret --namespace observability grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+   ```
+
+2. **Open Browser:**
+   Navigate to `http://<SERVER_IP>:30000` (or configured NodePort).
 
 ---
 
@@ -121,7 +165,7 @@ kubectl get pvc -n observability
 
 *Note: This is strictly for testing storage patterns. It does not yet hold production data.*
 
-### 1. Import Image
+### 4.1 Import Image
 
 ```bash
 docker save -o postgres_pod.tar postgres_pod:latest
@@ -141,7 +185,7 @@ rm postgres_pod.tar
 
 **Note:** Removes the temporary archive to save disk space.
 
-### 2. Deploy Prototype
+### 4.2 Deploy Prototype
 
 ```bash
 kubectl apply -f k3s/postgres/manifest.yaml

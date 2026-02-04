@@ -32,24 +32,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: ${GF_USERS_ALLOW_SIGN_UP}
 
-  loki:
-    image: grafana/loki:latest
-    container_name: loki_server
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    restart: unless-stopped
-    logging: *default-logging
-
 volumes:
   postgres_data:
     external: true 
   grafana_data:
     external: true
-  loki_data:
-    external: true
-
-# promtail
