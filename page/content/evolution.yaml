@@ -144,3 +144,6 @@ chapters:
           - name: "ADR 012: Migrate Promtail to Alloy"
             url: "docs/decisions/012-migrate-promtail-to-alloy.md"
         description: "Migrated to Alloy from Promtail, completing Phase 1 of the K3s migration."
+      - date: "2026-02-04"
+        title: "Phase 2 Complete: Loki on k3s"
+        description: "Migrated Loki from a standalone Docker container to a k3s-native deployment, completing Phase 2 of the platform orchestration strategy."
