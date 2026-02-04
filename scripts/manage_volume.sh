@@ -17,7 +17,6 @@ fi
 # Embedded volume list as a clean Bash array
 VOLUMES=(
   postgres_data
-  grafana_data
 )
 
 # --- LOGGING ---

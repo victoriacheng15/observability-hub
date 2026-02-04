@@ -1,0 +1,28 @@
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: local-path
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        url: http://loki-gateway.observability:80
+        access: proxy
+        isDefault: true
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 3000
+  nodePort: 30000
+
+# Security settings and UI tweaks
+grafana.ini:
+  users:
+    allow_sign_up: false
+  analytics:
+    reporting_enabled: false
+  check_for_updates: false
