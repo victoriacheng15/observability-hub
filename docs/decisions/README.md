@@ -8,18 +8,18 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
-| **001** | [PostgreSQL vs. InfluxDB for Metrics Storage](./001-postgres-vs-influxdb.md) | 🔵 Accepted |
-| **002** | [Cloud-to-Homelab Telemetry Bridge](./002-cloud-to-local-bridge.md) | 🔵 Accepted |
-| **003** | [Shared Structured Logging Library](./003-shared-logging-library.md) | 🔵 Accepted |
-| **004** | [Spatial Keyboard Telemetry Pipeline](./004-spatial-telemetry-keyboard.md) | 🟡 Superseded |
-| **005** | [Centralized GitOps Reconciliation Engine](./005-gitops-reconciliation-engine.md) | 🟡 Superseded |
-| **006** | [Shared Database Configuration Module](./006-shared-database-module.md) | 🔵 Accepted |
-| **007** | [k3s Shadow Deployment & Orchestration](./007-k3s-shadow-deployment-orchestration.md) | 🔵 Accepted |
-| **008** | [GitOps via Proxy Webhook](./008-gitops-via-proxy-webhook.md) | 🔵 Accepted |
-| **009** | [Standardized Database Connection Methods](./009-standardized-db-connection-methods.md) | 🔵 Accepted |
-| **010** | [Integrate OpenBao](./010-integrate-openbao.md) | 🔵 Accepted |
-| **011** | [Phased Migration Strategy to K3s](./011-phased-k3s-migration-strategy.md) | 🔵 Accepted |
 | **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🔵 Accepted |
+| **011** | [Phased Migration Strategy to K3s](./011-phased-k3s-migration-strategy.md) | 🔵 Accepted |
+| **010** | [Integrate OpenBao](./010-integrate-openbao.md) | 🔵 Accepted |
+| **009** | [Standardized Database Connection Methods](./009-standardized-db-connection-methods.md) | 🔵 Accepted |
+| **008** | [GitOps via Proxy Webhook](./008-gitops-via-proxy-webhook.md) | 🔵 Accepted |
+| **007** | [k3s Shadow Deployment & Orchestration](./007-k3s-shadow-deployment-orchestration.md) | 🔵 Accepted |
+| **006** | [Shared Database Configuration Module](./006-shared-database-module.md) | 🔵 Accepted |
+| **005** | [Centralized GitOps Reconciliation Engine](./005-gitops-reconciliation-engine.md) | 🟡 Superseded |
+| **004** | [Spatial Keyboard Telemetry Pipeline](./004-spatial-telemetry-keyboard.md) | 🟡 Superseded |
+| **003** | [Shared Structured Logging Library](./003-shared-logging-library.md) | 🔵 Accepted |
+| **002** | [Cloud-to-Homelab Telemetry Bridge](./002-cloud-to-local-bridge.md) | 🔵 Accepted |
+| **001** | [PostgreSQL vs. InfluxDB for Metrics Storage](./001-postgres-vs-influxdb.md) | 🔵 Accepted |
 
 ---
 
