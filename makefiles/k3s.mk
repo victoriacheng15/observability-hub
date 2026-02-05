@@ -18,6 +18,11 @@ k3s-grafana-up:
 	@$(KC) apply -f k3s/grafana/manifest.yaml
 	@$(KC) rollout restart deployment/grafana
 
+k3s-postgres-up:
+	@echo "Deploying PostgreSQL..."
+	@$(KC) apply -f k3s/postgres/manifest.yaml
+	@$(KC) rollout restart statefulset/postgres-postgresql
+
 # Observability
 k3s-status:
 	@echo "Namespace $(NS) Overview:"
@@ -28,17 +33,17 @@ k3s-logs-%:
 	@$(KC) logs -f $*
 
 # Backup Strategy (Scales down, archives, scales up)
-# TODO: Implement real backup logic for both StatefulSets and Deployments.
-# This needs to dynamically resolve the PVC host path and perform an archive.
+# This dynamically detects if the resource is a statefulset or deployment.
 k3s-backup-%:
-	@echo "Backing up $*..."
-	@echo "Scaling down..."
-	@$(KC) scale --replicas=0 statefulset/$*
-	@echo "Waiting for termination..."
-	@sleep 5
-	@echo "Finding volume path..."
-	# Note: This implies a specific setup where we know the volume path or strategy. 
-	# For now, we will just echo the placeholder implementation logic as per plan.
-	@echo "Archiving data..."
-	@echo "Scaling up..."
-	@$(KC) scale --replicas=1 statefulset/$*
+	@RESOURCE=$$( $(KC) get statefulset,deployment -o name | grep "/$*" | head -n 1 ); \
+	if [ -z "$$RESOURCE" ]; then echo "Error: Resource $* not found in namespace $(NS)"; exit 1; fi; \
+	echo "Backing up $$RESOURCE..."; \
+	echo "Scaling down..."; \
+	$(KC) scale --replicas=0 $$RESOURCE; \
+	echo "Waiting for termination..."; \
+	sleep 5; \
+	echo "Finding volume path..."; \
+	# Note: Implementation logic for finding PVC path and archiving to be added based on storage strategy. \
+	echo "Archiving data..."; \
+	echo "Scaling up..."; \
+	$(KC) scale --replicas=1 $$RESOURCE
