@@ -149,3 +149,11 @@ chapters:
         description: |
           - Migrated Loki and Grafana from standalone Docker containers to k3s-native deployments.
           - Verified self-healing and data persistence for the visualization layer, completing Phase 3 of the platform orchestration strategy.
+      - date: "2026-02-05"
+        title: "Phase 4 Complete: PostgreSQL on k3s"
+        artifacts:
+          - name: "ADR 011: Phased k3s Migration Strategy"
+            url: "docs/decisions/011-phased-k3s-migration-strategy.md"
+        description: |
+          - Successfully migrated the core PostgreSQL database from standalone Docker to a k3s StatefulSet.
+          - Implemented data persistence via PVC synchronization and verified extension compatibility for TimescaleDB and PostGIS, completing the four-stage migration strategy.
