@@ -92,7 +92,7 @@ func GetPostgresDSN(store secrets.SecretStore) (string, error) {
 
 	// Retrieve values with fallbacks to environment variables or defaults
 	host := store.GetSecret(secretPath, "host", getEnv("DB_HOST", "localhost"))
-	port := store.GetSecret(secretPath, "port", getEnv("DB_PORT", "5432"))
+	port := store.GetSecret(secretPath, "port", getEnv("DB_PORT", "30432"))
 	user := store.GetSecret(secretPath, "user", getEnv("DB_USER", "server"))
 	dbname := store.GetSecret(secretPath, "dbname", getEnv("DB_NAME", "homelab"))
 	password := store.GetSecret(secretPath, "server_db_password", os.Getenv("SERVER_DB_PASSWORD"))

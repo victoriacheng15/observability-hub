@@ -154,7 +154,7 @@ func TestGetPostgresDSN_WithSecretStore(t *testing.T) {
 	// host should come from mock ("bao-host")
 	// password should come from env fallback ("env-password")
 	// port should come from default fallback ("5432")
-	expected := "host=bao-host port=5432 user=server password=env-password dbname=homelab sslmode=disable timezone=UTC"
+	expected := "host=bao-host port=30432 user=server password=env-password dbname=homelab sslmode=disable timezone=UTC"
 	if dsn != expected {
 		t.Errorf("Expected DSN %q, got %q", expected, dsn)
 	}

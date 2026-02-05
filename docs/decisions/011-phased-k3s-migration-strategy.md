@@ -30,7 +30,8 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
   - **Status:** Completed on 2026-02-04. Grafana is running in k3s with 10Gi persistence. Dashboards, users, and plugins migrated from Docker.
 - **Phase 4: The Core Data (PostgreSQL)**
   - **Risk:** Critical. The "Heart" of the system.
-  - **Goal:** Migrate the relational database using "Dump & Restore" only after Phases 1-3 are stable.
+  - **Goal:** Migrate the relational database using the "StatefulSet & Volume Sync" pattern once Phases 1-3 are stable.
+  - **Status:** Completed on 2026-02-05. PostgreSQL is running in k3s with 10Gi persistence and custom extensions (TimescaleDB/PostGIS). All services updated to connect via the k3s NodePort.
 
 ## Consequences
 
@@ -50,4 +51,4 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 - [x] **Phase 1 Complete:** Alloy running in k3s, logs appearing in Docker-Loki.
 - [x] **Phase 2 Complete:** Loki running in k3s, accepting logs from Alloy.
 - [x] **Phase 3 Complete:** Grafana running in k3s, visualizing k3s-Loki.
-- [ ] **Phase 4 Complete:** Postgres running in k3s, application traffic switched over.
+- [x] **Phase 4 Complete:** Postgres running in k3s, application traffic switched over.

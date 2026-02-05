@@ -9,7 +9,7 @@ This directory contains Kubernetes manifests for the migration of the Observabil
 | **Phase 1** | **Grafana Alloy** | 🟢 **Active** | **Telemetry Collector.** Scrapes logs and forwards to K3s-Loki. |
 | **Phase 2** | **Loki** | 🟢 **Active** | **Log Store.** Replaced the Docker-Loki instance. |
 | **Phase 3** | **Grafana** | 🟢 **Active** | **Visualization.** "Pane of Glass" moved to the cluster. |
-| **Phase 4** | **PostgreSQL** | 🟡 Shadowing | **Core Data.** Currently prototyping stateful persistence (`postgres-v2`). |
+| **Phase 4** | **PostgreSQL** | 🟢 **Active** | **Core Data.** Relational store with TimescaleDB/PostGIS extensions. |
 
 ---
 
@@ -188,21 +188,39 @@ kubectl scale deployment grafana -n observability --replicas=1
 
 ---
 
-## 🐘 Phase 4: PostgreSQL (Shadowing)
+## 🐘 Phase 4: PostgreSQL (Active)
 
-Currently in shadow mode to test storage patterns and extension compatibility (TimescaleDB/PostGIS).
+Core data store running in the cluster with TimescaleDB and PostGIS extensions.
 
-### 4.1 Build and Import Image
+### 4.1 Build and Sideload Image
 
-Since we use a custom image with extensions, we must sideload it into the k3s node.
+Build the custom image with extensions and sideload it into the k3s container runtime.
 
 ```bash
-docker save -o postgres_pod.tar postgres_pod:latest
-sudo k3s ctr images import postgres_pod.tar
-rm postgres_pod.tar
+docker build -t postgres-pod:latest -f docker/postgres/Dockerfile .
+docker save -o postgres-pod.tar postgres-pod:latest
+sudo k3s ctr images import postgres-pod.tar
+sudo k3s ctr images tag docker.io/library/postgres-pod:latest postgres-pod:latest
+rm postgres-pod.tar
 ```
 
-### 4.2 Deploy PostgreSQL
+### 4.2 Generate and Deploy Manifests
+
+We use the Bitnami PostgreSQL chart for a production-ready StatefulSet.
+
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+```
+
+```bash
+nix-shell --run "helm template postgres bitnami/postgresql \
+  -f k3s/postgres/values.yaml \
+  --namespace observability \
+  > k3s/postgres/manifest.yaml"
+```
+
+Apply the manifest:
 
 ```bash
 kubectl apply -f k3s/postgres/manifest.yaml
@@ -210,24 +228,33 @@ kubectl apply -f k3s/postgres/manifest.yaml
 
 ### 4.3 Migration: Docker to K3s Data Transfer
 
-Use these commands to migrate the relational data from the Docker volume.
+Use these commands to migrate relational data from the Docker volume. **Note:** Bitnami PostgreSQL expects data in the `data/` subdirectory of the volume.
 
 ```bash
 # 1. Identify Paths
 DOCKER_PATH=$(docker volume inspect postgres_data --format '{{.Mountpoint}}')
-K3S_PATH=$(kubectl get pv $(kubectl get pvc postgres-pvc -n observability -o jsonpath='{.spec.volumeName}') -o jsonpath='{.spec.local.path}')
+K3S_PATH=$(kubectl get pv $(kubectl get pvc data-postgres-postgresql-0 -n observability -o jsonpath='{.spec.volumeName}') -o jsonpath='{.spec.local.path}')
 
 # 2. Scale Down (Stop Writes)
-kubectl scale deployment postgres -n observability --replicas=0
+kubectl scale statefulset postgres-postgresql -n observability --replicas=0
+docker compose stop postgres
 
 # 3. Copy Data (Archive Mode)
-sudo cp -a "$DOCKER_PATH/." "$K3S_PATH/"
+# Ensure we copy into the 'data/' subdirectory for Bitnami compatibility
+sudo mkdir -p "$K3S_PATH/data"
+sudo cp -a "$DOCKER_PATH/." "$K3S_PATH/data/"
 
 # 4. Fix Permissions (UID 999 = Postgres User)
 sudo chown -R 999:999 "$K3S_PATH"
 
 # 5. Scale Up
-kubectl scale deployment postgres -n observability --replicas=1
+kubectl scale statefulset postgres-postgresql -n observability --replicas=1
+```
+
+### 4.4 Verify Migration
+
+```bash
+kubectl exec postgres-postgresql-0 -n observability -- psql -U server -d homelab -c "\dt"
 ```
 
 ---
