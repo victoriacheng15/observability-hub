@@ -1,0 +1,42 @@
+global:
+  imageRegistry: ""
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: ""
+  repository: postgres-pod
+  tag: latest
+  pullPolicy: Never
+
+auth:
+  database: homelab
+  username: server
+  existingSecret: "postgres-secret"
+  secretKeys:
+    userPasswordKey: "server-db-password"
+    adminPasswordKey: "postgres-password"
+
+primary:
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 10Gi
+  service:
+    type: NodePort
+    nodePorts:
+      postgresql: 30432
+
+readReplicas:
+  enabled: false
+volumePermissions:
+  enabled: true
