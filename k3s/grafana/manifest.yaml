@@ -28,7 +28,7 @@ type: Opaque
 data:
   
   admin-user: "YWRtaW4="
-  admin-password: "RzNHZmc2YzB3Qzc5Z2dxdHdJY0F6VndrNEpVeGswRUpoVnE4M29NQg=="
+  admin-password: "ZHZQTWc0QWx0aTc2QnM3ZTlDTTYyZ0NCSml3QjltT3pqNjIzVWhyaQ=="
   ldap-toml: ""
 ---
 # Source: grafana/templates/configmap.yaml
@@ -208,7 +208,7 @@ spec:
       annotations:
         checksum/config: 0c3927bd4f75405a95b6f61784d64ca6a4a6334d0e0674a4de6e66d056ed7907
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: 7caa44d19a9eec3dca8deb5a78bb0cc9b29b7e6b88d64a2bbd926572e5731ea5
+        checksum/secret: e46eeb731c1a696d7abb1a9567b5d85f84f39331320b9f63de997ca9c5416e41
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
@@ -305,6 +305,11 @@ spec:
               value: /etc/grafana/provisioning
             - name: GF_UNIFIED_STORAGE_INDEX_PATH
               value: /var/lib/grafana-search/bleve
+            - name: GOMEMLIMIT
+              valueFrom:
+                resourceFieldRef:
+                  divisor: "1"
+                  resource: limits.memory
           livenessProbe:
             failureThreshold: 10
             httpGet:
@@ -316,6 +321,13 @@ spec:
             httpGet:
               path: /api/health
               port: grafana
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
       volumes:
         - name: config
           configMap:

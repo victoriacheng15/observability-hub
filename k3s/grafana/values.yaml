@@ -19,6 +19,14 @@ service:
   targetPort: 3000
   nodePort: 30000
 
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 512Mi
+
 # Security settings and UI tweaks
 grafana.ini:
   users:
