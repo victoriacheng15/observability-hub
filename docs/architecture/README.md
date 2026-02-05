@@ -1,10 +1,10 @@
 # Observability Hub Architecture
 
-This directory contains the detailed architectural blueprints for the Observability Hub. The system follows a hybrid model, utilizing Docker for core data services and native Systemd units for host-level automation and data pipelines.
+This directory contains the detailed architectural blueprints for the Observability Hub. The system follows a hybrid model, utilizing **Kubernetes (k3s)** for core data services and native Systemd units for host-level automation and data pipelines.
 
 ## 🗺️ System Context
 
-The hub integrates standard observability tools with custom Go services to provide a resilient, self-healing telemetry platform.
+The hub integrates standard observability tools with custom Go services to provide a resilient, self-healing telemetry platform orchestrated via Kubernetes.
 
 ```mermaid
 graph TD
@@ -13,9 +13,9 @@ graph TD
         Mongo[(MongoDB Atlas)]
     end
 
-    subgraph HostEnvironment [Host Environment]
+    subgraph HostEnvironment ["Host Environment"]
         Hardware[Host Hardware]
-        subgraph HostServices [Native Services]
+        subgraph HostServices ["Native Services"]
             Proxy[Proxy Service]
             Gate[Tailscale Gate]
             Metrics[Metrics Collector]
@@ -23,9 +23,9 @@ graph TD
         end
     end
 
-    subgraph DataPlatform [Data Platform (Docker)]
+    subgraph DataPlatform ["Data Platform (Kubernetes)"]
         direction TB
-        Promtail[Promtail]
+        Alloy[Grafana Alloy]
         Loki[(Loki)]
         PG[(PostgreSQL)]
         Grafana[Grafana]
@@ -41,8 +41,8 @@ graph TD
     Metrics -->|Writes| PG
 
     %% Logging
-    HostServices -.->|Journal| Promtail
-    Promtail -->|Pushes| Loki
+    HostServices -.->|Journal| Alloy
+    Alloy -->|Pushes| Loki
     PG -->|Visualizes| Grafana
     Loki -->|Visualizes| Grafana
 ```
@@ -56,13 +56,13 @@ graph TD
 Fundamental patterns and cross-cutting concerns that define how the system operates.
 
 - **[Automation & GitOps](./core-concepts/automation.md)**: Webhook-driven reconciliation and self-healing patterns.
-- **[Observability](./core-concepts/observability.md)**: Standards for JSON logging, Journald integration, and Promtail pipelines.
+- **[Observability](./core-concepts/observability.md)**: Standards for JSON logging, Journald integration, and Grafana Alloy pipelines.
 
 ### 🏗️ [Infrastructure](./infrastructure/)
 
 The runtime environment and foundational deployment strategies.
 
-- **[Deployment Model](./infrastructure/deployment.md)**: Details on the hybrid Docker/Systemd orchestration.
+- **[Deployment Model](./infrastructure/deployment.md)**: Details on the hybrid Kubernetes/Systemd orchestration.
 - **[Security](./infrastructure/security.md)**: Tailscale Funnel gating, HMAC authentication, and isolation boundaries.
 
 ### ⚙️ [Services](./services/)

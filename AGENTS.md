@@ -4,28 +4,55 @@ This document provides context and instructions for AI agents working on the **O
 
 ## 1. Project Overview
 
-**Observability Hub** is a modular observability platform designed for hybrid and edge environments. It bridges local `systemd` services with cloud-native patterns (Loki, Promtail, Postgres).
+**Observability Hub** is a modular observability platform designed for hybrid and edge environments. It bridges local `systemd` services with cloud-native patterns (Loki, Alloy, Postgres) orchestrated via Kubernetes.
 
-- **Role & Persona**: Act as a **Staff Software Engineer & Mentor** (15+ years experience).
-- **Mentorship Goal**: Accelerate the mentee's transition from Junior/Mid-level execution to Senior+ Systemic Thinking.
-- **Core Tech**: Go (Golang), PostgreSQL, Loki, Promtail, Systemd, Nix.
+- **Core Tech**: Go (Golang), PostgreSQL, Loki, Grafana Alloy, Systemd, Nix, Kubernetes (k3s).
 - **Styling**: Native HTML/CSS (Dark Theme via CSS Variables).
 - **Architecture**: Modular Monorepo (`pkg/`, `proxy/`, `system-metrics/`, `page/`).
 
 ## 2. Build and Test Commands
 
-The project relies on **Nix** for a reproducible environment. **Always use the `make nix-<target>` variants** (e.g., `make nix-go-test`, `make nix-go-update`) for all Go-related tasks to ensure the toolchain is correctly loaded.
+The project relies on **Nix** for a reproducible environment. **Always use the `make <target>` (which auto-wraps in Nix) or `make nix-<target>` variants** for Go-related tasks.
+
+### Project & Documentation
 
 | Command | Description |
 | :--- | :--- |
-| `make rfc` | **Primary ADR Command**. Creates a new Request for Comments (RFC) or Architecture Decision Record (ADR). |
-| `make nix-go-format` | Automatically formats all Go code inside `nix-shell`. |
-| `make nix-go-test` | Runs all Go unit tests inside `nix-shell`. |
-| `make nix-go-update` | Updates Go dependencies and runs `go mod tidy` inside `nix-shell`. |
-| `make nix-page-build` | Builds the `page` service (Dashboard) inside `nix-shell`. |
-| `make nix-metrics-build` | Builds the `system-metrics` collector inside `nix-shell`. |
-| `make proxy-update` | Rebuilds and restarts the proxy service container. |
-| `make install-services` | Installs and updates `systemd` units for production. |
+| `make adr` | **Primary ADR Command**. Creates a new Architecture Decision Record (ADR). |
+| `make lint` | Lints and fixes styling in markdown files. |
+
+### Go Development (Nix-wrapped)
+
+| Command | Description |
+| :--- | :--- |
+| `make go-format` | Automatically formats and simplifies Go code inside `nix-shell`. |
+| `make go-test` | Runs all Go unit tests across the monorepo inside `nix-shell`. |
+| `make go-update` | Updates all Go dependencies and runs `go mod tidy` inside `nix-shell`. |
+| `make go-lint` | Runs static analysis (go vet) across all modules inside `nix-shell`. |
+| `make go-cov` | Generates and displays test coverage reports inside `nix-shell`. |
+| `make page-build` | Builds the GitHub Page generator and refreshes static assets. |
+| `make metrics-build` | Builds and restarts the host-level `system-metrics` collector. |
+| `make proxy-build` | Rebuilds and restarts the `proxy` API gateway. |
+
+### Host Tier (Systemd & Secrets)
+
+| Command | Description |
+| :--- | :--- |
+| `make install-services` | Symlinks and enables all `systemd` units for the host tier. |
+| `make reload-services` | Reloads `systemd` configurations from the repository. |
+| `make uninstall-services` | Completely stops and removes all project-related systemd units. |
+| `make bao-status` | Checks the health and seal status of the OpenBao secret store. |
+
+### Kubernetes Tier (k3s)
+
+| Command | Description |
+| :--- | :--- |
+| `make k3s-status` | Overview of all resources in the cluster `observability` namespace. |
+| `make k3s-alloy-up` | Deploy or rollout restart Grafana Alloy in the cluster. |
+| `make k3s-loki-up` | Deploy or rollout restart Loki in the cluster. |
+| `make k3s-grafana-up` | Deploy or rollout restart Grafana in the cluster. |
+| `make k3s-postgres-up` | Deploy or rollout restart PostgreSQL in the cluster. |
+| `make k3s-backup-<name>` | Safely backup a cluster resource (e.g., `make k3s-backup-postgres`). |
 
 ## 3. Code Style Guidelines
 
@@ -55,7 +82,7 @@ The project relies on **Nix** for a reproducible environment. **Always use the `
 ## 5. Security & Automation
 
 - **Infrastructure**:
-  - **`docker/`**: IaC for containerized services (Loki, Postgres).
+  - **`k3s/`**: IaC for Kubernetes-native services (Loki, Postgres, Alloy, Grafana).
   - **`systemd/`**: Production service definitions for host-level management.
 - **Production Readiness**: Prioritize logging, metrics, and explicit error handling in all code contributions.
 - **Secrets**: Never commit secrets. Ensure `.env` is used for sensitive configuration.
