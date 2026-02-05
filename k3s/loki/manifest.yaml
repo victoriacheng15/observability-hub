@@ -6,10 +6,10 @@ metadata:
   name: loki
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
 automountServiceAccountToken: true
 ---
 # Source: loki/templates/config.yaml
@@ -19,10 +19,10 @@ metadata:
   name: loki
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
 data:
   config.yaml: |
     
@@ -109,10 +109,10 @@ metadata:
   name: loki-gateway
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
     app.kubernetes.io/component: gateway
 data:
   nginx.conf: |
@@ -321,10 +321,10 @@ metadata:
   name: loki-runtime
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
 data:
   runtime-config.yaml: |
     {}
@@ -334,10 +334,10 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
   name: loki-clusterrole
 rules:
 - apiGroups: [""] # "" indicates the core API group
@@ -350,10 +350,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: loki-clusterrolebinding
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
 subjects:
   - kind: ServiceAccount
     name: loki
@@ -370,10 +370,10 @@ metadata:
   name: loki-gateway
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
     app.kubernetes.io/component: gateway
     prometheus.io/service-monitor: "false"
   annotations:
@@ -396,10 +396,10 @@ metadata:
   name: loki-memberlist
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
   annotations:
 spec:
   type: ClusterIP
@@ -421,10 +421,10 @@ metadata:
   name: loki-headless
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
     variant: headless
     prometheus.io/service-monitor: "false"
   annotations:
@@ -446,10 +446,10 @@ metadata:
   name: loki
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
   annotations:
 spec:
   type: ClusterIP
@@ -474,10 +474,10 @@ metadata:
   name: loki-gateway
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
     app.kubernetes.io/component: gateway
 spec:
   replicas: 1
@@ -561,10 +561,10 @@ metadata:
   name: loki
   namespace: observability
   labels:
-    helm.sh/chart: loki-6.51.0
+    helm.sh/chart: loki-6.52.0
     app.kubernetes.io/name: loki
     app.kubernetes.io/instance: loki
-    app.kubernetes.io/version: "3.6.3"
+    app.kubernetes.io/version: "3.6.4"
     app.kubernetes.io/component: single-binary
     app.kubernetes.io/part-of: memberlist
 spec:
@@ -609,7 +609,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: loki
-          image: docker.io/grafana/loki:3.6.3
+          image: docker.io/grafana/loki:3.6.4
           imagePullPolicy: IfNotPresent
           args:
             - -config.file=/etc/loki/config/config.yaml
@@ -652,6 +652,7 @@ spec:
               mountPath: "/rules"
           resources:
             limits:
+              cpu: 300m
               memory: 1Gi
             requests:
               cpu: 100m

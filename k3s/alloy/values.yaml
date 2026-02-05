@@ -7,6 +7,13 @@ alloy:
       - name: machine-id
         mountPath: /etc/machine-id
         readOnly: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
   configMap:
     content: |-
       // WRITE: Push to local K3s-Loki
