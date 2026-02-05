@@ -1,15 +1,14 @@
 # Observability Architecture
 
-The Observability Hub implements a high-fidelity logging and telemetry pipeline designed for deep visibility into both containerized and native services.
+The Observability Hub implements a high-fidelity logging and telemetry pipeline designed for deep visibility into both native host services and cluster infrastructure.
 
 ## 🛠️ The Pipeline
 
 ```mermaid
 graph LR
     Apps[Services/Scripts] -->|JSON Logs| Journal[Systemd Journal]
-    Journal -->|Scraped| Promtail[Promtail]
-    Docker[Docker Containers] -->|json-file| Promtail
-    Promtail -->|Pushes| Loki[Loki]
+    Journal -->|Scraped| Alloy[Grafana Alloy]
+    Alloy -->|Pushes| Loki[Loki]
     Loki -->|LogQL| Grafana[Grafana]
 ```
 
@@ -34,12 +33,12 @@ Bash scripts use `jq` to generate safe JSON payloads and `logger -t <tag>` to br
 Native services (Proxy, Metrics) write strictly to `stdout`.
 
 - **Metadata**: `journald` enriches these streams with metadata like `_SYSTEMD_UNIT` and `SYSLOG_IDENTIFIER`.
-- **Collection**: Promtail is configured to scrape `/var/log/journal` directly.
+- **Collection**: **Grafana Alloy** is configured as a Kubernetes DaemonSet to scrape `/var/log/journal` directly.
 
 ## 🏷️ Label Normalization
 
-Promtail applies sophisticated relabeling to create a unified search experience in Grafana:
+Alloy applies sophisticated relabeling to create a unified search experience in Grafana:
 
 1. **Unit to Service**: `proxy.service` becomes the label `service="proxy"`.
 2. **Tag to Service**: `logger -t gitops-sync` results in the label `service="gitops-sync"`.
-3. **Noise Reduction**: Logs from the logging infrastructure itself (`loki`, `promtail`) are dropped at the scrape stage to prevent feedback loops.
+3. **Noise Reduction**: Logs from the logging infrastructure itself (`loki`, `alloy`) are dropped at the scrape stage to prevent feedback loops.

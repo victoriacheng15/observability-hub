@@ -1,12 +1,12 @@
 # Systemd Service Architecture
 
-The Observability Hub leverages **Systemd** not just for process management, but as a core automation and reconciliation engine. By running lightweight agents and timers directly on the host, we ensure reliability independent of the Docker container runtime.
+The Observability Hub leverages **Systemd** not just for process management, but as a core automation and reconciliation engine. By running lightweight agents and timers directly on the host, we ensure reliability independent of the **Kubernetes (k3s)** cluster runtime.
 
 ## Core Philosophy
 
-- **Resilience through Decoupling**: Critical infrastructure (like GitOps and Security Gates) runs as native Systemd services to avoid "circular dependencies." This ensures the system can self-heal even if the Docker runtime is unresponsive.
+- **Resilience through Decoupling**: Critical infrastructure (like GitOps and Security Gates) runs as native Systemd services to avoid "circular dependencies." This ensures the system can self-heal even if the Kubernetes runtime is unresponsive.
 - **Event-Driven Automation**: We prioritize webhooks over polling. By using the Proxy as an entry point, we trigger reconciliation only when changes actually occur, reducing CPU/Network overhead.
-- **Unified Logging Standard**: All services (Go binaries and Bash scripts) emit JSON-formatted logs to `stdout`. This creates a high-fidelity observability pipeline managed by `journald` and Promtail.
+- **Unified Logging Standard**: All services (Go binaries and Bash scripts) emit JSON-formatted logs to `stdout`. This creates a high-fidelity observability pipeline managed by `journald` and **Grafana Alloy**.
 
 ## Service Inventory
 
@@ -19,7 +19,6 @@ The system consists of several main service families, each with a `.service` uni
 | **`gitops-sync`** | `oneshot` | **Webhook** | **Reconciliation**: Triggered by Proxy to pull latest code and apply changes. |
 | **`reading-sync`** | `oneshot` | Twice Daily (00:00, 12:00) | **Data Pipeline Trigger**: Calls Proxy API to sync MongoDB data to Postgres. |
 | **`system-metrics`** | `oneshot` | Every 1 min | **Telemetry**: Collects host hardware stats and flushes them to the database. |
-| **`volume-backup`** | `oneshot` | Daily (01:00 AM) | **Backup**: Management script to backup Docker volumes. |
 
 ## Operational Excellence
 
@@ -55,8 +54,8 @@ Unlike traditional "write to file" approaches, our systemd units write strictly 
 
 1. **Emission**: Service writes to `stdout`.
 2. **Capture**: `journald` captures the stream and adds metadata (timestamp, unit name, PID).
-3. **Collection**: Promtail (configured with `job_name: systemd-journal`) tails the journal.
-4. **Ingestion**: Promtail pushes logs to Loki for visualization in Grafana.
+3. **Collection**: **Grafana Alloy** (configured as a Kubernetes DaemonSet) tails the host journal.
+4. **Ingestion**: Alloy pushes logs to Loki for visualization in Grafana.
 
 ## Configuration Structure
 

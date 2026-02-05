@@ -14,6 +14,6 @@ principles:
   - title: "GitOps & State Convergence"
     description: "Enforces consistency between version control and the running environment via automated reconciliation engines."
     icon: "shield-check"
-  - title: "Hybrid Runtime Pragmatism"
-    description: "Leverages the optimal primitive for every task, combining container isolation with native host performance."
+  - title: "Hybrid Orchestration"
+    description: "Leverages the optimal primitive for every task, combining Kubernetes (k3s) isolation with native host performance."
     icon: "cpu"

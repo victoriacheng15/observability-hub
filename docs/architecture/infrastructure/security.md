@@ -20,9 +20,9 @@ All incoming requests to `/api/webhook/gitops` must be authenticated using **HMA
 
 ## 🧪 Hybrid Isolation
 
-- **Docker Sandbox**: The data tier (PostgreSQL, Loki, Grafana) runs inside an isolated Docker bridge network. They are not accessible from the public internet.
-- **Service Boundaries**: The Proxy acts as the only "bridge" between the public funnel and the internal data tier.
-- **Environment Variables**: Sensitive credentials (passwords, URIs) are loaded via `EnvironmentFile=` in Systemd units or `environment:` in Docker Compose, ensuring they never appear in process lists (`ps`).
+- **Kubernetes Isolation**: The data tier (PostgreSQL, Loki, Grafana) runs inside the **`observability` namespace** within k3s. They are isolated from the host and other namespaces via Kubernetes NetworkPolicies and are not accessible from the public internet.
+- **Service Boundaries**: The Proxy (running as a native systemd service) acts as the primary "bridge" between the public funnel and the internal cluster data tier.
+- **Environment Variables**: Sensitive credentials (passwords, URIs) are managed via **Kubernetes Secrets** or retrieved from OpenBao, ensuring they never appear in plain text in process lists.
 
 ## 🧱 Repository Integrity
 

@@ -1,6 +1,6 @@
 # Self-Hosted Observability Hub
 
-A resilient and reliability-focused unified telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana.
+A resilient and reliability-focused unified telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana, all orchestrated within a **Kubernetes (k3s)** environment.
 
 ---
 
@@ -15,7 +15,7 @@ A resilient and reliability-focused unified telemetry platform architected to de
 - **Unified Observability:** Correlation of infrastructure telemetry and application business events into a single, queryable plane. Full-stack visibility is the default state, ensuring all services are observed via a consistent, unified standard.
 - **Platform Abstraction:** Decoupling of data ingestion from storage engines. Standardized APIs provide stable interfaces for clients, allowing the underlying pipeline logic and database schemas to evolve without disrupting upstream producers.
 - **GitOps & State Convergence:** Enforcement of configuration consistency between version control and the running environment. Automated reconciliation engines detect and correct drift, ensuring the "Source of Truth" is always the reality.
-- **Hybrid Runtime Pragmatism:** Strategic deployment utilizing the most effective primitives for the task. Containerization provides isolation for stateless data services, while native host management (Systemd) is leveraged for performance-critical automation and hardware-level telemetry.
+- **Hybrid Orchestration:** Strategic deployment utilizing the most effective primitives for the task. It combines **Kubernetes (k3s)** isolation for core data services with native host performance (Systemd) for critical automation and hardware-level telemetry.
 
 ---
 
@@ -41,22 +41,22 @@ This diagram shows the high-level flow of data from collection to visualization.
 
 ```mermaid
 flowchart LR
-    subgraph "External"
+    subgraph External ["External"]
         GH(GitHub Webhooks)
         Apps
         Mongo(MongoDB Atlas)
     end
 
-    subgraph "Native Host Services (Systemd)"
+    subgraph HostServices ["Native Host Services (Systemd)"]
         Proxy[Proxy API & GitOps Trigger]
         Gate[Tailscale Gate]
         Metrics[Metrics Collector]
         Bao[OpenBao Secret Store]
     end
 
-    subgraph "Data Infrastructure (Docker)"
+    subgraph DataPlatform ["Data Infrastructure (Kubernetes)"]
         PG(PostgreSQL)
-        P(Promtail)
+        A(Grafana Alloy)
         L(Loki)
         G(Grafana)
     end
@@ -73,10 +73,10 @@ flowchart LR
     PG --> G
 
     %% Logging Pipeline
-    Proxy -- Logs --> P
-    Gate -- Logs --> P
-    Metrics -- Logs --> P
-    P -- Scrape Journal --> L
+    Proxy -- Logs --> A
+    Gate -- Logs --> A
+    Metrics -- Logs --> A
+    A -- Scrape Journal --> L
     L --> G
 ```
 
@@ -91,10 +91,10 @@ This table lists the main services and components within the observability hub, 
 | **system-metrics** | Lightweight Go collector for host CPU, memory, disk, and network stats. | `system-metrics/` |
 | **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
 | **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
-| **PostgreSQL** | Primary time-series storage (TimescaleDB + PostGIS). | `docker-compose.yml` |
-| **Grafana** | Primary visualization and dashboarding tool. | `docker-compose.yml` |
-| **Loki** | Log aggregation system for all services. | `docker-compose.yml` |
-| **Promtail** | Scrapes host (Journald) and container logs for delivery to Loki. | `docker-compose.yml` |
+| **PostgreSQL** | Primary relational storage (TimescaleDB + PostGIS) managed as a **Kubernetes StatefulSet**. | `k3s/postgres/` |
+| **Grafana** | Primary visualization and dashboarding tool deployed in **Kubernetes**. | `k3s/grafana/` |
+| **Loki** | Log aggregation system for all services running in **Kubernetes**. | `k3s/loki/` |
+| **Grafana Alloy** | Unified telemetry agent (Kubernetes DaemonSet) for host journal collection. | `k3s/alloy/` |
 | **gitops-sync** | Reconciliation script triggered by the Proxy to enforce repository state. | `scripts/` |
 | **reading-sync** | Systemd service that periodically triggers the `proxy` Data Pipeline. | `systemd/` |
 
@@ -109,19 +109,19 @@ These components exist outside this repository but are integral to the data pipe
 
 ### Data Flow
 
-The system categorizes data flow into three main streams, correlating events, container health, and host stability.
+The system categorizes data flow into three main streams, correlating events, cluster health, and host stability.
 
 1. **Application Events:**
     - **Source:** Client Applications (e.g., Cover Craft, Personal Reading Analytics Dashboard) write events to MongoDB Atlas.
     - **Process:** The reading-sync service (Systemd) triggers the proxy to fetch, transform, and persist records into PostgreSQL.
     - **Dashboard:** Reading Analytics.
-2. **Docker Monitoring:**
-    - **Source:** Containerized services (Proxy, PostgreSQL, Loki, Grafana).
-    - **Collection:** Promtail scrapes container logs directly from the Docker socket.
-    - **Dashboard:** Docker Monitoring.
+2. **Kubernetes Monitoring:**
+    - **Source:** Orchestrated services (PostgreSQL, Loki, Grafana, Alloy).
+    - **Collection:** Grafana Alloy scrapes cluster metadata and internal service metrics.
+    - **Dashboard:** Cluster Health.
 3. **Systemd Monitoring:**
     - **Source:** Host services and hardware telemetry.
-    - **Collection:** The system-metrics collector (automated via Systemd timer) flushes hardware stats to PostgreSQL, while Promtail scrapes journald for service logs.
+    - **Collection:** The system-metrics collector (automated via Systemd timer) flushes hardware stats to PostgreSQL, while **Grafana Alloy** scrapes journald for service logs.
     - **Dashboards:** Systemd Monitoring and Homelab (hardware metrics).
 
 For deep dives into the system's inner workings, operational guides, and decision logs:
@@ -154,15 +154,17 @@ The static status page is built and deployed via GitHub Actions.
 
 ## 🚀 Getting Started (Local Development)
 
-This guide will help you set up and run the `observability-hub` locally using Docker Compose.
+This guide will help you set up and run the `observability-hub` locally using **Kubernetes (k3s)**.
 
 ### Prerequisites
 
 Ensure you have the following installed on your system:
 
 - [Go](https://go.dev/doc/install) (version 1.21 or newer)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
+- [k3s](https://k3s.io/) (Lightweight Kubernetes)
+- [Helm](https://helm.sh/)
 - `make` (GNU Make)
+- [Nix](https://nixos.org/download.html) (for reproducible toolchains)
 
 ### 1. Configuration
 
@@ -173,41 +175,41 @@ The project uses a `.env` file to manage environment variables, especially for d
 cp .env.example .env
 ```
 
-You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL, and other services as required.
+You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL (k3s NodePort), and other services.
 
 ### 2. Build and Run the Stack
 
-Bring up all services defined in `docker-compose.yml` with a single command:
+The cluster resources are managed via the root **Makefile**. Deploy the entire stack into the `observability` namespace:
 
 ```bash
-make up
+# Deploy all core components to k3s
+make k3s-alloy-up
+make k3s-loki-up
+make k3s-grafana-up
+make k3s-postgres-up
 ```
 
-This command will:
+These commands will:
 
-- Build all necessary Docker images for the Go services.
-- Start and provision all containerized services (PostgreSQL, Grafana, Loki, Promtail).
-- The `-d` flag runs the services in the background.
+- Template manifests from Helm charts and local values.
+- Apply configurations to the cluster.
+- Perform a rollout restart to ensure the latest state is active.
 
-To view the logs of all running services:
+To view the cluster status:
 
 ```bash
-docker compose logs -f
+make k3s-status
 ```
 
 ### 3. Verification
 
-Once the services are up and running, you can verify their functionality:
+Once the pods are in a `Running` state, you can verify their functionality:
 
-- **Grafana Dashboards:** Access Grafana at `http://localhost:3001`.
-  - Default login: `admin` / `grafana`
+- **Grafana Dashboards:** Access Grafana at `http://localhost:30000`.
+  - Default login: `admin` / (Retrieved via `kubectl get secret`)
   - You should see your provisioned data sources and dashboards.
 - **Static Portfolio Site:** The `page` service builds your public portfolio site into the `page/dist` directory. You can inspect the generated static HTML files there.
 
-### 4. Stopping the Stack
+### 4. Managing the Cluster
 
-To stop and remove all running services and their associated containers, volumes, and networks:
-
-```bash
-make down
-```
+To stop or remove resources, use the standard `kubectl delete` commands targeting the `observability` namespace.
