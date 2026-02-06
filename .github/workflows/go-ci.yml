@@ -30,10 +30,10 @@ jobs:
           cache-dependency-path: "**/go.sum"
 
       - name: Check gofmt
-        run: make _go-format-internal && git diff --exit-code
+        run: make go-format && git diff --exit-code
 
       - name: Run go vet
-        run: make _go-lint-internal
+        run: make go-lint
 
   test:
     runs-on: ubuntu-latest
@@ -46,4 +46,4 @@ jobs:
           cache-dependency-path: "**/go.sum"
 
       - name: Run tests
-        run: make _go-test-internal
+        run: make go-test

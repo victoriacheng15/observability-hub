@@ -27,10 +27,7 @@ jobs:
           cache-dependency-path: page/go.sum
 
       - name: Build
-        run: |
-          cd page
-          go build -o page.exe main.go
-          ./page.exe
+        run: make page-build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4.0.0
