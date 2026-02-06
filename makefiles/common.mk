@@ -2,16 +2,16 @@
 NS ?= observability
 KC ?= kubectl -n $(NS)
 HELM ?= helm --namespace $(NS)
-NIX ?= nix-shell --run
 
 # Dynamic Nix Detection
-USE_NIX = $(shell command -v nix-shell >/dev/null 2>&1 && [ -z "$$IN_NIX_SHELL" ] && echo "yes" || echo "no")
+USE_NIX = $(shell if command -v nix-shell >/dev/null 2>&1 && [ -z "$$IN_NIX_SHELL" ] && [ "$$GITHUB_ACTIONS" != "true" ]; then echo "yes"; else echo "no"; fi)
 
-# Wrapper macro: If USE_NIX is yes, re-run make with the same goals inside nix-shell and exit.
 ifeq ($(USE_NIX),yes)
-NIX_WRAP = @$(NIX) "make $(MAKECMDGOALS)" && exit 0
+    NIX_RUN = nix-shell --run
+    NIX_WRAP = @$(NIX_RUN) "make $(MAKECMDGOALS)" && exit 0
 else
-NIX_WRAP =
+    NIX_RUN = bash -c
+    NIX_WRAP =
 endif
 
 # Tooling
