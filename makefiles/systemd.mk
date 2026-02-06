@@ -34,5 +34,6 @@ uninstall-services:
 
 # OpenBao Management
 bao-status:
-	@nix-shell --run "export BAO_ADDR='http://127.0.0.1:8200' && bao status"
+	$(NIX_WRAP)
+	@export BAO_ADDR='http://127.0.0.1:8200' && bao status
 
