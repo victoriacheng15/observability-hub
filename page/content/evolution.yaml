@@ -157,3 +157,14 @@ chapters:
         description: |
           - Successfully migrated the core PostgreSQL database from standalone Docker to a k3s StatefulSet.
           - Implemented data persistence via PVC synchronization and verified extension compatibility for TimescaleDB and PostGIS, completing the four-stage migration strategy.
+
+  - title: "The SRE Era"
+    intro: "The transition from 'functional' to 'standardized' observability. A phase dedicated to learning and understanding the OpenTelemetry ecosystem and SRE principles."
+    timeline:
+      - date: "2026-02-07"
+        title: "Proposal: Standardize on OpenTelemetry"
+        artifacts:
+          - name: "ADR 013: Standardize on OpenTelemetry"
+            url: "docs/decisions/013-standardize-on-opentelemetry.md"
+        description: |
+          - Proposed the adoption of OpenTelemetry to gain hands-on experience with industry-standard distributed tracing and metrics.
