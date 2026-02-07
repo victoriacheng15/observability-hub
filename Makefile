@@ -21,6 +21,7 @@ help:
 	@echo "  make page-build         - Build the GitHub Page"
 	@echo "  make metrics-build      - Build the system metrics collector"
 	@echo "  make proxy-build        - Build and restart the go proxy server"
+	@echo "  make brain-sync         - Run the second brain knowledge ingestion"
 	@echo ""
 	@echo "Host Tier (Systemd & Secrets):"
 	@echo "  make install-services   - Install all systemd units"
