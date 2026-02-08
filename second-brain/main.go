@@ -31,13 +31,13 @@ type AtomicThought struct {
 }
 
 var tagsMap = map[string][]string{
-	"ai":              {"ai", "llm", "rag", "pgvector", "embedding", "openai", "gemini"},
-	"observability":   {"grafana", "loki", "alloy", "opentelemetry", "otel", "metrics", "tracing", "logs"},
-	"kubernetes":      {"k3s", "pod", "pvc", "statefulset", "daemonset", "kubectl", "helm"},
-	"database":        {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql"},
-	"devops":          {"github actions", "gitops", "reconciliation", "ci-cd", "docker"},
-	"career-growth":   {"impostor syndrome", "growth", "senior", "leadership", "reflection"},
-	"platform":        {"openbao", "tailscale", "security", "infrastructure", "zero-trust"},
+	"ai":            {"ai", "llm", "rag", "pgvector", "embedding", "openai", "gemini"},
+	"observability": {"grafana", "loki", "alloy", "opentelemetry", "otel", "metrics", "tracing", "logs"},
+	"kubernetes":    {"k3s", "pod", "pvc", "statefulset", "daemonset", "kubectl", "helm"},
+	"database":      {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql"},
+	"devops":        {"github actions", "gitops", "reconciliation", "ci-cd", "docker"},
+	"career-growth": {"impostor syndrome", "growth", "senior", "leadership", "reflection"},
+	"platform":      {"openbao", "tailscale", "security", "infrastructure", "zero-trust"},
 }
 
 func main() {
@@ -77,7 +77,10 @@ func main() {
 	}
 
 	// 4. Filter for new issues (Title > latestDate)
-	var newIssues []struct{ Number int; Title string }
+	var newIssues []struct {
+		Number int
+		Title  string
+	}
 	for _, iss := range allIssues {
 		// Journal titles follow YYYY-MM-DD format
 		if iss.Title > latestDate {
@@ -118,7 +121,10 @@ func main() {
 	fmt.Printf("🧠 Second Brain Status: %d total entries. Latest: %s\n", count, latest)
 }
 
-func fetchIssues(repo string) ([]struct{ Number int; Title string }, error) {
+func fetchIssues(repo string) ([]struct {
+	Number int
+	Title  string
+}, error) {
 	fmt.Printf("🔍 Fetching recent journals from %s...\n", repo)
 	cmd := exec.Command("gh", "issue", "list", "--repo", repo, "--label", "journal", "--state", "all", "--limit", "50", "--json", "number,title")
 	var out bytes.Buffer
@@ -127,7 +133,10 @@ func fetchIssues(repo string) ([]struct{ Number int; Title string }, error) {
 		return nil, err
 	}
 
-	var issues []struct{ Number int; Title string }
+	var issues []struct {
+		Number int
+		Title  string
+	}
 	if err := json.Unmarshal(out.Bytes(), &issues); err != nil {
 		return nil, err
 	}

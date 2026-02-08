@@ -155,7 +155,7 @@ chapters:
           - name: "ADR 011: Phased k3s Migration Strategy"
             url: "docs/decisions/011-phased-k3s-migration-strategy.md"
         description: |
-          - Successfully migrated the core PostgreSQL database from standalone Docker to a k3s StatefulSet.
+          - Migrated the core PostgreSQL database from standalone Docker to a k3s StatefulSet.
           - Implemented data persistence via PVC synchronization and verified extension compatibility for TimescaleDB and PostGIS, completing the four-stage migration strategy.
 
   - title: "The SRE Era"
@@ -168,3 +168,11 @@ chapters:
             url: "docs/decisions/013-standardize-on-opentelemetry.md"
         description: |
           - Proposed the adoption of OpenTelemetry to gain hands-on experience with industry-standard distributed tracing and metrics.
+      - date: "2026-02-08"
+        title: "Phase 1 Complete: OTel Collector"
+        artifacts:
+          - name: "ADR 013: Standardize on OpenTelemetry"
+            url: "docs/decisions/013-standardize-on-opentelemetry.md"
+        description: |
+          - Deployed the OpenTelemetry Collector as a standalone deployment in the k3s cluster.
+          - Verified the pod is running and ready to ingest OTLP telemetry, completing the first phase of the OTel standardization strategy.

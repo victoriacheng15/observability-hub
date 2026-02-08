@@ -1,6 +1,6 @@
 # ADR 013: The SRE Era - OpenTelemetry Integration
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-02-07
 - **Author:** Victoria Cheng
 
@@ -54,7 +54,7 @@ Standardize the platform on **OpenTelemetry (OTel)** as the primary telemetry fr
 
 ## Verification
 
-- [ ] **Gateway Setup**: OpenTelemetry Collector running in k3s and verified accepting OTLP/HTTP payloads.
+- [x] **Gateway Setup**: OpenTelemetry Collector running in k3s and verified accepting OTLP/HTTP payloads.
 - [ ] **Storage Foundation**: MinIO and Grafana Tempo deployed and verified as persistent trace sinks.
 - [ ] **Service Instrumentation**: `system-metrics` and `proxy` updated to emit telemetry via OTel SDKs.
 - [ ] **Operationalization**: Prometheus scraping the Collector and Grafana visualizing metrics and traces from new sources.
