@@ -7,6 +7,12 @@ The **Second Brain** is a knowledge ingestion layer that synchronizes personal r
 - **Storage**: PostgreSQL (`second_brain` table)
 - **Source**: GitHub Issues (labeled `journal`)
 - **Sync Tool**: `second-brain/` (Go module)
+- **Journaling Format**: Uses strict singular PARA headers for categorization:
+  - `## Project`: Active efforts with a deadline.
+  - `## Area`: Ongoing responsibilities.
+  - `## Resource`: Interests or reference material.
+  - `## Archive`: Completed or inactive items.
+  - `## Thought`: Fallback for general reflections (Ingested as `resource`).
 
 ---
 
@@ -16,28 +22,40 @@ The following schema defines the core knowledge table and its associated statist
 
 ```sql
 -- Core Knowledge Table
+CREATE TYPE para_type AS ENUM (
+    'project',  -- Active efforts with a deadline
+    'area',     -- Ongoing responsibilities
+    'resource', -- Interests or reference material
+    'archive'   -- Completed or inactive items
+);
+
 CREATE TABLE second_brain (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_date DATE NOT NULL,
     content TEXT NOT NULL,
+    category para_type DEFAULT 'resource',
+    source_repo TEXT, -- e.g., 'observability-hub', 'cover-craft', 'personal-reading-analytics'
+    origin_type TEXT,
     tags TEXT[],
     context_string TEXT,
     embedding VECTOR(1536), -- Optimized for standard OTel/OpenAI dimensions
     checksum TEXT UNIQUE,   -- Prevents duplicate ingestion
     token_count INTEGER,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT check_origin_type CHECK (origin_type IN ('journal', 'adr', 'others'))
 );
 
 -- HNSW Index for high-performance vector similarity search
 CREATE INDEX ON second_brain USING hnsw (embedding vector_cosine_ops);
 
--- Operational Stats View
+-- Operational Stats View (Supports PARA Breakdown)
 CREATE OR REPLACE VIEW second_brain_stats AS
 SELECT 
+    category,
     COUNT(*) as total_entries,
-    AVG(token_count) as avg_tokens,
     MAX(entry_date) as latest_entry
-FROM second_brain;
+FROM second_brain
+GROUP BY category;
 ```
 
 ---

@@ -11,6 +11,7 @@ This decision initiates the **SRE Era** of the platform—a phase dedicated to m
 While the current custom Go collectors (e.g., `system-metrics`) and PostgreSQL storage are functional and effective for their original scope, they represent a "pre-standardized" phase of development. To evolve the platform into a true SRE learning hub, we need to bridge the gap between "working code" and "industry-standard observability."
 
 The goal is not to "fix" the custom collectors, but to use the platform as a sandbox to understand:
+
 - **Distributed Tracing**: How request flows are reconstructed across services.
 - **OTel Specification**: Mastering the semantic conventions for metrics, logs, and traces.
 - **Advanced Backend Management**: Operating specialized stores like Prometheus and Tempo.
