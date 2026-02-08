@@ -8,7 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
-| **013** | [Standardize on OpenTelemetry](./013-standardize-on-opentelemetry.md) | 🟢 Proposed |
+| **013** | [Standardize on OpenTelemetry](./013-standardize-on-opentelemetry.md) | 🔵 Accepted |
 | **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🔵 Accepted |
 | **011** | [Phased Migration Strategy to K3s](./011-phased-k3s-migration-strategy.md) | 🔵 Accepted |
 | **010** | [Integrate OpenBao](./010-integrate-openbao.md) | 🔵 Accepted |

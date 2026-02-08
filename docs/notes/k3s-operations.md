@@ -52,6 +52,18 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart statefulset postgres-postgresql -n observability
   ```
 
+### 5. OpenTelemetry (Collector)
+
+- **Manifest**: `k3s/opentelemetry/manifest.yaml`
+- **Values**: `k3s/opentelemetry/values.yaml`
+- **Update Command**:
+
+  ```bash
+  nix-shell --run "helm template opentelemetry open-telemetry/opentelemetry-collector -f k3s/opentelemetry/values.yaml --namespace observability > k3s/opentelemetry/manifest.yaml"
+  kubectl apply -f k3s/opentelemetry/manifest.yaml
+  kubectl rollout restart deployment opentelemetry-opentelemetry-collector -n observability
+  ```
+
 ---
 
 ## 🖼️ Local Image Sideloading

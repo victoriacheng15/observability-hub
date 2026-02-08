@@ -1,0 +1,57 @@
+fullnameOverride: opentelemetry
+
+mode: deployment
+
+replicaCount: 1
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: 0.94.0 # Using a recent stable version
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 100Mi
+  limits:
+    cpu: 150m
+    memory: 256Mi
+
+# Use alternateConfig to fully control the collector's configuration and avoid default merges
+alternateConfig:
+  extensions:
+    health_check: {} # Mandatory for liveness/readiness probes
+  receivers:
+    otlp:
+      protocols:
+        grpc: {}
+        http: {}
+  processors:
+    batch: {}
+  exporters:
+    logging:
+      loglevel: debug
+  service:
+    extensions: [health_check] # Ensure health_check is used
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [logging]
+      metrics:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [logging]
+      logs:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [logging]
+
+# This configures the Kubernetes Service ports
+ports:
+  otlp:
+    enabled: true
+    servicePort: 4317
+  otlp-http:
+    enabled: true
+    servicePort: 4318
