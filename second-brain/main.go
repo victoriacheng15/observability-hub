@@ -24,6 +24,7 @@ import (
 type AtomicThought struct {
 	Date          string   `json:"date"`
 	Content       string   `json:"content"`
+	Category      string   `json:"category"`
 	Tags          []string `json:"tags"`
 	ContextString string   `json:"context_string"`
 	Checksum      string   `json:"checksum"`
@@ -31,13 +32,16 @@ type AtomicThought struct {
 }
 
 var tagsMap = map[string][]string{
-	"ai":            {"ai", "llm", "rag", "pgvector", "embedding", "openai", "gemini"},
-	"observability": {"grafana", "loki", "alloy", "opentelemetry", "otel", "metrics", "tracing", "logs"},
-	"kubernetes":    {"k3s", "pod", "pvc", "statefulset", "daemonset", "kubectl", "helm"},
-	"database":      {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql"},
-	"devops":        {"github actions", "gitops", "reconciliation", "ci-cd", "docker"},
-	"career-growth": {"impostor syndrome", "growth", "senior", "leadership", "reflection"},
-	"platform":      {"openbao", "tailscale", "security", "infrastructure", "zero-trust"},
+	"ai":            {"ai", "llm", "rag", "pgvector", "embedding", "openai", "gemini", "agent", "deepseek"},
+	"observability": {"grafana", "loki", "alloy", "opentelemetry", "otel", "metrics", "tracing", "logs", "prometheus"},
+	"kubernetes":    {"k3s", "pod", "pvc", "statefulset", "daemonset", "kubectl", "helm", "k8s"},
+	"database":      {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql", "mongodb", "database", "db"},
+	"devops":        {"github actions", "gitops", "reconciliation", "ci-cd", "docker", "terraform", "nix", "shell.nix"},
+	"career-growth": {"impostor syndrome", "growth", "senior", "leadership", "reflection", "mentorship", "career"},
+	"platform":      {"openbao", "tailscale", "security", "infrastructure", "zero-trust", "secrets", "bao"},
+	"language":      {"go", "golang", "python", "rust", "typescript", "javascript", "bash", "shell"},
+	"linux":         {"linux", "systemd", "kernel", "gpu", "psu", "hardware", "cpu", "memory", "nixos"},
+	"productivity":  {"para", "second brain", "zettelkasten", "notion", "obsidian", "journal", "workflow"},
 }
 
 func main() {
@@ -114,11 +118,20 @@ func main() {
 	}
 
 	// Final Status
-	var count int
-	var latest string
-	_ = conn.QueryRow("SELECT total_entries, latest_entry FROM second_brain_stats").Scan(&count, &latest)
-	fmt.Printf("\n✅ Sync Complete! New atoms processed: %d\n", totalAtoms)
-	fmt.Printf("🧠 Second Brain Status: %d total entries. Latest: %s\n", count, latest)
+	rows, err := conn.Query("SELECT category, total_entries, latest_entry FROM second_brain_stats")
+	if err != nil {
+		fmt.Printf("⚠️ Could not fetch final stats: %v\n", err)
+	} else {
+		defer rows.Close()
+		fmt.Printf("\n✅ Sync Complete! New atoms processed: %d\n", totalAtoms)
+		fmt.Println("🧠 Second Brain Status (PARA):")
+		for rows.Next() {
+			var cat, latest string
+			var count int
+			_ = rows.Scan(&cat, &count, &latest)
+			fmt.Printf("   - [%-8s] %3d entries (Latest: %s)\n", cat, count, latest)
+		}
+	}
 }
 
 func fetchIssues(repo string) ([]struct {
@@ -159,6 +172,7 @@ func atomize(date, body string) []AtomicThought {
 	var currentBlocks []string
 	capturing := false
 	inComment := false
+	currentCategory := "resource"
 
 	flush := func() {
 		if len(currentBlocks) > 0 {
@@ -167,10 +181,11 @@ func atomize(date, body string) []AtomicThought {
 				return
 			}
 			tags := getTags(text)
-			context := fmt.Sprintf("Date: %s | Tags: %s | Content: %s", date, strings.Join(tags, ", "), text)
+			context := fmt.Sprintf("Date: %s | Category: %s | Tags: %s | Content: %s", date, currentCategory, strings.Join(tags, ", "), text)
 			atoms = append(atoms, AtomicThought{
 				Date:          date,
 				Content:       text,
+				Category:      currentCategory,
 				Tags:          tags,
 				ContextString: context,
 				Checksum:      getChecksum(text),
@@ -184,6 +199,7 @@ func atomize(date, body string) []AtomicThought {
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
 
+		// 1. Skip Comments
 		if !inComment && strings.Contains(line, "<!--") {
 			inComment = true
 		}
@@ -194,16 +210,47 @@ func atomize(date, body string) []AtomicThought {
 			continue
 		}
 
-		if strings.Contains(line, "## Thoughts") {
-			capturing = true
+		// 2. Detect Singular PARA Headers
+		if strings.HasPrefix(trimmed, "## ") {
+			if capturing {
+				flush()
+			}
+
+			switch trimmed {
+			case "## Project":
+				currentCategory = "project"
+				capturing = true
+				continue
+			case "## Area":
+				currentCategory = "area"
+				capturing = true
+				continue
+			case "## Resource":
+				currentCategory = "resource"
+				capturing = true
+				continue
+			case "## Archive":
+				currentCategory = "archive"
+				capturing = true
+				continue
+			case "## Thought":
+				currentCategory = "resource"
+				capturing = true
+				continue
+			default:
+				// Today's Task and any other header should stop capturing
+				capturing = false
+			}
+		}
+
+		// 3. Stop capturing on separator
+		if capturing && strings.HasPrefix(trimmed, "---") {
+			flush()
+			capturing = false
 			continue
 		}
 
-		if capturing && (strings.HasPrefix(trimmed, "## ") || strings.HasPrefix(trimmed, "---")) {
-			capturing = false
-			break
-		}
-
+		// 4. Capture Content (Skip actual task lines just in case they are nested)
 		if capturing {
 			if strings.HasPrefix(trimmed, "- [ ]") || strings.HasPrefix(trimmed, "- [x]") {
 				continue
@@ -220,10 +267,10 @@ func atomize(date, body string) []AtomicThought {
 func saveToDB(conn *sql.DB, atoms []AtomicThought) error {
 	for _, a := range atoms {
 		_, err := conn.Exec(`
-			INSERT INTO second_brain (entry_date, content, tags, context_string, checksum, token_count)
-			VALUES ($1, $2, $3, $4, $5, $6)
+			INSERT INTO second_brain (entry_date, content, category, origin_type, tags, context_string, checksum, token_count)
+			VALUES ($1, $2, $3, 'journal', $4, $5, $6, $7)
 			ON CONFLICT (checksum) DO NOTHING`,
-			a.Date, a.Content, pq.Array(a.Tags), a.ContextString, a.Checksum, a.TokenCount)
+			a.Date, a.Content, a.Category, pq.Array(a.Tags), a.ContextString, a.Checksum, a.TokenCount)
 		if err != nil {
 			return err
 		}
