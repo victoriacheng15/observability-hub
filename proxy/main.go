@@ -1,84 +1,99 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 
-	"db"
+	"db/mongodb"
+	"db/postgres"
 	"logger"
 	"proxy/utils"
 	"secrets"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type App struct {
+	server           *http.Server
+	SecretProviderFn func() (secrets.SecretStore, error)
+	PostgresConnFn   func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error)
+	MongoConnFn      func(store secrets.SecretStore) (*mongodb.MongoStore, error)
+}
+
 func main() {
-	// Initialize structured logging first
+	app := &App{
+		SecretProviderFn: func() (secrets.SecretStore, error) {
+			return secrets.NewBaoProvider()
+		},
+		PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error) {
+			conn, err := postgres.ConnectPostgres(driver, store)
+			if err != nil {
+				return nil, err
+			}
+			return postgres.NewReadingStore(conn), nil
+		},
+		MongoConnFn: func(store secrets.SecretStore) (*mongodb.MongoStore, error) {
+			return mongodb.NewMongoStore(store)
+		},
+	}
+	if err := app.Bootstrap(context.Background()); err != nil {
+		slog.Error("bootstrap_failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+func (a *App) Bootstrap(ctx context.Context) error {
 	logger.Setup(os.Stdout, "proxy")
 
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 
-	var dbPostgres *sql.DB
-	var mongoClient *mongo.Client
-
-	// Initialize Secrets Provider
-	secretStore, err := secrets.NewBaoProvider()
+	// 1. Secrets
+	secretStore, err := a.SecretProviderFn()
 	if err != nil {
-		slog.Error("secret_provider_init_failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("secret_provider_init_failed: %w", err)
 	}
 
-	dbPostgres = initPostgres("postgres", secretStore)
-	mongoClient = initMongo(secretStore)
+	// 2. Postgres
+	readingStore, err := a.PostgresConnFn("postgres", secretStore)
+	if err != nil {
+		return fmt.Errorf("db_connection_failed (postgres): %w", err)
+	}
+	slog.Info("db_connected", "database", "postgres")
 
-	// Initialize the reading service
+	// 3. Mongo
+	mongoStore, err := a.MongoConnFn(secretStore)
+	if err != nil {
+		return fmt.Errorf("db_connection_failed (mongodb): %w", err)
+	}
+	slog.Info("db_connected", "database", "mongodb")
+
+	// 4. Reading Service
 	readingService := &utils.ReadingService{
-		DB:          dbPostgres,
-		MongoClient: mongoClient,
+		Store:      readingStore,
+		MongoStore: mongoStore,
 	}
 
-	// Determine port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8085"
 	}
 
-	// Register HTTP handlers with logging middleware
 	http.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
 	http.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
 	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 	http.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
 
 	slog.Info("🚀 The GO proxy listening on port", "port", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		slog.Error("Server failed to start", "error", err)
-		os.Exit(1)
-	}
-}
 
-func initPostgres(driverName string, store secrets.SecretStore) *sql.DB {
-	database, err := db.ConnectPostgres(driverName, store)
-	if err != nil {
-		slog.Error("db_connection_failed", "database", "postgres", "error", err)
-		os.Exit(1)
+	if os.Getenv("APP_ENV") == "test" {
+		return nil
 	}
 
-	slog.Info("db_connected", "database", "postgres")
-	return database
-}
-
-func initMongo(store secrets.SecretStore) *mongo.Client {
-	client, err := db.ConnectMongo(store)
-	if err != nil {
-		slog.Error("db_connection_failed", "database", "mongodb", "error", err)
-		os.Exit(1)
-	}
-
-	slog.Info("db_connected", "database", "mongodb")
-	return client
+	a.server = &http.Server{Addr: ":" + port}
+	return a.server.ListenAndServe()
 }

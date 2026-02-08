@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"db"
+	"db/postgres"
 	"secrets"
 
 	"github.com/joho/godotenv"
@@ -56,7 +56,7 @@ func main() {
 	}
 	defer store.Close()
 
-	conn, err := db.ConnectPostgres("postgres", store)
+	conn, err := postgres.ConnectPostgres("postgres", store)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

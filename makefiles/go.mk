@@ -47,15 +47,15 @@ page-build:
 
 metrics-build:
 	$(NIX_WRAP)
-	@echo "Building system metrics collector..."
-	@cd system-metrics && go build -o metrics-collector main.go
-	@sudo systemctl restart system-metrics.timer
+	@echo "Building system metrics collector..." && \
+	cd system-metrics && go build -o metrics-collector main.go && \
+	sudo systemctl restart system-metrics.timer
 
 proxy-build:
 	$(NIX_WRAP)
-	@echo "Updating Proxy..."
-	@cd proxy && go build -o proxy_server .
-	@sudo systemctl restart proxy.service
+	@echo "Updating Proxy..." && \
+	cd proxy && go build -o proxy_server . && \
+	sudo systemctl restart proxy.service
 
 brain-sync:
 	$(NIX_WRAP)
