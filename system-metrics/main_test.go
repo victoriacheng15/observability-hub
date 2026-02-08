@@ -2,17 +2,22 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
+	"db/postgres"
 	"secrets"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shirou/gopsutil/v4/host"
 )
+
+// mockSecretStore implements secrets.SecretStore for testing
+type mockSecretStore struct{}
+
+func (m *mockSecretStore) GetSecret(path, key, fallback string) string { return fallback }
+func (m *mockSecretStore) Close() error                                { return nil }
 
 func TestApp_InitDB(t *testing.T) {
 	dbMock, _, _ := sqlmock.New()
@@ -38,27 +43,28 @@ func TestApp_InitDB(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &App{
-				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*sql.DB, error) {
-					return dbMock, tt.err
+				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
+					return postgres.NewMetricsStore(dbMock), tt.err
 				},
 			}
-			err := app.InitDB("postgres", nil)
+			err := app.InitDB("postgres", &mockSecretStore{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InitDB() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if err == nil && app.DB != dbMock {
-				t.Error("InitDB() did not set DB field")
+			if err == nil && app.Store == nil {
+				t.Error("InitDB() did not set Store field")
 			}
 		})
 	}
 }
 
 func TestApp_Run(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	dbConn, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
+	store := postgres.NewMetricsStore(dbConn)
 
 	now := time.Date(2026, 1, 29, 12, 0, 0, 0, time.UTC)
 
@@ -87,7 +93,7 @@ func TestApp_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &App{
-				DB: db,
+				Store: store,
 				HostInfoFn: func() (*host.InfoStat, error) {
 					if tt.hostInfoErr != nil {
 						return nil, tt.hostInfoErr
@@ -132,51 +138,53 @@ func TestApp_Run(t *testing.T) {
 	}
 }
 
-func TestApp_CollectAndStore_PartialFailure(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
+func TestApp_Bootstrap(t *testing.T) {
+	dbConn, mock, _ := sqlmock.New()
+	defer dbConn.Close()
+
+	tests := []struct {
+		name      string
+		secretErr error
+		dbErr     error
+		wantErr   bool
+	}{
+		{"Success", nil, nil, false},
+		{"Secret Failure", errors.New("secret error"), nil, true},
+		{"DB Failure", nil, errors.New("db error"), true},
 	}
-	defer db.Close()
 
-	now := time.Date(2026, 1, 29, 12, 0, 0, 0, time.UTC)
-	app := &App{
-		DB:    db,
-		NowFn: func() time.Time { return now },
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &App{
+				SecretProviderFn: func() (secrets.SecretStore, error) {
+					return &mockSecretStore{}, tt.secretErr
+				},
+				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
+					return postgres.NewMetricsStore(dbConn), tt.dbErr
+				},
+				HostInfoFn: func() (*host.InfoStat, error) {
+					return &host.InfoStat{Platform: "linux", PlatformVersion: "6.0"}, nil
+				},
+				HostnameFn: func() (string, error) {
+					return "test-host", nil
+				},
+				NowFn: func() time.Time {
+					return time.Now()
+				},
+			}
 
-	// Mock one success and one failure
-	mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec("INSERT INTO system_metrics").WillReturnError(errors.New("insert failed"))
-	mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+			if !tt.wantErr {
+				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectExec("SELECT create_hypertable").WillReturnResult(sqlmock.NewResult(0, 0))
+				for i := 0; i < 4; i++ {
+					mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+				}
+			}
 
-	app.collectAndStore(context.Background(), "test-host", "linux 6.0")
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("unfulfilled expectations: %v", err)
-	}
-}
-
-func TestApp_Bootstrap_FailSecrets(t *testing.T) {
-	// Unset env to trigger NewBaoProvider failure
-	origAddr := os.Getenv("BAO_ADDR")
-	origToken := os.Getenv("BAO_TOKEN")
-	os.Unsetenv("BAO_ADDR")
-	os.Unsetenv("BAO_TOKEN")
-	defer func() {
-		os.Setenv("BAO_ADDR", origAddr)
-		os.Setenv("BAO_TOKEN", origToken)
-	}()
-
-	app := &App{
-		ConnectDBFn: func(driverName string, store secrets.SecretStore) (*sql.DB, error) {
-			return nil, errors.New("should not be called if secrets fail, but NewBaoProvider might not fail")
-		},
-	}
-	err := app.Bootstrap(context.Background())
-	if err == nil {
-		// If NewBaoProvider didn't fail, InitDB should have failed
-		t.Log("Bootstrap did not fail at NewBaoProvider, checking if it failed at InitDB")
+			err := app.Bootstrap(context.Background())
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Bootstrap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

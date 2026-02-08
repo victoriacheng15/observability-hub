@@ -1,24 +1,18 @@
-package db
+package postgres
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	"secrets"
 
 	_ "github.com/lib/pq"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Internal variables for testing
 var (
-	sqlOpen      = sql.Open
-	mongoConnect = mongo.Connect
+	sqlOpen = sql.Open
 )
 
 // ConnectPostgres establishes a connection to PostgreSQL and verifies it with a Ping.
@@ -41,44 +35,6 @@ func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, err
 	return db, nil
 }
 
-// ConnectMongo establishes a connection to MongoDB.
-// It accepts a SecretStore to retrieve the connection URI from OpenBao.
-func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
-	uri, err := GetMongoURI(store)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongoConnect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
-	}
-
-	// Test connection
-	pingCtx, pingCancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer pingCancel()
-	if err := client.Ping(pingCtx, nil); err != nil {
-		return nil, fmt.Errorf("failed to ping mongodb: %w", err)
-	}
-
-	return client, nil
-}
-
-func GetMongoURI(store secrets.SecretStore) (string, error) {
-	const secretPath = "observability-hub/mongo"
-
-	// Fetch from OpenBao with fallback to legacy MONGO_URI env var
-	uri := strings.TrimSpace(store.GetSecret(secretPath, "uri", os.Getenv("MONGO_URI")))
-
-	if uri == "" {
-		return "", fmt.Errorf("missing required environment variable: MONGO_URI")
-	}
-	return uri, nil
-}
-
 // GetPostgresDSN constructs the DSN using the SecretStore.
 func GetPostgresDSN(store secrets.SecretStore) (string, error) {
 	// 1. Priority: DATABASE_URL (for local dev/testing override)
@@ -87,7 +43,6 @@ func GetPostgresDSN(store secrets.SecretStore) (string, error) {
 	}
 
 	// Path relative to the KV mount (e.g., 'secret').
-	// The SDK handles adding '/data/' internally for KV V2.
 	const secretPath = "observability-hub/postgres"
 
 	// Retrieve values with fallbacks to environment variables or defaults

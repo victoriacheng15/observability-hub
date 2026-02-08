@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
-	"db"
+	"db/postgres"
 	"logger"
 	"secrets"
 	"system-metrics/collectors"
@@ -21,19 +19,29 @@ import (
 
 // App holds the dependencies for the system-metrics service
 type App struct {
-	DB          *sql.DB
-	HostInfoFn  func() (*host.InfoStat, error)
-	HostnameFn  func() (string, error)
-	NowFn       func() time.Time
-	ConnectDBFn func(driverName string, store secrets.SecretStore) (*sql.DB, error)
+	Store            *postgres.MetricsStore
+	HostInfoFn       func() (*host.InfoStat, error)
+	HostnameFn       func() (string, error)
+	NowFn            func() time.Time
+	ConnectDBFn      func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error)
+	SecretProviderFn func() (secrets.SecretStore, error)
 }
 
 func main() {
 	app := &App{
-		HostInfoFn:  host.Info,
-		HostnameFn:  os.Hostname,
-		NowFn:       time.Now,
-		ConnectDBFn: db.ConnectPostgres,
+		HostInfoFn: host.Info,
+		HostnameFn: os.Hostname,
+		NowFn:      time.Now,
+		ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
+			conn, err := postgres.ConnectPostgres(driverName, store)
+			if err != nil {
+				return nil, err
+			}
+			return postgres.NewMetricsStore(conn), nil
+		},
+		SecretProviderFn: func() (secrets.SecretStore, error) {
+			return secrets.NewBaoProvider()
+		},
 	}
 
 	if err := app.Bootstrap(context.Background()); err != nil {
@@ -53,7 +61,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	_ = godotenv.Load("../.env")
 
 	// 2. Initialize Secrets Provider
-	secretStore, err := secrets.NewBaoProvider()
+	secretStore, err := a.SecretProviderFn()
 	if err != nil {
 		return fmt.Errorf("secret_provider_init_failed: %w", err)
 	}
@@ -62,7 +70,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.InitDB("postgres", secretStore); err != nil {
 		return fmt.Errorf("db_connection_failed: %w", err)
 	}
-	defer a.DB.Close()
+	defer a.Store.DB.Close()
 
 	if err := a.Run(ctx); err != nil {
 		return fmt.Errorf("app_run_failed: %w", err)
@@ -72,11 +80,11 @@ func (a *App) Bootstrap(ctx context.Context) error {
 }
 
 func (a *App) InitDB(driverName string, store secrets.SecretStore) error {
-	database, err := a.ConnectDBFn(driverName, store)
+	metricsStore, err := a.ConnectDBFn(driverName, store)
 	if err != nil {
 		return err
 	}
-	a.DB = database
+	a.Store = metricsStore
 	slog.Info("db_connected", "database", driverName)
 	return nil
 }
@@ -95,7 +103,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	// 2. Ensure Schema
-	if err := a.ensureSchema(ctx); err != nil {
+	if err := a.Store.EnsureSchema(ctx); err != nil {
 		return err
 	}
 
@@ -126,15 +134,7 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 
 	var insertErrors []string
 	for _, m := range metrics {
-		if m.payload == nil {
-			continue
-		}
-		payloadJSON, _ := json.Marshal(m.payload)
-		_, err := a.DB.ExecContext(ctx,
-			"INSERT INTO system_metrics (time, host, os, metric_type, payload) VALUES ($1, $2, $3, $4, $5)",
-			now, hostName, osName, m.mType, payloadJSON,
-		)
-		if err != nil {
+		if err := a.Store.RecordMetric(ctx, now, hostName, osName, m.mType, m.payload); err != nil {
 			slog.Error("db_insert_failed", "metric_type", m.mType, "error", err)
 			insertErrors = append(insertErrors, err.Error())
 		}
@@ -148,27 +148,4 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 			slog.Warn("metrics_collected", "status", "partial_failure", "error_count", len(insertErrors))
 		}
 	}
-}
-
-func (a *App) ensureSchema(ctx context.Context) error {
-	_, err := a.DB.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS system_metrics (
-			time TIMESTAMPTZ(0) NOT NULL,
-			host TEXT NOT NULL,
-			os TEXT NOT NULL,
-			metric_type TEXT NOT NULL,
-			payload JSONB NOT NULL
-		);
-	`)
-	if err != nil {
-		return fmt.Errorf("schema_init_failed: %w", err)
-	}
-
-	// Enable hypertable if TimescaleDB is available
-	_, err = a.DB.ExecContext(ctx, "SELECT create_hypertable('system_metrics', 'time', if_not_exists => true);")
-	if err != nil {
-		// Just info, as we might be running on standard Postgres
-		slog.Info("hypertable_check", "status", "skipped_or_failed", "detail", err)
-	}
-	return nil
 }

@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -10,15 +9,18 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"db/mongodb"
+	"db/postgres"
 )
 
+type MongoStoreAPI interface {
+	FetchIngestedArticles(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error)
+	MarkArticleAsProcessed(ctx context.Context, id string) error
+}
+
 type ReadingService struct {
-	DB          *sql.DB
-	MongoClient *mongo.Client
+	Store      *postgres.ReadingStore
+	MongoStore MongoStoreAPI
 }
 
 func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,22 +28,30 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	startTime := time.Now().UTC()
 	syncStatus := "success"
 	var syncErrorMessage string
-	processedCount := 0 // Initialize processedCount for defer
+	processedCount := 0
 
 	defer func() {
-		s.recordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage)
+		if err := s.Store.RecordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage); err != nil {
+			slog.Error("ETL_ERROR: Failed to record sync history", "error", err)
+		}
 	}()
 
-	if err := s.ensureReadingAnalyticsTable(); err != nil {
-		slog.Error("ETL_ERROR: Failed to create reading_analytics table", "error", err)
+	if err := s.Store.EnsureSchema(ctx); err != nil {
+		slog.Error("ETL_ERROR: Failed to ensure database schema", "error", err)
 		http.Error(w, "Failed to ensure database schema", 500)
 		syncStatus = "failure"
 		syncErrorMessage = err.Error()
 		return
 	}
 
-	coll := s.getMongoCollection()
-	cursor, err := s.fetchIngestedDocuments(ctx, coll)
+	batchSize := int64(100)
+	if envSize := os.Getenv("BATCH_SIZE"); envSize != "" {
+		if val, err := strconv.ParseInt(envSize, 10, 64); err == nil && val > 0 {
+			batchSize = val
+		}
+	}
+
+	docs, err := s.MongoStore.FetchIngestedArticles(ctx, batchSize)
 	if err != nil {
 		slog.Error("ETL_ERROR: Failed to query Mongo", "error", err)
 		http.Error(w, "Failed to query Mongo", 500)
@@ -49,9 +59,23 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 		syncErrorMessage = err.Error()
 		return
 	}
-	defer cursor.Close(ctx)
 
-	processedCount = s.processDocuments(ctx, cursor, coll)
+	for _, doc := range docs {
+		payloadJSON, _ := json.Marshal(doc.Payload)
+		metaJSON, _ := json.Marshal(doc.Meta)
+
+		err := s.Store.InsertReadingAnalytics(ctx, doc.ID, doc.Timestamp, doc.Source, doc.Type, payloadJSON, metaJSON)
+		if err != nil {
+			slog.Error("ETL_ERROR: Failed to insert into Postgres", "id", doc.ID, "error", err)
+			continue
+		}
+
+		if err := s.MongoStore.MarkArticleAsProcessed(ctx, doc.ID); err != nil {
+			slog.Warn("ETL_WARN: Failed to update Mongo status", "id", doc.ID, "error", err)
+		} else {
+			processedCount++
+		}
+	}
 
 	res := map[string]interface{}{
 		"service":         "reading-sync",
@@ -65,103 +89,4 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(res)
-}
-
-func (s *ReadingService) recordSyncHistory(ctx context.Context, startTime, endTime time.Time, status string, processedCount int, errorMessage string) {
-	_, err := s.DB.ExecContext(ctx,
-		`INSERT INTO reading_sync_history (start_time, end_time, status, processed_count, error_message)
-		VALUES ($1, $2, $3, $4, $5)`,
-		startTime, endTime, status, processedCount, errorMessage,
-	)
-	if err != nil {
-		slog.Error("ETL_ERROR: Failed to record sync history", "error", err)
-	}
-}
-
-func (s *ReadingService) ensureReadingAnalyticsTable() error {
-	_, err := s.DB.Exec(`CREATE TABLE IF NOT EXISTS reading_analytics (
-		id SERIAL PRIMARY KEY,
-		mongo_id TEXT UNIQUE NOT NULL,
-		event_timestamp TIMESTAMPTZ,
-		source TEXT,
-		event_type TEXT,
-		payload JSONB,
-		meta JSONB,
-		created_at TIMESTAMPTZ DEFAULT NOW()
-	)`)
-	return err
-}
-
-func (s *ReadingService) getMongoCollection() *mongo.Collection {
-	dbName := "reading-analytics"
-	collection := "articles"
-	return s.MongoClient.Database(dbName).Collection(collection)
-}
-
-func (s *ReadingService) fetchIngestedDocuments(ctx context.Context, coll *mongo.Collection) (*mongo.Cursor, error) {
-	filter := bson.M{"status": "ingested"}
-
-	batchSize := 100 // Default
-	if envSize := os.Getenv("BATCH_SIZE"); envSize != "" {
-		if val, err := strconv.Atoi(envSize); err == nil && val > 0 {
-			batchSize = val
-		}
-	}
-
-	opts := options.Find().SetLimit(int64(batchSize))
-	return coll.Find(ctx, filter, opts)
-}
-
-func (s *ReadingService) processDocuments(ctx context.Context, cursor *mongo.Cursor, coll *mongo.Collection) int {
-	processedCount := 0
-
-	for cursor.Next(ctx) {
-		var doc bson.M
-		if err := cursor.Decode(&doc); err != nil {
-			slog.Warn("ETL_WARN: Failed to decode document", "error", err)
-			continue
-		}
-
-		objID, ok := doc["_id"].(primitive.ObjectID)
-		if !ok {
-			slog.Warn("ETL_WARN: Document missing ObjectID")
-			continue
-		}
-
-		if err := s.insertIntoPostgres(doc, objID); err != nil {
-			slog.Error("ETL_ERROR: Failed to insert into Postgres", "id", objID.Hex(), "error", err)
-			continue
-		}
-
-		if err := s.updateMongoStatus(ctx, coll, objID); err != nil {
-			slog.Warn("ETL_WARN: Failed to update Mongo status", "id", objID.Hex(), "error", err)
-		} else {
-			processedCount++
-		}
-	}
-
-	return processedCount
-}
-
-func (s *ReadingService) insertIntoPostgres(doc bson.M, objID primitive.ObjectID) error {
-	eventType, _ := doc["event_type"].(string)
-	source, _ := doc["source"].(string)
-	timestamp := doc["timestamp"]
-
-	payloadJSON, _ := json.Marshal(doc["payload"])
-	metaJSON, _ := json.Marshal(doc["meta"])
-
-	_, err := s.DB.Exec(
-		`INSERT INTO reading_analytics (mongo_id, event_timestamp, source, event_type, payload, meta, created_at) 
-		 VALUES ($1, $2, $3, $4, $5, $6, NOW())
-		 ON CONFLICT (mongo_id) DO NOTHING`,
-		objID.Hex(), timestamp, source, eventType, payloadJSON, metaJSON,
-	)
-	return err
-}
-
-func (s *ReadingService) updateMongoStatus(ctx context.Context, coll *mongo.Collection, objID primitive.ObjectID) error {
-	update := bson.M{"$set": bson.M{"status": "processed"}}
-	_, err := coll.UpdateOne(ctx, bson.M{"_id": objID}, update)
-	return err
 }

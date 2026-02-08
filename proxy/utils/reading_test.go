@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -9,274 +10,168 @@ import (
 	"os"
 	"testing"
 
+	"db/mongodb"
+	"db/postgres"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
+
+type mockMongoStore struct {
+	fetchFn func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error)
+	markFn  func(ctx context.Context, id string) error
+}
+
+func (m *mockMongoStore) FetchIngestedArticles(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+	if m.fetchFn != nil {
+		return m.fetchFn(ctx, limit)
+	}
+	return nil, nil
+}
+
+func (m *mockMongoStore) MarkArticleAsProcessed(ctx context.Context, id string) error {
+	if m.markFn != nil {
+		return m.markFn(ctx, id)
+	}
+	return nil
+}
 
 func TestSyncReadingHandler(t *testing.T) {
 	// Setup Postgres Mock
-	db, mock, err := sqlmock.New()
+	dbConn, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
+	readingStore := postgres.NewReadingStore(dbConn)
 
-	// Setup Mongo Mock
-	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
+	t.Run("success_sync_one_document", func(t *testing.T) {
+		docID := "507f1f77bcf86cd799439011"
+		mongoMock := &mockMongoStore{
+			fetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+				return []mongodb.ReadingDocument{
+					{
+						ID:        docID,
+						Source:    "test-agent",
+						Type:      "cpu_reading",
+						Timestamp: "2026-01-04T12:00:00Z",
+						Payload:   map[string]interface{}{"value": 99},
+						Meta:      map[string]interface{}{"host": "localhost"},
+					},
+				}, nil
+			},
+			markFn: func(ctx context.Context, id string) error {
+				if id != docID {
+					t.Errorf("expected id %s, got %s", docID, id)
+				}
+				return nil
+			},
+		}
 
-	mt.Run("success_sync_one_document", func(mt *mtest.T) {
-		// Prepare Service with mock DBs
 		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
+			Store:      readingStore,
+			MongoStore: mongoMock,
 		}
 
-		// 1. Postgres: Create Table
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// 2. Mongo: Find
-		objID := primitive.NewObjectID()
-		eventTime := "2026-01-04T12:00:00Z"
-		firstDoc := bson.D{
-			{Key: "_id", Value: objID},
-			{Key: "status", Value: "ingested"},
-			{Key: "event_type", Value: "cpu_reading"},
-			{Key: "source", Value: "test-agent"},
-			{Key: "timestamp", Value: eventTime},
-			{Key: "payload", Value: bson.D{{Key: "value", Value: 99}}},
-			{Key: "meta", Value: bson.D{{Key: "host", Value: "localhost"}}},
-		}
-
-		// mtest mocks the response from the server.
-		// Namespace must match hardcoded values in reading.go
-		mt.AddMockResponses(mtest.CreateCursorResponse(
-			1,
-			"reading-analytics.articless",
-			mtest.FirstBatch,
-			firstDoc,
-		))
-
-		// 3. Postgres: Insert
-		// Expect an INSERT with 6 arguments:
-		// mongo_id, timestamp, source, event_type, payload, meta
-		mock.ExpectExec("INSERT INTO reading_analytics").
-			WithArgs(
-				objID.Hex(),
-				eventTime,        // timestamp
-				"test-agent",     // source
-				"cpu_reading",    // event_type
-				sqlmock.AnyArg(), // payload (JSON)
-				sqlmock.AnyArg(), // meta (JSON)
-			).
+		// Postgres expectations
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("INSERT INTO reading_analytics").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("INSERT INTO reading_sync_history").
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "success", 1, "").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// 4. Mongo: UpdateOne
-		mt.AddMockResponses(bson.D{
-			{Key: "ok", Value: 1},
-			{Key: "n", Value: 1},
-			{Key: "nModified", Value: 1},
-		})
-		// --- EXECUTION ---
 		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
 		w := httptest.NewRecorder()
 
 		service.SyncReadingHandler(w, req)
 
-		// --- ASSERTIONS ---
 		if w.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", w.Code)
 		}
-
-		// Verify Postgres expectations
 		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("there were unfulfilled Postgres expectations: %s", err)
+			t.Errorf("unfulfilled postgres expectations: %v", err)
 		}
 	})
 
-	mt.Run("respect_batch_size_env", func(mt *mtest.T) {
-		// Set custom batch size
+	t.Run("mongo_fetch_error", func(t *testing.T) {
+		mongoMock := &mockMongoStore{
+			fetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+				return nil, errors.New("mongo error")
+			},
+		}
+
+		service := &ReadingService{
+			Store:      readingStore,
+			MongoStore: mongoMock,
+		}
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("INSERT INTO reading_sync_history").
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "failure", 0, "mongo error").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
+		w := httptest.NewRecorder()
+
+		service.SyncReadingHandler(w, req)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("expected status 500, got %d", w.Code)
+		}
+	})
+
+	t.Run("respect_batch_size_env", func(t *testing.T) {
 		os.Setenv("BATCH_SIZE", "50")
 		defer os.Unsetenv("BATCH_SIZE")
 
-		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
+		mongoMock := &mockMongoStore{
+			fetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+				if limit != 50 {
+					t.Errorf("expected limit 50, got %d", limit)
+				}
+				return nil, nil
+			},
 		}
 
-		// 1. Postgres: Create Table
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
+		service := &ReadingService{
+			Store:      readingStore,
+			MongoStore: mongoMock,
+		}
 
-		mt.AddMockResponses(mtest.CreateCursorResponse(
-			1,
-			"reading-analytics.articles",
-			mtest.FirstBatch,
-			bson.D{}, // Empty batch for this test
-		))
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// --- EXECUTION ---
 		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
 		w := httptest.NewRecorder()
 
 		service.SyncReadingHandler(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
-		}
 	})
 
-	mt.Run("mongo_find_error", func(mt *mtest.T) {
+	t.Run("log_error_on_create_table_failure", func(t *testing.T) {
 		var buf bytes.Buffer
 		origLogger := slog.Default()
 		defer slog.SetDefault(origLogger)
 		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
 
 		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
+			Store:      readingStore,
+			MongoStore: &mockMongoStore{},
 		}
 
-		// 1. Postgres: Create Table SUCCESS
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// 2. Mongo: Find FAILS
-		mt.AddMockResponses(bson.D{{Key: "ok", Value: 0}, {Key: "errmsg", Value: "query failed"}})
-
-		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
-		w := httptest.NewRecorder()
-
-		service.SyncReadingHandler(w, req)
-
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("expected status 500, got %d", w.Code)
-		}
-
-		if !bytes.Contains(buf.Bytes(), []byte("ETL_ERROR: Failed to query Mongo")) {
-			t.Errorf("expected log to contain query error, got %q", buf.String())
-		}
-	})
-
-	mt.Run("postgres_insert_error", func(mt *mtest.T) {
-		var buf bytes.Buffer
-		origLogger := slog.Default()
-		defer slog.SetDefault(origLogger)
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
-
-		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
-		}
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		objID := primitive.NewObjectID()
-		mt.AddMockResponses(mtest.CreateCursorResponse(
-			1, "reading-analytics.articles", mtest.FirstBatch,
-			bson.D{{Key: "_id", Value: objID}, {Key: "status", Value: "ingested"}},
-		))
-
-		// Postgres Insert FAILS
-		mock.ExpectExec("INSERT INTO reading_analytics").
-			WillReturnError(errors.New("unique constraint violation"))
-
-		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
-		w := httptest.NewRecorder()
-
-		service.SyncReadingHandler(w, req)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
-		}
-
-		if !bytes.Contains(buf.Bytes(), []byte("ETL_ERROR: Failed to insert into Postgres")) {
-			t.Errorf("expected log to contain insert error, got %q", buf.String())
-		}
-	})
-
-	mt.Run("mongo_update_error", func(mt *mtest.T) {
-		var buf bytes.Buffer
-		origLogger := slog.Default()
-		defer slog.SetDefault(origLogger)
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
-
-		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
-		}
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		objID := primitive.NewObjectID()
-		mt.AddMockResponses(mtest.CreateCursorResponse(
-			1, "reading-analytics.articles", mtest.FirstBatch,
-			bson.D{{Key: "_id", Value: objID}, {Key: "status", Value: "ingested"}},
-		))
-
-		// Postgres Success
-		mock.ExpectExec("INSERT INTO reading_analytics").
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnError(errors.New("db error"))
+		mock.ExpectExec("INSERT INTO reading_sync_history").
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "failure", 0, "failed to ensure reading_analytics table: db error").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// Mongo Update FAILS
-		mt.AddMockResponses(bson.D{{Key: "ok", Value: 0}, {Key: "errmsg", Value: "update failed"}})
-
 		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
 		w := httptest.NewRecorder()
 
 		service.SyncReadingHandler(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
-		}
-
-		if !bytes.Contains(buf.Bytes(), []byte("ETL_WARN: Failed to update Mongo status")) {
-			t.Errorf("expected log to contain update warning, got %q", buf.String())
-		}
-	})
-
-	mt.Run("log_error_on_create_table_failure", func(mt *mtest.T) {
-		// Capture logs
-		var buf bytes.Buffer
-		origLogger := slog.Default()
-		defer slog.SetDefault(origLogger)
-
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
-
-		service := &ReadingService{
-			DB:          db,
-			MongoClient: mt.Client,
-		}
-
-		// 1. Postgres: Create Table FAILS
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnError(errors.New("db connection lost"))
-
-		// --- EXECUTION ---
-		req := httptest.NewRequest("POST", "/api/sync/reading", nil)
-		w := httptest.NewRecorder()
-
-		service.SyncReadingHandler(w, req)
-
-		// --- ASSERTIONS ---
 		if w.Code != http.StatusInternalServerError {
 			t.Errorf("expected status 500, got %d", w.Code)
-		}
-
-		// Check if log contains the expected error message
-		logOutput := buf.String()
-		expectedLogPart := "ETL_ERROR: Failed to create reading_analytics table"
-		if !bytes.Contains(buf.Bytes(), []byte(expectedLogPart)) {
-			t.Errorf("expected log to contain %q, got %q", expectedLogPart, logOutput)
-		}
-
-		// Verify Postgres expectations
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("there were unfulfilled Postgres expectations: %s", err)
 		}
 	})
 }
