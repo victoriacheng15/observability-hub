@@ -37,7 +37,7 @@ var tagsMap = map[string][]string{
 	"kubernetes":    {"k3s", "pod", "pvc", "statefulset", "daemonset", "kubectl", "helm", "k8s"},
 	"database":      {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql", "mongodb", "database", "db"},
 	"devops":        {"github actions", "gitops", "reconciliation", "ci-cd", "docker", "terraform", "nix", "shell.nix"},
-	"career-growth": {"impostor syndrome", "growth", "senior", "leadership", "reflection", "mentorship", "career"},
+	"career-growth": {"impostor syndrome", "growth", "senior", "leadership", "reflection", "mentorship", "career", "brag", "win", "impact"},
 	"platform":      {"openbao", "tailscale", "security", "infrastructure", "zero-trust", "secrets", "bao"},
 	"language":      {"go", "golang", "python", "rust", "typescript", "javascript", "bash", "shell"},
 	"linux":         {"linux", "systemd", "kernel", "gpu", "psu", "hardware", "cpu", "memory", "nixos"},

@@ -8,11 +8,26 @@ The **Second Brain** is a knowledge ingestion layer that synchronizes personal r
 - **Source**: GitHub Issues (labeled `journal`)
 - **Sync Tool**: `second-brain/` (Go module)
 - **Journaling Format**: Uses strict singular PARA headers for categorization:
-  - `## Project`: Active efforts with a deadline.
-  - `## Area`: Ongoing responsibilities.
-  - `## Resource`: Interests or reference material.
-  - `## Archive`: Completed or inactive items.
-  - `## Thought`: Fallback for general reflections (Ingested as `resource`).
+  - `## Project`:
+    - **Definition**: Active efforts with a specific goal and a fixed deadline.
+    - **Context**: "Build the k3s migration script" or "Complete the OpenBao integration."
+    - **System Behavior**: Categorized as `project`. High priority for semantic retrieval as these represent current active work.
+  - `## Area`:
+    - **Definition**: A sphere of responsibility with a standard to be maintained over time, but no fixed end date.
+    - **Context**: **Brag Docs (Career Growth)**, Health, Finances, or "Observability Hub Maintenance."
+    - **System Behavior**: Categorized as `area`. Represents long-term history and evolution; used to track continuous impact.
+  - `## Resource`:
+    - **Definition**: A topic of ongoing interest or a library of useful information for future reference.
+    - **Context**: "PostGIS SQL snippets," "Rust memory safety notes," or "Cool CSS patterns."
+    - **System Behavior**: Categorized as `resource`. Acts as the static knowledge library of the brain.
+  - `## Archive`:
+    - **Definition**: Items from the other three categories that are no longer active or relevant.
+    - **Context**: Completed projects from previous years or inactive research topics.
+    - **System Behavior**: Categorized as `archive`. Stored for historical completeness but deprioritized in standard RAG search results.
+  - `## Thought`:
+    - **Definition**: General reflections, shower thoughts, or internal monologues that don't fit a specific actionable category yet.
+    - **Context**: "Reflections on AI agent workflows" or "Mental check-in after a heavy sprint."
+    - **System Behavior**: Ingested as `resource`. Treats reflections as reference material for future semantic connection.
 
 ---
 
