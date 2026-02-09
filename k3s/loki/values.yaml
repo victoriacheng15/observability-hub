@@ -28,7 +28,7 @@ singleBinary:
       memory: 256Mi
     limits:
       cpu: 300m
-      memory: 1Gi
+      memory: 768Mi
 
 # Explicitly disable scalable components in SingleBinary mode
 backend:

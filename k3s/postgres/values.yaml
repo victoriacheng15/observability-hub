@@ -26,7 +26,7 @@ primary:
       memory: 512Mi
     limits:
       cpu: 500m
-      memory: 1Gi
+      memory: 768Mi
   persistence:
     enabled: true
     storageClass: local-path
