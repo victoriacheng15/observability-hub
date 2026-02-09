@@ -178,4 +178,4 @@ chapters:
       - date: "2026-02-09"
         title: "Incident & RCA Framework"
         description: |
-          - Established a formal Incident and Root Cause Analysis (RCA) framework with standardized templates and severity classification to document and learn from system failures.
+          - Introduced a lightweight 'docs/incidents' template to capture what happened, how it was debugged, and the RCA for future reference.
