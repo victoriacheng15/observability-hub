@@ -8,7 +8,7 @@ This directory contains the **Root Cause Analysis (RCA)** and post-mortem report
 
 | RCA | Date | Title | Severity | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **001** | YYYY-MM-DD | [Example Incident](./001-example-incident.md) | 🔴 High | ✅ Resolved |
+| **001** | 2026-02-09 | [Grafana Dashboard Provisioning Failure](./001-grafana-dashboard-provisioning-failure.md) | 🟡 Medium | ✅ Resolved |
 
 ---
 

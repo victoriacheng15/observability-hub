@@ -31,6 +31,8 @@ help:
 	@echo ""
 	@echo "Kubernetes Tier (k3s):"
 	@echo "  make k3s-status         - Show K3s namespace status"
+	@echo "  make k3s-df             - Check cluster image disk usage"
+	@echo "  make k3s-prune          - Cleanup unused images and ghost pods"
 	@echo "  make k3s-alloy-up       - Deploy/Restart Alloy"
 	@echo "  make k3s-loki-up        - Deploy/Restart Loki"
 	@echo "  make k3s-grafana-up     - Deploy/Restart Grafana"
