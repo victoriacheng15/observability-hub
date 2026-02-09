@@ -12,6 +12,29 @@ datasources:
         url: http://loki-gateway.observability:80
         access: proxy
         isDefault: true
+      - name: PostgreSQL
+        type: postgres
+        url: postgres-postgresql.observability.svc.cluster.local:5432
+        database: homelab
+        user: server
+        jsonData:
+          sslmode: 'disable'
+          postgresVersion: 1700
+        secureJsonData:
+          password: ${POSTGRES_PASSWORD}
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: false
+      options:
+        path: /var/lib/grafana/dashboards
 
 service:
   type: NodePort
@@ -34,3 +57,19 @@ grafana.ini:
   analytics:
     reporting_enabled: false
   check_for_updates: false
+
+extraVolumes:
+  - name: grafana-dashboards
+    configMap:
+      name: grafana-dashboards
+
+extraVolumeMounts:
+  - name: grafana-dashboards
+    mountPath: /var/lib/grafana/dashboards
+
+extraEnv:
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-secret
+        key: server-db-password

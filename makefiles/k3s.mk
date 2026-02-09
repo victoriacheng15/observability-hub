@@ -1,6 +1,18 @@
 # K3s Orchestration & Migration
 
-.PHONY: k3s-alloy-up k3s-loki-up k3s-status k3s-logs-% k3s-backup-%
+.PHONY: k3s-alloy-up k3s-loki-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-%
+
+# Maintenance
+k3s-df:
+	@echo "Checking K3s Container Images Usage..."
+	@sudo k3s crictl images
+
+k3s-prune:
+	@echo "Pruning unused K3s images..."
+	@sudo k3s crictl rmi --prune
+	@echo "Deleting completed/failed pods across all namespaces..."
+	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Succeeded' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
+	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Failed' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
 
 # Apply manifests and rollout restart
 k3s-alloy-up:
@@ -15,6 +27,7 @@ k3s-loki-up:
 
 k3s-grafana-up:
 	@echo "Deploying Grafana..."
+	@$(KC) create configmap grafana-dashboards --namespace $(NS) --from-file=k3s/grafana/dashboards/ --dry-run=client -o yaml | $(KC) apply -f -
 	@$(KC) apply -f k3s/grafana/manifest.yaml
 	@$(KC) rollout restart deployment/grafana
 

@@ -177,5 +177,9 @@ chapters:
           - Deployed the OpenTelemetry Collector as a standalone deployment in the k3s cluster.
       - date: "2026-02-09"
         title: "Incident & RCA Framework"
+        artifacts:
+          - name: "RCA 001: Grafana Provisioning Failure"
+            url: "docs/incidents/001-grafana-dashboard-provisioning-failure.md"
         description: |
           - Introduced a lightweight 'docs/incidents' template to capture what happened, how it was debugged, and the RCA for future reference.
+          - Resolved the first incident by migrating to a 'JSON-from-file' for Grafana dashboard provisioning.
