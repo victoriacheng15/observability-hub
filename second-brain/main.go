@@ -179,7 +179,7 @@ func atomize(date, body string) []AtomicThought {
 	flush := func() {
 		if len(currentBlocks) > 0 {
 			text := strings.TrimSpace(strings.Join(currentBlocks, "\n"))
-			if text == "" {
+			if text == "" || text == "-" || text == "*" {
 				return
 			}
 			tags := getTags(text)
