@@ -56,6 +56,6 @@ Standardize the platform on **OpenTelemetry (OTel)** as the primary telemetry fr
 ## Verification
 
 - [x] **Gateway Setup**: OpenTelemetry Collector running in k3s and verified accepting OTLP/HTTP payloads.
-- [ ] **Storage Foundation**: MinIO and Grafana Tempo deployed and verified as persistent trace sinks.
+- [x] **Storage Foundation**: Grafana Tempo deployed and verified as a persistent trace sink using local storage.
 - [ ] **Service Instrumentation**: `system-metrics` and `proxy` updated to emit telemetry via OTel SDKs.
 - [ ] **Operationalization**: Prometheus scraping the Collector and Grafana visualizing metrics and traces from new sources.
