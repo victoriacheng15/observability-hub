@@ -1,6 +1,6 @@
 # K3s Orchestration & Migration
 
-.PHONY: k3s-alloy-up k3s-loki-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-%
+.PHONY: k3s-alloy-up k3s-loki-up k3s-tempo-up k3s-opentelemetry-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-%
 
 # Maintenance
 k3s-df:
@@ -24,6 +24,16 @@ k3s-loki-up:
 	@echo "Deploying Loki..."
 	@$(KC) apply -f k3s/loki/manifest.yaml
 	@$(KC) rollout restart statefulset/loki
+
+k3s-tempo-up:
+	@echo "Deploying Tempo..."
+	@$(KC) apply -f k3s/tempo/manifest.yaml
+	@$(KC) rollout restart statefulset/tempo
+
+k3s-opentelemetry-up:
+	@echo "Deploying OpenTelemetry Collector..."
+	@$(KC) apply -f k3s/opentelemetry/manifest.yaml
+	@$(KC) rollout restart deployment/opentelemetry
 
 k3s-grafana-up:
 	@echo "Deploying Grafana..."

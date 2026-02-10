@@ -9,15 +9,25 @@ datasources:
     datasources:
       - name: Loki
         type: loki
+        uid: loki-provisioned
         url: http://loki-gateway.observability:80
         access: proxy
         isDefault: true
+      - name: Tempo
+        type: tempo
+        uid: tempo-provisioned
+        url: http://tempo.observability:3200
+        access: proxy
+        jsonData:
+          httpMethod: GET
       - name: PostgreSQL
         type: postgres
-        url: postgres-postgresql.observability.svc.cluster.local:5432
+        uid: postgresql-provisioned
+        url: postgres-postgresql.observability:5432
         database: homelab
         user: server
         jsonData:
+          database: homelab
           sslmode: 'disable'
           postgresVersion: 1700
         secureJsonData:
@@ -67,9 +77,8 @@ extraVolumeMounts:
   - name: grafana-dashboards
     mountPath: /var/lib/grafana/dashboards
 
-extraEnv:
-  - name: POSTGRES_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: postgres-secret
-        key: server-db-password
+envValueFrom:
+  POSTGRES_PASSWORD:
+    secretKeyRef:
+      name: postgres-secret
+      key: server-db-password

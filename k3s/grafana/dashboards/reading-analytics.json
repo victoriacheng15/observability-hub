@@ -45,7 +45,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "cfcrbgdzk0cn4a"
+        "uid": "postgresql-provisioned"
       },
       "description": "Group articles by day and stack them by source.",
       "fieldConfig": {
@@ -136,7 +136,6 @@
       "pluginVersion": "12.4.0-19943009318",
       "targets": [
         {
-          "dataset": "homelab",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -167,7 +166,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "cfcrbgdzk0cn4a"
+        "uid": "postgresql-provisioned"
       },
       "fieldConfig": {
         "defaults": {
@@ -244,7 +243,6 @@
       "pluginVersion": "12.4.0-19943009318",
       "targets": [
         {
-          "dataset": "homelab",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -275,7 +273,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "cfcrbgdzk0cn4a"
+        "uid": "postgresql-provisioned"
       },
       "fieldConfig": {
         "defaults": {
@@ -323,7 +321,6 @@
       "pluginVersion": "12.4.0-19943009318",
       "targets": [
         {
-          "dataset": "homelab",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -354,7 +351,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "cfcrbgdzk0cn4a"
+        "uid": "postgresql-provisioned"
       },
       "description": "Identify if a domain has stopped sending data.",
       "fieldConfig": {
@@ -426,10 +423,9 @@
       "pluginVersion": "12.4.0-19943009318",
       "targets": [
         {
-          "dataset": "homelab",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "cfcrbgdzk0cn4a"
+            "uid": "postgresql-provisioned"
           },
           "editorMode": "code",
           "format": "table",

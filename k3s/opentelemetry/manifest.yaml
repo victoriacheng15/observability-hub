@@ -6,10 +6,10 @@ metadata:
   name: opentelemetry
   namespace: observability
   labels:
-    helm.sh/chart: opentelemetry-collector-0.144.0
+    helm.sh/chart: opentelemetry-collector-0.145.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: opentelemetry
-    app.kubernetes.io/version: "0.144.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: opentelemetry-collector
     app.kubernetes.io/component: standalone-collector
@@ -21,10 +21,10 @@ metadata:
   name: opentelemetry
   namespace: observability
   labels:
-    helm.sh/chart: opentelemetry-collector-0.144.0
+    helm.sh/chart: opentelemetry-collector-0.145.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: opentelemetry
-    app.kubernetes.io/version: "0.144.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: opentelemetry-collector
     app.kubernetes.io/component: standalone-collector
@@ -33,6 +33,10 @@ data:
     exporters:
       logging:
         loglevel: debug
+      otlp:
+        endpoint: tempo.observability:4317
+        tls:
+          insecure: true
     extensions:
       health_check: {}
     processors:
@@ -62,6 +66,7 @@ data:
           - otlp
         traces:
           exporters:
+          - otlp
           - logging
           processors:
           - batch
@@ -75,10 +80,10 @@ metadata:
   name: opentelemetry
   namespace: observability
   labels:
-    helm.sh/chart: opentelemetry-collector-0.144.0
+    helm.sh/chart: opentelemetry-collector-0.145.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: opentelemetry
-    app.kubernetes.io/version: "0.144.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: opentelemetry-collector
     app.kubernetes.io/component: standalone-collector
@@ -125,10 +130,10 @@ metadata:
   name: opentelemetry
   namespace: observability
   labels:
-    helm.sh/chart: opentelemetry-collector-0.144.0
+    helm.sh/chart: opentelemetry-collector-0.145.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: opentelemetry
-    app.kubernetes.io/version: "0.144.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: opentelemetry-collector
     app.kubernetes.io/component: standalone-collector
@@ -145,7 +150,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: b59a40d7b6dd3670ddea934b42bfa6681e2e7112061c90fbc90980f1e3908e60
+        checksum/config: 70d798f7c32368fec594c1f84e660dd8686dc788a1996ded30285cba001a0156
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector

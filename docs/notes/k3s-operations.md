@@ -64,6 +64,18 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment opentelemetry-opentelemetry-collector -n observability
   ```
 
+### 6. Grafana Tempo (Trace Store)
+
+- **Manifest**: `k3s/tempo/manifest.yaml`
+- **Values**: `k3s/tempo/values.yaml`
+- **Update Command**:
+
+  ```bash
+  nix-shell --run "helm template tempo grafana/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
+  kubectl apply -f k3s/tempo/manifest.yaml
+  kubectl rollout restart statefulset tempo -n observability
+  ```
+
 ---
 
 ## 🖼️ Local Image Sideloading

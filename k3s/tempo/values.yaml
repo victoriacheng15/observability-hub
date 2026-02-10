@@ -1,0 +1,38 @@
+tempo:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+
+  # Enable OTLP ingestion by default
+  # This matches OTel Collector's expected export format
+  ingestion:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+# Single binary mode for simplified homelab deployment
+# Similar to Loki's setup in this cluster
+replicas: 1
+
+# Disable multitenancy for homelab simplicity
+multitenancy_enabled: false
