@@ -176,10 +176,15 @@ chapters:
         description: |
           - Deployed the OpenTelemetry Collector as a standalone deployment in the k3s cluster.
       - date: "2026-02-09"
-        title: "Incident & RCA Framework"
+        title: "Incident & Root Cause Analysis (RCA) Framework"
         artifacts:
           - name: "RCA 001: Grafana Provisioning Failure"
             url: "docs/incidents/001-grafana-dashboard-provisioning-failure.md"
         description: |
-          - Introduced a lightweight 'docs/incidents' template to capture what happened, how it was debugged, and the RCA for future reference.
+          - Introduced a lightweight 'docs/incidents' template to capture what happened, how it was debugged, and the Root Cause Analysis (RCA) for future reference.
           - Resolved the first incident by migrating to a 'JSON-from-file' for Grafana dashboard provisioning.
+      - date: "2026-02-10"
+        title: "Phase 2 Complete: Grafana Tempo"
+        description: |
+          - Deployed Grafana Tempo in single-binary mode for distributed trace storage.
+          - Integrated OTel Collector with Tempo via OTLP/gRPC for end-to-end trace propagation.
