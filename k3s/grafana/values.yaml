@@ -20,6 +20,25 @@ datasources:
         access: proxy
         jsonData:
           httpMethod: GET
+          tracesToLogsV2:
+            datasourceUid: 'loki-provisioned'
+            groupFilterRegex: ''
+            filterByTraceId: false
+            filterBySpanId: false
+            noResultPolicy: 'hide'
+          tracesToMetrics:
+            datasourceUid: 'prometheus-provisioned'
+            spanAttributes: [service.name, http.status_code]
+          serviceMap:
+            datasourceUid: 'prometheus-provisioned'
+          search:
+            hide: false
+          traceql:
+            hide: false
+          nodeGraph:
+            enabled: true
+          lokiSearch:
+            datasourceUid: 'loki-provisioned'
       - name: Prometheus
         type: prometheus
         uid: prometheus-provisioned

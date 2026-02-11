@@ -10,11 +10,13 @@ import (
 	"db/mongodb"
 	"db/postgres"
 	"logger"
+	"proxy/telemetry"
 	"proxy/utils"
 	"secrets"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type App struct {
@@ -52,27 +54,40 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 
-	// 1. Secrets
+	// 1. Telemetry (gracefully degrades if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
+	shutdownTracer, err := telemetry.Init(ctx)
+	if err != nil {
+		slog.Warn("otel_init_failed, continuing without tracing", "error", err)
+	}
+	defer func() {
+		if shutdownTracer != nil {
+			if err := shutdownTracer(ctx); err != nil {
+				slog.Error("otel_shutdown_failed", "error", err)
+			}
+		}
+	}()
+
+	// 2. Secrets
 	secretStore, err := a.SecretProviderFn()
 	if err != nil {
 		return fmt.Errorf("secret_provider_init_failed: %w", err)
 	}
 
-	// 2. Postgres
+	// 3. Postgres
 	readingStore, err := a.PostgresConnFn("postgres", secretStore)
 	if err != nil {
 		return fmt.Errorf("db_connection_failed (postgres): %w", err)
 	}
 	slog.Info("db_connected", "database", "postgres")
 
-	// 3. Mongo
+	// 4. Mongo
 	mongoStore, err := a.MongoConnFn(secretStore)
 	if err != nil {
 		return fmt.Errorf("db_connection_failed (mongodb): %w", err)
 	}
 	slog.Info("db_connected", "database", "mongodb")
 
-	// 4. Reading Service
+	// 5. Reading Service
 	readingService := &utils.ReadingService{
 		Store:      readingStore,
 		MongoStore: mongoStore,
@@ -83,10 +98,14 @@ func (a *App) Bootstrap(ctx context.Context) error {
 		port = "8085"
 	}
 
-	http.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
-	http.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
-	http.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
-	http.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
+	// 6. Routes with OTel-instrumented mux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
+	mux.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
+	mux.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
+	mux.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
+
+	handler := otelhttp.NewHandler(mux, "proxy")
 
 	slog.Info("🚀 The GO proxy listening on port", "port", port)
 
@@ -94,6 +113,6 @@ func (a *App) Bootstrap(ctx context.Context) error {
 		return nil
 	}
 
-	a.server = &http.Server{Addr: ":" + port}
+	a.server = &http.Server{Addr: ":" + port, Handler: handler}
 	return a.server.ListenAndServe()
 }

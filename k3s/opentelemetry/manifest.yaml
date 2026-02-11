@@ -92,7 +92,7 @@ metadata:
     app.kubernetes.io/component: standalone-collector
     component: standalone-collector
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
     
     - name: jaeger-compact
@@ -116,10 +116,12 @@ spec:
       targetPort: 4317
       protocol: TCP
       appProtocol: grpc
+      nodePort: 30317
     - name: otlp-http
       port: 4318
       targetPort: 4318
       protocol: TCP
+      nodePort: 30318
     - name: zipkin
       port: 9411
       targetPort: 9411
