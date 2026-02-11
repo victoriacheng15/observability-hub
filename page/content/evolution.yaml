@@ -188,3 +188,8 @@ chapters:
         description: |
           - Deployed Grafana Tempo in single-binary mode for distributed trace storage.
           - Integrated OTel Collector with Tempo via OTLP/gRPC for end-to-end trace propagation.
+      - date: "2026-02-11"
+        title: "Phase 3 Complete: Prometheus"
+        description: |
+          - Deployed Prometheus for operational metrics storage with lean retention policies.
+          - Integrated with OpenTelemetry Collector to ingest internal metrics and established connectivity with Grafana as a provisioned data source.

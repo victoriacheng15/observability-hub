@@ -36,6 +36,9 @@ alternateConfig:
     logging:
       loglevel: debug
   service:
+    telemetry:
+      metrics:
+        address: 0.0.0.0:8888
     extensions: [health_check] # Ensure health_check is used
     pipelines:
       traces:
@@ -59,3 +62,8 @@ ports:
   otlp-http:
     enabled: true
     servicePort: 4318
+  metrics:
+    enabled: true
+    containerPort: 8888
+    servicePort: 8888
+    protocol: TCP

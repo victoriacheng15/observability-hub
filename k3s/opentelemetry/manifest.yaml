@@ -72,6 +72,9 @@ data:
           - batch
           receivers:
           - otlp
+      telemetry:
+        metrics:
+          address: 0.0.0.0:8888
 ---
 # Source: opentelemetry-collector/templates/service.yaml
 apiVersion: v1
@@ -103,6 +106,10 @@ spec:
     - name: jaeger-thrift
       port: 14268
       targetPort: 14268
+      protocol: TCP
+    - name: metrics
+      port: 8888
+      targetPort: 8888
       protocol: TCP
     - name: otlp
       port: 4317
@@ -150,7 +157,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 70d798f7c32368fec594c1f84e660dd8686dc788a1996ded30285cba001a0156
+        checksum/config: e7bcccfeeab663ebff2db857422a9341f248e7056084da5243d85af70f67af56
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -181,6 +188,9 @@ spec:
               protocol: TCP
             - name: jaeger-thrift
               containerPort: 14268
+              protocol: TCP
+            - name: metrics
+              containerPort: 8888
               protocol: TCP
             - name: otlp
               containerPort: 4317
