@@ -6,10 +6,10 @@ metadata:
   name: tempo
   namespace: observability
   labels:
-    helm.sh/chart: tempo-1.24.4
+    helm.sh/chart: tempo-1.26.1
     app.kubernetes.io/name: tempo
     app.kubernetes.io/instance: tempo
-    app.kubernetes.io/version: "2.9.0"
+    app.kubernetes.io/version: "2.10.0"
     app.kubernetes.io/managed-by: Helm
 automountServiceAccountToken: true
 ---
@@ -20,10 +20,10 @@ metadata:
   name: tempo
   namespace: observability
   labels:
-    helm.sh/chart: tempo-1.24.4
+    helm.sh/chart: tempo-1.26.1
     app.kubernetes.io/name: tempo
     app.kubernetes.io/instance: tempo
-    app.kubernetes.io/version: "2.9.0"
+    app.kubernetes.io/version: "2.10.0"
     app.kubernetes.io/managed-by: Helm
 data:
   overrides.yaml: |
@@ -40,41 +40,57 @@ data:
         block_retention: 24h
     distributor:
       receivers:
-            jaeger:
-              protocols:
-                grpc:
-                  endpoint: 0.0.0.0:14250
-                thrift_binary:
-                  endpoint: 0.0.0.0:6832
-                thrift_compact:
-                  endpoint: 0.0.0.0:6831
-                thrift_http:
-                  endpoint: 0.0.0.0:14268
-            opencensus: null
-            otlp:
-              protocols:
-                grpc:
-                  endpoint: 0.0.0.0:4317
-                http:
-                  endpoint: 0.0.0.0:4318
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:14250
+            thrift_binary:
+              endpoint: 0.0.0.0:6832
+            thrift_compact:
+              endpoint: 0.0.0.0:6831
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+      ring:
+        kvstore:
+          store: inmemory
     ingester:
-          {}
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+          cluster: k3s
+      storage:
+        path: /var/tempo/generator/wal
+        remote_write:
+          - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
+      ring:
+        kvstore:
+          store: inmemory
     server:
-          http_listen_port: 3200
+      http_listen_port: 3200
     storage:
-          trace:
-            backend: local
-            local:
-              path: /var/tempo/traces
-            wal:
-              path: /var/tempo/wal
-    querier:
-          {}
-    query_frontend:
-          {}
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+    querier: {}
+    query_frontend: {}
     overrides:
-          defaults: {}
-          per_tenant_override_config: /conf/overrides.yaml
+      defaults: {}
+      per_tenant_override_config: /conf/overrides.yaml
 ---
 # Source: tempo/templates/service.yaml
 apiVersion: v1
@@ -83,10 +99,10 @@ metadata:
   name: tempo
   namespace: observability
   labels:
-    helm.sh/chart: tempo-1.24.4
+    helm.sh/chart: tempo-1.26.1
     app.kubernetes.io/name: tempo
     app.kubernetes.io/instance: tempo
-    app.kubernetes.io/version: "2.9.0"
+    app.kubernetes.io/version: "2.10.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -146,10 +162,10 @@ metadata:
   name: tempo
   namespace: observability
   labels:
-    helm.sh/chart: tempo-1.24.4
+    helm.sh/chart: tempo-1.26.1
     app.kubernetes.io/name: tempo
     app.kubernetes.io/instance: tempo
-    app.kubernetes.io/version: "2.9.0"
+    app.kubernetes.io/version: "2.10.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -164,7 +180,7 @@ spec:
         app.kubernetes.io/name: tempo
         app.kubernetes.io/instance: tempo
       annotations:
-        checksum/config: cc60a495b8fc359da12b1b05215b3adffbf088be09c63c16598c7e89f8b77c2e
+        checksum/config: 07b237c74882f849176c7666280274cdddd0ee8a00090c1039739eb9da6d0151
     spec:
       serviceAccountName: tempo
       automountServiceAccountToken: true
@@ -172,7 +188,7 @@ spec:
       - args:
         - -config.file=/conf/tempo.yaml
         - -mem-ballast-size-mbs=1024
-        image: docker.io/grafana/tempo:2.9.0
+        image: docker.io/grafana/tempo:2.10.0
         imagePullPolicy: IfNotPresent
         name: tempo
         ports:

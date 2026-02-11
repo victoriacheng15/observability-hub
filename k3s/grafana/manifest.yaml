@@ -5,10 +5,10 @@ kind: ServiceAccount
 automountServiceAccountToken: false
 metadata:
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
   name: grafana
   namespace: observability
 ---
@@ -19,16 +19,16 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
     app.kubernetes.io/component: admin-secret
 type: Opaque
 data:
   
   admin-user: "YWRtaW4="
-  admin-password: "RHhtV3ZiRTVRMzRqUVVvbnd1bTB1UHk1UXhkWTRucnJHRnNrMWY5NQ=="
+  admin-password: "TXc0R0xNMHB1RDgyODB0Z3RyNHBZQmFXdWFFc25DcVhIbVJtMzJXUw=="
   ldap-toml: ""
 ---
 # Source: grafana/templates/configmap.yaml
@@ -38,10 +38,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 data:
   
   grafana.ini: |
@@ -74,6 +74,27 @@ data:
     - access: proxy
       jsonData:
         httpMethod: GET
+        lokiSearch:
+          datasourceUid: loki-provisioned
+        nodeGraph:
+          enabled: true
+        search:
+          hide: false
+        serviceMap:
+          datasourceUid: prometheus-provisioned
+        traceql:
+          hide: false
+        tracesToLogsV2:
+          datasourceUid: loki-provisioned
+          filterBySpanId: false
+          filterByTraceId: false
+          groupFilterRegex: ""
+          noResultPolicy: hide
+        tracesToMetrics:
+          datasourceUid: prometheus-provisioned
+          spanAttributes:
+          - service.name
+          - http.status_code
       name: Tempo
       type: tempo
       uid: tempo-provisioned
@@ -117,10 +138,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
   finalizers:
     - kubernetes.io/pvc-protection
 spec:
@@ -135,10 +156,10 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
   name: grafana-clusterrole
 rules: []
 ---
@@ -148,10 +169,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: grafana-clusterrolebinding
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 subjects:
   - kind: ServiceAccount
     name: grafana
@@ -168,10 +189,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 rules: []
 ---
 # Source: grafana/templates/rolebinding.yaml
@@ -181,10 +202,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -201,10 +222,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 spec:
   type: NodePort
   ports:
@@ -224,10 +245,10 @@ metadata:
   name: grafana
   namespace: observability
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 spec:
   replicas: 1
   revisionHistoryLimit: 10
@@ -240,14 +261,14 @@ spec:
   template:
     metadata:
       labels:
-        helm.sh/chart: grafana-10.5.15
+        helm.sh/chart: grafana-11.1.1
         app.kubernetes.io/name: grafana
         app.kubernetes.io/instance: grafana
-        app.kubernetes.io/version: "12.3.1"
+        app.kubernetes.io/version: "12.3.2"
       annotations:
-        checksum/config: d47da754b167fdeb0123ce0c1bd27308bfd5364fdb62e4b513ce0aff0c900a9d
+        checksum/config: fdc9c3176b2a08dd51ee2f032dd38d687e76f6ae3c5e568b6673769b9a6e6abc
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: 0968f731e805c578ff482ed4571d83a4f5ea2372a32d3875d76c44c1aa18bfd2
+        checksum/secret: 50ed7dc3c670670a6cd4e3427697e8971837faa6e877413accb8bfe6ff58c77b
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
@@ -261,7 +282,7 @@ spec:
         runAsUser: 472
       initContainers:
         - name: init-chown-data
-          image: "docker.io/library/busybox:1.31.1"
+          image: "docker.io/library/busybox:1.37.0"
           imagePullPolicy: IfNotPresent
           securityContext:
             capabilities:
@@ -285,7 +306,7 @@ spec:
       enableServiceLinks: true
       containers:
         - name: grafana
-          image: "docker.io/grafana/grafana:12.3.1"
+          image: "docker.io/grafana/grafana:12.3.2"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -397,10 +418,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
   name: grafana-test
   namespace: observability
   annotations:
@@ -417,10 +438,10 @@ metadata:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
 data:
   run.sh: |-
     @test "Test Health" {
@@ -436,10 +457,10 @@ kind: Pod
 metadata:
   name: grafana-test
   labels:
-    helm.sh/chart: grafana-10.5.15
+    helm.sh/chart: grafana-11.1.1
     app.kubernetes.io/name: grafana
     app.kubernetes.io/instance: grafana
-    app.kubernetes.io/version: "12.3.1"
+    app.kubernetes.io/version: "12.3.2"
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
@@ -448,7 +469,7 @@ spec:
   serviceAccountName: grafana-test
   containers:
     - name: grafana-test
-      image: "docker.io/bats/bats:v1.4.1"
+      image: "docker.io/bats/bats:1.13.0"
       imagePullPolicy: "IfNotPresent"
       command: ["/opt/bats/bin/bats", "-t", "/tests/run.sh"]
       volumeMounts:

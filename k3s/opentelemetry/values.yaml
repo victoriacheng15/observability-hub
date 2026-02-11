@@ -54,14 +54,19 @@ alternateConfig:
         processors: [batch]
         exporters: [logging]
 
-# This configures the Kubernetes Service ports
+# Expose as NodePort so host-level systemd services (e.g. proxy) can reach the collector
+service:
+  type: NodePort
+
 ports:
   otlp:
     enabled: true
     servicePort: 4317
+    nodePort: 30317
   otlp-http:
     enabled: true
     servicePort: 4318
+    nodePort: 30318
   metrics:
     enabled: true
     containerPort: 8888

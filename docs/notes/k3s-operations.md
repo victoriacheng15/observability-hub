@@ -71,7 +71,7 @@ This guide details the procedures for managing the observability stack within th
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template tempo grafana/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
+  nix-shell --run "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
   kubectl apply -f k3s/tempo/manifest.yaml
   kubectl rollout restart statefulset tempo -n observability
   ```

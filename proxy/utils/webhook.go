@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -13,6 +14,9 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 var repoLocks sync.Map
@@ -70,11 +74,17 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	ctx := r.Context()
+
+	_, verifySpan := tracer.Start(ctx, "webhook.verify_signature")
 	if !verifySignature(body, signature, secret) {
+		verifySpan.SetStatus(codes.Error, "invalid signature")
+		verifySpan.End()
 		slog.Warn("Invalid webhook signature")
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
+	verifySpan.End()
 
 	var payload Payload
 	if err := json.Unmarshal(body, &payload); err != nil {
@@ -116,13 +126,21 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func(repo string, merged bool) {
+	go func(repo string, merged bool, parentCtx context.Context) {
 		// Acquire lock for this specific repository
 		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
 		mu := val.(*sync.Mutex)
 
 		mu.Lock()
 		defer mu.Unlock()
+
+		_, syncSpan := tracer.Start(parentCtx, "webhook.gitops_sync")
+		syncSpan.SetAttributes(
+			attribute.String("repo", repo),
+			attribute.String("event", eventType),
+			attribute.Bool("merged", merged),
+		)
+		defer syncSpan.End()
 
 		slog.Info("Triggering GitOps sync via webhook",
 			"repo", repo,
@@ -133,11 +151,13 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		cmd := exec.Command("/home/server/software/observability-hub/scripts/gitops_sync.sh", repo)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
+			syncSpan.RecordError(err)
+			syncSpan.SetStatus(codes.Error, "sync failed")
 			slog.Error("GitOps sync execution failed", "repo", repo, "error", err, "output", string(output))
 		} else {
 			slog.Info("GitOps sync execution successful", "repo", repo, "output", string(output))
 		}
-	}(repoName, isMerged)
+	}(repoName, isMerged, ctx)
 
 	w.WriteHeader(http.StatusAccepted)
 	fmt.Fprintf(w, "Sync triggered for %s", repoName)
