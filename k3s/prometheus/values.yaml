@@ -19,6 +19,46 @@ extraScrapeConfigs: |
     static_configs:
       - targets: ['opentelemetry.observability:8888'] # Collector internal metrics
 
+# Scrape job configuration for single-node homelab
+# Disabled: api-servers, nodes, pods-slow, service-endpoints-slow, services, pushgateway
+# Active with metric allowlists to keep ~80 unique metric names
+scrapeConfigs:
+  # --- Disabled jobs ---
+  kubernetes-api-servers:
+    enabled: false
+  kubernetes-nodes:
+    enabled: false
+  kubernetes-pods-slow:
+    enabled: false
+  kubernetes-service-endpoints-slow:
+    enabled: false
+  kubernetes-services:
+    enabled: false
+  prometheus-pushgateway:
+    enabled: false
+
+  # --- Active jobs with metric allowlists ---
+  # node-exporter (host metrics) + kube-state-metrics (K8s object state)
+  kubernetes-service-endpoints:
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|up|scrape_.*"
+        action: keep
+
+  # cAdvisor (per-container resource usage)
+  kubernetes-nodes-cadvisor:
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "container_cpu_(usage_seconds_total|cfs_throttled_seconds_total|cfs_periods_total|cfs_throttled_periods_total)|container_memory_(working_set_bytes|rss|cache|usage_bytes)|container_network_(receive|transmit)_bytes_total|container_spec_(cpu_quota|cpu_period|memory_limit_bytes)|container_start_time_seconds|up|scrape_.*"
+        action: keep
+
+  # Prometheus self-monitoring (minimal health metrics only)
+  prometheus:
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|up|scrape_.*"
+        action: keep
+
 # Disable unnecessary components to save resources
 alertmanager:
   enabled: false
