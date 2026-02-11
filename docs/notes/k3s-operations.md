@@ -76,6 +76,18 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart statefulset tempo -n observability
   ```
 
+### 7. Prometheus (Metrics Store)
+
+- **Manifest**: `k3s/prometheus/manifest.yaml`
+- **Values**: `k3s/prometheus/values.yaml`
+- **Update Command**:
+
+  ```bash
+  nix-shell --run "helm template prometheus prometheus-community/prometheus -f k3s/prometheus/values.yaml --namespace observability > k3s/prometheus/manifest.yaml"
+  kubectl apply -f k3s/prometheus/manifest.yaml
+  kubectl rollout restart deployment prometheus-server -n observability
+  ```
+
 ---
 
 ## 🖼️ Local Image Sideloading

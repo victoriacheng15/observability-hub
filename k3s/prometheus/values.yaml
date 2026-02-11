@@ -1,0 +1,26 @@
+server:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 300m
+      memory: 768Mi
+  retention: 12h  # Lean retention for homelab
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+
+# Scrape configuration for OpenTelemetry Collector
+extraScrapeConfigs: |
+  - job_name: 'otel-collector'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['opentelemetry.observability:8888'] # Collector internal metrics
+
+# Disable unnecessary components to save resources
+alertmanager:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false

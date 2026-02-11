@@ -20,6 +20,14 @@ datasources:
         access: proxy
         jsonData:
           httpMethod: GET
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus-provisioned
+        url: http://prometheus-server.observability:80
+        access: proxy
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
       - name: PostgreSQL
         type: postgres
         uid: postgresql-provisioned

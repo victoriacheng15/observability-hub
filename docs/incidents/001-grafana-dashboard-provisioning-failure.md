@@ -20,12 +20,13 @@ Grafana was unable to load dashboards after a service restart. The pod initially
 
 ## Root Cause Analysis
 
-The primary cause was **Configuration Fragility**. Embedding complex JSON (with nested quotes and newlines) inside a YAML block scalar (`|`) for a Kubernetes ConfigMap is error-prone. 
+The primary cause was **Configuration Fragility**. Embedding complex JSON (with nested quotes and newlines) inside a YAML block scalar (`|`) for a Kubernetes ConfigMap is error-prone.
 
 When the JSON was manually copied into the YAML manifest:
-1.  Hidden newline characters were injected into the `rawSql` strings.
-2.  YAML's interpretation of block scalars and JSON's strict requirement for escaped `\n` characters conflicted.
-3.  Grafana's dashboard provider rejected the entire JSON file upon encountering the first unescaped newline within a string.
+
+1. Hidden newline characters were injected into the `rawSql` strings.
+2. YAML's interpretation of block scalars and JSON's strict requirement for escaped `\n` characters conflicted.
+3. Grafana's dashboard provider rejected the entire JSON file upon encountering the first unescaped newline within a string.
 
 ## Lessons Learned
 
