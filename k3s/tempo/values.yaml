@@ -1,5 +1,10 @@
 revisionHistoryLimit: 3
 
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClassName: local-path
+
 tempo:
   resources:
     requests:
@@ -16,11 +21,6 @@ tempo:
         path: /var/tempo/traces
       wal:
         path: /var/tempo/wal
-
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: local-path
 
 # Raw config string passed to the 'tpl' function in the chart
 config: |

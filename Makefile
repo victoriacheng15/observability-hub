@@ -36,7 +36,7 @@ help:
 	@echo "  make k3s-alloy-up       - Deploy/Restart Alloy"
 	@echo "  make k3s-loki-up        - Deploy/Restart Loki"
 	@echo "  make k3s-tempo-up       - Deploy/Restart Tempo"
-	@echo "  make k3s-opentelemetry-up - Deploy/Restart OTel Collector"
+	@echo "  make k3s-otel-up        - Deploy/Restart OTel Collector"
 	@echo "  make k3s-prometheus-up  - Deploy/Restart Prometheus"
 	@echo "  make k3s-grafana-up     - Deploy/Restart Grafana"
 	@echo "  make k3s-postgres-up    - Deploy/Restart PostgreSQL"
