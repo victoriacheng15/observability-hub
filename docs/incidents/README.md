@@ -15,7 +15,17 @@ This directory contains the **Root Cause Analysis (RCA)** and post-mortem report
 
 ## 🛠️ Process & Standards
 
-We document incidents to prevent recurrence and build a more resilient system.
+Incident documentation prevents recurrence and builds system resilience.
+
+### ⚖️ When to write an RCA (The Rule of Three)
+
+Formal RCAs are required only if **one or more** of these conditions are met:
+
+1. **Utility Loss**: Failure to fulfill primary purpose (e.g., dashboards inaccessible, telemetry collection halted).
+2. **Data Integrity**: Permanent loss, corruption, or unauthorized exposure of data.
+3. **Regression (The "Zombie Bug")**: The failure has occurred previously. Identification of the gap in the previous fix is required.
+
+*Minor configuration drifts or "noisy" logs that do not impact system health should be handled via standard Git commit documentation rather than an RCA.*
 
 ### Severity Levels
 
