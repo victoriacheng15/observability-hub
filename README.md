@@ -48,66 +48,90 @@ This section provides a deeper look into the system's structure, components, and
 
 ### System Architecture Diagram
 
-This diagram shows the high-level flow of data from collection to visualization.
+This diagram shows the high-level flow of data from collection to visualization, highlighting the hybrid orchestration between host services and the Kubernetes data platform.
 
 ```mermaid
 flowchart LR
-    subgraph External ["External"]
-        GH(GitHub Webhooks)
-        Apps
+    subgraph External ["External Sources"]
+        GHW(GitHub Webhooks)
+        GHJ(GitHub Journals)
+        Apps(Client Apps)
         Mongo(MongoDB Atlas)
     end
 
-    subgraph HostServices ["Native Host Services (Systemd)"]
-        Proxy[Proxy API & GitOps Trigger]
-        Gate[Tailscale Gate]
+    subgraph HostServices ["Native Host Services"]
+        Proxy[Proxy API & GitOps]
+        SB[Second Brain Ingest]
         Metrics[Metrics Collector]
+        Gate[Tailscale Gate]
         Bao[OpenBao Secret Store]
     end
 
     subgraph DataPlatform ["Data Infrastructure (Kubernetes)"]
-        PG(PostgreSQL)
-        A(Grafana Alloy)
-        L(Loki)
-        G(Grafana)
+        PG[(Postgres)]
+        A[Grafana Alloy]
+        OTEL[OTEL Collector]
+        L[Loki]
+        T[Tempo]
+        P[Prometheus]
+        G[Grafana]
     end
 
     %% Data Pipeline
-    GH -- Webhook --> Proxy
-    Proxy -- Sync --> GH
+    GHW -- Webhook --> Proxy
+    GHJ -- Issues --> SB
     Apps -- Events --> Mongo
     Mongo -- Pull --> Proxy
+    SB -- Write --> PG
     Proxy -- Write --> PG
     Metrics -- Telemetry --> PG
     Bao -.->|Secrets| Proxy
+    Bao -.->|Secrets| SB
     Bao -.->|Secrets| Metrics
-    PG --> G
 
-    %% Logging Pipeline
+    %% Telemetry Pipeline
     Proxy -- Logs --> A
     Gate -- Logs --> A
     Metrics -- Logs --> A
-    A -- Scrape Journal --> L
+    Proxy -- Traces --> OTEL
+    OTEL -- Traces --> T
+    A -- Logs --> L
+    A -- Metrics --> P
+    OTEL -- Metrics --> P
+    PG --> G
     L --> G
+    T --> G
+    P --> G
 ```
 
 ### Component Breakdown
 
-This table lists the main services and components within the observability hub, along with their responsibilities and location within the repository.
+The platform is split into two logical layers: **Native Host Services** for automation and hardware-level telemetry, and **Data Infrastructure** for scalable storage and visualization.
+
+#### Native Host Services
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
-| **proxy** | Native Go service acting as an API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `proxy/` |
-| **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
-| **system-metrics** | Lightweight Go collector for host CPU, memory, disk, and network stats. | `system-metrics/` |
+| **proxy** | API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `proxy/` |
+| **second-brain** | Ingests atomic thoughts from GitHub journals into PostgreSQL. | `second-brain/` |
+| **system-metrics** | Lightweight collector for host hardware telemetry (CPU, Mem, Disk, Net). | `system-metrics/` |
 | **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
+| **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
+| **gitops-sync** | Reconciliation script for automated state enforcement. | `scripts/` |
+| **reading-sync** | Periodic trigger for the `proxy` Data Pipeline. | `systemd/` |
 | **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
-| **PostgreSQL** | Primary relational storage (TimescaleDB + PostGIS) managed as a **Kubernetes StatefulSet**. | `k3s/postgres/` |
-| **Grafana** | Primary visualization and dashboarding tool deployed in **Kubernetes**. | `k3s/grafana/` |
-| **Loki** | Log aggregation system for all services running in **Kubernetes**. | `k3s/loki/` |
-| **Grafana Alloy** | Unified telemetry agent (Kubernetes DaemonSet) for host journal collection. | `k3s/alloy/` |
-| **gitops-sync** | Reconciliation script triggered by the Proxy to enforce repository state. | `scripts/` |
-| **reading-sync** | Systemd service that periodically triggers the `proxy` Data Pipeline. | `systemd/` |
+
+#### Data Infrastructure (Kubernetes)
+
+| Service / Component | Responsibility | Location |
+| :------------------ | :------------- | :------- |
+| **PostgreSQL** | Primary relational storage (TimescaleDB + PostGIS) for metrics and events. | `k3s/postgres/` |
+| **Prometheus** | Metrics storage, service discovery, and alerting engine. | `k3s/prometheus/` |
+| **Loki** | Log aggregation and query system for the entire stack. | `k3s/loki/` |
+| **Tempo** | Distributed tracing backend for request correlation. | `k3s/tempo/` |
+| **Grafana** | Centralized visualization and dashboarding platform. | `k3s/grafana/` |
+| **Grafana Alloy** | Unified telemetry agent for journal collection and K8s scraping. | `k3s/alloy/` |
+| **OpenTelemetry** | Standalone collector for multi-signal telemetry routing. | `k3s/opentelemetry/` |
 
 ### External Dependencies
 
@@ -118,48 +142,9 @@ These components exist outside this repository but are integral to the data pipe
 | **Client Applications** | Sources of event data (e.g., Cover Craft, Personal Reading Analytics). |
 | **MongoDB Atlas** | Interim cloud storage used as a buffer/queue for external event logs. |
 
-### Data Flow
-
-The system categorizes data flow into three main streams, correlating events, cluster health, and host stability.
-
-1. **Application Events:**
-    - **Source:** Client Applications (e.g., Cover Craft, Personal Reading Analytics Dashboard) write events to MongoDB Atlas.
-    - **Process:** The reading-sync service (Systemd) triggers the proxy to fetch, transform, and persist records into PostgreSQL.
-    - **Dashboard:** Reading Analytics.
-2. **Kubernetes Monitoring:**
-    - **Source:** Orchestrated services (PostgreSQL, Loki, Grafana, Alloy).
-    - **Collection:** Grafana Alloy scrapes cluster metadata and internal service metrics.
-    - **Dashboard:** Cluster Health.
-3. **Systemd Monitoring:**
-    - **Source:** Host services and hardware telemetry.
-    - **Collection:** The system-metrics collector (automated via Systemd timer) flushes hardware stats to PostgreSQL, while **Grafana Alloy** scrapes journald for service logs.
-    - **Dashboards:** Systemd Monitoring and Homelab (hardware metrics).
-
 For deep dives into the system's inner workings, operational guides, and decision logs:
 
 - **[Documentation Hub](./docs/README.md)**: Central entry point for Architecture, Decisions (ADRs), and Operational Notes.
-
----
-
-## 🚢 Deployment Strategy
-
-The platform employs a Hybrid Deployment Model to balance security, reliability, and performance:
-
-### 1. Event-Driven GitOps (Webhook-based)
-
-Critical observability infrastructure and host configurations are managed by an automated reconciliation workflow.
-
-- **Mechanism:** GitHub sends a **Webhook** event (Push or PR Merge) to the Proxy service.
-- **Action:** The Proxy validates the request signature and executes the local `gitops_sync.sh` script to update the repository and reload services.
-- **Benefit:** Real-time updates and improved security by ensuring the public entry point (via Tailscale Funnel) is managed dynamically based on system state.
-
-### 2. Public Portfolio (Push-based CI/CD)
-
-The static status page is built and deployed via GitHub Actions.
-
-- **Mechanism:** Standard CI pipeline defined in `.github/workflows/deploy.yml`.
-- **Action:** Builds the Go `page` generator and deploys the output to GitHub Pages.
-- **Benefit:** Fast feedback loops and high availability for the public-facing component.
 
 ---
 
@@ -190,36 +175,46 @@ You will need to edit the newly created `.env` file to configure connections for
 
 ### 2. Build and Run the Stack
 
-The cluster resources are managed via the root **Makefile**. Deploy the entire stack into the `observability` namespace:
+The platform utilizes a hybrid orchestration model. You must deploy both the Kubernetes data tier and the native host services.
+
+#### A. Data Infrastructure (k3s)
+
+Deploy the observability backend into the `observability` namespace:
 
 ```bash
-# Deploy all core components to k3s
-make k3s-alloy-up
-make k3s-loki-up
-make k3s-grafana-up
+# Deploy core data and telemetry services
 make k3s-postgres-up
+make k3s-loki-up
+make k3s-tempo-up
+make k3s-prometheus-up
+make k3s-grafana-up
+
+# Deploy telemetry collectors
+make k3s-alloy-up
+make k3s-otel-up
 ```
 
-These commands will:
+#### B. Native Host Services
 
-- Template manifests from Helm charts and local values.
-- Apply configurations to the cluster.
-- Perform a rollout restart to ensure the latest state is active.
-
-To view the cluster status:
+Build and initialize the automation and telemetry collectors on the host:
 
 ```bash
-make k3s-status
+# Build Go binaries
+make proxy-build
+make metrics-build
+
+# Install and start Systemd services (requires sudo)
+make install-services
 ```
 
 ### 3. Verification
 
-Once the pods are in a `Running` state, you can verify their functionality:
+Once the stack is running, you can verify the end-to-end telemetry flow:
 
-- **Grafana Dashboards:** Access Grafana at `http://localhost:30000`.
-  - Default login: `admin` / (Retrieved via `kubectl get secret`)
-  - You should see your provisioned data sources and dashboards.
-- **Static Portfolio Site:** The `page` service builds your public portfolio site into the `page/dist` directory. You can inspect the generated static HTML files there.
+- **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
+- **Service Logs:** Check logs for host components using `journalctl -u proxy -f`.
+- **System Metrics:** Verify hardware telemetry is reaching PostgreSQL via the Homelab dashboard.
+- **Knowledge Sync:** Manually trigger a Second Brain ingestion with `make brain-sync`.
 
 ### 4. Managing the Cluster
 
