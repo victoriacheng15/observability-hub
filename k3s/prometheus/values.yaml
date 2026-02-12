@@ -21,15 +21,21 @@ extraScrapeConfigs: |
     scrape_interval: 10s
     static_configs:
       - targets: ['opentelemetry.observability:8888'] # Collector internal metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "otelcol_process_.*|up|scrape_.*"
+        action: keep
 
 # Scrape job configuration for single-node homelab
-# Disabled: api-servers, nodes, pods-slow, service-endpoints-slow, services, pushgateway
+# Disabled: api-servers, nodes, pods, pods-slow, service-endpoints-slow, services, pushgateway
 # Active with metric allowlists to keep ~80 unique metric names
 scrapeConfigs:
   # --- Disabled jobs ---
   kubernetes-api-servers:
     enabled: false
   kubernetes-nodes:
+    enabled: false
+  kubernetes-pods:
     enabled: false
   kubernetes-pods-slow:
     enabled: false
