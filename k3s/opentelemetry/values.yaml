@@ -1,5 +1,7 @@
 fullnameOverride: opentelemetry
 
+revisionHistoryLimit: 3
+
 mode: deployment
 
 replicaCount: 1

@@ -1,4 +1,5 @@
 server:
+  revisionHistoryLimit: 3
   resources:
     requests:
       cpu: 100m
@@ -58,6 +59,9 @@ scrapeConfigs:
       - source_labels: [__name__]
         regex: "prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|up|scrape_.*"
         action: keep
+
+kube-state-metrics:
+  revisionHistoryLimit: 3
 
 # Disable unnecessary components to save resources
 alertmanager:

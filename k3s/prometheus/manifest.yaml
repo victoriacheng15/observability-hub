@@ -726,7 +726,7 @@ spec:
   replicas: 1
   strategy:
     type: RollingUpdate
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   template:
     metadata:
       labels:        
@@ -815,7 +815,7 @@ spec:
       app.kubernetes.io/name: prometheus
       app.kubernetes.io/instance: prometheus
   replicas: 1
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   template:
     metadata:
       labels:

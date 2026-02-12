@@ -148,7 +148,7 @@ metadata:
     app.kubernetes.io/component: standalone-collector
 spec:
   replicas: 1
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: opentelemetry-collector
