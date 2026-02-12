@@ -29,6 +29,8 @@ graph TD
         Loki[(Loki)]
         PG[(PostgreSQL)]
         Grafana[Grafana]
+        OTEL[OTEL Collector]
+        Tempo[(Tempo)]
     end
 
     %% Data Flow
@@ -37,6 +39,8 @@ graph TD
     Proxy -->|Executes| Sync[gitops_sync.sh]
     Mongo -->|Data| Proxy
     Proxy -->|Writes| PG
+    Proxy -->|Traces| OTEL
+    OTEL -->|Export| Tempo
     Hardware -->|Telemetry| Metrics
     Metrics -->|Writes| PG
 
@@ -45,6 +49,7 @@ graph TD
     Alloy -->|Pushes| Loki
     PG -->|Visualizes| Grafana
     Loki -->|Visualizes| Grafana
+    Tempo -->|Visualizes| Grafana
 ```
 
 ---
@@ -72,3 +77,4 @@ Deep dives into the logic and implementation of specific system components.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway, Data Pipeline, and GitOps listener.
 - **[System Metrics](./services/system-metrics.md)**: The host telemetry collector.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
+- **[Telemetry Pipeline](../core-concepts/observability.md#🕵️-distributed-tracing)**: Distributed tracing via OpenTelemetry Collector and Grafana Tempo.

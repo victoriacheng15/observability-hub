@@ -9,9 +9,12 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **PostgreSQL** | Primary Storage | StatefulSet with TimescaleDB + PostGIS for metrics and analytical data. |
+| **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
+| **Grafana Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Grafana Alloy** | Telemetry Agent | DaemonSet that scrapes the **Host Systemd Journal**. |
+| **OTEL Collector** | Telemetry Hub | Deployment for receiving and processing traces and metrics. |
 
 ### 🚀 Core Services (Native Go)
 
@@ -32,15 +35,17 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 
 ```mermaid
 sequenceDiagram
-    participant Systemd as Native Systemd Services
+    participant App as Go Services (stdout)
+    participant Script as Bash Scripts (logger)
+    participant Journal as Systemd Journal
     participant Alloy as Grafana Alloy (k3s)
     participant Loki as Loki (k3s)
-    participant Grafana as Grafana (k3s)
 
-    Systemd->>Alloy: Scrape Host Journal (/var/log/journal)
-    Alloy->>Loki: Push logs with indexed labels
-    Grafana->>Loki: Query via LogQL
-    Loki-->>Grafana: Return log streams
+    App->>Journal: JSON Logs (Captured)
+    Script->>Journal: JSON Logs (Broadcast)
+    Journal->>Alloy: Scrape (/var/log/journal)
+    Alloy->>Loki: Push with relabeled metadata
+    Loki-->>Grafana: Query via LogQL
 ```
 
 ## Deployment Strategy
@@ -60,4 +65,6 @@ sequenceDiagram
 - **Exposed Ports**:
   - `30000`: Grafana (Kubernetes NodePort)
   - `30432`: PostgreSQL (Kubernetes NodePort)
+  - `30317`: OTEL Collector (OTLP gRPC NodePort)
+  - `30318`: OTEL Collector (OTLP HTTP NodePort)
   - `8085`: Proxy Service (Publicly available via Tailscale Funnel)

@@ -9,10 +9,18 @@ The Proxy Service (`proxy/`) is a custom Go application that acts as the API gat
 | Endpoint | Method | Purpose |
 | :--- | :--- | :--- |
 | `/` | GET | Returns a JSON welcome message. |
+| `/api/health` | GET | **Health Check**: Returns the service status and environment. |
 | `/api/webhook/gitops` | POST | **GitOps Trigger**: Handles GitHub webhooks (Push/PR events) to sync local repositories. |
 | `/api/sync/reading` | POST | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
 
 ### Endpoint Details
+
+#### Health Check (`/api/health`)
+
+Provides a simple endpoint for liveness and readiness probes.
+
+- **Success**: Returns `200 OK` with basic service metadata.
+- **Instrumentation**: Automatically traced via OpenTelemetry middleware.
 
 #### GitOps Automation (`/api/webhook/gitops`)
 
@@ -33,17 +41,30 @@ This endpoint triggers the extraction, transformation, and loading of data.
 4. **Load**: Inserts records into the PostgreSQL (TimescaleDB) `reading_analytics` table.
 5. **Update**: Marks the original MongoDB documents as `status="processed"`.
 
-## Data Flow: Analytical Data Pipeline
+## Distributed Tracing
 
-```mermaid
-sequenceDiagram
-    participant Mongo as MongoDB
-    participant Proxy as Proxy Service
-    participant PG as PostgreSQL
+The Proxy Service is instrumented with the **OpenTelemetry SDK** to provide visibility into request lifecycles and pipeline performance.
 
-    Proxy->>Mongo: Find docs (status="ingested")
-    Mongo-->>Proxy: Return batch
-    Proxy->>Proxy: Transform to JSONB
-    Proxy->>PG: INSERT into reading_analytics
-    Proxy->>Mongo: Update status="processed"
-```
+### Configuration
+
+The service initializes a global TracerProvider during startup, controlled by environment variables:
+
+| Variable | Description |
+| :--- | :--- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | The gRPC endpoint of the OTEL Collector (e.g., `localhost:30317`). |
+| `OTEL_SERVICE_NAME` | The service identifier used in traces (defaults to `proxy`). |
+
+### Trace Coverage
+
+Spans are manually or automatically created for:
+
+- **GitOps Ingestion**: Tracking webhook validation and script execution time.
+- **Data Pipeline (ETL)**: Measuring MongoDB fetch latency and PostgreSQL insertion throughput.
+- **API Requests**: Correlating incoming requests with backend pipeline activities.
+
+Traces are exported to the central **OpenTelemetry Collector** via gRPC and stored in **Grafana Tempo**.
+
+### Instrumentation Strategy
+
+1. **Automatic HTTP Tracing**: The service uses `otelhttp` middleware to wrap the primary mux, automatically capturing spans for every incoming request, including path, method, and status codes.
+2. **Manual Spans**: High-value logic (signature verification, database transactions, script execution) is instrumented with manual spans to provide granular timing and error context within the request lifecycle.
