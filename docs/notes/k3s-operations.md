@@ -61,7 +61,7 @@ This guide details the procedures for managing the observability stack within th
   ```bash
   nix-shell --run "helm template opentelemetry open-telemetry/opentelemetry-collector -f k3s/opentelemetry/values.yaml --namespace observability > k3s/opentelemetry/manifest.yaml"
   kubectl apply -f k3s/opentelemetry/manifest.yaml
-  kubectl rollout restart deployment opentelemetry-opentelemetry-collector -n observability
+  kubectl rollout restart deployment opentelemetry -n observability
   ```
 
 ### 6. Grafana Tempo (Trace Store)
