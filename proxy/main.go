@@ -104,6 +104,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	mux.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
 	mux.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 	mux.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
+	mux.HandleFunc("/api/trace/synthetic/", utils.WithLogging(utils.SyntheticTraceHandler))
 
 	handler := otelhttp.NewHandler(mux, "proxy",
 		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {

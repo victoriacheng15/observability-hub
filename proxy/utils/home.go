@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var httpGet = http.Get
@@ -14,13 +17,22 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
+	span := trace.SpanFromContext(r.Context())
+
 	// 1. Fetch from an external API (GitHub Zen) to test outbound connectivity
 	resp, err := httpGet("https://api.github.com/zen")
 	zenMessage := "Could not fetch Zen"
 	if err == nil {
 		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
-		zenMessage = string(body)
+		zenBody, _ := io.ReadAll(resp.Body)
+		zenMessage = string(zenBody)
+
+		// Record the "Payload" (Response from GitHub) in the trace
+		span.SetAttributes(attribute.String("app.outbound.zen_message", zenMessage))
+		span.AddEvent("outbound.response_received", trace.WithAttributes(
+			attribute.String("outbound.source", "github_zen"),
+			attribute.String("payload.body", zenMessage),
+		))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

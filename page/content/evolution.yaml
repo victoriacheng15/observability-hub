@@ -193,3 +193,14 @@ chapters:
         description: |
           - Deployed Prometheus for operational metrics storage with lean retention policies.
           - Integrated with OpenTelemetry Collector to ingest internal metrics and established connectivity with Grafana as a provisioned data source.
+      - date: "2026-02-12"
+        title: "Phase 4 Complete: Proxy Instrumentation & Synthetic Traces"
+        artifacts:
+          - name: "ADR 013: Standardize on OpenTelemetry"
+            url: "docs/decisions/013-standardize-on-opentelemetry.md"
+          - name: "RCA 002: Service Graph Metrics Failure"
+            url: "docs/incidents/002-service-graph-metrics-failure.md"
+        description: |
+          - Completed high-fidelity OTel instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
+          - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Tempo storage and Grafana visualization.
+          - Resolved a critical "silent" failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
