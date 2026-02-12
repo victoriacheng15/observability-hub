@@ -6,6 +6,7 @@ persistence:
   storageClassName: local-path
 
 tempo:
+  replicas: 1
   resources:
     requests:
       cpu: 50m
@@ -14,24 +15,18 @@ tempo:
       cpu: 200m
       memory: 512Mi
 
-  storage:
-    trace:
-      backend: local
-      local:
-        path: /var/tempo/traces
-      wal:
-        path: /var/tempo/wal
+  multitenancy_enabled: false
 
-# Raw config string passed to the 'tpl' function in the chart
-config: |
   memberlist:
     cluster_label: "tempo.observability"
-  multitenancy_enabled: false
+  
   usage_report:
     reporting_enabled: true
+  
   compactor:
     compaction:
       block_retention: 24h
+  
   distributor:
     receivers:
       jaeger:
@@ -53,13 +48,16 @@ config: |
     ring:
       kvstore:
         store: inmemory
+
   ingester:
     lifecycler:
       ring:
         kvstore:
           store: inmemory
         replication_factor: 1
-  metrics_generator:
+
+  metricsGenerator:
+    enabled: true
     registry:
       external_labels:
         source: tempo
@@ -79,11 +77,10 @@ config: |
       path: /var/tempo/generator/wal
       remote_write:
         - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
-    ring:
-      kvstore:
-        store: inmemory
+
   server:
     http_listen_port: 3200
+
   storage:
     trace:
       backend: local
@@ -91,16 +88,15 @@ config: |
         path: /var/tempo/traces
       wal:
         path: /var/tempo/wal
+
   querier: {}
-  query_frontend: {}
+  queryFrontend: {}
+
   overrides:
     defaults:
       metrics_generator:
         processors: [service-graphs, span-metrics, local-blocks]
     per_tenant_override_config: /conf/overrides.yaml
 
-# Single binary mode for simplified homelab deployment
-replicas: 1
-
-# Disable multitenancy for homelab simplicity
+# Top-level flags still needed for chart behavior
 multitenancy_enabled: false

@@ -40,70 +40,72 @@ data:
         block_retention: 24h
     distributor:
       receivers:
-        jaeger:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:14250
-            thrift_binary:
-              endpoint: 0.0.0.0:6832
-            thrift_compact:
-              endpoint: 0.0.0.0:6831
-            thrift_http:
-              endpoint: 0.0.0.0:14268
-        otlp:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:4317
-            http:
-              endpoint: 0.0.0.0:4318
-      ring:
-        kvstore:
-          store: inmemory
+            jaeger:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:14250
+                thrift_binary:
+                  endpoint: 0.0.0.0:6832
+                thrift_compact:
+                  endpoint: 0.0.0.0:6831
+                thrift_http:
+                  endpoint: 0.0.0.0:14268
+            opencensus: null
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
     ingester:
-      lifecycler:
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-    metrics_generator:
-      registry:
-        external_labels:
-          source: tempo
-          cluster: k3s
-      processor:
-        local_blocks:
-          filter_server_spans: false
-        service_graphs:
-          max_items: 10000
-        span_metrics:
-          dimensions:
-            - http.method
-            - http.status_code
-            - app.traffic_mode
-            - app.business.region
-      storage:
-        path: /var/tempo/generator/wal
-        remote_write:
-          - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
-      ring:
-        kvstore:
-          store: inmemory
+          lifecycler:
+            ring:
+              kvstore:
+                store: inmemory
+              replication_factor: 1
     server:
-      http_listen_port: 3200
+          http_listen_port: 3200
     storage:
-      trace:
-        backend: local
-        local:
-          path: /var/tempo/traces
-        wal:
-          path: /var/tempo/wal
-    querier: {}
-    query_frontend: {}
+          trace:
+            backend: local
+            local:
+              path: /var/tempo/traces
+            wal:
+              path: /var/tempo/wal
+    querier:
+          {}
+    query_frontend:
+          {}
     overrides:
-      defaults:
-        metrics_generator:
-          processors: [service-graphs, span-metrics, local-blocks]
-      per_tenant_override_config: /conf/overrides.yaml
+          defaults:
+            metrics_generator:
+              processors:
+              - service-graphs
+              - span-metrics
+              - local-blocks
+          per_tenant_override_config: /conf/overrides.yaml
+    metrics_generator:
+      processor:
+            local_blocks:
+              filter_server_spans: false
+            service_graphs:
+              max_items: 10000
+            span_metrics:
+              dimensions:
+              - http.method
+              - http.status_code
+              - app.traffic_mode
+              - app.business.region
+      registry:
+            external_labels:
+              cluster: k3s
+              source: tempo
+      storage:
+        path: "/var/tempo/generator/wal"
+        remote_write:
+              - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
+      traces_storage:
+        path: "/tmp/traces"
 ---
 # Source: tempo/templates/service.yaml
 apiVersion: v1
@@ -194,7 +196,7 @@ spec:
         app.kubernetes.io/name: tempo
         app.kubernetes.io/instance: tempo
       annotations:
-        checksum/config: 563556a422c8801a5fea788026438c3bbb6dd10053df58516f83c9ad965451d2
+        checksum/config: 98b6e76d43b1b4ca8c822d816430e8e298d66e44ae8151f52633577f34e0df4c
     spec:
       serviceAccountName: tempo
       automountServiceAccountToken: true
@@ -261,6 +263,8 @@ spec:
           name: tempo-conf
         - mountPath: /var/tempo
           name: storage
+        - mountPath: /tmp
+          name: tmp
       securityContext:
         fsGroup: 10001
         runAsGroup: 10001
@@ -270,6 +274,8 @@ spec:
       - configMap:
           name: tempo
         name: tempo-conf
+      - name: tmp
+        emptyDir: {}
   updateStrategy:
     type:
       RollingUpdate
