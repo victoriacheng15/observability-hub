@@ -12,6 +12,7 @@ The Proxy Service (`proxy/`) is a custom Go application that acts as the API gat
 | `/api/health` | GET | **Health Check**: Returns the service status and environment. |
 | `/api/webhook/gitops` | POST | **GitOps Trigger**: Handles GitHub webhooks (Push/PR events) to sync local repositories. |
 | `/api/sync/reading` | POST | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
+| `/api/trace/synthetic/` | POST | **Synthetic Validation**: Ingests randomized metadata to stress-test the telemetry pipeline. |
 
 ### Endpoint Details
 
@@ -60,6 +61,7 @@ Spans are manually or automatically created for:
 
 - **GitOps Ingestion**: Tracking webhook validation and script execution time.
 - **Data Pipeline (ETL)**: Measuring MongoDB fetch latency and PostgreSQL insertion throughput.
+- **Synthetic Validation**: Testing pipeline fidelity with randomized business metadata.
 - **API Requests**: Correlating incoming requests with backend pipeline activities.
 
 Traces are exported to the central **OpenTelemetry Collector** via gRPC and stored in **Grafana Tempo**.
