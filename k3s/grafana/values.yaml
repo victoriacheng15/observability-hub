@@ -1,3 +1,10 @@
+revisionHistoryLimit: 3
+
+admin:
+  existingSecret: "grafana-admin-secret"
+  userKey: admin-user
+  passwordKey: admin-password
+
 persistence:
   enabled: true
   size: 10Gi

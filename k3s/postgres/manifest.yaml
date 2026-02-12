@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
     app.kubernetes.io/component: primary
 spec:
   podSelector:
@@ -38,7 +38,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
     app.kubernetes.io/component: primary
 spec:
   maxUnavailable: 1
@@ -59,7 +59,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
 automountServiceAccountToken: false
 ---
 # Source: postgresql/templates/primary/svc-headless.yaml
@@ -73,7 +73,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
     app.kubernetes.io/component: primary
   annotations:
 spec:
@@ -103,7 +103,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
     app.kubernetes.io/component: primary
 spec:
   type: NodePort
@@ -129,7 +129,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.4
+    helm.sh/chart: postgresql-18.2.6
     app.kubernetes.io/component: primary
 spec:
   replicas: 1
@@ -150,7 +150,7 @@ spec:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: postgresql
         app.kubernetes.io/version: 18.1.0
-        helm.sh/chart: postgresql-18.2.4
+        helm.sh/chart: postgresql-18.2.6
         app.kubernetes.io/component: primary
     spec:
       serviceAccountName: postgres-postgresql

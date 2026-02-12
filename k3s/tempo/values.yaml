@@ -1,3 +1,5 @@
+revisionHistoryLimit: 3
+
 tempo:
   resources:
     requests:
