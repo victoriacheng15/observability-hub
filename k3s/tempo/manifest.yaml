@@ -70,6 +70,17 @@ data:
         external_labels:
           source: tempo
           cluster: k3s
+      processor:
+        local_blocks:
+          filter_server_spans: false
+        service_graphs:
+          max_items: 10000
+        span_metrics:
+          dimensions:
+            - http.method
+            - http.status_code
+            - app.traffic_mode
+            - app.business.region
       storage:
         path: /var/tempo/generator/wal
         remote_write:
@@ -89,7 +100,9 @@ data:
     querier: {}
     query_frontend: {}
     overrides:
-      defaults: {}
+      defaults:
+        metrics_generator:
+          processors: [service-graphs, span-metrics, local-blocks]
       per_tenant_override_config: /conf/overrides.yaml
 ---
 # Source: tempo/templates/service.yaml
@@ -181,7 +194,7 @@ spec:
         app.kubernetes.io/name: tempo
         app.kubernetes.io/instance: tempo
       annotations:
-        checksum/config: 07b237c74882f849176c7666280274cdddd0ee8a00090c1039739eb9da6d0151
+        checksum/config: 563556a422c8801a5fea788026438c3bbb6dd10053df58516f83c9ad965451d2
     spec:
       serviceAccountName: tempo
       automountServiceAccountToken: true

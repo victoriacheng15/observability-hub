@@ -1,5 +1,7 @@
 server:
   revisionHistoryLimit: 3
+  extraArgs:
+    web.enable-remote-write-receiver: null
   resources:
     requests:
       cpu: 100m
@@ -57,7 +59,7 @@ scrapeConfigs:
   prometheus:
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|up|scrape_.*"
+        regex: "prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|traces_.*|up|scrape_.*"
         action: keep
 
 kube-state-metrics:

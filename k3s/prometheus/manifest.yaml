@@ -205,7 +205,7 @@ data:
     - job_name: prometheus
       metric_relabel_configs:
       - action: keep
-        regex: prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|up|scrape_.*
+        regex: prometheus_tsdb_head_series|prometheus_tsdb_head_samples_appended_total|prometheus_tsdb_storage_blocks_bytes|prometheus_tsdb_wal_storage_size_bytes|prometheus_build_info|traces_.*|up|scrape_.*
         source_labels:
         - __name__
       static_configs:
@@ -867,6 +867,7 @@ spec:
             - --web.console.libraries=/etc/prometheus/console_libraries
             - --web.console.templates=/etc/prometheus/consoles
             - --web.enable-lifecycle
+            - --web.enable-remote-write-receiver
           ports:
             - containerPort: 9090
           readinessProbe:

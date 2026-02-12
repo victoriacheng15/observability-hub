@@ -64,6 +64,17 @@ config: |
       external_labels:
         source: tempo
         cluster: k3s
+    processor:
+      local_blocks:
+        filter_server_spans: false
+      service_graphs:
+        max_items: 10000
+      span_metrics:
+        dimensions:
+          - http.method
+          - http.status_code
+          - app.traffic_mode
+          - app.business.region
     storage:
       path: /var/tempo/generator/wal
       remote_write:
@@ -83,7 +94,9 @@ config: |
   querier: {}
   query_frontend: {}
   overrides:
-    defaults: {}
+    defaults:
+      metrics_generator:
+        processors: [service-graphs, span-metrics, local-blocks]
     per_tenant_override_config: /conf/overrides.yaml
 
 # Single binary mode for simplified homelab deployment
