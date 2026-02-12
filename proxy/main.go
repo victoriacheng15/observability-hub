@@ -105,7 +105,11 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	mux.HandleFunc("/api/sync/reading", utils.WithLogging(readingService.SyncReadingHandler))
 	mux.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
 
-	handler := otelhttp.NewHandler(mux, "proxy")
+	handler := otelhttp.NewHandler(mux, "proxy",
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+		}),
+	)
 
 	slog.Info("🚀 The GO proxy listening on port", "port", port)
 

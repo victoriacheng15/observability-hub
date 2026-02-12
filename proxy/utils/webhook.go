@@ -17,6 +17,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var repoLocks sync.Map
@@ -25,7 +26,8 @@ type Payload struct {
 	Ref        string `json:"ref"`
 	Action     string `json:"action"`
 	Repository struct {
-		Name string `json:"name"`
+		Name     string `json:"name"`
+		FullName string `json:"full_name"`
 	} `json:"repository"`
 	PullRequest struct {
 		Merged bool `json:"merged"`
@@ -93,6 +95,18 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enrich the root span with metadata and raw payload
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(
+		attribute.String("github.event", eventType),
+		attribute.String("github.repo", payload.Repository.FullName),
+		attribute.String("github.ref", payload.Ref),
+		attribute.String("github.action", payload.Action),
+	)
+	span.AddEvent("webhook.payload_received", trace.WithAttributes(
+		attribute.String("payload.raw", string(body)),
+	))
+
 	shouldTrigger := false
 
 	// Case 1: Push to main
@@ -131,14 +145,18 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
 		mu := val.(*sync.Mutex)
 
+		_, waitSpan := tracer.Start(parentCtx, "webhook.wait_for_lock")
+		waitSpan.SetAttributes(attribute.String("github.repo", repo))
 		mu.Lock()
+		waitSpan.End()
+
 		defer mu.Unlock()
 
 		_, syncSpan := tracer.Start(parentCtx, "webhook.gitops_sync")
 		syncSpan.SetAttributes(
-			attribute.String("repo", repo),
-			attribute.String("event", eventType),
-			attribute.Bool("merged", merged),
+			attribute.String("github.repo", repo),
+			attribute.String("github.event", eventType),
+			attribute.Bool("github.merged", merged),
 		)
 		defer syncSpan.End()
 
