@@ -11,7 +11,7 @@ generate_cycle() {
   local r_idx=$(( RANDOM % ${#REGIONS[@]} ))
   local d_idx=$(( RANDOM % ${#DEVICES[@]} ))
   local n_idx=$(( RANDOM % ${#NETWORKS[@]} ))
-  local hex_id=$(cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 8 | head -n 1)
+  local hex_id=$(openssl rand -hex 4)
 
   # Baseline health check (optional)
   if [ "$include_health" = "true" ]; then
