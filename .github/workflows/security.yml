@@ -1,0 +1,33 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.go'
+      - '**/go.mod'
+      - '**/go.sum'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.go'
+      - '**/go.mod'
+      - '**/go.sum'
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sundays
+
+env:
+  go-version: '1.25'
+
+jobs:
+  vuln-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-go@v6.2.0
+        with:
+          go-version: ${{ env.go-version }}
+          cache-dependency-path: "**/go.sum"
+
+      - name: Run govulncheck
+        run: make go-vuln-scan
