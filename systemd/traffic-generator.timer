@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for Synthetic Traffic Generation (Hourly)
+
+[Timer]
+OnCalendar=hourly
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
