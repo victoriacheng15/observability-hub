@@ -35,12 +35,13 @@ initChownData:
     runAsNonRoot: true
     runAsUser: 472
     allowPrivilegeEscalation: false
+    # Fix for linter: init containers should also be hardened where possible
+    readOnlyRootFilesystem: true
     capabilities:
       add:
         - CHOWN
       drop:
         - ALL
-    readOnlyRootFilesystem: false
 
 datasources:
   datasources.yaml:

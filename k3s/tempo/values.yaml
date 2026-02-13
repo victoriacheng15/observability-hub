@@ -15,18 +15,41 @@ tempo:
       cpu: 200m
       memory: 512Mi
 
+  # Enable read-only root filesystem
+  securityContext:
+    readOnlyRootFilesystem: true
+
+  # Injected directly into the tempo container
+  extraEnv:
+    - name: rootUser
+      valueFrom:
+        secretKeyRef:
+          name: minio-secret
+          key: rootUser
+    - name: rootPassword
+      valueFrom:
+        secretKeyRef:
+          name: minio-secret
+          key: rootPassword
+
+  extraArgs:
+    config.expand-env: "true"
+
   multitenancy_enabled: false
 
+# Manually specify the config to ensure correct schema for v2.10.0
+config: |
   memberlist:
     cluster_label: "tempo.observability"
-  
+    node_name: "tempo-0"
+    join_members:
+      - "localhost"
+  multitenancy_enabled: false
   usage_report:
     reporting_enabled: true
-  
   compactor:
     compaction:
       block_retention: 24h
-  
   distributor:
     receivers:
       jaeger:
@@ -47,21 +70,39 @@ tempo:
             endpoint: 0.0.0.0:4318
     ring:
       kvstore:
-        store: inmemory
-
+        store: memberlist
   ingester:
     lifecycler:
       ring:
         kvstore:
-          store: inmemory
+          store: memberlist
         replication_factor: 1
-
-  metricsGenerator:
-    enabled: true
+  server:
+    http_listen_port: 3200
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo-traces
+        endpoint: minio.observability.svc.cluster.local:9000
+        access_key: ${rootUser}
+        secret_key: ${rootPassword}
+        insecure: true
+      wal:
+        path: /var/tempo/wal
+  metrics_generator:
     registry:
       external_labels:
         source: tempo
         cluster: k3s
+    storage:
+      path: "/var/tempo/generator/wal"
+      remote_write:
+        - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
+    ring:
+      kvstore:
+        store: memberlist
+    # RESTORED PROCESSORS
     processor:
       local_blocks:
         filter_server_spans: false
@@ -73,30 +114,8 @@ tempo:
           - http.status_code
           - app.traffic_mode
           - app.business.region
-    storage:
-      path: /var/tempo/generator/wal
-      remote_write:
-        - url: http://prometheus-server.observability.svc.cluster.local/api/v1/write
-
-  server:
-    http_listen_port: 3200
-
-  storage:
-    trace:
-      backend: local
-      local:
-        path: /var/tempo/traces
-      wal:
-        path: /var/tempo/wal
-
-  querier: {}
-  queryFrontend: {}
-
   overrides:
     defaults:
       metrics_generator:
         processors: [service-graphs, span-metrics, local-blocks]
     per_tenant_override_config: /conf/overrides.yaml
-
-# Top-level flags still needed for chart behavior
-multitenancy_enabled: false

@@ -1,0 +1,100 @@
+image:
+  repository: quay.io/minio/minio
+  tag: RELEASE.2025-09-07T16-13-09Z
+  pullPolicy: IfNotPresent
+
+mode: standalone
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: local-path
+
+# Match the keys in the manual secret
+existingSecret: "minio-secret"
+accessKeyKey: "rootUser"
+secretKeyKey: "rootPassword"
+
+service:
+  type: ClusterIP
+  port: 9000
+  consolePort: 9001
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 200m
+
+# Deployment Pod Security Context
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+# Deployment Container Security Context
+containerSecurityContext:
+  enabled: true
+  readOnlyRootFilesystem: true # Fixed for linter
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+buckets:
+  - name: tempo-traces
+    policy: public
+    purge: false
+
+# Post-install Job Hardening
+postJob:
+  securityContext:
+    enabled: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    runAsNonRoot: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      cpu: 50m
+      memory: 256Mi
+  # Attempting to fix linter errors for postJob
+  ttlSecondsAfterFinished: 3600
+
+# Task-specific hardening
+makeBucketJob:
+  securityContext:
+    enabled: true
+    runAsUser: 1000
+    runAsNonRoot: true
+  containerSecurityContext:
+    readOnlyRootFilesystem: true # Fixed for linter
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      cpu: 50m
+      memory: 256Mi
+
+makeUserJob:
+  securityContext:
+    enabled: true
+    runAsUser: 1000
+    runAsNonRoot: true
+  containerSecurityContext:
+    readOnlyRootFilesystem: true # Fixed for linter
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      cpu: 50m
+      memory: 256Mi

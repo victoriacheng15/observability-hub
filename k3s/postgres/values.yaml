@@ -21,7 +21,9 @@ primary:
   pdb:
     create: true
     maxUnavailable: 1
-    unhealthyPodEvictionPolicy: AlwaysAllow
+    # Fix for linter: explicitly set unhealthyPodEvictionPolicy
+    # Note: bitnami chart v18.3.0 uses this key
+    unhealthyPodEvictionPolicy: "AlwaysAllow"
   
   podSecurityContext:
     enabled: true
@@ -80,5 +82,8 @@ volumePermissions:
       cpu: 10m
       memory: 64Mi
   containerSecurityContext:
+    # Note: bitnami volumePermissions init container often needs root 
+    # to perform chown on volume mounts.
     runAsUser: 0
+    runAsNonRoot: false
     readOnlyRootFilesystem: true

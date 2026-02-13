@@ -1,6 +1,6 @@
 # K3s Orchestration & Migration
 
-.PHONY: k3s-alloy-up k3s-loki-up k3s-tempo-up k3s-otel-up k3s-prometheus-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: k3s-alloy-up k3s-loki-up k3s-minio-up k3s-tempo-up k3s-otel-up k3s-prometheus-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 # Maintenance
 kube-lint:
@@ -28,6 +28,11 @@ k3s-loki-up:
 	@echo "Deploying Loki..."
 	@$(KC) apply -f k3s/loki/manifest.yaml
 	@$(KC) rollout restart statefulset/loki
+
+k3s-minio-up:
+	@echo "Deploying MinIO..."
+	@$(KC) apply -f k3s/minio/manifest.yaml
+	@$(KC) rollout restart deployment/minio
 
 k3s-tempo-up:
 	@echo "Deploying Tempo..."

@@ -67,20 +67,20 @@ This guide details the procedures for managing the observability stack within th
 - **Local Image Sideloading**:
   Since we use a custom PostgreSQL image with extensions, it must be manually imported into the k3s node.
 
-  ```bash
-  # 1. Build locally
-  docker build -t postgres-pod:17.2.0-ext -f docker/postgres/Dockerfile .
+```bash
+# 1. Build locally
+docker build -t postgres-pod:17.2.0-ext -f docker/postgres/Dockerfile .
 
-  # 2. Export and Import
-  docker save -o postgres-pod.tar postgres-pod:17.2.0-ext
-  sudo k3s ctr images import postgres-pod.tar
+# 2. Export and Import
+docker save -o postgres-pod.tar postgres-pod:17.2.0-ext
+sudo k3s ctr images import postgres-pod.tar
 
-  # 3. Tag for consistency
-  sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:17.2.0-ext
+# 3. Tag for consistency
+sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:17.2.0-ext
 
-  # 4. Cleanup
-  rm postgres-pod.tar
-  ```
+# 4. Cleanup
+rm postgres-pod.tar
+```
 
 ### 6. Prometheus (Metrics Store)
 
@@ -105,6 +105,27 @@ This guide details the procedures for managing the observability stack within th
   kubectl apply -f k3s/tempo/manifest.yaml
   kubectl rollout restart statefulset tempo -n observability
   ```
+
+---
+
+## 📊 Resource Limits Summary
+
+| Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **alloy** | 20m | 114Mi | 150m | 178Mi | Telemetry Collection |
+| **grafana** | 50m | 128Mi | 200m | 384Mi | Visualization |
+| **loki** | 160m | 352Mi | 450m | 960Mi | Log Storage |
+| **minio** | 100m | 256Mi | 200m | 512Mi | S3 Storage Backend |
+| **opentelemetry** | 20m | 100Mi | 150m | 256Mi | Trace Gateway |
+| **postgres** | 260m | 576Mi | 600m | 896Mi | Relational Data |
+| **prometheus** | 130m | 672Mi | 550m | 1088Mi | Metrics Storage |
+| **tempo** | 50m | 256Mi | 200m | 512Mi | Trace Storage |
+| **TOTAL** | **790m** | **2.4Gi** | **2.5 Cores** | **4.7Gi** | |
+
+**Understanding Usage Totals:**
+
+- **Mini Total (790m CPU / 2.4Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (2.5 Cores / 4.7Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
