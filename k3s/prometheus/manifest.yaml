@@ -40,7 +40,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: observability
@@ -56,7 +56,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: observability
@@ -181,7 +181,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: observability
@@ -357,7 +357,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
 rules:
@@ -428,7 +428,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
 subjects:
@@ -504,7 +504,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: observability
@@ -607,6 +607,13 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
           volumeMounts:
             - name: proc
               mountPath: /host/proc
@@ -730,7 +737,12 @@ spec:
           successThreshold: 1
           timeoutSeconds: 5
         resources:
-          {}
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -747,7 +759,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/instance: prometheus
     app.kubernetes.io/version: v3.9.1
-    helm.sh/chart: prometheus-28.9.0
+    helm.sh/chart: prometheus-28.9.1
     app.kubernetes.io/part-of: prometheus
   name: prometheus-server
   namespace: observability
@@ -769,7 +781,7 @@ spec:
         app.kubernetes.io/name: prometheus
         app.kubernetes.io/instance: prometheus
         app.kubernetes.io/version: v3.9.1
-        helm.sh/chart: prometheus-28.9.0
+        helm.sh/chart: prometheus-28.9.1
         app.kubernetes.io/part-of: prometheus
     spec:
       enableServiceLinks: true
@@ -849,6 +861,18 @@ spec:
             - name: storage-volume
               mountPath: /data
               subPath: ""
+            
+            - mountPath: /tmp
+              name: tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 65534
+            runAsNonRoot: true
+            runAsUser: 65534
       dnsPolicy: ClusterFirst
       securityContext:
         fsGroup: 65534
@@ -860,6 +884,8 @@ spec:
         - name: config-volume
           configMap:
             name: prometheus-server
+        - emptyDir: {}
+          name: tmp
         - name: storage-volume
           persistentVolumeClaim:
             claimName: prometheus-server

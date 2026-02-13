@@ -11,5 +11,8 @@ For detailed operational procedures, including deployment commands, image sidelo
 - **alloy/**: Grafana Alloy DaemonSet for host-level telemetry.
 - **grafana/**: Visualization layer with persistence.
 - **loki/**: Log storage and indexing.
+- **opentelemetry/**: OpenTelemetry Collector for signal processing.
 - **postgres/**: Relational data store (TimescaleDB/PostGIS).
+- **prometheus/**: Time-series storage for infrastructure metrics.
+- **tempo/**: Distributed trace storage.
 - **namespace.yaml**: Core isolation boundary for the stack.

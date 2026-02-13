@@ -1,0 +1,22 @@
+name: Infrastructure Linting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'k3s/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'k3s/**'
+
+jobs:
+  kube-linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Scan manifests
+        uses: stackrox/kube-linter-action@v1.0.6
+        with:
+          directory: k3s

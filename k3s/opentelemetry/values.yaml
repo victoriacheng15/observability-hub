@@ -19,10 +19,24 @@ resources:
     cpu: 150m
     memory: 256Mi
 
+podSecurityContext:
+  fsGroup: 10001
+  runAsGroup: 10001
+  runAsUser: 10001
+  runAsNonRoot: true
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
 # Use alternateConfig to fully control the collector's configuration and avoid default merges
 alternateConfig:
   extensions:
-    health_check: {} # Mandatory for liveness/readiness probes
+    health_check:
+      endpoint: 0.0.0.0:13133
   receivers:
     otlp:
       protocols:
@@ -73,4 +87,9 @@ ports:
     enabled: true
     containerPort: 8888
     servicePort: 8888
+    protocol: TCP
+  health-check:
+    enabled: true
+    containerPort: 13133
+    servicePort: 13133
     protocol: TCP

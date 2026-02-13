@@ -1,6 +1,14 @@
 revisionHistoryLimit: 3
 
 alloy:
+  securityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
   mounts:
     extra:
       - name: journal-logs
@@ -9,6 +17,8 @@ alloy:
       - name: machine-id
         mountPath: /etc/machine-id
         readOnly: true
+      - name: tmp
+        mountPath: /tmp
   resources:
     requests:
       cpu: 10m
@@ -93,6 +103,23 @@ alloy:
         forward_to = [loki.write.local_loki.receiver]
       }
 
+configReloader:
+  securityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 65532
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    limits:
+      cpu: 50m
+      memory: 50Mi
+    requests:
+      cpu: 10m
+      memory: 50Mi
+
 controller:
   type: daemonset
   hostNetwork: false
@@ -104,3 +131,5 @@ controller:
       - name: machine-id
         hostPath:
           path: /etc/machine-id
+      - name: tmp
+        emptyDir: {}

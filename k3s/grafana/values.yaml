@@ -10,6 +10,38 @@ persistence:
   size: 10Gi
   storageClass: local-path
 
+podSecurityContext:
+  fsGroup: 472
+  runAsGroup: 472
+  runAsUser: 472
+
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+initChownData:
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472
+    allowPrivilegeEscalation: false
+    capabilities:
+      add:
+        - CHOWN
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+
 datasources:
   datasources.yaml:
     apiVersion: 1
@@ -106,13 +138,21 @@ extraVolumes:
   - name: grafana-dashboards
     configMap:
       name: grafana-dashboards
+  - name: tmp
+    emptyDir: {}
 
 extraVolumeMounts:
   - name: grafana-dashboards
     mountPath: /var/lib/grafana/dashboards
+  - name: tmp
+    mountPath: /tmp
 
 envValueFrom:
   POSTGRES_PASSWORD:
     secretKeyRef:
       name: postgres-secret
       key: server-db-password
+
+# Fix for grafana-test pod in manifest
+testFramework:
+  enabled: false

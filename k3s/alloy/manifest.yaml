@@ -345,6 +345,14 @@ spec:
             requests:
               cpu: 10m
               memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
           volumeMounts:
             - name: config
               mountPath: /etc/alloy
@@ -354,6 +362,8 @@ spec:
             - mountPath: /etc/machine-id
               name: machine-id
               readOnly: true
+            - mountPath: /tmp
+              name: tmp
         - name: config-reloader
           image: quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0
           args:
@@ -363,9 +373,20 @@ spec:
             - name: config
               mountPath: /etc/alloy
           resources:
+            limits:
+              cpu: 50m
+              memory: 50Mi
             requests:
               cpu: 10m
               memory: 50Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
       dnsPolicy: ClusterFirst
       volumes:
         - name: config
@@ -377,3 +398,5 @@ spec:
         - hostPath:
             path: /etc/machine-id
           name: machine-id
+        - emptyDir: {}
+          name: tmp

@@ -16,19 +16,7 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart daemonset alloy -n observability
   ```
 
-### 2. Loki (Log Store)
-
-- **Manifest**: `k3s/loki/manifest.yaml`
-- **Values**: `k3s/loki/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template loki grafana/loki -f k3s/loki/values.yaml --namespace observability > k3s/loki/manifest.yaml"
-  kubectl apply -f k3s/loki/manifest.yaml
-  kubectl rollout restart statefulset loki -n observability
-  ```
-
-### 3. Grafana (Visualization)
+### 2. Grafana (Visualization)
 
 - **Manifest**: `k3s/grafana/manifest.yaml`
 - **Values**: `k3s/grafana/values.yaml`
@@ -40,19 +28,19 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment grafana -n observability
   ```
 
-### 4. PostgreSQL (Relational Data)
+### 3. Loki (Log Store)
 
-- **Manifest**: `k3s/postgres/manifest.yaml`
-- **Values**: `k3s/postgres/values.yaml`
+- **Manifest**: `k3s/loki/manifest.yaml`
+- **Values**: `k3s/loki/values.yaml`
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template postgres bitnami/postgresql -f k3s/postgres/values.yaml --namespace observability > k3s/postgres/manifest.yaml"
-  kubectl apply -f k3s/postgres/manifest.yaml
-  kubectl rollout restart statefulset postgres-postgresql -n observability
+  nix-shell --run "helm template loki grafana/loki -f k3s/loki/values.yaml --namespace observability > k3s/loki/manifest.yaml"
+  kubectl apply -f k3s/loki/manifest.yaml
+  kubectl rollout restart statefulset loki -n observability
   ```
 
-### 5. OpenTelemetry (Collector)
+### 4. OpenTelemetry (Collector)
 
 - **Manifest**: `k3s/opentelemetry/manifest.yaml`
 - **Values**: `k3s/opentelemetry/values.yaml`
@@ -64,19 +52,37 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment opentelemetry -n observability
   ```
 
-### 6. Grafana Tempo (Trace Store)
+### 5. PostgreSQL (Relational Data)
 
-- **Manifest**: `k3s/tempo/manifest.yaml`
-- **Values**: `k3s/tempo/values.yaml`
+- **Manifest**: `k3s/postgres/manifest.yaml`
+- **Values**: `k3s/postgres/values.yaml`
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
-  kubectl apply -f k3s/tempo/manifest.yaml
-  kubectl rollout restart statefulset tempo -n observability
+  nix-shell --run "helm template postgres bitnami/postgresql -f k3s/postgres/values.yaml --namespace observability > k3s/postgres/manifest.yaml"
+  kubectl apply -f k3s/postgres/manifest.yaml
+  kubectl rollout restart statefulset postgres-postgresql -n observability
   ```
 
-### 7. Prometheus (Metrics Store)
+- **Local Image Sideloading**:
+  Since we use a custom PostgreSQL image with extensions, it must be manually imported into the k3s node.
+
+  ```bash
+  # 1. Build locally
+  docker build -t postgres-pod:17.2.0-ext -f docker/postgres/Dockerfile .
+
+  # 2. Export and Import
+  docker save -o postgres-pod.tar postgres-pod:17.2.0-ext
+  sudo k3s ctr images import postgres-pod.tar
+
+  # 3. Tag for consistency
+  sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:17.2.0-ext
+
+  # 4. Cleanup
+  rm postgres-pod.tar
+  ```
+
+### 6. Prometheus (Metrics Store)
 
 - **Manifest**: `k3s/prometheus/manifest.yaml`
 - **Values**: `k3s/prometheus/values.yaml`
@@ -88,26 +94,17 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment prometheus-server -n observability
   ```
 
----
+### 7. Grafana Tempo (Trace Store)
 
-## 🖼️ Local Image Sideloading
+- **Manifest**: `k3s/tempo/manifest.yaml`
+- **Values**: `k3s/tempo/values.yaml`
+- **Update Command**:
 
-Since we use a custom PostgreSQL image with extensions, it must be manually imported into the k3s node.
-
-```bash
-# 1. Build locally
-docker build -t postgres-pod:latest -f docker/postgres/Dockerfile .
-
-# 2. Export and Import
-docker save -o postgres-pod.tar postgres-pod:latest
-sudo k3s ctr images import postgres-pod.tar
-
-# 3. Tag for consistency (removes docker.io/library prefix)
-sudo k3s ctr images tag docker.io/library/postgres-pod:latest postgres-pod:latest
-
-# 4. Cleanup
-rm postgres-pod.tar
-```
+  ```bash
+  nix-shell --run "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
+  kubectl apply -f k3s/tempo/manifest.yaml
+  kubectl rollout restart statefulset tempo -n observability
+  ```
 
 ---
 

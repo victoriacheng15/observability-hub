@@ -9,8 +9,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
     app.kubernetes.io/component: primary
 spec:
   podSelector:
@@ -37,8 +37,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
     app.kubernetes.io/component: primary
 spec:
   maxUnavailable: 1
@@ -58,8 +58,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
 automountServiceAccountToken: false
 ---
 # Source: postgresql/templates/primary/svc-headless.yaml
@@ -72,8 +72,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
     app.kubernetes.io/component: primary
   annotations:
 spec:
@@ -102,8 +102,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
     app.kubernetes.io/component: primary
 spec:
   type: NodePort
@@ -128,8 +128,8 @@ metadata:
     app.kubernetes.io/instance: postgres
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: postgresql
-    app.kubernetes.io/version: 18.1.0
-    helm.sh/chart: postgresql-18.2.6
+    app.kubernetes.io/version: 18.2.0
+    helm.sh/chart: postgresql-18.3.0
     app.kubernetes.io/component: primary
 spec:
   replicas: 1
@@ -149,8 +149,8 @@ spec:
         app.kubernetes.io/instance: postgres
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: postgresql
-        app.kubernetes.io/version: 18.1.0
-        helm.sh/chart: postgresql-18.2.6
+        app.kubernetes.io/version: 18.2.0
+        helm.sh/chart: postgresql-18.3.0
         app.kubernetes.io/component: primary
     spec:
       serviceAccountName: postgres-postgresql
@@ -180,17 +180,15 @@ spec:
       hostIPC: false
       initContainers:
         - name: init-chmod-data
-          image: registry-1.docker.io/bitnami/os-shell:latest
+          image: registry-1.docker.io/bitnami/os-shell@sha256:2894a65763cafc20e72a1ed3176cfbcdabaa9cd77655e0c09f8f58852506c7b9
           imagePullPolicy: "IfNotPresent"
           resources:
             limits:
-              cpu: 150m
-              ephemeral-storage: 2Gi
-              memory: 192Mi
-            requests:
               cpu: 100m
-              ephemeral-storage: 50Mi
               memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
           command:
             - /bin/sh
             - -ec
@@ -202,6 +200,7 @@ spec:
                 xargs -r chown -R 1001:1001
               chmod -R 777 /dev/shm
           securityContext:
+            readOnlyRootFilesystem: true
             runAsGroup: 0
             runAsNonRoot: false
             runAsUser: 0
@@ -221,7 +220,7 @@ spec:
               mountPath: /dev/shm
       containers:
         - name: postgresql
-          image: postgres-pod:latest
+          image: postgres-pod:17.2.0-ext
           imagePullPolicy: "Never"
           securityContext:
             allowPrivilegeEscalation: false
@@ -229,7 +228,7 @@ spec:
               drop:
               - ALL
             privileged: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             runAsGroup: 1001
             runAsNonRoot: true
             runAsUser: 1001
@@ -327,12 +326,16 @@ spec:
               mountPath: /dev/shm
             - name: data
               mountPath: /bitnami/postgresql
+            - mountPath: /var/run/postgresql
+              name: run-volume
       volumes:
         - name: empty-dir
           emptyDir: {}
         - name: postgresql-password
           secret:
             secretName: postgres-secret
+        - emptyDir: {}
+          name: run-volume
         - name: dshm
           emptyDir:
             medium: Memory

@@ -17,6 +17,15 @@ loki:
     enabled: true
     size: 10Gi
     storageClass: local-path
+  sidecar:
+    rules:
+      resources:
+        limits:
+          cpu: 50m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
 
 deploymentMode: SingleBinary
 
@@ -29,6 +38,33 @@ singleBinary:
     limits:
       cpu: 300m
       memory: 768Mi
+  podSecurityContext:
+    fsGroup: 10001
+    runAsGroup: 10001
+    runAsUser: 10001
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+gateway:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
 
 # Explicitly disable scalable components in SingleBinary mode
 backend:

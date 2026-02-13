@@ -6,7 +6,7 @@ global:
 image:
   registry: ""
   repository: postgres-pod
-  tag: latest
+  tag: 17.2.0-ext
   pullPolicy: Never
 
 auth:
@@ -18,8 +18,26 @@ auth:
     adminPasswordKey: "postgres-password"
 
 primary:
+  pdb:
+    create: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
+  
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+
   containerSecurityContext:
-    readOnlyRootFilesystem: false
+    enabled: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 1001
+    capabilities:
+      drop:
+        - ALL
+
   resources:
     requests:
       cpu: 250m
@@ -27,10 +45,19 @@ primary:
     limits:
       cpu: 500m
       memory: 768Mi
+  
   persistence:
     enabled: true
     storageClass: local-path
     size: 10Gi
+
+  extraVolumes:
+    - name: run-volume
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: run-volume
+      mountPath: /var/run/postgresql
+  
   service:
     type: NodePort
     nodePorts:
@@ -38,5 +65,20 @@ primary:
 
 readReplicas:
   enabled: false
+
 volumePermissions:
   enabled: true
+  image:
+    registry: registry-1.docker.io
+    repository: bitnami/os-shell
+    digest: "sha256:2894a65763cafc20e72a1ed3176cfbcdabaa9cd77655e0c09f8f58852506c7b9"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  containerSecurityContext:
+    runAsUser: 0
+    readOnlyRootFilesystem: true
