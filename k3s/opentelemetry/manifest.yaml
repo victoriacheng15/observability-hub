@@ -38,7 +38,8 @@ data:
         tls:
           insecure: true
     extensions:
-      health_check: {}
+      health_check:
+        endpoint: 0.0.0.0:13133
     processors:
       batch: {}
     receivers:
@@ -95,6 +96,10 @@ spec:
   type: NodePort
   ports:
     
+    - name: health-check
+      port: 13133
+      targetPort: 13133
+      protocol: TCP
     - name: jaeger-compact
       port: 6831
       targetPort: 6831
@@ -159,7 +164,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e7bcccfeeab663ebff2db857422a9341f248e7056084da5243d85af70f67af56
+        checksum/config: eda5222eb42bdde733860ff3fa7c586726c37ce269b70216a406a0233b5c080f
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -171,17 +176,27 @@ spec:
       serviceAccountName: opentelemetry
       automountServiceAccountToken: true
       securityContext:
-        {}
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
       containers:
         - name: opentelemetry-collector
           args:
             - --config=/conf/relay.yaml
           securityContext:
-            {}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
           image: "otel/opentelemetry-collector-contrib:0.94.0"
           imagePullPolicy: IfNotPresent
           ports:
             
+            - name: health-check
+              containerPort: 13133
+              protocol: TCP
             - name: jaeger-compact
               containerPort: 6831
               protocol: UDP

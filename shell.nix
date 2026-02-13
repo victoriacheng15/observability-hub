@@ -6,5 +6,7 @@ pkgs.mkShell {
     openbao
     kubernetes-helm
     k9s
+    kube-linter
   ];
 }
+    
