@@ -1,0 +1,12 @@
+[Unit]
+Description=Synthetic Traffic Generator (Single Run)
+After=network.target proxy.service
+
+[Service]
+Type=oneshot
+User=server
+WorkingDirectory=/home/server/software/observability-hub
+# Calling without arguments triggers the default (*) case in the script
+ExecStart=/home/server/software/observability-hub/scripts/generate_traffic.sh
+StandardOutput=journal
+StandardError=journal
