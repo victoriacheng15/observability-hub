@@ -204,3 +204,8 @@ chapters:
           - Completed high-fidelity OTel instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
           - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Tempo storage and Grafana visualization.
           - Resolved a critical "silent" failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
+      - date: "2026-02-13"
+        title: "Storage Scalability & Security Hardening"
+        description: |
+          - Scaled telemetry persistence by migrating from restricted local disks to professional S3-compatible object storage (MinIO), ensuring long-term data reliability.
+          - Established a "Safe-by-Default" infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
