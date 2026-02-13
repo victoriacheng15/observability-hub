@@ -38,6 +38,7 @@ help:
 	@echo "  make k3s-alloy-up       - Deploy/Restart Alloy"
 	@echo "  make k3s-grafana-up     - Deploy/Restart Grafana"
 	@echo "  make k3s-loki-up        - Deploy/Restart Loki"
+	@echo "  make k3s-minio-up       - Deploy/Restart MinIO"
 	@echo "  make k3s-otel-up        - Deploy/Restart OTel Collector"
 	@echo "  make k3s-postgres-up    - Deploy/Restart PostgreSQL"
 	@echo "  make k3s-prometheus-up  - Deploy/Restart Prometheus"

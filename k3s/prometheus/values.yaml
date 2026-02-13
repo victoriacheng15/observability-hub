@@ -21,7 +21,7 @@ server:
       drop:
         - ALL
   
-  # Final attempt at this key for v28.x chart
+  # sidecarConfigReloader for newer charts
   sidecarConfigReloader:
     resources:
       limits:
@@ -39,23 +39,24 @@ server:
         drop:
           - ALL
 
-  # Try configmapReload key too just in case it's a version that uses it
+  # configmapReload for this specific chart version (v28.x)
   configmapReload:
-    resources:
-      limits:
-        cpu: 50m
-        memory: 64Mi
-      requests:
-        cpu: 10m
-        memory: 32Mi
-    containerSecurityContext:
-      readOnlyRootFilesystem: true
-      allowPrivilegeEscalation: false
-      runAsNonRoot: true
-      runAsUser: 65534
-      capabilities:
-        drop:
-          - ALL
+    prometheus:
+      resources:
+        limits:
+          cpu: 50m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+      containerSecurityContext:
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 65534
+        capabilities:
+          drop:
+            - ALL
 
   retention: 12h  # Lean retention for homelab
   persistentVolume:
@@ -84,21 +85,6 @@ extraScrapeConfigs: |
 
 # Scrape job configuration for single-node homelab
 scrapeConfigs:
-  kubernetes-api-servers:
-    enabled: false
-  kubernetes-nodes:
-    enabled: false
-  kubernetes-pods:
-    enabled: false
-  kubernetes-pods-slow:
-    enabled: false
-  kubernetes-service-endpoints-slow:
-    enabled: false
-  kubernetes-services:
-    enabled: false
-  prometheus-pushgateway:
-    enabled: false
-
   kubernetes-service-endpoints:
     metric_relabel_configs:
       - source_labels: [__name__]
