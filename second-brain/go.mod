@@ -1,6 +1,6 @@
 module second-brain
 
-go 1.25.2
+go 1.25.5
 
 replace secrets => ../pkg/secrets
 
@@ -9,7 +9,7 @@ replace db => ../pkg/db
 require (
 	db v0.0.0-00010101000000-000000000000
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.1
+	github.com/lib/pq v1.11.2
 	secrets v0.0.0
 )
 
@@ -29,7 +29,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )

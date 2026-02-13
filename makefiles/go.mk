@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_DIRS = proxy system-metrics page pkg/db pkg/logger pkg/secrets second-brain
 
-.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build
+.PHONY: go-format go-lint go-update go-test go-cov go-vuln-scan page-build metrics-build proxy-build
 
 go-format:
 	$(NIX_WRAP)
@@ -14,6 +14,14 @@ go-lint:
 	@for dir in $(GO_DIRS); do \
 		echo "Vetting $$dir..."; \
 		(cd $$dir && go vet ./...) || exit 1; \
+	done
+
+go-vuln-scan:
+	$(NIX_WRAP)
+	@echo "Running govulncheck..."
+	@for dir in $(GO_DIRS); do \
+		echo "Scanning $$dir..."; \
+		(cd $$dir && go run golang.org/x/vuln/cmd/govulncheck@latest ./...) || exit 1; \
 	done
 
 go-update:
