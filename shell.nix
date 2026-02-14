@@ -7,6 +7,8 @@ pkgs.mkShell {
     kubernetes-helm
     k9s
     kube-linter
+    hclfmt
+    action-validator
   ];
 }
     

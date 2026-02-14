@@ -11,6 +11,7 @@ help:
 	@echo "Project Management:"
 	@echo "  make adr                - Create a new ADR (Architecture Decision Record)"
 	@echo "  make lint               - Lint markdown files"
+	@echo "  make lint-configs       - Lint HCL policies and GitHub Actions"
 	@echo ""
 	@echo "Go Development (Auto-Nix):"
 	@echo "  make go-format          - Format and simplify Go code"
