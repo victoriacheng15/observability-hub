@@ -38,7 +38,7 @@ var tagsMap = map[string][]string{
 	"database":      {"postgres", "postgresql", "jsonb", "timescaledb", "postgis", "sql", "mongodb", "database", "db"},
 	"devops":        {"github actions", "gitops", "reconciliation", "ci-cd", "docker", "terraform", "nix", "shell.nix"},
 	"career":        {"impostor syndrome", "growth", "senior", "leadership", "reflection", "mentorship", "career", "brag", "win", "impact", "job", "application", "interview", "resume", "cv"},
-	"platform":      {"openbao", "tailscale", "security", "infrastructure", "infra", "zero-trust", "secrets", "bao", "cloud"},
+	"platform":      {"openbao", "tailscale", "security", "infrastructure", "infra", "zero-trust", "secrets", "bao", "cloud", "platform"},
 	"cloud":         {"aws", "azure", "gcp", "digitalocean", "atlas", "cloudflare", "cloud-native", "serverless"},
 	"sre":           {"incident", "rca", "post-mortem", "outage", "reliability", "slo", "sli", "error budget", "toil"},
 	"language":      {"go", "golang", "python", "rust", "typescript", "javascript", "bash", "shell"},
@@ -179,10 +179,24 @@ func atomize(date, body string) []AtomicThought {
 	flush := func() {
 		if len(currentBlocks) > 0 {
 			text := strings.TrimSpace(strings.Join(currentBlocks, "\n"))
-			if text == "" || text == "-" || text == "*" {
+			// Remove leading dash if present
+			if strings.HasPrefix(text, "- ") {
+				text = strings.TrimPrefix(text, "- ")
+			} else if text == "-" {
+				text = ""
+			}
+
+			text = strings.TrimSpace(text)
+			if text == "" || text == "*" {
 				return
 			}
 			tags := getTags(text)
+
+			// If no tags are found, add "random" tag
+			if len(tags) == 0 {
+				tags = []string{"random"}
+			}
+
 			context := fmt.Sprintf("Date: %s | Category: %s | Tags: %s | Content: %s", date, currentCategory, strings.Join(tags, ", "), text)
 			atoms = append(atoms, AtomicThought{
 				Date:          date,
@@ -257,8 +271,30 @@ func atomize(date, body string) []AtomicThought {
 			if strings.HasPrefix(trimmed, "- [ ]") || strings.HasPrefix(trimmed, "- [x]") {
 				continue
 			}
+
+			// Detect a dash/bullet at start of line
+			isBullet := strings.HasPrefix(trimmed, "-")
+
+			// If we see a new bullet point and we already have content, flush the previous one
+			if isBullet && len(currentBlocks) > 0 {
+				flush()
+			}
+
 			if trimmed != "" {
-				currentBlocks = append(currentBlocks, line)
+				// Clean the dash from the line immediately
+				lineClean := trimmed
+				if strings.HasPrefix(trimmed, "- ") {
+					lineClean = strings.TrimPrefix(trimmed, "- ")
+				} else if trimmed == "-" {
+					lineClean = ""
+				} else if strings.HasPrefix(trimmed, "-") {
+					// Handle cases like "-Thought" (no space)
+					lineClean = strings.TrimPrefix(trimmed, "-")
+				}
+
+				if lineClean != "" {
+					currentBlocks = append(currentBlocks, lineClean)
+				}
 			}
 		}
 	}
