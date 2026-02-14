@@ -1,88 +1,70 @@
 # Agent Guide for Observability Hub
 
-This document provides context and instructions for AI agents working on the **Observability Hub** project, a Go-based observability platform and mentorship sandbox.
+This document is the **Primary Heuristic** for AI agents. It defines the systemic boundaries, operational standards, and institutional memory required to contribute effectively to the Observability Hub.
 
-## 1. Project Overview
+## 1. Systemic Architecture & Mental Model
 
-**Observability Hub** is a modular observability platform designed for hybrid and edge environments. It bridges local `systemd` services with cloud-native patterns (Loki, Alloy, Postgres) orchestrated via Kubernetes.
+Agents must distinguish between the two primary orchestration tiers to avoid "circular dependencies" and resource contention.
 
-- **Core Tech**: Go (Golang), PostgreSQL, Loki, Grafana Alloy, Systemd, Nix, Kubernetes (k3s).
-- **Styling**: Native HTML/CSS (Dark Theme via CSS Variables).
-- **Architecture**: Modular Monorepo (`pkg/`, `proxy/`, `system-metrics/`, `page/`).
+### 🌌 Hybrid Orchestration Layers
 
-## 2. Build and Test Commands
+- **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery.
+- **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo). Orchestrated via IaC in `k3s/`.
 
-The project relies on **Nix** for a reproducible environment. **Always use the `make <target>` (which auto-wraps in Nix) or `make nix-<target>` variants** for Go-related tasks.
+### 🏗️ Directory Map
 
-### Project & Documentation
+- **`pkg/`**: Shared Go modules (DB clients, loggers, secrets). Maintain stable interfaces.
+- **`proxy/`**: The "Central Nervous System." API gateway and GitOps webhook listener.
+- **`system-metrics/`**: Host hardware telemetry collector.
+- **`second-brain/`**: Knowledge ingestion pipeline.
+- **`page/`**: Static site generator for public-facing portfolio.
+- **`scripts/`**: Operational utilities (Traffic gen, ADR creation, Tailscale gate).
+- **`docs/`**: Institutional memory. ADRs, Architecture, Incidents, and Notes.
 
-| Command | Description |
-| :--- | :--- |
-| `make adr` | **Primary ADR Command**. Creates a new Architecture Decision Record (ADR). |
-| `make lint` | Lints and fixes styling in markdown files. |
+## 2. Staff-Level Automation (`Makefile`)
 
-### Go Development (Nix-wrapped)
+The project uses a unified automation layer. **Always prefer `make` commands** as they handle environment wrapping (Nix) and consistency checks automatically.
 
-| Command | Description |
-| :--- | :--- |
-| `make go-format` | Automatically formats and simplifies Go code inside `nix-shell`. |
-| `make go-test` | Runs all Go unit tests across the monorepo inside `nix-shell`. |
-| `make go-update` | Updates all Go dependencies and runs `go mod tidy` inside `nix-shell`. |
-| `make go-lint` | Runs static analysis (go vet) across all modules inside `nix-shell`. |
-| `make go-cov` | Generates and displays test coverage reports inside `nix-shell`. |
-| `make page-build` | Builds the GitHub Page generator and refreshes static assets. |
-| `make metrics-build` | Builds and restarts the host-level `system-metrics` collector. |
-| `make proxy-build` | Rebuilds and restarts the `proxy` API gateway. |
+### 🛠️ Core Commands
 
-### Host Tier (Systemd & Secrets)
+| Domain | Command | Description |
+| :--- | :--- | :--- |
+| **Governance** | `make adr` | Creates a new Architecture Decision Record. |
+| **Quality** | `make lint` | Lints markdown and configuration files (`lint-configs`). |
+| **Go Dev** | `make go-test` | Runs full test suite across the monorepo. |
+| **Security** | `make go-vuln-scan` | Executes `govulncheck` for dependency auditing. |
+| **K3s Ops** | `make kube-lint` | Validates K8s manifests for security violations. |
+| **Host Ops** | `make reload-services` | Safely reloads host-tier systemd units. |
 
-| Command | Description |
-| :--- | :--- |
-| `make install-services` | Symlinks and enables all `systemd` units for the host tier. |
-| `make reload-services` | Reloads `systemd` configurations from the repository. |
-| `make uninstall-services` | Completely stops and removes all project-related systemd units. |
-| `make bao-status` | Checks the health and seal status of the OpenBao secret store. |
+## 3. Engineering Standards
 
-### Kubernetes Tier (k3s)
+### 🐹 Go (Backend)
 
-| Command | Description |
-| :--- | :--- |
-| `make k3s-status` | Overview of all resources in the cluster `observability` namespace. |
-| `make k3s-alloy-up` | Deploy or rollout restart Grafana Alloy in the cluster. |
-| `make k3s-loki-up` | Deploy or rollout restart Loki in the cluster. |
-| `make k3s-grafana-up` | Deploy or rollout restart Grafana in the cluster. |
-| `make k3s-postgres-up` | Deploy or rollout restart PostgreSQL in the cluster. |
-| `make k3s-backup-<name>` | Safely backup a cluster resource (e.g., `make k3s-backup-postgres`). |
+- **Failure Modes**: Never swallow errors. Use explicit wrapping: `fmt.Errorf("context: %w", err)`.
+- **Observability**: Every service must emit JSON-formatted logs to `stdout`.
+- **Testing**: Table-driven tests are the standard. Run `make go-cov` to verify coverage.
 
-## 3. Code Style Guidelines
+### 🎨 HTML/CSS (Frontend)
 
-### Go (Backend)
+- **Zero Frameworks**: Use native HTML5 and CSS3 only.
+- **Styling**: Leverage CSS variables in `:root` for dark-theme consistency.
 
-- **Strict Adherence**: Code must pass `gofmt` and strict linting.
-- **Testing**: **Table-Driven Tests** are preferred. Use the standard library `testing` package.
-- **Error Handling**: **Explicit, wrapped errors** (e.g., `fmt.Errorf("failed to connect: %w", err)`). Do not swallow errors.
+### 📝 Institutional Memory (Documentation)
 
-### HTML/CSS (Frontend)
+- **ADRs (`docs/decisions/`)**: Mandatory for any architectural pivot.
+- **RCA (`docs/incidents/`)**: Document every failure to prevent regression.
+- **Golden Path**: Maintain `docs/workflows.md` to reflect the CI/CD reality.
 
-- **Frameworks**: None. Native HTML/CSS only.
-- **Styling**: Use CSS Variables defined in `:root` (Dark Theme). Layouts via CSS Grid and Flexbox.
-- **Structure**: Semantic HTML5 (header, nav, main, footer).
+## 4. Operational Excellence & Safety
 
-### Documentation
+- **Secrets**: NEVER commit secrets. Use `.env` for local dev and OpenBao for production secrets.
+- **GitOps**: Host-tier changes are applied via `gitops_sync.sh` (triggered by Proxy webhooks).
+- **Observability**: Any new service must be integrated into the telemetry pipeline (Logs to Loki, Metrics to Postgres/Prometheus).
+- **Security**: All Kubernetes manifests must pass `kube-lint`. All Go code must pass `go-vuln-scan`.
 
-- **ADRs**: Architectural decisions (`docs/decisions`) must strictly follow the ADR format.
-- **Freshness**: Maintain `README.md` clarity and ensure documentation matches implementation.
+## 5. Failure Mode Analysis (FMA)
 
-## 4. Testing Instructions
-
-- **Unit Tests**: Run `make nix-go-test` to execute the standard Go test suite.
-- **Coverage**: Run `make nix-go-cov` to generate coverage reports in the terminal.
-- **New Features**: Any new logic must include accompanying table-driven unit tests.
-
-## 5. Security & Automation
-
-- **Infrastructure**:
-  - **`k3s/`**: IaC for Kubernetes-native services (Loki, Postgres, Alloy, Grafana).
-  - **`systemd/`**: Production service definitions for host-level management.
-- **Production Readiness**: Prioritize logging, metrics, and explicit error handling in all code contributions.
-- **Secrets**: Never commit secrets. Ensure `.env` is used for sensitive configuration.
+Before proposing a change, agents should ask:
+1. "Does this create a circular dependency between the host and the cluster?"
+2. "How will this be debugged in production if the network is down?"
+3. "Is this change recorded in an ADR to preserve the 'Why'?"
