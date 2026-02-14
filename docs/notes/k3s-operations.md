@@ -1,6 +1,8 @@
 # k3s Operations Guide
 
-This guide details the procedures for managing the observability stack within the k3s cluster, including deployment, image management, and data migration.
+Reference: https://github.com/grafana/helm-charts
+
+This guide details the procedures for managing the observability stack within the k3s cluster, including deployment, image management, and data migration. For automated updates (Regenerate -> Apply -> Restart), refer to the commands defined in `makefiles/k3s.mk`.
 
 ## 🚀 Component Management
 

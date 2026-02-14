@@ -102,6 +102,8 @@ config: |
     ring:
       kvstore:
         store: memberlist
+    traces_storage:
+      path: /var/tempo/wal
     # RESTORED PROCESSORS
     processor:
       local_blocks:
@@ -115,7 +117,4 @@ config: |
           - app.traffic_mode
           - app.business.region
   overrides:
-    defaults:
-      metrics_generator:
-        processors: [service-graphs, span-metrics, local-blocks]
-    per_tenant_override_config: /conf/overrides.yaml
+    metrics_generator_processors: [service-graphs, span-metrics, local-blocks]
