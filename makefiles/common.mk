@@ -17,7 +17,7 @@ endif
 # Tooling
 LINT_IMAGE = ghcr.io/igorshubovych/markdownlint-cli:v0.44.0
 
-.PHONY: adr lint
+.PHONY: adr lint lint-configs
 
 # Architecture Decision Record Creation
 adr:
@@ -26,3 +26,10 @@ adr:
 # Markdown Linting
 lint:
 	docker run --rm -v "$(PWD):/data" -w /data $(LINT_IMAGE) --fix "**/*.md"
+
+# Configuration Linting (HCL & GitHub Actions)
+lint-configs:
+	@echo "Formatting OpenBao policies..."
+	$(NIX_RUN) "bao policy fmt policies/app-policy.hcl"
+	@echo "Validating GitHub Actions workflows..."
+	$(NIX_RUN) "action-validator .github/workflows/*.yml"
