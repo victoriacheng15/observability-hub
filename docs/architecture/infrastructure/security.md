@@ -27,3 +27,11 @@ All incoming requests to `/api/webhook/gitops` must be authenticated using **HMA
 ## 🧱 Repository Integrity
 
 The GitOps agent (`gitops_sync.sh`) uses **Fast-Forward Only (`--ff-only`)** merges to prevent accidental merge commits on the host and ensure the local environment stays strictly in sync with the remote "Source of Truth."
+
+## 🤖 Automated Security Governance
+
+To maintain a "Secure by Default" posture, the repository employs automated CI/CD guardrails:
+
+- **Infrastructure Linting**: Every change to the `k3s/` directory is automatically scanned by `kube-linter` to identify misconfigurations and security violations in Kubernetes manifests.
+- **Vulnerability Scanning**: The Go codebase and its dependencies are continuously audited using `govulncheck` (triggered on pushes and weekly schedules) to proactively identify and remediate known vulnerabilities.
+- **Policy Enforcement**: Markdown and HCL configurations are linted to ensure consistent adherence to operational and security standards across all documentation and policies.

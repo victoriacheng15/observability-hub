@@ -22,6 +22,14 @@ Ensures code quality and functional correctness across all Go modules in the mon
 - **Responsibility**: Verifies code formatting, runs static analysis, and executes the full suite of unit and integration tests.
 - **Key Feature**: Centralized cache management for all module dependencies to ensure fast and consistent CI runs.
 
+### 🏗️ [Infrastructure Linting](../.github/workflows/infra-lint.yml)
+
+Validates Kubernetes manifests to ensure security and operational best practices.
+
+- **Trigger**: Pushes or Pull Requests affecting the `k3s/` directory.
+- **Responsibility**: Scans K3s manifests using `kube-linter` to catch configuration errors early.
+- **Key Feature**: Automated enforcement of infrastructure-as-code quality standards.
+
 ### 🤝 [Label-Based PR Merge](../.github/workflows/label-merge.yml)
 
 Facilitates "Fleet Commander" style delivery through automated governance.
@@ -37,6 +45,14 @@ Enforces documentation standards and protects the "Institutional Memory."
 - **Trigger**: Pull Requests affecting Markdown files or manual trigger.
 - **Responsibility**: Scans the repository for documentation styling violations to ensure consistency.
 - **Key Feature**: Enforces standards across all ADRs, RFCs, and operational guides.
+
+### 🛡️ [Security Scan](../.github/workflows/security.yml)
+
+Proactively identifies vulnerabilities in the Go codebase and dependencies.
+
+- **Trigger**: Pushes or Pull Requests affecting Go code, and weekly scheduled runs.
+- **Responsibility**: Executes `govulncheck` to scan for known security vulnerabilities.
+- **Key Feature**: Multi-layered protection through both event-driven and periodic security auditing.
 
 ---
 
