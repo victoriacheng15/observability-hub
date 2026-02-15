@@ -63,7 +63,7 @@ alloy:
         // Priority 1: Extract service from SYSLOG_IDENTIFIER
         rule {
           source_labels = ["__journal_syslog_identifier"]
-          regex         = "(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*"
+          regex         = "(gitops-sync|reading-sync|system-metrics|traffic-generator|proxy|tailscale-gate).*"
           target_label  = "service"
           replacement   = "$1"
         }
@@ -71,7 +71,7 @@ alloy:
         // Priority 2: If service is still empty, extract from SYSTEMD_UNIT
         rule {
           source_labels = ["service", "__journal__systemd_unit"]
-          regex         = ";(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).*"
+          regex         = ";(gitops-sync|reading-sync|system-metrics|traffic-generator|proxy|tailscale-gate).*"
           target_label  = "service"
           replacement   = "$1"
         }
@@ -80,7 +80,7 @@ alloy:
       loki.process "journal_pipeline" {
         // Filter: Keep logs that match our specific services (either by unit or service label)
         stage.match {
-          selector = `{unit!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate).service", service!~"(gitops-sync|reading-sync|system-metrics|volume-backup|proxy|tailscale-gate)"}`
+          selector = `{unit!~"(gitops-sync|reading-sync|system-metrics|traffic-generator|proxy|tailscale-gate).service", service!~"(gitops-sync|reading-sync|system-metrics|traffic-generator|proxy|tailscale-gate)"}`
           action   = "drop"
         }
 

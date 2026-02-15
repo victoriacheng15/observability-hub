@@ -5,6 +5,29 @@ TIMEZONES=("America/Edmonton" "America/Vancouver" "America/Toronto" "Europe/Dubl
 DEVICES=("iphone" "android" "browser" "sensor-node")
 NETWORKS=("wifi" "5g" "4g" "ethernet")
 
+# Log helper using jq for safe JSON generation
+# Ensures newlines and quotes in 'msg' are properly escaped
+log() {
+    local level=$1
+    local msg=$2
+    local json_payload
+    
+    # Generate JSON payload
+    json_payload=$(jq -n -c \
+        --arg service "traffic-generator" \
+        --arg level "$level" \
+        --arg msg "$msg" \
+        '{service: $service, level: $level, msg: $msg}')
+
+    # 1. Output to stdout
+    echo "$json_payload"
+
+    # 2. Send directly to system journal
+    if command -v logger >/dev/null 2>&1; then
+        logger -t "traffic-generator" "$json_payload" || true
+    fi
+}
+
 generate_cycle() {
   local mode=$1
   local include_health=${2:-true}
@@ -28,6 +51,8 @@ generate_cycle() {
       \"device\": \"${DEVICES[$d_idx]}\",
       \"network_type\": \"${NETWORKS[$n_idx]}\"
     }" > /dev/null
+
+  log "INFO" "Generated synthetic trace for $hex_id in ${REGIONS[$r_idx]} ($mode)"
 }
 
 case "$1" in
