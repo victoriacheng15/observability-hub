@@ -1,8 +1,8 @@
 [Unit]
-Description=Timer for Synthetic Traffic Generation (Hourly)
+Description=Timer for Synthetic Traffic Generation (30 min)
 
 [Timer]
-OnCalendar=hourly
+OnCalendar=*:0/30:00
 AccuracySec=1s
 Persistent=true
 
