@@ -17,6 +17,6 @@ jobs:
       - uses: actions/checkout@v6.0.2
 
       - name: Scan manifests
-        uses: stackrox/kube-linter-action@v1.0.6
+        uses: stackrox/kube-linter-action@v1.0.7
         with:
           directory: k3s
