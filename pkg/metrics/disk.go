@@ -1,4 +1,4 @@
-package collectors
+package metrics
 
 import (
 	"fmt"

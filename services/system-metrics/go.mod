@@ -9,14 +9,17 @@ require (
 	github.com/lib/pq v1.11.2
 	github.com/shirou/gopsutil/v4 v4.26.1
 	logger v0.0.0
+	metrics v0.0.0
 	secrets v0.0.0
 )
 
-replace db => ../pkg/db
+replace db => ../../pkg/db
 
-replace logger => ../pkg/logger
+replace logger => ../../pkg/logger
 
-replace secrets => ../pkg/secrets
+replace secrets => ../../pkg/secrets
+
+replace metrics => ../../pkg/metrics
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
