@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
+	"telemetry"
 )
+
+var homeTracer = telemetry.GetTracer("proxy/home")
 
 var httpGet = http.Get
 
@@ -17,7 +17,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
-	span := trace.SpanFromContext(r.Context())
+	span := telemetry.SpanFromContext(r.Context())
 
 	// 1. Fetch from an external API (GitHub Zen) to test outbound connectivity
 	resp, err := httpGet("https://api.github.com/zen")
@@ -28,10 +28,10 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 		zenMessage = string(zenBody)
 
 		// Record the "Payload" (Response from GitHub) in the trace
-		span.SetAttributes(attribute.String("app.outbound.zen_message", zenMessage))
-		span.AddEvent("outbound.response_received", trace.WithAttributes(
-			attribute.String("outbound.source", "github_zen"),
-			attribute.String("payload.body", zenMessage),
+		span.SetAttributes(telemetry.StringAttribute("app.outbound.zen_message", zenMessage))
+		span.AddEvent("outbound.response_received", telemetry.WithEventAttributes(
+			telemetry.StringAttribute("outbound.source", "github_zen"),
+			telemetry.StringAttribute("payload.body", zenMessage),
 		))
 	}
 

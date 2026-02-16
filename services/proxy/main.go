@@ -10,13 +10,12 @@ import (
 	"db/mongodb"
 	"db/postgres"
 	"logger"
-	"proxy/telemetry"
 	"proxy/utils"
 	"secrets"
+	"telemetry"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type App struct {
@@ -52,7 +51,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	logger.Setup(os.Stdout, "proxy")
 
 	godotenv.Load(".env")
-	godotenv.Load("../.env")
+	godotenv.Load("../../.env")
 
 	// 1. Telemetry (gracefully degrades if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
 	shutdownTracer, err := telemetry.Init(ctx)
@@ -106,11 +105,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	mux.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
 	mux.HandleFunc("/api/trace/synthetic/", utils.WithLogging(utils.SyntheticTraceHandler))
 
-	handler := otelhttp.NewHandler(mux, "proxy",
-		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-		}),
-	)
+	handler := telemetry.NewHTTPHandler(mux, "proxy")
 
 	slog.Info("🚀 The GO proxy listening on port", "port", port)
 

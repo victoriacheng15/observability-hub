@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = proxy system-metrics page pkg/db pkg/logger pkg/secrets pkg/telemetry second-brain
+GO_DIRS = services/proxy system-metrics page pkg/db pkg/logger pkg/secrets pkg/telemetry second-brain
 
 .PHONY: go-format go-lint go-update go-test go-cov go-vuln-scan page-build metrics-build proxy-build
 
@@ -62,7 +62,7 @@ metrics-build:
 proxy-build:
 	$(NIX_WRAP)
 	@echo "Updating Proxy..." && \
-	cd proxy && go build -o proxy_server . && \
+	cd services/proxy && go build -o ../../proxy_server . && \
 	sudo systemctl restart proxy.service
 
 brain-sync:

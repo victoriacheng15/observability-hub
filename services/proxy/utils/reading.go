@@ -11,13 +11,10 @@ import (
 
 	"db/mongodb"
 	"db/postgres"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
+	"telemetry"
 )
 
-var tracer = otel.Tracer("proxy/utils")
+var readingTracer = telemetry.GetTracer("proxy/utils")
 
 type MongoStoreAPI interface {
 	FetchIngestedArticles(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error)
@@ -57,11 +54,11 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	ctx, fetchSpan := tracer.Start(ctx, "sync.fetch_from_mongo")
+	ctx, fetchSpan := readingTracer.Start(ctx, "sync.fetch_from_mongo")
 	docs, err := s.MongoStore.FetchIngestedArticles(ctx, batchSize)
 	if err != nil {
 		fetchSpan.RecordError(err)
-		fetchSpan.SetStatus(codes.Error, "failed to query mongo")
+		fetchSpan.SetStatus(telemetry.CodeError, "failed to query mongo")
 		fetchSpan.End()
 		slog.Error("ETL_ERROR: Failed to query Mongo", "error", err)
 		http.Error(w, "Failed to query Mongo", 500)
@@ -69,28 +66,28 @@ func (s *ReadingService) SyncReadingHandler(w http.ResponseWriter, r *http.Reque
 		syncErrorMessage = err.Error()
 		return
 	}
-	fetchSpan.SetAttributes(attribute.Int("batch.fetched", len(docs)))
+	fetchSpan.SetAttributes(telemetry.IntAttribute("batch.fetched", len(docs)))
 	fetchSpan.End()
 
 	for _, doc := range docs {
 		payloadJSON, _ := json.Marshal(doc.Payload)
 		metaJSON, _ := json.Marshal(doc.Meta)
 
-		insertCtx, insertSpan := tracer.Start(ctx, "sync.insert_to_postgres")
+		insertCtx, insertSpan := readingTracer.Start(ctx, "sync.insert_to_postgres")
 		err := s.Store.InsertReadingAnalytics(insertCtx, doc.ID, doc.Timestamp, doc.Source, doc.Type, payloadJSON, metaJSON)
 		if err != nil {
 			insertSpan.RecordError(err)
-			insertSpan.SetStatus(codes.Error, "failed to insert")
+			insertSpan.SetStatus(telemetry.CodeError, "failed to insert")
 			insertSpan.End()
 			slog.Error("ETL_ERROR: Failed to insert into Postgres", "id", doc.ID, "error", err)
 			continue
 		}
 		insertSpan.End()
 
-		markCtx, markSpan := tracer.Start(ctx, "sync.mark_processed")
+		markCtx, markSpan := readingTracer.Start(ctx, "sync.mark_processed")
 		if err := s.MongoStore.MarkArticleAsProcessed(markCtx, doc.ID); err != nil {
 			markSpan.RecordError(err)
-			markSpan.SetStatus(codes.Error, "failed to mark processed")
+			markSpan.SetStatus(telemetry.CodeError, "failed to mark processed")
 			markSpan.End()
 			slog.Warn("ETL_WARN: Failed to update Mongo status", "id", doc.ID, "error", err)
 		} else {
