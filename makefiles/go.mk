@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = services/proxy system-metrics page pkg/db pkg/logger pkg/secrets pkg/telemetry second-brain
+GO_DIRS = services/proxy services/system-metrics page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry second-brain
 
-.PHONY: go-format go-lint go-update go-test go-cov go-vuln-scan page-build metrics-build proxy-build
+.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build
 
 go-format:
 	$(NIX_WRAP)
@@ -56,7 +56,7 @@ page-build:
 metrics-build:
 	$(NIX_WRAP)
 	@echo "Building system metrics collector..." && \
-	cd system-metrics && go build -o metrics-collector main.go && \
+	cd services/system-metrics && go build -o ../../metrics-collector main.go && \
 	sudo systemctl restart system-metrics.timer
 
 proxy-build:

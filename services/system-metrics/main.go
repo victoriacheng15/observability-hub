@@ -9,8 +9,8 @@ import (
 
 	"db/postgres"
 	"logger"
+	"metrics"
 	"secrets"
-	"system-metrics/collectors"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -58,7 +58,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 
 	// Load .env (current or parent)
 	_ = godotenv.Load()
-	_ = godotenv.Load("../.env")
+	_ = godotenv.Load("../../.env")
 
 	// 2. Initialize Secrets Provider
 	secretStore, err := a.SecretProviderFn()
@@ -116,10 +116,10 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 	now := a.NowFn().UTC().Truncate(time.Second)
 
 	// Collect
-	cpu, _ := collectors.GetCPUStats()
-	mem, _ := collectors.GetMemoryStats()
-	disk, _ := collectors.GetDiskStats()
-	net, _ := collectors.GetNetworkStats()
+	cpu, _ := metrics.GetCPUStats()
+	mem, _ := metrics.GetMemoryStats()
+	disk, _ := metrics.GetDiskStats()
+	net, _ := metrics.GetNetworkStats()
 
 	// Store to DB
 	metrics := []struct {
