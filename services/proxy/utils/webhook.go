@@ -14,11 +14,10 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
+	"telemetry"
 )
+
+var webhookTracer = telemetry.GetTracer("proxy/webhook")
 
 var repoLocks sync.Map
 
@@ -78,9 +77,9 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	_, verifySpan := tracer.Start(ctx, "webhook.verify_signature")
+	_, verifySpan := webhookTracer.Start(ctx, "webhook.verify_signature")
 	if !verifySignature(body, signature, secret) {
-		verifySpan.SetStatus(codes.Error, "invalid signature")
+		verifySpan.SetStatus(telemetry.CodeError, "invalid signature")
 		verifySpan.End()
 		slog.Warn("Invalid webhook signature")
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
@@ -96,15 +95,15 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Enrich the root span with metadata and raw payload
-	span := trace.SpanFromContext(ctx)
+	span := telemetry.SpanFromContext(ctx)
 	span.SetAttributes(
-		attribute.String("github.event", eventType),
-		attribute.String("github.repo", payload.Repository.FullName),
-		attribute.String("github.ref", payload.Ref),
-		attribute.String("github.action", payload.Action),
+		telemetry.StringAttribute("github.event", eventType),
+		telemetry.StringAttribute("github.repo", payload.Repository.FullName),
+		telemetry.StringAttribute("github.ref", payload.Ref),
+		telemetry.StringAttribute("github.action", payload.Action),
 	)
-	span.AddEvent("webhook.payload_received", trace.WithAttributes(
-		attribute.String("payload.raw", string(body)),
+	span.AddEvent("webhook.payload_received", telemetry.WithEventAttributes(
+		telemetry.StringAttribute("payload.raw", string(body)),
 	))
 
 	shouldTrigger := false
@@ -145,18 +144,19 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
 		mu := val.(*sync.Mutex)
 
-		_, waitSpan := tracer.Start(parentCtx, "webhook.wait_for_lock")
-		waitSpan.SetAttributes(attribute.String("github.repo", repo))
+		_, waitSpan := webhookTracer.Start(parentCtx, "webhook.wait_for_lock", telemetry.WithAttributes(
+			telemetry.StringAttribute("github.repo", repo),
+		))
 		mu.Lock()
 		waitSpan.End()
 
 		defer mu.Unlock()
 
-		_, syncSpan := tracer.Start(parentCtx, "webhook.gitops_sync")
+		_, syncSpan := webhookTracer.Start(parentCtx, "webhook.gitops_sync")
 		syncSpan.SetAttributes(
-			attribute.String("github.repo", repo),
-			attribute.String("github.event", eventType),
-			attribute.Bool("github.merged", merged),
+			telemetry.StringAttribute("github.repo", repo),
+			telemetry.StringAttribute("github.event", eventType),
+			telemetry.BoolAttribute("github.merged", merged),
 		)
 		defer syncSpan.End()
 
@@ -170,7 +170,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			syncSpan.RecordError(err)
-			syncSpan.SetStatus(codes.Error, "sync failed")
+			syncSpan.SetStatus(telemetry.CodeError, "sync failed")
 			slog.Error("GitOps sync execution failed", "repo", repo, "error", err, "output", string(output))
 		} else {
 			slog.Info("GitOps sync execution successful", "repo", repo, "output", string(output))

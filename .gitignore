@@ -32,8 +32,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
-/proxy/proxy_server
-/system-metrics/metrics-collector
+proxy_server
+metrics-collector
 
 # OpenBao Data
 data/

@@ -7,7 +7,7 @@ Type=simple
 User=server
 WorkingDirectory=/home/server/software/observability-hub
 # Pointing to the binary we will build
-ExecStart=/home/server/software/observability-hub/proxy/proxy_server
+ExecStart=/home/server/software/observability-hub/proxy_server
 Restart=always
 RestartSec=5
 # Load environment variables from the root .env
