@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = proxy system-metrics page pkg/db pkg/logger pkg/secrets second-brain
+GO_DIRS = proxy system-metrics page pkg/db pkg/logger pkg/secrets pkg/telemetry second-brain
 
 .PHONY: go-format go-lint go-update go-test go-cov go-vuln-scan page-build metrics-build proxy-build
 
