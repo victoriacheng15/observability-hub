@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = services/proxy services/system-metrics page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry second-brain
+GO_DIRS = services/proxy services/system-metrics services/second-brain page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry pkg/brain
 
-.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build
+.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build brain-sync
 
 go-format:
 	$(NIX_WRAP)
@@ -68,4 +68,4 @@ proxy-build:
 brain-sync:
 	$(NIX_WRAP)
 	@echo "Running Second Brain Sync..."
-	@cd second-brain && go run main.go
+	@cd services/second-brain && go run main.go
