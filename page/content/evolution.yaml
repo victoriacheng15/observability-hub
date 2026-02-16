@@ -209,3 +209,14 @@ chapters:
         description: |
           - Scaled telemetry persistence by migrating from restricted local disks to professional S3-compatible object storage (MinIO), ensuring long-term data reliability.
           - Established a "Safe-by-Default" infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
+
+  - title: "Platform Maturity & Reusability"
+    intro: "Proposed architectural shift to organize the Hub's core logic into reusable modules."
+    timeline:
+      - date: "2026-02-16"
+        title: "Proposal: Modular Library Architecture"
+        artifacts:
+          - name: "ADR 014: Library-First Service Architecture"
+            url: "docs/decisions/014-library-first-service-architecture.md"
+        description: |
+          - A strategic proposal to organize the platform's core features into reusable "building blocks." This ensures the system remains reliable and consistent as it grows, allowing new tools to be added easily without duplicating effort.
