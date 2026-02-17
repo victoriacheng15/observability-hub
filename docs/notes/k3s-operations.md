@@ -54,7 +54,19 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment opentelemetry -n observability
   ```
 
-### 5. PostgreSQL (Relational Data)
+### 5. MinIO (S3 Storage Backend)
+
+- **Manifest**: `k3s/minio/manifest.yaml`
+- **Values**: `k3s/minio/values.yaml`
+- **Update Command**:
+
+  ```bash
+  nix-shell --run "helm template minio minio/minio -f k3s/minio/values.yaml --namespace observability > k3s/minio/manifest.yaml"
+  kubectl apply -f k3s/minio/manifest.yaml
+  kubectl rollout restart deployment minio -n observability
+  ```
+
+### 6. PostgreSQL (Relational Data)
 
 - **Manifest**: `k3s/postgres/manifest.yaml`
 - **Values**: `k3s/postgres/values.yaml`
@@ -84,7 +96,7 @@ sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:1
 rm postgres-pod.tar
 ```
 
-### 6. Prometheus (Metrics Store)
+### 7. Prometheus (Metrics Store)
 
 - **Manifest**: `k3s/prometheus/manifest.yaml`
 - **Values**: `k3s/prometheus/values.yaml`
@@ -96,7 +108,7 @@ rm postgres-pod.tar
   kubectl rollout restart deployment prometheus-server -n observability
   ```
 
-### 7. Grafana Tempo (Trace Store)
+### 8. Grafana Tempo (Trace Store)
 
 - **Manifest**: `k3s/tempo/manifest.yaml`
 - **Values**: `k3s/tempo/values.yaml`
@@ -106,6 +118,18 @@ rm postgres-pod.tar
   nix-shell --run "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
   kubectl apply -f k3s/tempo/manifest.yaml
   kubectl rollout restart statefulset tempo -n observability
+  ```
+
+### 9. Thanos Store Gateway (Long-term Metrics Storage)
+
+- **Manifest**: `k3s/thanos/store-gateway.yaml`
+- **Values**: N/A (Hand-written Kubernetes manifest)
+- **Update Command**:
+
+  ```bash
+  kubectl apply -f k3s/thanos/minio-thanos-secret.yaml -n observability
+  kubectl apply -f k3s/thanos/store-gateway.yaml -n observability
+  kubectl rollout restart deployment thanos-store-gateway -n observability
   ```
 
 ---
@@ -122,12 +146,12 @@ rm postgres-pod.tar
 | **postgres** | 260m | 576Mi | 600m | 896Mi | Relational Data |
 | **prometheus** | 130m | 672Mi | 550m | 1088Mi | Metrics Storage |
 | **tempo** | 50m | 256Mi | 200m | 512Mi | Trace Storage |
-| **TOTAL** | **790m** | **2.4Gi** | **2.5 Cores** | **4.7Gi** | |
+| **thanos-store-gateway** | 100m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (790m CPU / 2.4Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (2.5 Cores / 4.7Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (890m CPU / 2.6Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (2.7 Cores / 5.2Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
