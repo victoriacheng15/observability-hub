@@ -33,6 +33,8 @@ k3s-loki-up:
 	@$(KC) rollout restart statefulset/loki
 
 k3s-minio-up:
+	@echo "Regenerating MinIO manifest..."
+	$(NIX_RUN) "helm template minio minio/minio -f k3s/minio/values.yaml --namespace observability > k3s/minio/manifest.yaml"
 	@echo "Deploying MinIO..."
 	@$(KC) apply -f k3s/minio/manifest.yaml
 	@$(KC) rollout restart deployment/minio

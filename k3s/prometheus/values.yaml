@@ -2,6 +2,7 @@ server:
   revisionHistoryLimit: 3
   extraArgs:
     web.enable-remote-write-receiver: null
+    storage.tsdb.retention.time: 24h # Shorten local TSDB retention
   resources:
     requests:
       cpu: 100m
@@ -9,6 +10,13 @@ server:
     limits:
       cpu: 300m
       memory: 768Mi
+  thanos:
+    sidecar:
+      enabled: true
+      image: quay.io/thanos/thanos:v0.32.2 # Use appropriate version
+      objectStorageConfig:
+        name: minio-thanos-secret # Name of the secret containing MinIO credentials
+        key: object-storage.yaml # Key within the secret for Thanos config
   
   # Hardening server
   containerSecurityContext:
@@ -58,7 +66,7 @@ server:
           drop:
             - ALL
 
-  retention: 12h  # Lean retention for homelab
+  retention: null # Disable default chart retention to avoid argument duplication
   persistentVolume:
     enabled: true
     size: 10Gi
