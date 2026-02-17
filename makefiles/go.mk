@@ -56,13 +56,13 @@ page-build:
 metrics-build:
 	$(NIX_WRAP)
 	@echo "Building system metrics collector..." && \
-	cd services/system-metrics && go build -o ../../metrics-collector main.go && \
+	cd services/system-metrics && go build -o ../../dist/metrics-collector main.go && \
 	sudo systemctl restart system-metrics.timer
 
 proxy-build:
 	$(NIX_WRAP)
 	@echo "Updating Proxy..." && \
-	cd services/proxy && go build -o ../../proxy_server . && \
+	cd services/proxy && go build -o ../../dist/proxy_server . && \
 	sudo systemctl restart proxy.service
 
 brain-sync:

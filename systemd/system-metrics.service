@@ -7,7 +7,7 @@ Type=oneshot
 User=server
 WorkingDirectory=/home/server/software/observability-hub
 EnvironmentFile=/home/server/software/observability-hub/.env
-ExecStart=/home/server/software/observability-hub/metrics-collector
+ExecStart=/home/server/software/observability-hub/dist/metrics-collector
 StandardOutput=journal
 StandardError=journal
 
