@@ -9,18 +9,25 @@ updates:
         patterns:
           - "*"
 
+  # --- Services ---
   - package-ecosystem: "gomod"
-    directory: "/page"
+    directory: "/services/proxy"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
-    directory: "/proxy"
+    directory: "/services/second-brain"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
-    directory: "/system-metrics"
+    directory: "/services/system-metrics"
+    schedule:
+      interval: "weekly"
+
+  # --- Libraries ---
+  - package-ecosystem: "gomod"
+    directory: "/pkg/brain"
     schedule:
       interval: "weekly"
 
@@ -30,11 +37,32 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
+    directory: "/pkg/env"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
     directory: "/pkg/logger"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
+    directory: "/pkg/metrics"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
     directory: "/pkg/secrets"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/pkg/telemetry"
+    schedule:
+      interval: "weekly"
+
+  # --- Portal ---
+  - package-ecosystem: "gomod"
+    directory: "/page"
     schedule:
       interval: "weekly"
