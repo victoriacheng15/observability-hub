@@ -9,14 +9,12 @@ import (
 
 	"brain"
 	"db/postgres"
+	"env"
 	"secrets"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	_ = godotenv.Load()
-	_ = godotenv.Load("../../.env")
+	env.Load()
 
 	repo := os.Getenv("JOURNAL_REPO")
 	if repo == "" {

@@ -4,9 +4,8 @@ go 1.25.5
 
 require (
 	db v0.0.0
+	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.2
 	logger v0.0.0
 	secrets v0.0.0
 	telemetry v0.0.0
@@ -19,6 +18,8 @@ replace logger => ../../pkg/logger
 replace secrets => ../../pkg/secrets
 
 replace telemetry => ../../pkg/telemetry
+
+replace env => ../../pkg/env
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -40,7 +41,9 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/vault/api v1.22.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/lib/pq v1.11.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect

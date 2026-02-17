@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = services/proxy services/system-metrics services/second-brain page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry pkg/brain
+GO_DIRS = services/proxy services/system-metrics services/second-brain page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry pkg/brain pkg/env
 
 .PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build brain-sync
 
