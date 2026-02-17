@@ -1,6 +1,6 @@
 # Self-Hosted Observability Hub
 
-A resilient and reliability-focused unified telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using PostgreSQL (TimescaleDB) and Loki, visualized via Grafana, all orchestrated within a **Kubernetes (k3s)** environment.
+A resilient and reliability-focused unified telemetry platform architected to demonstrate SRE & Platform Engineering principles: full-stack observability, GitOps-driven infrastructure, and standardized data ingestion. It unifies system metrics, application events, and logs into a single queryable layer using **PostgreSQL (TimescaleDB)** and **Grafana Loki**, visualized via **Grafana**, all orchestrated within a **Kubernetes (K3s)** environment.
 
 ---
 
@@ -15,7 +15,7 @@ A resilient and reliability-focused unified telemetry platform architected to de
 - **Unified Observability:** Correlation of infrastructure telemetry and application business events into a single, queryable plane. Full-stack visibility is the default state, ensuring all services are observed via a consistent, unified standard.
 - **Platform Abstraction:** Decoupling of data ingestion from storage engines. Standardized APIs provide stable interfaces for clients, allowing the underlying pipeline logic and database schemas to evolve without disrupting upstream producers.
 - **GitOps & State Convergence:** Enforcement of configuration consistency between version control and the running environment. Automated reconciliation engines detect and correct drift, ensuring the "Source of Truth" is always the reality.
-- **Hybrid Orchestration:** Strategic deployment utilizing the most effective primitives for the task. It combines **Kubernetes (k3s)** isolation for core data services with native host performance (Systemd) for critical automation and hardware-level telemetry.
+- **Hybrid Orchestration:** Strategic deployment utilizing the most effective primitives for the task. It combines **Kubernetes (K3s)** isolation for core data services with native host performance (Systemd) for critical automation and hardware-level telemetry.
 
 ---
 
@@ -24,20 +24,21 @@ A resilient and reliability-focused unified telemetry platform architected to de
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![Nix](https://img.shields.io/badge/Nix-5277C3?style=for-the-badge&logo=NixOS&logoColor=white)
 
-![Kubernetes (k3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
+![Kubernetes (K3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
 
 ![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Alloy](https://img.shields.io/badge/Alloy-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![Grafana Alloy](https://img.shields.io/badge/Alloy-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![MinIO (S3)](https://img.shields.io/badge/MinIO-be172d?style=for-the-badge&logo=minio&logoColor=white)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-%23000000.svg?style=for-the-badge&logo=opentelemetry&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 
 ---
@@ -68,11 +69,11 @@ flowchart LR
     end
 
     subgraph DataPlatform ["Data Infrastructure (Kubernetes)"]
-        PG[(Postgres)]
+        PG[(PostgreSQL)]
         A[Grafana Alloy]
-        OTEL[OTEL Collector]
-        L[Loki]
-        T[Tempo]
+        OTEL[OpenTelemetry Collector]
+        L[Grafana Loki]
+        T[Grafana Tempo]
         P[Prometheus]
         G[Grafana]
     end
@@ -112,9 +113,9 @@ The platform is split into two logical layers: **Native Host Services** for auto
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
-| **proxy** | API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `proxy/` |
-| **second-brain** | Ingests atomic thoughts from GitHub journals into PostgreSQL. | `second-brain/` |
-| **system-metrics** | Lightweight collector for host hardware telemetry (CPU, Mem, Disk, Net). | `system-metrics/` |
+| **proxy** | API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `services/proxy/` |
+| **second-brain** | Ingests atomic thoughts from GitHub journals into PostgreSQL. | `services/second-brain/` |
+| **system-metrics** | Lightweight collector for host hardware telemetry (CPU, Mem, Disk, Net). | `services/system-metrics/` |
 | **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
 | **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
 | **gitops-sync** | Reconciliation script for automated state enforcement. | `scripts/` |
@@ -125,13 +126,14 @@ The platform is split into two logical layers: **Native Host Services** for auto
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
+| **Grafana Alloy** | Unified telemetry agent for journal collection and K8s scraping. | `k3s/alloy/` |
+| **Grafana** | Centralized visualization and dashboarding platform. | `k3s/grafana/` |
+| **Grafana Loki** | Log aggregation and query system for the entire stack. | `k3s/loki/` |
+| **MinIO** | S3-compatible object storage for long-term trace and log persistence. | `k3s/minio/` |
+| **OpenTelemetry Collector** | Standalone collector for multi-signal telemetry routing. | `k3s/opentelemetry/` |
 | **PostgreSQL** | Primary relational storage (TimescaleDB + PostGIS) for metrics and events. | `k3s/postgres/` |
 | **Prometheus** | Metrics storage, service discovery, and alerting engine. | `k3s/prometheus/` |
-| **Loki** | Log aggregation and query system for the entire stack. | `k3s/loki/` |
-| **Tempo** | Distributed tracing backend for request correlation. | `k3s/tempo/` |
-| **Grafana** | Centralized visualization and dashboarding platform. | `k3s/grafana/` |
-| **Grafana Alloy** | Unified telemetry agent for journal collection and K8s scraping. | `k3s/alloy/` |
-| **OpenTelemetry** | Standalone collector for multi-signal telemetry routing. | `k3s/opentelemetry/` |
+| **Grafana Tempo** | Distributed tracing backend for request correlation. | `k3s/tempo/` |
 
 ### External Dependencies
 
@@ -150,14 +152,14 @@ For deep dives into the system's inner workings, operational guides, and decisio
 
 ## 🚀 Getting Started (Local Development)
 
-This guide will help you set up and run the `observability-hub` locally using **Kubernetes (k3s)**.
+This guide will help you set up and run the `observability-hub` locally using **Kubernetes (K3s)**.
 
 ### Prerequisites
 
 Ensure you have the following installed on your system:
 
-- [Go](https://go.dev/doc/install) (version 1.21 or newer)
-- [k3s](https://k3s.io/) (Lightweight Kubernetes)
+- [Go](https://go.dev/doc/install) (version 1.25 or newer)
+- [K3s](https://k3s.io/) (Lightweight Kubernetes)
 - [Helm](https://helm.sh/)
 - `make` (GNU Make)
 - [Nix](https://nixos.org/download.html) (for reproducible toolchains)
@@ -171,13 +173,13 @@ The project uses a `.env` file to manage environment variables, especially for d
 cp .env.example .env
 ```
 
-You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL (k3s NodePort), and other services.
+You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL (K3s NodePort), and other services.
 
 ### 2. Build and Run the Stack
 
 The platform utilizes a hybrid orchestration model. You must deploy both the Kubernetes data tier and the native host services.
 
-#### A. Data Infrastructure (k3s)
+#### A. Data Infrastructure (K3s)
 
 Deploy the observability backend into the `observability` namespace:
 

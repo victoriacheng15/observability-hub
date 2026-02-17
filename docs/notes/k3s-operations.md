@@ -6,7 +6,7 @@ This guide details the procedures for managing the observability stack within th
 
 ## 🚀 Component Management
 
-### 1. Grafana Alloy (Telemetry Collector)
+### 1. Alloy (Telemetry Collector)
 
 - **Manifest**: `k3s/alloy/manifest.yaml`
 - **Values**: `k3s/alloy/values.yaml`

@@ -8,9 +8,10 @@ For detailed operational procedures, including deployment commands, image sidelo
 
 ## 📂 Directory Structure
 
-- **alloy/**: Grafana Alloy DaemonSet for host-level telemetry.
+- **alloy/**: Alloy DaemonSet for host-level telemetry.
 - **grafana/**: Visualization layer with persistence.
 - **loki/**: Log storage and indexing.
+- **minio/**: S3-compatible object storage for trace persistence.
 - **opentelemetry/**: OpenTelemetry Collector for signal processing.
 - **postgres/**: Relational data store (TimescaleDB/PostGIS).
 - **prometheus/**: Time-series storage for infrastructure metrics.

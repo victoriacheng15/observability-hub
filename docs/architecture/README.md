@@ -25,11 +25,11 @@ graph TD
 
     subgraph DataPlatform ["Data Platform (Kubernetes)"]
         direction TB
-        Alloy[Grafana Alloy]
+        Alloy[Alloy]
         Loki[(Loki)]
         PG[(PostgreSQL)]
         Grafana[Grafana]
-        OTEL[OTEL Collector]
+        OTEL[OpenTelemetry]
         Tempo[(Tempo)]
     end
 
@@ -61,7 +61,7 @@ graph TD
 Fundamental patterns and cross-cutting concerns that define how the system operates.
 
 - **[Automation & GitOps](./core-concepts/automation.md)**: Webhook-driven reconciliation and self-healing patterns.
-- **[Observability](./core-concepts/observability.md)**: Standards for JSON logging, Journald integration, and Grafana Alloy pipelines.
+- **[Observability](./core-concepts/observability.md)**: Standards for JSON logging, Journald integration, and Alloy pipelines.
 
 ### 🏗️ [Infrastructure](./infrastructure/)
 

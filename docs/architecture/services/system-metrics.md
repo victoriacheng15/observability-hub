@@ -1,6 +1,6 @@
 # System Metrics Collector Architecture
 
-The System Metrics Collector (`system-metrics/`) is a lightweight agent designed to monitor the host infrastructure's health.
+The System Metrics Collector (`services/system-metrics/`) is a lightweight agent designed to monitor the host infrastructure's health.
 
 ## Component Details
 
