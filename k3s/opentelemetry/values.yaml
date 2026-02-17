@@ -51,6 +51,10 @@ alternateConfig:
         insecure: true
     logging:
       loglevel: debug
+    loki:
+      endpoint: http://loki.observability:3100/api/v1/push
+    prometheusremotewrite:
+      endpoint: http://prometheus-server.observability:9090/api/v1/write
   service:
     telemetry:
       metrics:
@@ -60,15 +64,15 @@ alternateConfig:
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [otlp, logging]
+        exporters: [otlp]
       metrics:
         receivers: [otlp]
         processors: [batch]
-        exporters: [logging]
+        exporters: [prometheusremotewrite]
       logs:
         receivers: [otlp]
         processors: [batch]
-        exporters: [logging]
+        exporters: [loki]
 
 # Expose as NodePort so host-level systemd services (e.g. proxy) can reach the collector
 service:
