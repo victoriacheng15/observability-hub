@@ -78,6 +78,7 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 ## 5. Failure Mode Analysis (FMA)
 
 Before proposing a change, agents should ask:
+
 1. "Does this create a circular dependency between the host and the cluster?"
 2. "How will this be debugged in production if the network is down?"
 3. "Is this change recorded in an ADR to preserve the 'Why'?"

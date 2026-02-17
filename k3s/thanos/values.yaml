@@ -1,0 +1,74 @@
+# Thanos Helm Chart Configuration
+# Ref: https://github.com/bitnami/charts/tree/main/bitnami/thanos
+
+global:
+  imageRegistry: ""  # Don't override, use per-image registry
+  security:
+    allowInsecureImages: true  # Allow non-bitnami image
+
+# Use same image as hand-written manifest (stable, proven)
+image:
+  registry: quay.io
+  repository: thanos/thanos
+  tag: v0.32.2
+
+# Use existing secret for object store configuration
+# This references the minio-thanos-secret created via kubectl
+existingObjstoreSecret: "minio-thanos-secret"
+existingObjstoreSecretItems:
+  - key: object-storage.yaml
+    path: objstore.yml
+
+# Store Gateway Configuration
+storegateway:
+  enabled: true
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1000
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+  
+  containerSecurityContext:
+    enabled: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: local-path
+
+# Disable other components (we only want store-gateway)
+querier:
+  enabled: false
+
+queryFrontend:
+  enabled: false
+
+ruler:
+  enabled: false
+
+compactor:
+  enabled: false
+
+receive:
+  enabled: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 10901
