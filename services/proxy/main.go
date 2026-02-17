@@ -9,13 +9,11 @@ import (
 
 	"db/mongodb"
 	"db/postgres"
+	"env"
 	"logger"
 	"proxy/utils"
 	"secrets"
 	"telemetry"
-
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 type App struct {
@@ -50,8 +48,7 @@ func main() {
 func (a *App) Bootstrap(ctx context.Context) error {
 	logger.Setup(os.Stdout, "proxy")
 
-	godotenv.Load(".env")
-	godotenv.Load("../../.env")
+	env.Load()
 
 	// 1. Telemetry (gracefully degrades if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
 	shutdownTracer, err := telemetry.Init(ctx)

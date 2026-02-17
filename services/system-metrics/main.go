@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"db/postgres"
+	"env"
 	"logger"
 	"metrics"
 	"secrets"
 
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"github.com/shirou/gopsutil/v4/host"
 )
 
@@ -56,9 +55,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	logger.Setup(os.Stdout, "system-metrics")
 	slog.Info("Starting System Metrics Collector", "version", "1.0.0")
 
-	// Load .env (current or parent)
-	_ = godotenv.Load()
-	_ = godotenv.Load("../../.env")
+	env.Load()
 
 	// 2. Initialize Secrets Provider
 	secretStore, err := a.SecretProviderFn()

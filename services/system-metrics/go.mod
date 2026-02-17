@@ -4,9 +4,8 @@ go 1.25.5
 
 require (
 	db v0.0.0
+	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.2
 	github.com/shirou/gopsutil/v4 v4.26.1
 	logger v0.0.0
 	metrics v0.0.0
@@ -20,6 +19,8 @@ replace logger => ../../pkg/logger
 replace secrets => ../../pkg/secrets
 
 replace metrics => ../../pkg/metrics
+
+replace env => ../../pkg/env
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -36,7 +37,9 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/vault/api v1.22.0 // indirect
-	github.com/lufia/plan9stats v0.0.0-20251013123823-9fd1530e3ec3 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/lib/pq v1.11.2 // indirect
+	github.com/lufia/plan9stats v0.0.0-20260216142805-b3301c5f2a88 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
