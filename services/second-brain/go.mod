@@ -2,14 +2,16 @@ module second-brain
 
 go 1.25.5
 
-replace secrets => ../pkg/secrets
+replace secrets => ../../pkg/secrets
 
-replace db => ../pkg/db
+replace db => ../../pkg/db
+
+replace brain => ../../pkg/brain
 
 require (
-	db v0.0.0-00010101000000-000000000000
+	brain v0.0.0
+	db v0.0.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.2
 	secrets v0.0.0
 )
 
@@ -26,6 +28,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/vault/api v1.22.0 // indirect
+	github.com/lib/pq v1.11.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
