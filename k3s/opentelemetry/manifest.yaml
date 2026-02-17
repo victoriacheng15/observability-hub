@@ -33,10 +33,14 @@ data:
     exporters:
       logging:
         loglevel: debug
+      loki:
+        endpoint: http://loki.observability:3100/api/v1/push
       otlp:
         endpoint: tempo.observability:4317
         tls:
           insecure: true
+      prometheusremotewrite:
+        endpoint: http://prometheus-server.observability:9090/api/v1/write
     extensions:
       health_check:
         endpoint: 0.0.0.0:13133
@@ -53,14 +57,14 @@ data:
       pipelines:
         logs:
           exporters:
-          - logging
+          - loki
           processors:
           - batch
           receivers:
           - otlp
         metrics:
           exporters:
-          - logging
+          - prometheusremotewrite
           processors:
           - batch
           receivers:
@@ -68,7 +72,6 @@ data:
         traces:
           exporters:
           - otlp
-          - logging
           processors:
           - batch
           receivers:
@@ -164,7 +167,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: eda5222eb42bdde733860ff3fa7c586726c37ce269b70216a406a0233b5c080f
+        checksum/config: 6b6100478c85b6194e599bcdc7acb35a2886668a97cb034eec258a16c4b08185
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
