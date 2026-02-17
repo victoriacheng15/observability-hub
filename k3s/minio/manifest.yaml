@@ -127,6 +127,10 @@ data:
     
     # Create the buckets
     createBucket tempo-traces "public" false false false
+    createBucket prometheus-blocks "private" false false false
+    createBucket loki-chunks "private" false false false
+    createBucket loki-ruler "private" false false false
+    createBucket loki-admin "private" false false false
     
   add-user: |-
     #!/bin/sh
@@ -496,7 +500,7 @@ spec:
         release: minio
       annotations:
         checksum/secrets: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/config: 305ef3162f2d9815e2a19ee71c195a33e1a5a40b6f62c024735b70821573ff0a
+        checksum/config: c149ccdd3e5e933fa751b7c24937369536961dd2ea90c362d5fcb703dc516b60
     spec:
       securityContext:
         
@@ -551,6 +555,7 @@ spec:
             capabilities:
               drop:
               - ALL
+            enabled: true
             readOnlyRootFilesystem: true      
       volumes:
         - name: export

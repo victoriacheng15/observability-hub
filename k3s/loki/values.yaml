@@ -3,20 +3,28 @@ loki:
   commonConfig:
     replication_factor: 1
   storage:
-    type: filesystem
+    type: s3
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-ruler
+      admin: loki-admin
+    s3:
+      endpoint: minio.observability.svc.cluster.local:9000
+      secretAccessKey: ${MINIO_LOKI_SECRET_KEY}
+      accessKeyId: ${MINIO_LOKI_ACCESS_KEY}
+      s3ForcePathStyle: true
+      insecure: true
   schemaConfig:
     configs:
       - from: 2024-01-01
         store: tsdb
-        object_store: filesystem
+        object_store: s3
         schema: v13
         index:
           prefix: index_
           period: 24h
   persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: local-path
+    enabled: false
   sidecar:
     rules:
       resources:
@@ -26,6 +34,13 @@ loki:
         requests:
           cpu: 10m
           memory: 32Mi
+
+global:
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: minio-loki-secret
 
 deploymentMode: SingleBinary
 

@@ -49,6 +49,18 @@ buckets:
   - name: tempo-traces
     policy: public
     purge: false
+  - name: prometheus-blocks
+    policy: private
+    purge: false
+  - name: loki-chunks
+    policy: private
+    purge: false
+  - name: loki-ruler
+    policy: private
+    purge: false
+  - name: loki-admin
+    policy: private
+    purge: false
 
 # Post-install Job Hardening
 postJob:

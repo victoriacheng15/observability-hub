@@ -44,4 +44,5 @@ help:
 	@echo "  make k3s-postgres-up    - Deploy/Restart PostgreSQL"
 	@echo "  make k3s-prometheus-up  - Deploy/Restart Prometheus"
 	@echo "  make k3s-tempo-up       - Deploy/Restart Tempo"
+	@echo "  make k3s-thanos-up      - Deploy/Restart Thanos"
 	@echo "  make k3s-backup-<name>  - Backup a resource (e.g., make k3s-backup-postgres)"

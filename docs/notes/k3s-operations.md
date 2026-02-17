@@ -42,6 +42,12 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart statefulset loki -n observability
   ```
 
+- **Notes**:
+  - S3 credentials are injected from `minio-loki-secret` via environment variables
+  - Loki Helm values use `${MINIO_LOKI_ACCESS_KEY}` and `${MINIO_LOKI_SECRET_KEY}` placeholders
+  - Requires `-config.expand-env=true` flag (configured in `global.extraArgs`)
+  - Secret is injected via `global.extraEnvFrom` in values.yaml
+
 ### 4. OpenTelemetry (Collector)
 
 - **Manifest**: `k3s/opentelemetry/manifest.yaml`
@@ -122,15 +128,23 @@ rm postgres-pod.tar
 
 ### 9. Thanos Store Gateway (Long-term Metrics Storage)
 
-- **Manifest**: `k3s/thanos/store-gateway.yaml`
-- **Values**: N/A (Hand-written Kubernetes manifest)
+- **Manifest**: `k3s/thanos/manifest.yaml`
+- **Values**: `k3s/thanos/values.yaml`
 - **Update Command**:
 
   ```bash
-  kubectl apply -f k3s/thanos/minio-thanos-secret.yaml -n observability
-  kubectl apply -f k3s/thanos/store-gateway.yaml -n observability
-  kubectl rollout restart deployment thanos-store-gateway -n observability
+  nix-shell --run "helm template thanos bitnami/thanos -f k3s/thanos/values.yaml --namespace observability > k3s/thanos/manifest.yaml"
+  kubectl apply -f k3s/thanos/manifest.yaml
+  kubectl rollout restart statefulset thanos-storegateway -n observability
   ```
+
+- **Notes**:
+  - Helm-managed deployment using bitnami/thanos chart
+  - Uses official quay.io/thanos/thanos:v0.32.2 image (not bitnami variant)
+  - Requires existing secret: `minio-thanos-secret` (created via kubectl)
+  - Secret contains S3 credentials for MinIO `prometheus-blocks` bucket
+  - Store gateway only mode (querier, ruler, compactor, receive disabled)
+  - Reference: [bitnami/thanos Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/thanos)
 
 ---
 

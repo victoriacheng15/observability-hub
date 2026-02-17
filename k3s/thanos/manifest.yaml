@@ -1,0 +1,485 @@
+---
+# Source: thanos/templates/query/networkpolicy.yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: thanos-query
+  namespace: "observability"
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: query
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - {}
+  ingress:
+    - ports:
+        - port: 10902
+        - port: 10901
+        - port: 9090
+        - port: 10901
+---
+# Source: thanos/templates/storegateway/networkpolicy.yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: thanos-storegateway
+  namespace: "observability"
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: storegateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: storegateway
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - {}
+  ingress:
+    - ports:
+        - port: 10902
+        - port: 9090
+        - port: 10901
+        - port: 10901
+---
+# Source: thanos/templates/query/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: thanos-query
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: query
+---
+# Source: thanos/templates/storegateway/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: thanos-storegateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: storegateway
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: storegateway
+---
+# Source: thanos/templates/query/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos-query
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+automountServiceAccountToken: false
+---
+# Source: thanos/templates/storegateway/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos-storegateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: storegateway
+automountServiceAccountToken: false
+---
+# Source: thanos/templates/query/service-grpc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-query-grpc
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+spec:
+  type: ClusterIP
+  ports:
+    - port: 10901
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/component: query
+---
+# Source: thanos/templates/query/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-query
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+    
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/component: query
+---
+# Source: thanos/templates/storegateway/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-storegateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: storegateway
+    
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: null
+    - port: 10901
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/component: storegateway
+---
+# Source: thanos/templates/query/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-query
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: query
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: query
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: thanos
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: thanos
+        app.kubernetes.io/version: 0.39.2
+        helm.sh/chart: thanos-17.3.1
+        app.kubernetes.io/component: query
+    spec:
+      
+      serviceAccountName: thanos-query
+      automountServiceAccountToken: true
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                    app.kubernetes.io/name: thanos
+                    app.kubernetes.io/component: query
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+        supplementalGroups: []
+        sysctls: []
+      containers:
+        - name: query
+          image: quay.io/thanos/thanos:v0.32.2
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+            seccompProfile:
+              type: RuntimeDefault
+          args:
+            - query
+            - --log.level=info
+            - --log.format=logfmt
+            - --grpc-address=0.0.0.0:10901
+            - --http-address=0.0.0.0:10902
+            - --query.replica-label=replica
+            - --endpoint=dnssrv+_grpc._tcp.thanos-storegateway.observability.svc.cluster.local
+            - --alert.query-url=http://thanos-query.observability.svc.cluster.local:9090
+          ports:
+            - name: http
+              containerPort: 10902
+              protocol: TCP
+            - name: grpc
+              containerPort: 10901
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+            httpGet:
+              path: /-/healthy
+              port: http
+              scheme: HTTP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+            httpGet:
+              path: /-/ready
+              port: http
+              scheme: HTTP
+          resources:
+            limits:
+              cpu: 150m
+              ephemeral-storage: 2Gi
+              memory: 192Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 50Mi
+              memory: 128Mi
+          volumeMounts:
+      volumes:
+---
+# Source: thanos/templates/storegateway/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-storegateway
+  namespace: observability
+  labels:
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/version: 0.39.2
+    helm.sh/chart: thanos-17.3.1
+    app.kubernetes.io/component: storegateway
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  podManagementPolicy: OrderedReady
+  serviceName: thanos-storegateway-headless
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: thanos
+      app.kubernetes.io/name: thanos
+      app.kubernetes.io/component: storegateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: thanos
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: thanos
+        app.kubernetes.io/version: 0.39.2
+        helm.sh/chart: thanos-17.3.1
+        app.kubernetes.io/component: storegateway
+    spec:
+      
+      serviceAccountName: thanos-storegateway
+      automountServiceAccountToken: true
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                    app.kubernetes.io/name: thanos
+                    app.kubernetes.io/component: storegateway
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: Always
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        supplementalGroups: []
+        sysctls: []
+      containers:
+        - name: storegateway
+          image: quay.io/thanos/thanos:v0.32.2
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+            seccompProfile:
+              type: RuntimeDefault
+          args:
+            - store
+            - --log.level=info
+            - --log.format=logfmt
+            - --grpc-address=0.0.0.0:10901
+            - --http-address=0.0.0.0:10902
+            - --data-dir=/data
+            - --objstore.config-file=/conf/objstore.yml
+          ports:
+            - name: http
+              containerPort: 10902
+              protocol: TCP
+            - name: grpc
+              containerPort: 10901
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+            httpGet:
+              path: /-/healthy
+              port: http
+              scheme: HTTP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 30
+            httpGet:
+              path: /-/ready
+              port: http
+              scheme: HTTP
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: objstore-config
+              mountPath: /conf
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: objstore-config
+          secret:
+            secretName: minio-thanos-secret
+            items:
+              - key: object-storage.yaml
+                path: objstore.yml
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: data
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "2Gi"
+        storageClassName: local-path
