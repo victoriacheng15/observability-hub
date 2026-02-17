@@ -1,6 +1,6 @@
 # Proxy Service Architecture
 
-The Proxy Service (`proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
+The Proxy Service (`services/proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
 
 ## Component Details
 
@@ -52,7 +52,7 @@ The service initializes a global TracerProvider during startup, controlled by en
 
 | Variable | Description |
 | :--- | :--- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | The gRPC endpoint of the OTEL Collector (e.g., `localhost:30317`). |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | The gRPC endpoint of OpenTelemetry (e.g., `localhost:30317`). |
 | `OTEL_SERVICE_NAME` | The service identifier used in traces (defaults to `proxy`). |
 
 ### Trace Coverage

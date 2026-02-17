@@ -126,36 +126,36 @@ chapters:
           - Migrated 'system-metrics' and 'proxy' services to dynamic credential retrieval.
 
   - title: "The Kubernetes Era"
-    intro: "Evolving from container management to a Kubernetes (k3s) platform. Standardizing on cloud-native patterns for true operational resilience."
+    intro: "Evolving from container management to a Kubernetes (K3s) platform. Standardizing on cloud-native patterns for true operational resilience."
     timeline:
       - date: "2026-02-01"
         title: "Strategic Migration Planning"
         artifacts:
-          - name: "ADR 011: Phased k3s Migration Strategy"
+          - name: "ADR 011: Phased K3s Migration Strategy"
             url: "docs/decisions/011-phased-k3s-migration-strategy.md"
-          - name: "ADR 012: Migrate Promtail to Alloy"
+          - name: "ADR 012: Migrate Promtail to Grafana Alloy"
             url: "docs/decisions/012-migrate-promtail-to-alloy.md"
         description: |
-          - Proposed a four-stage migration strategy (Alloy -> Loki -> Grafana -> Postgres) to move the core services into Kubernetes.
+          - Proposed a four-stage migration strategy (Alloy -> Loki -> Grafana -> PostgreSQL) to move the core services into Kubernetes.
           - Proposed migrating from legacy Promtail to Grafana Alloy as the unified telemetry brain, leveraging the 'Strangler Fig' pattern for zero-downtime.
       - date: "2026-02-02"
-        title: "Phase 1 Complete: Alloy Telemetry"
+        title: "Phase 1 Complete: Grafana Alloy Telemetry"
         artifacts:
-          - name: "ADR 012: Migrate Promtail to Alloy"
+          - name: "ADR 012: Migrate Promtail to Grafana Alloy"
             url: "docs/decisions/012-migrate-promtail-to-alloy.md"
-        description: "Migrated to Alloy from Promtail, completing Phase 1 of the K3s migration."
+        description: "Migrated to Grafana Alloy from Promtail, completing Phase 1 of the K3s migration."
       - date: "2026-02-04"
-        title: "Phase 2 & 3 Complete: Loki & Grafana on k3s"
+        title: "Phase 2 & 3 Complete: Grafana Loki & Grafana on K3s"
         description: |
-          - Migrated Loki and Grafana from standalone Docker containers to k3s-native deployments.
+          - Migrated Grafana Loki and Grafana from standalone Docker containers to K3s-native deployments.
           - Verified self-healing and data persistence for the visualization layer, completing Phase 3 of the platform orchestration strategy.
       - date: "2026-02-05"
-        title: "Phase 4 Complete: PostgreSQL on k3s"
+        title: "Phase 4 Complete: PostgreSQL on K3s"
         artifacts:
-          - name: "ADR 011: Phased k3s Migration Strategy"
+          - name: "ADR 011: Phased K3s Migration Strategy"
             url: "docs/decisions/011-phased-k3s-migration-strategy.md"
         description: |
-          - Migrated the core PostgreSQL database from standalone Docker to a k3s StatefulSet.
+          - Migrated the core PostgreSQL database from standalone Docker to a K3s StatefulSet.
           - Implemented data persistence via PVC synchronization and verified extension compatibility for TimescaleDB and PostGIS, completing the four-stage migration strategy.
 
   - title: "The SRE Era"
@@ -169,12 +169,12 @@ chapters:
         description: |
           - Proposed the adoption of OpenTelemetry to gain hands-on experience with industry-standard distributed tracing and metrics.
       - date: "2026-02-08"
-        title: "Phase 1 Complete: OTel Collector"
+        title: "Phase 1 Complete: OpenTelemetry Collector"
         artifacts:
           - name: "ADR 013: Standardize on OpenTelemetry"
             url: "docs/decisions/013-standardize-on-opentelemetry.md"
         description: |
-          - Deployed the OpenTelemetry Collector as a standalone deployment in the k3s cluster.
+          - Deployed the OpenTelemetry Collector as a standalone deployment in the K3s cluster.
       - date: "2026-02-09"
         title: "Incident & Root Cause Analysis (RCA) Framework"
         artifacts:
@@ -187,12 +187,12 @@ chapters:
         title: "Phase 2 Complete: Grafana Tempo"
         description: |
           - Deployed Grafana Tempo in single-binary mode for distributed trace storage.
-          - Integrated OTel Collector with Tempo via OTLP/gRPC for end-to-end trace propagation.
+          - Integrated the OpenTelemetry Collector with Grafana Tempo via OTLP/gRPC for end-to-end trace propagation.
       - date: "2026-02-11"
         title: "Phase 3 Complete: Prometheus"
         description: |
           - Deployed Prometheus for operational metrics storage with lean retention policies.
-          - Integrated with OpenTelemetry Collector to ingest internal metrics and established connectivity with Grafana as a provisioned data source.
+          - Integrated with the OpenTelemetry Collector to ingest internal metrics and established connectivity with Grafana as a provisioned data source.
       - date: "2026-02-12"
         title: "Phase 4 Complete: Proxy Instrumentation & Synthetic Traces"
         artifacts:
@@ -201,8 +201,8 @@ chapters:
           - name: "RCA 002: Service Graph Metrics Failure"
             url: "docs/incidents/002-service-graph-metrics-failure.md"
         description: |
-          - Completed high-fidelity OTel instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
-          - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Tempo storage and Grafana visualization.
+          - Completed high-fidelity OpenTelemetry instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
+          - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Grafana Tempo storage and Grafana visualization.
           - Resolved a critical "silent" failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
       - date: "2026-02-13"
         title: "Storage Scalability & Security Hardening"

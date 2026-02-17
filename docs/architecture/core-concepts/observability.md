@@ -14,8 +14,8 @@ graph TD
 
     subgraph Transport
         Journal[Systemd Journal]
-        Alloy[Grafana Alloy]
-        OTEL[OTEL Collector]
+        Alloy[Alloy]
+        OTEL[OpenTelemetry]
     end
 
     subgraph Storage
@@ -66,7 +66,7 @@ Bash scripts use `jq` to generate safe JSON payloads and `logger -t <tag>` to br
 Native services (Proxy, Metrics) write strictly to `stdout`.
 
 - **Metadata**: `journald` enriches these streams with metadata like `_SYSTEMD_UNIT` and `SYSLOG_IDENTIFIER`.
-- **Collection**: **Grafana Alloy** is configured as a Kubernetes DaemonSet to scrape `/var/log/journal` directly and push to **Loki**.
+- **Collection**: **Alloy** is configured as a Kubernetes DaemonSet to scrape `/var/log/journal` directly and push to **Loki**.
 
 ## 🕵️ Distributed Tracing
 
@@ -74,7 +74,7 @@ The platform uses **OpenTelemetry (OTEL)** for request correlation and performan
 
 - **Standard**: Services are instrumented with the OTEL SDK to generate spans in OTLP format. Currently, this is focused on the **Proxy Service** to trace analytical data ingestion.
 - **Scope**: Other system components like `system-metrics` are currently out-of-scope for tracing as they are simple, non-interactive collectors.
-- **Pipeline**: Spans are sent to a central **OTEL Collector** (NodePort `30317`), which batches and exports them to **Grafana Tempo**.
+- **Pipeline**: Spans are sent to a central **OpenTelemetry** (NodePort `30317`), which batches and exports them to **Grafana Tempo**.
 
 ## 📊 Metrics & Telemetry
 

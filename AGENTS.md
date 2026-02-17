@@ -8,15 +8,24 @@ Agents must distinguish between the two primary orchestration tiers to avoid "ci
 
 ### 🌌 Hybrid Orchestration Layers
 
-- **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery.
-- **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo). Orchestrated via IaC in `k3s/`.
+- **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery. Core logic is extracted into `pkg/` libraries to ensure reusability and consistency across different execution triggers (CLI, API, and future AI tools).
+- **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo, MinIO). Orchestrated via IaC in `k3s/`.
+
+### 📦 Distribution Pattern
+
+To maintain a clean repository and ensure operational stability, all compiled binaries must be output to the root `dist/` directory. Systemd unit files and automated scripts should reference artifacts from this location.
 
 ### 🏗️ Directory Map
 
-- **`pkg/`**: Shared Go modules (DB clients, loggers, secrets). Maintain stable interfaces.
-- **`proxy/`**: The "Central Nervous System." API gateway and GitOps webhook listener.
-- **`system-metrics/`**: Host hardware telemetry collector.
-- **`second-brain/`**: Knowledge ingestion pipeline.
+- **`pkg/`**: Shared Go modules (DB, brain, env, logger, metrics, secrets, telemetry). Maintain stable interfaces.
+- **`services/`**: Standalone binaries and operational entry points.
+  - **`services/proxy/`**: The \"Central Nervous System.\" API gateway and GitOps webhook listener.
+  - **`services/system-metrics/`**: Host hardware telemetry collector.
+  - **`services/second-brain/`**: Knowledge ingestion pipeline.
+- **`dist/`**: Production artifacts. Centralized directory for all compiled binaries.
+- **`k3s/`**: Kubernetes manifests and Helm values for the data platform.
+- **`makefiles/`**: Modular logic for the root automation layer.
+- **`systemd/`**: Host-tier unit files for production service management.
 - **`page/`**: Static site generator for public-facing portfolio.
 - **`scripts/`**: Operational utilities (Traffic gen, ADR creation, Tailscale gate).
 - **`docs/`**: Institutional memory. ADRs, Architecture, Incidents, and Notes.
@@ -40,9 +49,13 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 
 ### 🐹 Go (Backend)
 
-- **Failure Modes**: Never swallow errors. Use explicit wrapping: `fmt.Errorf("context: %w", err)`.
-- **Observability**: Every service must emit JSON-formatted logs to `stdout`.
-- **Testing**: Table-driven tests are the standard. Run `make go-cov` to verify coverage.
+- **Library-First**: Move core domain logic to `pkg/` before implementing the service entry point. Services should be thin wrappers around library capabilities.
+- **Environment Loading**: Always use `pkg/env` for standardized `.env` discovery. Do not use `godotenv` directly in services.
+- **Dependency Management**: Delegate driver registration (e.g., `lib/pq`) to `pkg/db` to avoid redundant blank imports in services.
+- **Failure Modes**: Never swallow errors. Use explicit wrapping: `fmt.Errorf(\"context: %w\", err)`.
+- **Observability**: Every service must emit JSON-formatted logs to `stdout` using `pkg/logger`.
+- **Telemetry**: All instrumentation must be handled through the centralized `pkg/telemetry` library.
+- **Testing**: Table-driven tests are the standard. Run `make go-cov` to verify coverage. Maintain a minimum of 80% coverage for `pkg/` libraries.
 
 ### 🎨 HTML/CSS (Frontend)
 

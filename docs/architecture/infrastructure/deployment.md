@@ -8,13 +8,14 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 
 | Component | Role | Details |
 | :--- | :--- | :--- |
+| **Alloy** | Telemetry Agent | DaemonSet that scrapes the **Host Systemd Journal**. |
+| **Grafana** | Visualization | Deployment for unified dashboarding UI. |
+| **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
+| **MinIO** | Object Storage | Deployment for S3-compatible storage (Tempo traces and backups). |
+| **OpenTelemetry** | Telemetry Hub | Deployment for receiving and processing traces and metrics. |
 | **PostgreSQL** | Primary Storage | StatefulSet with TimescaleDB + PostGIS for metrics and analytical data. |
 | **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
-| **Grafana Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence. |
-| **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
-| **Grafana** | Visualization | Deployment for unified dashboarding UI. |
-| **Grafana Alloy** | Telemetry Agent | DaemonSet that scrapes the **Host Systemd Journal**. |
-| **OTEL Collector** | Telemetry Hub | Deployment for receiving and processing traces and metrics. |
+| **Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence via MinIO. |
 
 ### 🚀 Core Services (Native Go)
 
@@ -22,6 +23,7 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 | :--- | :--- | :--- |
 | **Proxy Service** | API Gateway | Handles webhooks, GitOps triggers, and Data Pipelines. |
 | **Metrics Collector** | Telemetry Agent | Collects host hardware statistics (CPU, RAM, Disk). |
+| **Second Brain** | Knowledge Ingest | Ingests atomic journal entries from GitHub Issues. |
 
 ### 🛠️ Automation & Security (Native Script)
 
@@ -38,7 +40,7 @@ sequenceDiagram
     participant App as Go Services (stdout)
     participant Script as Bash Scripts (logger)
     participant Journal as Systemd Journal
-    participant Alloy as Grafana Alloy (k3s)
+    participant Alloy as Alloy (k3s)
     participant Loki as Loki (k3s)
 
     App->>Journal: JSON Logs (Captured)
@@ -65,6 +67,6 @@ sequenceDiagram
 - **Exposed Ports**:
   - `30000`: Grafana (Kubernetes NodePort)
   - `30432`: PostgreSQL (Kubernetes NodePort)
-  - `30317`: OTEL Collector (OTLP gRPC NodePort)
-  - `30318`: OTEL Collector (OTLP HTTP NodePort)
+  - `30317`: OpenTelemetry (OTLP gRPC NodePort)
+  - `30318`: OpenTelemetry (OTLP HTTP NodePort)
   - `8085`: Proxy Service (Publicly available via Tailscale Funnel)

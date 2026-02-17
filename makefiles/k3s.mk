@@ -45,9 +45,9 @@ k3s-tempo-up:
 	@$(KC) rollout restart statefulset/tempo
 
 k3s-otel-up:
-	@echo "Regenerating OTel Collector manifest..."
+	@echo "Regenerating OpenTelemetry manifest..."
 	$(NIX_RUN) "helm template opentelemetry open-telemetry/opentelemetry-collector -f k3s/opentelemetry/values.yaml --namespace $(NS) > k3s/opentelemetry/manifest.yaml"
-	@echo "Deploying OTel Collector..."
+	@echo "Deploying OpenTelemetry..."
 	@$(KC) apply -f k3s/opentelemetry/manifest.yaml
 	@$(KC) rollout restart deployment/opentelemetry
 
