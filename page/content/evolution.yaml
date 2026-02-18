@@ -211,7 +211,7 @@ chapters:
           - Established a "Safe-by-Default" infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
 
   - title: "Platform Maturity & Reusability"
-    intro: "Proposed architectural shift to organize the Hub's core logic into reusable modules."
+    intro: "Evolving the Hub into a modular platform by organizing core logic into reusable 'building blocks' and executable services."
     timeline:
       - date: "2026-02-16"
         title: "Proposal: Modular Library Architecture"
@@ -220,3 +220,11 @@ chapters:
             url: "docs/decisions/014-library-first-service-architecture.md"
         description: |
           - A strategic proposal to organize the platform's core features into reusable "building blocks." This ensures the system remains reliable and consistent as it grows, allowing new tools to be added easily without duplicating effort.
+      - date: "2026-02-18"
+        title: "Library-First Implementation"
+        artifacts:
+          - name: "ADR 014: Library-First Service Architecture"
+            url: "docs/decisions/014-library-first-service-architecture.md"
+        description: |
+          - Executed the structural transition of the repository into the standard `pkg/` and `services/` layout.
+          - Decoupled core business logic into transport-agnostic modules to improve testability and reuse across platform interfaces.
