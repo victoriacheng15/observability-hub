@@ -10,28 +10,39 @@ import (
 
 func TestSyntheticTraceHandler(t *testing.T) {
 	tests := []struct {
-		name        string
-		path        string
-		body        string
-		trafficMode string
+		name                string
+		path                string
+		body                string
+		trafficMode         string
+		expectedSyntheticID string
 	}{
 		{
-			name:        "valid payload",
-			path:        "/api/trace/synthetic/synth-123",
-			body:        `{"region":"us-east-1","timezone":"UTC","device":"mobile","network_type":"5g"}`,
-			trafficMode: "replay",
+			name:                "valid payload",
+			path:                "/api/trace/synthetic/synth-123",
+			body:                `{"region":"us-east-1","timezone":"UTC","device":"mobile","network_type":"5g"}`,
+			trafficMode:         "replay",
+			expectedSyntheticID: "synth-123",
 		},
 		{
-			name:        "invalid payload still succeeds",
-			path:        "/api/trace/synthetic/synth-err",
-			body:        `{"region":`,
-			trafficMode: "synthetic",
+			name:                "invalid payload still succeeds",
+			path:                "/api/trace/synthetic/synth-err",
+			body:                `{"region":`,
+			trafficMode:         "synthetic",
+			expectedSyntheticID: "synth-err",
 		},
 		{
-			name:        "empty payload succeeds",
-			path:        "/api/trace/synthetic/synth-empty",
-			body:        "",
-			trafficMode: "",
+			name:                "empty payload succeeds",
+			path:                "/api/trace/synthetic/synth-empty",
+			body:                "",
+			trafficMode:         "",
+			expectedSyntheticID: "synth-empty",
+		},
+		{
+			name:                "extra path segments use first synthetic id segment",
+			path:                "/api/trace/synthetic/synth-nested/extra/segments",
+			body:                `{"region":"us-west-2"}`,
+			trafficMode:         "replay",
+			expectedSyntheticID: "synth-nested",
 		},
 	}
 
@@ -61,10 +72,8 @@ func TestSyntheticTraceHandler(t *testing.T) {
 				t.Fatalf("expected status success, got %v", got)
 			}
 
-			pathParts := strings.Split(strings.TrimPrefix(tt.path, "/api/trace/synthetic/"), "/")
-			expectedID := pathParts[0]
-			if got := resp["synthetic_id"]; got != expectedID {
-				t.Fatalf("expected synthetic_id %q, got %v", expectedID, got)
+			if got := resp["synthetic_id"]; got != tt.expectedSyntheticID {
+				t.Fatalf("expected synthetic_id %q, got %v", tt.expectedSyntheticID, got)
 			}
 
 			latencyVal, ok := resp["latency_ms"].(float64)
