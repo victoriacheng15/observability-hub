@@ -44,6 +44,11 @@ alternateConfig:
         http: {}
   processors:
     batch: {}
+    resource:
+      attributes:
+        - key: service.name
+          action: upsert
+          from_attribute: service.name
   exporters:
     otlp:
       endpoint: tempo.observability:4317
@@ -52,9 +57,9 @@ alternateConfig:
     logging:
       loglevel: debug
     loki:
-      endpoint: http://loki.observability:3100/api/v1/push
+      endpoint: http://loki.observability:3100/loki/api/v1/push
     prometheusremotewrite:
-      endpoint: http://prometheus-server.observability:9090/api/v1/write
+      endpoint: http://prometheus-server.observability:80/api/v1/write
   service:
     telemetry:
       metrics:
@@ -71,7 +76,7 @@ alternateConfig:
         exporters: [prometheusremotewrite]
       logs:
         receivers: [otlp]
-        processors: [batch]
+        processors: [batch, resource]
         exporters: [loki]
 
 # Expose as NodePort so host-level systemd services (e.g. proxy) can reach the collector
