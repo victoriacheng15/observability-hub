@@ -8,48 +8,33 @@ The hub integrates standard observability tools with custom Go services to provi
 
 ```mermaid
 graph TD
-    subgraph "External Sources"
-        GitHub[GitHub Webhooks]
+    subgraph External ["External Sources"]
+        GH["GitHub Webhooks"]
         Mongo[(MongoDB Atlas)]
     end
 
-    subgraph HostEnvironment ["Host Environment"]
-        Hardware[Host Hardware]
-        subgraph HostServices ["Native Services"]
-            Proxy[Proxy Service]
-            Gate[Tailscale Gate]
-            Metrics[Metrics Collector]
-            Bao[OpenBao Secret Store]
-        end
+    subgraph Host ["Host Environment"]
+        CoreHostServices[Tailscale, Proxy, Custom Metrics, Secrets]
     end
 
-    subgraph DataPlatform ["Data Platform (Kubernetes)"]
-        direction TB
-        Alloy[Alloy]
-        Loki[(Loki)]
-        PG[(PostgreSQL)]
+    subgraph Cluster ["Data Platform (k3s)"]
+        DataIngestion[Alloy & OpenTelemetry]
+        ObservabilityStack[Loki, Tempo, Prometheus]
+        Database[(PostgreSQL)]
+        ObjectStore[(MinIO S3)]
+    end
+
+    subgraph Visualization ["User Interface"]
         Grafana[Grafana]
-        OTEL[OpenTelemetry]
-        Tempo[(Tempo)]
     end
 
-    %% Data Flow
-    Bao -.->|Secrets| HostServices
-    GitHub -->|Webhooks| Proxy
-    Proxy -->|Executes| Sync[gitops_sync.sh]
-    Mongo -->|Data| Proxy
-    Proxy -->|Writes| PG
-    Proxy -->|Traces| OTEL
-    OTEL -->|Export| Tempo
-    Hardware -->|Telemetry| Metrics
-    Metrics -->|Writes| PG
-
-    %% Logging
-    HostServices -.->|Journal| Alloy
-    Alloy -->|Pushes| Loki
-    PG -->|Visualizes| Grafana
-    Loki -->|Visualizes| Grafana
-    Tempo -->|Visualizes| Grafana
+    %% High-level Flow
+    External --> CoreHostServices
+    CoreHostServices --> DataIngestion
+    CoreHostServices --> Database
+    DataIngestion --> ObservabilityStack
+    ObservabilityStack --> ObjectStore
+    Cluster --> Visualization
 ```
 
 ---
@@ -77,4 +62,3 @@ Deep dives into the logic and implementation of specific system components.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway, Data Pipeline, and GitOps listener.
 - **[System Metrics](./services/system-metrics.md)**: The host telemetry collector.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
-- **[Telemetry Pipeline](../core-concepts/observability.md#🕵️-distributed-tracing)**: Distributed tracing via OpenTelemetry Collector and Grafana Tempo.
