@@ -51,14 +51,24 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	env.Load()
 
 	// 1. Telemetry (gracefully degrades if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
-	shutdownTracer, err := telemetry.Init(ctx)
+	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx)
 	if err != nil {
-		slog.Warn("otel_init_failed, continuing without tracing", "error", err)
+		slog.Warn("otel_init_failed, continuing without full observability", "error", err)
 	}
 	defer func() {
 		if shutdownTracer != nil {
 			if err := shutdownTracer(ctx); err != nil {
-				slog.Error("otel_shutdown_failed", "error", err)
+				slog.Error("otel_shutdown_failed", "component", "tracer", "error", err)
+			}
+		}
+		if shutdownMeter != nil {
+			if err := shutdownMeter(ctx); err != nil {
+				slog.Error("otel_shutdown_failed", "component", "meter", "error", err)
+			}
+		}
+		if shutdownLogger != nil {
+			if err := shutdownLogger(ctx); err != nil {
+				slog.Error("otel_shutdown_failed", "component", "logger", "error", err)
 			}
 		}
 	}()
