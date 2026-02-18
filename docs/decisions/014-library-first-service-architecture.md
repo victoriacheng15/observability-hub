@@ -1,6 +1,6 @@
 # ADR 014: Library-First Service Architecture
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-02-16
 - **Author:** Victoria Cheng
 
@@ -16,7 +16,7 @@ Adopt a **Library-First Service Architecture**. This involves extracting all cor
 
 ### The Strategy
 
-- **Module Extraction**: Relocate core logic to dedicated packages in `pkg/` (e.g., `pkg/metrics`, `pkg/brain`, `pkg/sync`).
+- **Module Extraction**: Relocate core logic to dedicated packages in `pkg/` (e.g., `pkg/metrics`, `pkg/brain`).
 - **Service Relocation**: Move all standalone binaries into a `services/` directory (e.g., `services/proxy`, `services/system-metrics`).
 - **Interface Decoupling**: Ensure `pkg/` libraries are transport-agnostic (no HTTP or CLI logic), allowing them to be imported by any service or tool within the hub.
 - **Consistent Initialization**: Standardize how shared resources (OTel, Database connections) are initialized across the platform.
@@ -43,6 +43,6 @@ Adopt a **Library-First Service Architecture**. This involves extracting all cor
 
 ## Verification
 
-- [ ] **Structural Reorg**: `services/` and `pkg/` directories populated and following the new convention.
-- [ ] **Library Extraction**: Core logic from `second-brain` and `system-metrics` successfully ported to `pkg/`.
-- [ ] **Build Integrity**: All services build and test successfully from their new locations.
+- [x] **Structural Reorg**: `services/` and `pkg/` directories populated and following the new convention.
+- [x] **Library Extraction**: Core logic from `second-brain` and `system-metrics` successfully ported to `pkg/`.
+- [x] **Build Integrity**: All services build and test successfully from their new locations.

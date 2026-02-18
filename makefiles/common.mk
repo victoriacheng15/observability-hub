@@ -8,10 +8,12 @@ USE_NIX = $(shell if command -v nix-shell >/dev/null 2>&1 && [ -z "$$IN_NIX_SHEL
 
 ifeq ($(USE_NIX),yes)
     NIX_RUN = nix-shell --run
-    NIX_WRAP = @$(NIX_RUN) "make $(MAKECMDGOALS)" && exit 0
+    # NIX_WRAP: If Nix is available and we aren't in a shell, re-run the entire target inside nix-shell
+    # The 'exit $$?' ensures the outer make stops immediately with the inner make's exit code.
+    NIX_WRAP = @$(NIX_RUN) "make $(MAKECMDGOALS)" && exit $$?
 else
     NIX_RUN = bash -c
-    NIX_WRAP =
+    NIX_WRAP = @
 endif
 
 # Tooling
