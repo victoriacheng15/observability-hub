@@ -34,18 +34,23 @@ data:
       logging:
         loglevel: debug
       loki:
-        endpoint: http://loki.observability:3100/api/v1/push
+        endpoint: http://loki.observability:3100/loki/api/v1/push
       otlp:
         endpoint: tempo.observability:4317
         tls:
           insecure: true
       prometheusremotewrite:
-        endpoint: http://prometheus-server.observability:9090/api/v1/write
+        endpoint: http://prometheus-server.observability:80/api/v1/write
     extensions:
       health_check:
         endpoint: 0.0.0.0:13133
     processors:
       batch: {}
+      resource:
+        attributes:
+        - action: upsert
+          from_attribute: service.name
+          key: service.name
     receivers:
       otlp:
         protocols:
@@ -60,6 +65,7 @@ data:
           - loki
           processors:
           - batch
+          - resource
           receivers:
           - otlp
         metrics:
@@ -167,7 +173,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 6b6100478c85b6194e599bcdc7acb35a2886668a97cb034eec258a16c4b08185
+        checksum/config: 7f669ac8116eb8247836f3f08c274940c6976aa431b57a918a9f554708ae0a12
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
