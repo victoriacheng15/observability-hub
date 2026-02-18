@@ -80,5 +80,9 @@ case "$1" in
       fi
       sleep 0.5
     done ;;
-  *) generate_cycle "cron" "true" ;;
+  *) 
+    for i in {1..3}; do
+      generate_cycle "cron" "true"
+      sleep 1
+    done ;;
 esac
