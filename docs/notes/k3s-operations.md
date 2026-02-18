@@ -152,20 +152,20 @@ rm postgres-pod.tar
 
 | Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **alloy** | 20m | 114Mi | 150m | 178Mi | Telemetry Collection |
-| **grafana** | 50m | 128Mi | 200m | 384Mi | Visualization |
-| **loki** | 160m | 352Mi | 450m | 960Mi | Log Storage |
+| **alloy** | 10m | 64Mi | 100m | 128Mi | Telemetry Collection |
+| **grafana** | 10m | 64Mi | 100m | 128Mi | Visualization |
+| **loki** | 100m | 256Mi | 300m | 640Mi | Log Storage |
 | **minio** | 100m | 256Mi | 200m | 512Mi | S3 Storage Backend |
 | **opentelemetry** | 20m | 100Mi | 150m | 256Mi | Trace Gateway |
-| **postgres** | 260m | 576Mi | 600m | 896Mi | Relational Data |
-| **prometheus** | 130m | 672Mi | 550m | 1088Mi | Metrics Storage |
+| **postgres** | 250m | 512Mi | 500m | 768Mi | Relational Data |
+| **prometheus** | 100m | 512Mi | 300m | 768Mi | Metrics Storage |
 | **tempo** | 50m | 256Mi | 200m | 512Mi | Trace Storage |
-| **thanos-store-gateway** | 100m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
+| **thanos** | 100m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (890m CPU / 2.6Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (2.7 Cores / 5.2Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (740m CPU / 2.496Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (2.45 Cores / 4.224Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
