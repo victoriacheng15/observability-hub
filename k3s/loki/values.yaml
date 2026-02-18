@@ -52,7 +52,7 @@ singleBinary:
       memory: 256Mi
     limits:
       cpu: 300m
-      memory: 768Mi
+      memory: 640Mi
   podSecurityContext:
     fsGroup: 10001
     runAsGroup: 10001
