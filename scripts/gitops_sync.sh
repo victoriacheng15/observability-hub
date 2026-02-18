@@ -2,7 +2,6 @@
 set -euo pipefail
 
 REPO_NAME=${1:-""}
-ALLOWED_REPOS=("observability-hub" "mehub" "personal-reading-analytics" "platform-actions" "bioHub" "cover-craft")
 BASE_DIR="/home/server/software"
 
 # Log helper using jq for safe JSON generation
@@ -35,23 +34,17 @@ if [[ -z "$REPO_NAME" ]]; then
     exit 1
 fi
 
-IS_ALLOWED=false
-for repo in "${ALLOWED_REPOS[@]}"; do
-    if [[ "$repo" == "$REPO_NAME" ]]; then
-        IS_ALLOWED=true
-        break
-    fi
-done
-
-if [[ "$IS_ALLOWED" == "false" ]]; then
-    log "CRITICAL" "Repository not in allowlist. Access denied."
-    exit 1
-fi
-
 REPO_PATH="${BASE_DIR}/${REPO_NAME}"
 
 if [[ ! -d "$REPO_PATH/.git" ]]; then
-    log "ERROR" "Path ${REPO_PATH} is not a valid git repository."
+    log "ERROR" "Repository '${REPO_NAME}' is not a valid git repository."
+    exit 1
+fi
+
+# 1b. Opt-in Check
+# The presence of a '.gitops' file in the repo root is required this sync process.
+if [[ ! -f "$REPO_PATH/.gitops" ]]; then
+    log "CRITICAL" "Repository '${REPO_NAME}' lacks '.gitops' marker. Access denied."
     exit 1
 fi
 
