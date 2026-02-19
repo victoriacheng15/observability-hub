@@ -32,77 +32,42 @@ metadata:
 data:
   config.alloy: |-
     // WRITE: Push to local K3s-Loki
-    // -------------------------------------------------------------------------
     loki.write "local_loki" {
       endpoint {
         url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
       }
     }
     
-    // -------------------------------------------------------------------------
     // SOURCE: Systemd Journal
-    // -------------------------------------------------------------------------
     loki.source.journal "systemd" {
-      forward_to    = [loki.process.journal_pipeline.receiver]
-      relabel_rules = loki.relabel.journal_relabel.rules
+      forward_to    = [loki.relabel.journal_filter.receiver] // Forward to the relabeler first
       labels        = {
         agent = "alloy",
-        job   = "systemd-journal",
       }
     }
     
-    loki.relabel "journal_relabel" {
-      forward_to = []
-    
-      rule {
-        source_labels = ["__journal__systemd_unit"]
-        target_label  = "unit"
-      }
+    // 1. FILTER by service name (metadata)
+    loki.relabel "journal_filter" {
+      forward_to = [loki.process.journal_pipeline.receiver] // Then forward to the process pipeline
       rule {
         source_labels = ["__journal_syslog_identifier"]
-        target_label  = "syslog_identifier"
-      }
-    
-      // Priority 1: Extract service from SYSLOG_IDENTIFIER
-      rule {
-        source_labels = ["__journal_syslog_identifier"]
-        regex         = "(gitops-sync|system-metrics|tailscale-gate).*"
-        target_label  = "service"
-        replacement   = "$1"
-      }
-    
-      // Priority 2: If service is still empty, extract from SYSTEMD_UNIT
-      rule {
-        source_labels = ["service", "__journal__systemd_unit"]
-        regex         = ";(gitops-sync|system-metrics|tailscale-gate).*"
-        target_label  = "service"
-        replacement   = "$1"
+        regex         = "(gitops\\.sync|tailscale\\.gate)"
+        action        = "keep"
       }
     }
     
+    // 2. PARSE the message and create the final labels
     loki.process "journal_pipeline" {
-      // Filter: Drop everything except our specific services.
-      stage.match {
-        selector = `{unit!~"(gitops-sync|system-metrics|tailscale-gate).service", service!~"(gitops-sync|system-metrics|tailscale-gate)"}`
-        action   = "drop"
-      }
-    
-      // Pipeline for survived logs
       stage.json {
         expressions = {
-          level   = "level",
-          service = "service",
-          msg     = "msg",
+          extracted_job = "job",
         }
       }
-    
       stage.labels {
         values = {
-          level   = null,
-          service = null,
+          job = "extracted_job",
         }
       }
-    
       forward_to = [loki.write.local_loki.receiver]
     }
 ---
@@ -309,6 +274,9 @@ spec:
         app.kubernetes.io/name: alloy
         app.kubernetes.io/instance: alloy
     spec:
+      securityContext:
+        supplementalGroups:
+        - 999
       serviceAccountName: alloy
       containers:
         - name: alloy
@@ -340,8 +308,8 @@ spec:
             timeoutSeconds: 1
           resources:
             limits:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 200m
+              memory: 256Mi
             requests:
               cpu: 10m
               memory: 64Mi
@@ -358,6 +326,9 @@ spec:
               mountPath: /etc/alloy
             - mountPath: /var/log/journal
               name: journal-logs
+              readOnly: true
+            - mountPath: /run/log/journal
+              name: runtime-journal-logs
               readOnly: true
             - mountPath: /etc/machine-id
               name: machine-id
@@ -394,9 +365,15 @@ spec:
             name: alloy
         - hostPath:
             path: /var/log/journal
+            type: DirectoryOrCreate
           name: journal-logs
         - hostPath:
+            path: /run/log/journal
+            type: DirectoryOrCreate
+          name: runtime-journal-logs
+        - hostPath:
             path: /etc/machine-id
+            type: File
           name: machine-id
         - emptyDir: {}
           name: tmp

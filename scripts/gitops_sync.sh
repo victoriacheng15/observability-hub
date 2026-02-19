@@ -1,30 +1,46 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_NAME=${1:-""}
+# OTel-aligned service variables
+SERVICE_NAME="gitops.sync"
+JOB_NAME="bash.automation"
+REPO_NAME=${1:-"observability-hub"} # Default to observability-hub as per original intent
+
 BASE_DIR="/home/server/software"
 
-# Log helper using jq for safe JSON generation
-# Ensures newlines and quotes in 'msg' are properly escaped
+# OTel-aligned structured logging function
 log() {
     local level=$1
     local msg=$2
-    local json_payload
+    local hostname
+    hostname=$(hostname)
     
-    # Generate JSON payload
-    json_payload=$(jq -n -c \
-        --arg service "gitops-sync" \
-        --arg repo "${REPO_NAME:-unknown}" \
-        --arg level "$level" \
-        --arg msg "$msg" \
-        '{service: $service, repo: $repo, level: $level, msg: $msg}')
+    # Base JSON object
+    local json_args=(
+        --arg service "$SERVICE_NAME"
+        --arg job "$JOB_NAME"
+        --arg level "$level"
+        --arg msg "$msg"
+        --arg host "$hostname"
+    )
+    local query='{service: $service, job: $job, level: $level, msg: $msg, "host.name": $host}'
+
+    # Add optional 'repo' if it exists (for gitops.sync)
+    if [[ -n "$REPO_NAME" ]]; then
+        json_args+=(--arg repo "$REPO_NAME")
+        query+=' + {repo: $repo}'
+    fi
+
+    # Generate the final JSON payload
+    local json_payload
+    json_payload=$(jq -n -c "${json_args[@]}" "$query")
 
     # 1. Output to stdout (captured by Go parent process)
     echo "$json_payload"
 
-    # 2. Send directly to system journal (viewable via `journalctl -t gitops-sync`)
+    # 2. Send directly to system journal (viewable via `journalctl -t gitops.sync`)
     if command -v logger >/dev/null 2>&1; then
-        logger -t "gitops-sync" "$json_payload" || true
+        logger -t "$SERVICE_NAME" "$json_payload" || true
     fi
 }
 

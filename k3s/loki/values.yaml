@@ -10,8 +10,8 @@ loki:
       admin: loki-admin
     s3:
       endpoint: minio.observability.svc.cluster.local:9000
-      secretAccessKey: ${MINIO_LOKI_SECRET_KEY}
-      accessKeyId: ${MINIO_LOKI_ACCESS_KEY}
+      secretAccessKey: ${rootPassword}
+      accessKeyId: ${rootUser}
       s3ForcePathStyle: true
       insecure: true
   schemaConfig:
@@ -35,17 +35,16 @@ loki:
           cpu: 10m
           memory: 32Mi
 
-global:
-  extraArgs:
-    - -config.expand-env=true
-  extraEnvFrom:
-    - secretRef:
-        name: minio-loki-secret
 
 deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
+  extraArgs:
+    - -config.expand-env=true
+  extraEnvFrom:
+    - secretRef:
+        name: minio-secret
   resources:
     requests:
       cpu: 100m

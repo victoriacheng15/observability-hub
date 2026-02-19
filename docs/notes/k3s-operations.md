@@ -152,7 +152,7 @@ rm postgres-pod.tar
 
 | Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **alloy** | 10m | 64Mi | 100m | 128Mi | Telemetry Collection |
+| **alloy** | 10m | 64Mi | 200m | 256Mi | Telemetry Collection |
 | **grafana** | 10m | 64Mi | 100m | 128Mi | Visualization |
 | **loki** | 100m | 256Mi | 300m | 640Mi | Log Storage |
 | **minio** | 100m | 256Mi | 200m | 512Mi | S3 Storage Backend |
@@ -165,7 +165,7 @@ rm postgres-pod.tar
 **Understanding Usage Totals:**
 
 - **Mini Total (740m CPU / 2.496Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (2.45 Cores / 4.224Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Max Total (2.15 Cores / 4.128Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
