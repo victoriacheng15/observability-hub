@@ -42,6 +42,7 @@ func TestWebhookHandler(t *testing.T) {
 			method:         http.MethodGet,
 			envSecret:      testSecret,
 			expectedStatus: http.StatusMethodNotAllowed,
+			expectedBody:   "Method not allowed",
 		},
 		"ping_event": {
 			method:         http.MethodPost,
@@ -55,12 +56,14 @@ func TestWebhookHandler(t *testing.T) {
 			eventType:      "push",
 			envSecret:      "",
 			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "Server configuration error",
 		},
 		"missing_signature_header": {
 			method:         http.MethodPost,
 			eventType:      "push",
 			envSecret:      testSecret,
 			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "Missing signature",
 		},
 		"invalid_signature": {
 			method:    http.MethodPost,
@@ -71,6 +74,7 @@ func TestWebhookHandler(t *testing.T) {
 			},
 			headerSig:      "sha256=invalidsignature",
 			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "Invalid signature",
 		},
 		"ignored_branch_dev": {
 			method:    http.MethodPost,
@@ -136,12 +140,24 @@ func TestWebhookHandler(t *testing.T) {
 			expectedStatus: http.StatusAccepted,
 			expectedBody:   "Sync triggered for test-repo",
 		},
+		"missing_event_header_ignored": {
+			method:    http.MethodPost,
+			eventType: "",
+			envSecret: testSecret,
+			body: map[string]interface{}{
+				"ref": "refs/heads/main",
+				"repository": map[string]string{
+					"name": "test-repo",
+				},
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "Ignored: Not a push to main or closed PR to main",
+		},
 		"invalid_json": {
 			method:    http.MethodPost,
 			eventType: "push",
 			envSecret: testSecret,
-			headerSig: "sha256=invalidbutformatted", // Will fail signature verify anyway if we don't mock it carefully
-			// We'll use a manually crafted request for this
+			headerSig: "sha256=invalidbutformatted",
 		},
 		"missing_repo_name": {
 			method:    http.MethodPost,
@@ -163,9 +179,11 @@ func TestWebhookHandler(t *testing.T) {
 			},
 			headerSig:      "plain-text-signature",
 			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "Invalid signature",
 		},
 		"body_read_error": {
 			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "Failed to read body",
 		},
 	}
 
@@ -183,6 +201,9 @@ func TestWebhookHandler(t *testing.T) {
 				if w.Code != http.StatusBadRequest {
 					t.Errorf("Expected 400 for invalid JSON, got %d", w.Code)
 				}
+				if !bytes.Contains(w.Body.Bytes(), []byte("Invalid JSON")) {
+					t.Errorf("Expected body to contain %q, got %q", "Invalid JSON", w.Body.String())
+				}
 				return
 			}
 
@@ -196,6 +217,9 @@ func TestWebhookHandler(t *testing.T) {
 				WebhookHandler(w, req)
 				if w.Code != http.StatusInternalServerError {
 					t.Errorf("Expected 500 for body read error, got %d", w.Code)
+				}
+				if !bytes.Contains(w.Body.Bytes(), []byte("Failed to read body")) {
+					t.Errorf("Expected body to contain %q, got %q", "Failed to read body", w.Body.String())
 				}
 				return
 			}

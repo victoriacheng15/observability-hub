@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -88,6 +89,21 @@ func TestSyncReadingHandler(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", w.Code)
 		}
+		if got := w.Header().Get("Content-Type"); got != "application/json" {
+			t.Errorf("expected content-type application/json, got %q", got)
+		}
+
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to decode response json: %v", err)
+		}
+		if got := resp["status"]; got != "success" {
+			t.Errorf("expected response status success, got %v", got)
+		}
+		if got := resp["service"]; got != "reading-sync" {
+			t.Errorf("expected service reading-sync, got %v", got)
+		}
+
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("unfulfilled postgres expectations: %v", err)
 		}
@@ -119,6 +135,9 @@ func TestSyncReadingHandler(t *testing.T) {
 		if w.Code != http.StatusInternalServerError {
 			t.Errorf("expected status 500, got %d", w.Code)
 		}
+		if !bytes.Contains(w.Body.Bytes(), []byte("Failed to query Mongo")) {
+			t.Errorf("expected body to contain %q, got %q", "Failed to query Mongo", w.Body.String())
+		}
 	})
 
 	t.Run("respect_batch_size_env", func(t *testing.T) {
@@ -147,6 +166,18 @@ func TestSyncReadingHandler(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		service.SyncReadingHandler(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", w.Code)
+		}
+
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to decode response json: %v", err)
+		}
+		if got := resp["processed_count"]; got != float64(0) {
+			t.Errorf("expected processed_count 0, got %v", got)
+		}
 	})
 
 	t.Run("log_error_on_create_table_failure", func(t *testing.T) {
@@ -172,6 +203,9 @@ func TestSyncReadingHandler(t *testing.T) {
 
 		if w.Code != http.StatusInternalServerError {
 			t.Errorf("expected status 500, got %d", w.Code)
+		}
+		if !bytes.Contains(w.Body.Bytes(), []byte("Failed to ensure database schema")) {
+			t.Errorf("expected body to contain %q, got %q", "Failed to ensure database schema", w.Body.String())
 		}
 	})
 }
