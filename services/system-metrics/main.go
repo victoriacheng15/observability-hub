@@ -10,7 +10,6 @@ import (
 
 	"db/postgres"
 	"env"
-	"logger"
 	"metrics"
 	"secrets"
 	"telemetry"
@@ -27,14 +26,13 @@ var (
 
 func ensureMetrics() {
 	metricsOnce.Do(func() {
-		meter := telemetry.GetMeter("system-metrics")
-		collTotal, _ = telemetry.NewInt64Counter(meter, "system_metrics.collection.total", "Total collection attempts")
-		collErrors, _ = telemetry.NewInt64Counter(meter, "system_metrics.collection.errors", "Total collection errors")
+		meter := telemetry.GetMeter("system.metrics")
+		collTotal, _ = telemetry.NewInt64Counter(meter, "system.metrics.collection.total", "Total collection attempts")
+		collErrors, _ = telemetry.NewInt64Counter(meter, "system.metrics.collection.errors", "Total collection errors")
 		ready = true
 	})
 }
 
-// App holds the dependencies for the system-metrics service
 type App struct {
 	Store            *postgres.MetricsStore
 	HostInfoFn       func() (*host.InfoStat, error)
@@ -67,14 +65,11 @@ func main() {
 	}
 }
 
-// Bootstrap separates the main orchestration from the hard os.Exit calls
 func (a *App) Bootstrap(ctx context.Context) error {
-	// 1. Telemetry Takeover (OTel-native logging, metrics, traces)
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "system-metrics")
+	// 1. Telemetry Takeover
+	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "system.metrics")
 	if err != nil {
-		// Fallback to standard logger if OTel init fails critically
-		logger.Setup(os.Stdout, "system-metrics")
-		slog.Warn("otel_init_failed, continuing with standard logging", "error", err)
+		slog.Warn("otel_init_failed", "error", err)
 	}
 	defer func() {
 		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -90,51 +85,31 @@ func (a *App) Bootstrap(ctx context.Context) error {
 		}
 	}()
 
-	slog.Info("Starting System Metrics Collector", "version", "1.1.0")
-
 	env.Load()
 	ensureMetrics()
 
-	// 2. Initialize Secrets Provider
 	secretStore, err := a.SecretProviderFn()
 	if err != nil {
 		return fmt.Errorf("secret_provider_init_failed: %w", err)
 	}
-	defer secretStore.Close()
 
-	// 3. Database Connection
 	if err := a.InitDB("postgres", secretStore); err != nil {
 		return fmt.Errorf("db_connection_failed: %w", err)
 	}
 	defer a.Store.DB.Close()
 
-	if err := a.Run(ctx); err != nil {
-		return fmt.Errorf("app_run_failed: %w", err)
-	}
-
-	return nil
-}
-
-func (a *App) InitDB(driverName string, store secrets.SecretStore) error {
-	metricsStore, err := a.ConnectDBFn(driverName, store)
-	if err != nil {
-		return err
-	}
-	a.Store = metricsStore
-	slog.Info("db_connected", "database", driverName)
-	return nil
+	return a.Run(ctx)
 }
 
 func (a *App) Run(ctx context.Context) error {
-	tracer := telemetry.GetTracer("system-metrics")
-	ctx, span := tracer.Start(ctx, "job.collect_metrics")
+	tracer := telemetry.GetTracer("system.metrics")
+	ctx, span := tracer.Start(ctx, "job.system_metrics")
 	defer span.End()
 
 	if ready {
 		telemetry.AddInt64Counter(ctx, collTotal, 1)
 	}
 
-	// 1. Initial Detection
 	hInfo, err := a.HostInfoFn()
 	if err != nil {
 		return fmt.Errorf("host_info_failed: %w", err)
@@ -146,21 +121,19 @@ func (a *App) Run(ctx context.Context) error {
 		hostName = "homelab"
 	}
 
-	// 2. Ensure Schema
 	if err := a.Store.EnsureSchema(ctx); err != nil {
 		return err
 	}
 
-	// 3. Collect and Store Once
 	return a.collectAndStore(ctx, hostName, osName)
 }
 
 func (a *App) collectAndStore(ctx context.Context, hostName string, osName string) error {
-	tracer := telemetry.GetTracer("system-metrics")
+	tracer := telemetry.GetTracer("system.metrics")
 	now := a.NowFn().UTC().Truncate(time.Second)
 
-	// 1. Poll system stats
-	_, sSpan := tracer.Start(ctx, "job.poll_system_stats")
+	// 1. Sample hardware
+	_, sSpan := tracer.Start(ctx, "os.poll_stats")
 	cpu, _ := metrics.GetCPUStats()
 	mem, _ := metrics.GetMemoryStats()
 	disk, _ := metrics.GetDiskStats()
@@ -198,4 +171,10 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 
 	slog.Info("collection_complete", "host", hostName, "duration", time.Since(now).String())
 	return nil
+}
+
+func (a *App) InitDB(driver string, store secrets.SecretStore) error {
+	var err error
+	a.Store, err = a.ConnectDBFn(driver, store)
+	return err
 }

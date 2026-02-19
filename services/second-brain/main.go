@@ -24,9 +24,9 @@ var (
 
 func ensureMetrics() {
 	brainOnce.Do(func() {
-		meter := telemetry.GetMeter("second-brain")
-		syncTotal, _ = telemetry.NewInt64Counter(meter, "second_brain.sync.total", "Total sync runs")
-		atomsGained, _ = telemetry.NewInt64Counter(meter, "second_brain.atoms.ingested", "Total thoughts ingested")
+		meter := telemetry.GetMeter("second.brain")
+		syncTotal, _ = telemetry.NewInt64Counter(meter, "second.brain.sync.total", "Total sync runs")
+		atomsGained, _ = telemetry.NewInt64Counter(meter, "second.brain.atoms.ingested", "Total thoughts ingested")
 		ready = true
 	})
 }
@@ -76,7 +76,7 @@ func main() {
 
 func (a *App) Run(ctx context.Context) error {
 	// 1. Telemetry Init
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "second-brain")
+	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "second.brain")
 	if err != nil {
 		slog.Warn("otel_init_failed", "error", err)
 	}
@@ -114,13 +114,15 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
+	tracer := telemetry.GetTracer("second.brain")
+	ctx, span := tracer.Start(ctx, "job.second_brain_sync")
+	defer span.End()
+
 	return a.Sync(ctx, repo, brainStore)
 }
 
 func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainStore) error {
-	tracer := telemetry.GetTracer("second-brain")
-	ctx, span := tracer.Start(ctx, "job.second_brain_sync")
-	defer span.End()
+	tracer := telemetry.GetTracer("second.brain")
 
 	if ready {
 		telemetry.AddInt64Counter(ctx, syncTotal, 1)
@@ -134,7 +136,7 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 	slog.Info("database_check_complete", "latest_entry", latestDate)
 
 	// 4. Fetch delta
-	_, fSpan := tracer.Start(ctx, "github.fetch_issues")
+	_, fSpan := tracer.Start(ctx, "github.fetch")
 	allIssues, err := a.BrainAPI.FetchRecentJournals(repo)
 	fSpan.End()
 	if err != nil {
