@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	otellog "go.opentelemetry.io/otel/log"
 	otellogglobal "go.opentelemetry.io/otel/log/global"
 	metricapi "go.opentelemetry.io/otel/metric"
@@ -135,6 +136,7 @@ func BoolAttribute(key string, value bool) Attribute {
 // It reads OTEL_EXPORTER_OTLP_ENDPOINT from the environment.
 func Init(
 	ctx context.Context,
+	serviceName string,
 ) (shutdownTracer func(context.Context) error, shutdownMeter func(context.Context) error, shutdownLogger func(context.Context) error, err error) {
 	shutdownTracer = func(context.Context) error { return nil }
 	shutdownMeter = func(context.Context) error { return nil }
@@ -155,7 +157,6 @@ func Init(
 		return
 	}
 
-	serviceName := os.Getenv("OTEL_SERVICE_NAME")
 	if serviceName == "" {
 		serviceName = "unknown-service"
 	}
@@ -198,8 +199,15 @@ func Init(
 		return
 	}
 
+	consoleExporter, err := stdoutlog.New()
+	if err != nil {
+		err = fmt.Errorf("failed to create stdout log exporter: %w", err)
+		return
+	}
+
 	lp := sdklog.NewLoggerProvider(
 		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
+		sdklog.WithProcessor(sdklog.NewSimpleProcessor(consoleExporter)),
 		sdklog.WithResource(res),
 	)
 	otellogglobal.SetLoggerProvider(lp)
