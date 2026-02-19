@@ -41,12 +41,12 @@ data:
       replication_factor: 1
       storage:
         s3:
-          access_key_id: ${MINIO_LOKI_ACCESS_KEY}
+          access_key_id: ${rootUser}
           bucketnames: loki-chunks
           endpoint: minio.observability.svc.cluster.local:9000
           insecure: true
           s3forcepathstyle: true
-          secret_access_key: ${MINIO_LOKI_SECRET_KEY}
+          secret_access_key: ${rootPassword}
     frontend:
       scheduler_address: ""
       tail_proxy_url: ""
@@ -71,12 +71,12 @@ data:
     ruler:
       storage:
         s3:
-          access_key_id: ${MINIO_LOKI_ACCESS_KEY}
+          access_key_id: ${rootUser}
           bucketnames: loki-ruler
           endpoint: minio.observability.svc.cluster.local:9000
           insecure: true
           s3forcepathstyle: true
-          secret_access_key: ${MINIO_LOKI_SECRET_KEY}
+          secret_access_key: ${rootPassword}
         type: s3
       wal:
         dir: /var/loki/ruler-wal
@@ -603,7 +603,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: d63709913ea73c48ab64a996d6b771887a794c7bc9e889579234ff97d82f5727
+        checksum/config: e6c29f1c9362619d301f23fe9903186c0b72c761a6d10e353c8a84de13c36d87
         storage/size: "10Gi"
         kubectl.kubernetes.io/default-container: "loki"
       labels:
@@ -630,6 +630,7 @@ spec:
           args:
             - -config.file=/etc/loki/config/config.yaml
             - -target=all
+            - -config.expand-env=true
           ports:
             - name: http-metrics
               containerPort: 3100
@@ -640,6 +641,9 @@ spec:
             - name: http-memberlist
               containerPort: 7946
               protocol: TCP
+          envFrom:
+            - secretRef:
+                name: minio-secret
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
