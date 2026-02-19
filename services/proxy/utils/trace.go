@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-var syntheticTracer = telemetry.GetTracer("proxy/synthetic")
-var syntheticMeter = telemetry.GetMeter("proxy/synthetic")
+var syntheticTracer = telemetry.GetTracer("proxy.synthetic")
+var syntheticMeter = telemetry.GetMeter("proxy.synthetic")
 
 var (
 	syntheticMetricsOnce         sync.Once

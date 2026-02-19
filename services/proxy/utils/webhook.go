@@ -18,8 +18,8 @@ import (
 	"time"
 )
 
-var webhookTracer = telemetry.GetTracer("proxy/webhook")
-var webhookMeter = telemetry.GetMeter("proxy/webhook")
+var webhookTracer = telemetry.GetTracer("proxy.webhook")
+var webhookMeter = telemetry.GetMeter("proxy.webhook")
 
 var repoLocks sync.Map
 

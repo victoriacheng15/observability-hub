@@ -54,11 +54,11 @@ func main() {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	logger.Setup(os.Stdout, "reading-sync")
+	logger.Setup(os.Stdout, "reading.sync")
 	env.Load()
 
 	// 1. Telemetry
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "reading-sync")
+	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "reading.sync")
 	if err != nil {
 		slog.Warn("otel_init_failed, continuing without full observability", "error", err)
 	}
@@ -114,16 +114,16 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore MongoStoreAPI) error {
-	tracer := telemetry.GetTracer("reading-sync")
-	meter := telemetry.GetMeter("reading-sync")
+	tracer := telemetry.GetTracer("reading.sync")
+	meter := telemetry.GetMeter("reading.sync")
 
-	processedCounter, _ := telemetry.NewInt64Counter(meter, "reading_sync.processed.total", "Total documents processed")
-	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading_sync.errors.total", "Total sync errors")
-	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading_sync.duration.ms", "Sync duration in milliseconds", "ms")
-	batchSizeHist, _ := telemetry.NewInt64Histogram(meter, "reading_sync.batch.size", "Number of documents processed in a batch", "count")
+	processedCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.processed.total", "Total documents processed")
+	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.errors.total", "Total sync errors")
+	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration.ms", "Sync duration in milliseconds", "ms")
+	batchSizeHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.batch.size", "Number of documents processed in a batch", "count")
 
 	start := time.Now()
-	ctx, span := tracer.Start(ctx, "sync.execute")
+	ctx, span := tracer.Start(ctx, "job.reading_sync")
 	defer span.End()
 
 	startTime := time.Now().UTC()
