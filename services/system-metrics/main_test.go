@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -66,12 +67,14 @@ func TestApp_Run(t *testing.T) {
 	defer dbConn.Close()
 	store := postgres.NewMetricsStore(dbConn)
 
+	// Use a fixed time for stability
 	now := time.Date(2026, 1, 29, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
 		name        string
 		hostInfoErr error
 		schemaErr   error
+		dbErr       error
 		wantErr     bool
 	}{
 		{
@@ -87,6 +90,11 @@ func TestApp_Run(t *testing.T) {
 			name:      "Schema Init Failure",
 			schemaErr: errors.New("schema error"),
 			wantErr:   true,
+		},
+		{
+			name:    "Partial Collection Failure",
+			dbErr:   errors.New("insert failed"),
+			wantErr: true,
 		},
 	}
 
@@ -124,6 +132,15 @@ func TestApp_Run(t *testing.T) {
 			} else if tt.schemaErr != nil {
 				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
 					WillReturnError(tt.schemaErr)
+			} else if tt.dbErr != nil {
+				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectExec("SELECT create_hypertable").WillReturnResult(sqlmock.NewResult(0, 0))
+				// Fail the first insert
+				mock.ExpectExec("INSERT INTO system_metrics").WillReturnError(tt.dbErr)
+				// Remaining inserts still proceed but error is bubbled
+				for i := 0; i < 3; i++ {
+					mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+				}
 			}
 
 			err := app.Run(context.Background())
@@ -141,6 +158,11 @@ func TestApp_Run(t *testing.T) {
 func TestApp_Bootstrap(t *testing.T) {
 	dbConn, mock, _ := sqlmock.New()
 	defer dbConn.Close()
+
+	// Ensure OTel doesn't try to connect to a real endpoint during tests
+	origEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:30317")
+	defer os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", origEndpoint)
 
 	tests := []struct {
 		name      string

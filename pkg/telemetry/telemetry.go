@@ -161,8 +161,10 @@ func Init(
 		serviceName = "unknown-service"
 	}
 
+	hostname, _ := os.Hostname()
 	res := resource.NewSchemaless(
 		semconv.ServiceName(serviceName),
+		semconv.HostName(hostname),
 	)
 
 	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
