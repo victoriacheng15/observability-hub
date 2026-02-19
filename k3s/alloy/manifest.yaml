@@ -40,35 +40,37 @@ data:
     
     // SOURCE: Systemd Journal
     loki.source.journal "systemd" {
-      forward_to    = [loki.relabel.journal_filter.receiver] // Forward to the relabeler first
+      forward_to    = [loki.process.journal_pipeline.receiver] // Parse first, then filter
       labels        = {
         agent = "alloy",
       }
     }
     
-    // 1. FILTER by service name (metadata)
-    loki.relabel "journal_filter" {
-      forward_to = [loki.process.journal_pipeline.receiver] // Then forward to the process pipeline
-      rule {
-        source_labels = ["__journal_syslog_identifier"]
-        regex         = "(gitops\\.sync|tailscale\\.gate)"
-        action        = "keep"
-      }
-    }
-    
-    // 2. PARSE the message and create the final labels
+    // 1. PARSE the message and create the final labels
     loki.process "journal_pipeline" {
       stage.json {
         expressions = {
           extracted_job = "job",
+          extracted_service = "service",
         }
       }
       stage.labels {
         values = {
           job = "extracted_job",
+          service = "extracted_service",
         }
       }
+      forward_to = [loki.relabel.journal_filter.receiver]
+    }
+    
+    // 2. FILTER by parsed service label
+    loki.relabel "journal_filter" {
       forward_to = [loki.write.local_loki.receiver]
+      rule {
+        source_labels = ["service"]
+        regex         = "(gitops\\.sync|tailscale\\.gate)"
+        action        = "keep"
+      }
     }
 ---
 # Source: alloy/templates/rbac.yaml
