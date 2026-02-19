@@ -8,18 +8,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
+	"logger"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"telemetry"
+	"time"
 )
 
 var webhookTracer = telemetry.GetTracer("proxy/webhook")
+var webhookMeter = telemetry.GetMeter("proxy/webhook")
 
 var repoLocks sync.Map
+
+var (
+	webhookMetricsOnce      sync.Once
+	webhookMetricsReady     bool
+	webhookReceivedTotal    telemetry.Int64Counter
+	webhookErrorsTotal      telemetry.Int64Counter
+	webhookSyncDurationMsec telemetry.Int64Histogram
+)
 
 type Payload struct {
 	Ref        string `json:"ref"`
@@ -36,15 +46,79 @@ type Payload struct {
 	} `json:"pull_request"`
 }
 
+func ensureWebhookMetrics() {
+	webhookMetricsOnce.Do(func() {
+		var err error
+		webhookReceivedTotal, err = telemetry.NewInt64Counter(
+			webhookMeter,
+			"proxy.webhook.received.total",
+			"Total webhook requests received",
+		)
+		if err != nil {
+			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.received.total", "error", err)
+			return
+		}
+
+		webhookErrorsTotal, err = telemetry.NewInt64Counter(
+			webhookMeter,
+			"proxy.webhook.errors.total",
+			"Total webhook request errors",
+		)
+		if err != nil {
+			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.errors.total", "error", err)
+			return
+		}
+
+		webhookSyncDurationMsec, err = telemetry.NewInt64Histogram(
+			webhookMeter,
+			"proxy.webhook.sync.duration.ms",
+			"Webhook request duration in milliseconds",
+			"ms",
+		)
+		if err != nil {
+			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.sync.duration.ms", "error", err)
+			return
+		}
+
+		webhookMetricsReady = true
+	})
+}
+
 // WebhookHandler handles GitHub push event webhooks to trigger GitOps sync
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ensureWebhookMetrics()
+
+	ctx, span := webhookTracer.Start(r.Context(), "handler.webhook")
+	defer span.End()
+
+	eventType := r.Header.Get("X-GitHub-Event")
+	span.SetAttributes(telemetry.StringAttribute("github.event", eventType))
+
+	metricAttrs := []telemetry.Attribute{
+		telemetry.StringAttribute("github.event", eventType),
+	}
+	defer func() {
+		if webhookMetricsReady {
+			durationMs := time.Since(start).Milliseconds()
+			telemetry.RecordInt64Histogram(ctx, webhookSyncDurationMsec, durationMs, metricAttrs...)
+		}
+	}()
+	if webhookMetricsReady {
+		telemetry.AddInt64Counter(ctx, webhookReceivedTotal, 1, metricAttrs...)
+	}
+
 	if r.Method != http.MethodPost {
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "method_not_allowed")
+		span.SetAttributes(telemetry.BoolAttribute("error", true))
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	eventType := r.Header.Get("X-GitHub-Event")
-	slog.Info("Received webhook", "event", eventType)
+	logger.Info("webhook_received", "event", eventType)
 
 	// Gracefully handle ping events
 	if eventType == "ping" {
@@ -55,56 +129,75 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	secret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	if secret == "" {
-		slog.Error("GITHUB_WEBHOOK_SECRET is not set")
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "missing_secret")
+		span.SetAttributes(telemetry.BoolAttribute("error", true))
+		logger.Error("webhook_secret_missing")
 		http.Error(w, "Server configuration error", http.StatusInternalServerError)
 		return
 	}
 
 	signature := r.Header.Get("X-Hub-Signature-256")
 	if signature == "" {
-		slog.Warn("Missing X-Hub-Signature-256 header")
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "missing_signature")
+		span.SetAttributes(telemetry.BoolAttribute("error", true))
+		logger.Warn("webhook_signature_missing")
 		http.Error(w, "Missing signature", http.StatusUnauthorized)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		slog.Error("Failed to read request body", "error", err)
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "body_read_failed")
+		span.SetAttributes(
+			telemetry.BoolAttribute("error", true),
+			telemetry.StringAttribute("error.message", err.Error()),
+		)
+		logger.Error("webhook_body_read_failed", "error", err)
 		http.Error(w, "Failed to read body", http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
-
-	ctx := r.Context()
-
-	_, verifySpan := webhookTracer.Start(ctx, "webhook.verify_signature")
 	if !verifySignature(body, signature, secret) {
-		verifySpan.SetStatus(telemetry.CodeError, "invalid signature")
-		verifySpan.End()
-		slog.Warn("Invalid webhook signature")
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "invalid_signature")
+		span.SetAttributes(telemetry.BoolAttribute("error", true))
+		logger.Warn("webhook_signature_invalid")
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
-	verifySpan.End()
 
 	var payload Payload
 	if err := json.Unmarshal(body, &payload); err != nil {
-		slog.Error("Failed to parse webhook payload", "error", err)
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "payload_invalid")
+		span.SetAttributes(
+			telemetry.BoolAttribute("error", true),
+			telemetry.StringAttribute("error.message", err.Error()),
+		)
+		logger.Error("webhook_payload_invalid", "error", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	// Enrich the root span with metadata and raw payload
-	span := telemetry.SpanFromContext(ctx)
+	// Newbie level: keep minimal, non-sensitive attributes only.
 	span.SetAttributes(
-		telemetry.StringAttribute("github.event", eventType),
 		telemetry.StringAttribute("github.repo", payload.Repository.FullName),
 		telemetry.StringAttribute("github.ref", payload.Ref),
 		telemetry.StringAttribute("github.action", payload.Action),
 	)
-	span.AddEvent("webhook.payload_received", telemetry.WithEventAttributes(
-		telemetry.StringAttribute("payload.raw", string(body)),
-	))
 
 	shouldTrigger := false
 
@@ -119,7 +212,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !shouldTrigger {
-		slog.Info("Ignored webhook",
+		logger.Info("webhook_ignored",
 			"repo", payload.Repository.Name,
 			"event", eventType,
 			"ref", payload.Ref,
@@ -134,7 +227,12 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	repoName := payload.Repository.Name
 	isMerged := payload.PullRequest.Merged
 	if repoName == "" {
-		slog.Warn("Repository name missing in payload", "event", eventType)
+		if webhookMetricsReady {
+			telemetry.AddInt64Counter(ctx, webhookErrorsTotal, 1, metricAttrs...)
+		}
+		span.SetStatus(telemetry.CodeError, "missing_repo_name")
+		span.SetAttributes(telemetry.BoolAttribute("error", true))
+		logger.Warn("webhook_repo_name_missing", "event", eventType)
 		http.Error(w, "Repository name missing", http.StatusBadRequest)
 		return
 	}
@@ -144,11 +242,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		val, _ := repoLocks.LoadOrStore(repo, &sync.Mutex{})
 		mu := val.(*sync.Mutex)
 
-		_, waitSpan := webhookTracer.Start(parentCtx, "webhook.wait_for_lock", telemetry.WithAttributes(
-			telemetry.StringAttribute("github.repo", repo),
-		))
 		mu.Lock()
-		waitSpan.End()
 
 		defer mu.Unlock()
 
@@ -160,7 +254,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		)
 		defer syncSpan.End()
 
-		slog.Info("Triggering GitOps sync via webhook",
+		logger.Info("webhook_sync_triggered",
 			"repo", repo,
 			"event", eventType,
 			"merged", merged,
@@ -171,13 +265,14 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			syncSpan.RecordError(err)
 			syncSpan.SetStatus(telemetry.CodeError, "sync failed")
-			slog.Error("GitOps sync execution failed", "repo", repo, "error", err, "output", string(output))
+			logger.Error("webhook_sync_failed", "repo", repo, "error", err, "output", string(output))
 		} else {
-			slog.Info("GitOps sync execution successful", "repo", repo, "output", string(output))
+			logger.Info("webhook_sync_success", "repo", repo, "output", string(output))
 		}
 	}(repoName, isMerged, ctx)
 
 	w.WriteHeader(http.StatusAccepted)
+	logger.Info("webhook_processed", "repo", repoName, "event", eventType, "status", http.StatusAccepted)
 	fmt.Fprintf(w, "Sync triggered for %s", repoName)
 }
 
