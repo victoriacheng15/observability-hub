@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
+	"logger"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -32,7 +32,7 @@ func ensureSyntheticMetrics() {
 			"Total synthetic trace requests received",
 		)
 		if err != nil {
-			slog.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.total", "error", err)
+			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.total", "error", err)
 			return
 		}
 
@@ -42,7 +42,7 @@ func ensureSyntheticMetrics() {
 			"Total synthetic trace request errors",
 		)
 		if err != nil {
-			slog.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.errors.total", "error", err)
+			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.errors.total", "error", err)
 			return
 		}
 
@@ -53,7 +53,7 @@ func ensureSyntheticMetrics() {
 			"ms",
 		)
 		if err != nil {
-			slog.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration.ms", "error", err)
+			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration.ms", "error", err)
 			return
 		}
 
@@ -69,7 +69,6 @@ type SyntheticPayload struct {
 }
 
 func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
-	span := telemetry.SpanFromContext(r.Context())
 	start := time.Now()
 	ensureSyntheticMetrics()
 
@@ -84,11 +83,17 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 	metricAttrs := []telemetry.Attribute{
 		telemetry.StringAttribute("app.traffic_mode", trafficMode),
 	}
+	defer func() {
+		if syntheticMetricsReady {
+			durationMs := time.Since(start).Milliseconds()
+			telemetry.RecordInt64Histogram(r.Context(), syntheticRequestDurationMsec, durationMs, metricAttrs...)
+		}
+	}()
 	if syntheticMetricsReady {
 		telemetry.AddInt64Counter(r.Context(), syntheticRequestTotal, 1, metricAttrs...)
 	}
 
-	_, span = syntheticTracer.Start(r.Context(), "handler.synthetic_trace")
+	_, span := syntheticTracer.Start(r.Context(), "handler.synthetic_trace")
 	defer span.End()
 
 	// 1. Attributes
@@ -100,10 +105,24 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 	// 2. Decode Payload
 	var payload SyntheticPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err == nil {
-		// Capture raw payload as event
+		// Capture a redacted payload summary as event (avoid raw body / PII risk)
+		payloadFields := []string{}
+		if payload.Region != "" {
+			payloadFields = append(payloadFields, "region")
+		}
+		if payload.Timezone != "" {
+			payloadFields = append(payloadFields, "timezone")
+		}
+		if payload.Device != "" {
+			payloadFields = append(payloadFields, "device")
+		}
+		if payload.NetworkType != "" {
+			payloadFields = append(payloadFields, "network_type")
+		}
 		payloadJSON, _ := json.Marshal(payload)
 		span.AddEvent("request.payload.received", telemetry.WithEventAttributes(
-			telemetry.StringAttribute("payload.body", string(payloadJSON)),
+			telemetry.StringAttribute("payload.fields", strings.Join(payloadFields, ",")),
+			telemetry.IntAttribute("payload.size_bytes", len(payloadJSON)),
 		))
 
 		// Business Attributes
@@ -113,7 +132,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 			telemetry.StringAttribute("app.business.device", payload.Device),
 			telemetry.StringAttribute("app.business.network_type", payload.NetworkType),
 		)
-		slog.Info("synthetic_trace_payload_received",
+		logger.Info("synthetic_trace_payload_received",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"region", payload.Region,
@@ -122,13 +141,17 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 		)
 	} else if err != io.EOF {
 		span.SetStatus(telemetry.CodeError, "payload_decode_failed")
+		span.SetAttributes(
+			telemetry.BoolAttribute("error", true),
+			telemetry.StringAttribute("error.message", err.Error()),
+		)
 		span.AddEvent("request.payload.decode_failed", telemetry.WithEventAttributes(
 			telemetry.StringAttribute("error", err.Error()),
 		))
 		if syntheticMetricsReady {
 			telemetry.AddInt64Counter(r.Context(), syntheticRequestErrorsTotal, 1, metricAttrs...)
 		}
-		slog.Warn("synthetic_trace_payload_decode_failed",
+		logger.Warn("synthetic_trace_payload_decode_failed",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"error", err,
@@ -152,10 +175,14 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 		"latency_ms":   latencyTarget,
 	}); err != nil {
 		span.SetStatus(telemetry.CodeError, "response_encode_failed")
+		span.SetAttributes(
+			telemetry.BoolAttribute("error", true),
+			telemetry.StringAttribute("error.message", err.Error()),
+		)
 		if syntheticMetricsReady {
 			telemetry.AddInt64Counter(r.Context(), syntheticRequestErrorsTotal, 1, metricAttrs...)
 		}
-		slog.Error("synthetic_trace_response_encode_failed",
+		logger.Error("synthetic_trace_response_encode_failed",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"error", err,
@@ -165,10 +192,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	durationMs := time.Since(start).Milliseconds()
-	if syntheticMetricsReady {
-		telemetry.RecordInt64Histogram(r.Context(), syntheticRequestDurationMsec, durationMs, metricAttrs...)
-	}
-	slog.Info("synthetic_trace_processed",
+	logger.Info("synthetic_trace_processed",
 		"synthetic_id", syntheticID,
 		"traffic_mode", trafficMode,
 		"latency_target_ms", latencyTarget,

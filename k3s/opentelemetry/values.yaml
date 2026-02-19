@@ -46,9 +46,12 @@ alternateConfig:
     batch: {}
     resource:
       attributes:
-        - key: service.name
+        - key: service
           action: upsert
           from_attribute: service.name
+        - key: loki.resource.labels
+          action: insert
+          value: service
   exporters:
     otlp:
       endpoint: tempo.observability:4317

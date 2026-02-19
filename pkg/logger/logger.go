@@ -20,3 +20,18 @@ func Setup(w io.Writer, serviceName string) {
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
 }
+
+// Info logs an info-level message using the configured default logger.
+func Info(msg string, args ...any) {
+	slog.Info(msg, args...)
+}
+
+// Warn logs a warn-level message using the configured default logger.
+func Warn(msg string, args ...any) {
+	slog.Warn(msg, args...)
+}
+
+// Error logs an error-level message using the configured default logger.
+func Error(msg string, args ...any) {
+	slog.Error(msg, args...)
+}

@@ -50,7 +50,10 @@ data:
         attributes:
         - action: upsert
           from_attribute: service.name
-          key: service.name
+          key: service
+        - action: insert
+          key: loki.resource.labels
+          value: service
     receivers:
       otlp:
         protocols:
@@ -173,7 +176,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 7f669ac8116eb8247836f3f08c274940c6976aa431b57a918a9f554708ae0a12
+        checksum/config: a1ea1934505ca8c6fdc79f72b69e1b19af3d47ca92b23f5d99dc27016b3242b1
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
