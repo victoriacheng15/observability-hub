@@ -1,18 +1,15 @@
-module db
+module reading-sync
 
 go 1.25.5
 
 require (
+	db v0.0.0
+	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/lib/pq v1.11.2
-	go.mongodb.org/mongo-driver/v2 v2.5.0
+	logger v0.0.0
 	secrets v0.0.0
 	telemetry v0.0.0
 )
-
-replace secrets => ../secrets
-
-replace telemetry => ../telemetry
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -34,7 +31,9 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/hashicorp/vault/api v1.22.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/lib/pq v1.11.2 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -42,6 +41,7 @@ require (
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/otelslog v0.15.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect
@@ -69,3 +69,13 @@ require (
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace db => ../../pkg/db
+
+replace logger => ../../pkg/logger
+
+replace secrets => ../../pkg/secrets
+
+replace telemetry => ../../pkg/telemetry
+
+replace env => ../../pkg/env

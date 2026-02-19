@@ -32,6 +32,14 @@ func NewMongoStore(store secrets.SecretStore) (*MongoStore, error) {
 	return &MongoStore{Client: client}, nil
 }
 
+// Close disconnects the MongoDB client.
+func (s *MongoStore) Close(ctx context.Context) error {
+	if s.Client != nil {
+		return s.Client.Disconnect(ctx)
+	}
+	return nil
+}
+
 // ConnectMongo establishes a connection to MongoDB.
 func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
 	uri, err := GetMongoURI(store)

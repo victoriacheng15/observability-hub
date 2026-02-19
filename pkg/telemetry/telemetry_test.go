@@ -11,7 +11,7 @@ func TestInit(t *testing.T) {
 
 	t.Run("Disabled when endpoint missing", func(t *testing.T) {
 		os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx)
+		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx, "test")
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -25,13 +25,12 @@ func TestInit(t *testing.T) {
 
 	t.Run("Uses default service name", func(t *testing.T) {
 		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
-		os.Unsetenv("OTEL_SERVICE_NAME")
 		defer os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
 		// We don't necessarily want to trigger the full gRPC connection in a unit test
 		// but we can check if it attempts to use the endpoint.
 		// Since gRPC.NewClient doesn't actually dial immediately, we can call it.
-		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx)
+		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx, "")
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -45,11 +44,9 @@ func TestInit(t *testing.T) {
 
 	t.Run("Uses custom service name", func(t *testing.T) {
 		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
-		os.Setenv("OTEL_SERVICE_NAME", "test-service")
 		defer os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-		defer os.Unsetenv("OTEL_SERVICE_NAME")
 
-		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx)
+		shutdownTracer, shutdownMeter, shutdownLogger, err := Init(ctx, "test-service")
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}

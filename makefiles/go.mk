@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = services/proxy services/system-metrics services/second-brain page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry pkg/brain pkg/env
+GO_DIRS = services/proxy services/system-metrics services/reading-sync services/second-brain page pkg/db pkg/logger pkg/metrics pkg/secrets pkg/telemetry pkg/brain pkg/env
 
-.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build proxy-build brain-sync
+.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build reading-build proxy-build brain-sync
 
 go-format:
 	$(NIX_WRAP) \
@@ -53,19 +53,25 @@ page-build:
 	echo "Running page build..." && \
 	cd page && go build -o page.exe . && ./page.exe && rm page.exe
 
-metrics-build:
-	$(NIX_WRAP) \
-	echo "Building system metrics collector..." && \
-	cd services/system-metrics && go build -o ../../dist/metrics-collector main.go && \
-	sudo systemctl restart system-metrics.timer
-
 proxy-build:
 	$(NIX_WRAP) \
 	echo "Updating Proxy..." && \
 	cd services/proxy && go build -o ../../dist/proxy_server . && \
 	sudo systemctl restart proxy.service
 
+reading-build:
+	$(NIX_WRAP) \
+	echo "Building reading sync..." && \
+	cd services/reading-sync && go build -o ../../dist/reading-sync . && \
+	sudo systemctl restart reading-sync.timer
+
 brain-sync:
 	$(NIX_WRAP) \
 	echo "Running Second Brain Sync..." && \
 	cd services/second-brain && go run main.go
+
+metrics-build:
+	$(NIX_WRAP) \
+	echo "Building system metrics collector..." && \
+	cd services/system-metrics && go build -o ../../dist/metrics-collector main.go && \
+	sudo systemctl restart system-metrics.timer

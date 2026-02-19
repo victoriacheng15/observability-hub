@@ -6,7 +6,9 @@ After=network.target
 [Service]
 Type=oneshot
 User=server
-ExecStart=/usr/bin/curl -X POST http://localhost:8085/api/sync/reading
+WorkingDirectory=/home/server/software/observability-hub
+EnvironmentFile=/home/server/software/observability-hub/.env
+ExecStart=/home/server/software/observability-hub/dist/reading-sync
 # Standardize logging for journald
 StandardOutput=journal
 StandardError=journal
