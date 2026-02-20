@@ -232,3 +232,18 @@ func NewHTTPHandler(h http.Handler, serviceName string) http.Handler {
 		}),
 	)
 }
+
+// Info logs an info-level message using the bridged OTel-slog handler.
+func Info(msg string, args ...any) {
+	slog.Info(msg, args...)
+}
+
+// Warn logs a warn-level message using the bridged OTel-slog handler.
+func Warn(msg string, args ...any) {
+	slog.Warn(msg, args...)
+}
+
+// Error logs an error-level message using the bridged OTel-slog handler.
+func Error(msg string, args ...any) {
+	slog.Error(msg, args...)
+}

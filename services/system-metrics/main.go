@@ -96,6 +96,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	if err := a.InitDB("postgres", secretStore); err != nil {
 		return fmt.Errorf("db_connection_failed: %w", err)
 	}
+	telemetry.Info("db_connected")
 	defer a.Store.DB.Close()
 
 	return a.Run(ctx)
