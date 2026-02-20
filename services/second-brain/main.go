@@ -10,7 +10,7 @@ import (
 	"db/postgres"
 	"env"
 	"secrets"
-	telemetry "telemetry-next"
+	"telemetry"
 )
 
 var (

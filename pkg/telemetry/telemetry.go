@@ -8,29 +8,20 @@ import (
 	"os"
 	"time"
 
-	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	otellog "go.opentelemetry.io/otel/log"
-	otellogglobal "go.opentelemetry.io/otel/log/global"
 	metricapi "go.opentelemetry.io/otel/metric"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Re-export common OTel types and functions to centralize dependency management
+// Re-export common OTel types to centralize dependency management
 type (
 	Span           = trace.Span
 	Tracer         = trace.Tracer
@@ -45,76 +36,94 @@ type (
 )
 
 const (
-	CodeError = codes.Error
-	CodeOk    = codes.Ok
 	ScopeName = "observability-hub"
 )
 
-// GetTracer returns a tracer with the provided name.
-func GetTracer(name string) Tracer {
-	return otel.Tracer(name)
-}
-
-// GetMeter returns a meter with the provided name.
-func GetMeter(name string) Meter {
-	if name == "" {
-		name = ScopeName
+// Init initializes OpenTelemetry trace, metric and log providers over OTLP gRPC.
+func Init(ctx context.Context, serviceName string) (func(), error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		slog.Warn("OTEL_EXPORTER_OTLP_ENDPOINT not set, telemetry disabled")
+		return func() {}, nil
 	}
-	return otel.Meter(name)
-}
 
-// GetLogger returns an OpenTelemetry logger with the provided name.
-func GetLogger(name string) Logger {
-	if name == "" {
-		name = ScopeName
+	conn, err := grpc.NewClient(
+		endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)
 	}
-	return otellogglobal.GetLoggerProvider().Logger(name)
-}
 
-// NewInt64Counter creates an int64 counter with an optional description.
-func NewInt64Counter(meter Meter, name, description string) (Int64Counter, error) {
-	opts := []metricapi.Int64CounterOption{}
-	if description != "" {
-		opts = append(opts, metricapi.WithDescription(description))
+	if serviceName == "" {
+		serviceName = "unknown-service"
 	}
-	return meter.Int64Counter(name, opts...)
-}
 
-// NewInt64Histogram creates an int64 histogram with optional description and unit.
-func NewInt64Histogram(meter Meter, name, description, unit string) (Int64Histogram, error) {
-	opts := []metricapi.Int64HistogramOption{}
-	if description != "" {
-		opts = append(opts, metricapi.WithDescription(description))
+	hostname, _ := os.Hostname()
+	res := resource.NewSchemaless(
+		semconv.ServiceName(serviceName),
+		semconv.HostName(hostname),
+	)
+
+	shutdownTracer, err := initTraces(ctx, conn, res)
+	if err != nil {
+		conn.Close()
+		return nil, err
 	}
-	if unit != "" {
-		opts = append(opts, metricapi.WithUnit(unit))
+
+	shutdownMeter, err := initMetrics(ctx, conn, res)
+	if err != nil {
+		_ = shutdownTracer(ctx)
+		conn.Close()
+		return nil, err
 	}
-	return meter.Int64Histogram(name, opts...)
+
+	shutdownLogger, err := initLogs(ctx, conn, res)
+	if err != nil {
+		_ = shutdownMeter(ctx)
+		_ = shutdownTracer(ctx)
+		conn.Close()
+		return nil, err
+	}
+
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(e error) {
+		slog.Error("otel_error", "error", e)
+	}))
+
+	slog.Info("otel_telemetry_enabled", "endpoint", endpoint, "service", serviceName)
+
+	return func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if shutdownTracer != nil {
+			if err := shutdownTracer(shutdownCtx); err != nil {
+				Error("otel_shutdown_failed", "component", "tracer", "error", err)
+			}
+		}
+		if shutdownMeter != nil {
+			if err := shutdownMeter(shutdownCtx); err != nil {
+				Error("otel_shutdown_failed", "component", "meter", "error", err)
+			}
+		}
+		if shutdownLogger != nil {
+			if err := shutdownLogger(shutdownCtx); err != nil {
+				Error("otel_shutdown_failed", "component", "logger", "error", err)
+			}
+		}
+		if conn != nil {
+			conn.Close()
+		}
+	}, nil
 }
 
-// AddInt64Counter adds a value to an int64 counter with optional attributes.
-func AddInt64Counter(ctx context.Context, counter Int64Counter, value int64, attrs ...Attribute) {
-	counter.Add(ctx, value, metricapi.WithAttributes(attrs...))
-}
-
-// RecordInt64Histogram records a value in an int64 histogram with optional attributes.
-func RecordInt64Histogram(ctx context.Context, histogram Int64Histogram, value int64, attrs ...Attribute) {
-	histogram.Record(ctx, value, metricapi.WithAttributes(attrs...))
-}
-
-// SpanFromContext returns the current span from the context.
-func SpanFromContext(ctx context.Context) Span {
-	return trace.SpanFromContext(ctx)
-}
-
-// WithAttributes returns a SpanStartOption that sets the provided attributes.
-func WithAttributes(attrs ...Attribute) trace.SpanStartOption {
-	return trace.WithAttributes(attrs...)
-}
-
-// WithEventAttributes returns an EventOption that sets the provided attributes.
-func WithEventAttributes(attrs ...Attribute) trace.EventOption {
-	return trace.WithAttributes(attrs...)
+// NewHTTPHandler wraps an http.Handler with OpenTelemetry instrumentation.
+func NewHTTPHandler(h http.Handler, serviceName string) http.Handler {
+	return otelhttp.NewHandler(h, serviceName,
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+		}),
+	)
 }
 
 // StringAttribute creates a new string attribute.
@@ -130,120 +139,4 @@ func IntAttribute(key string, value int) Attribute {
 // BoolAttribute creates a new boolean attribute.
 func BoolAttribute(key string, value bool) Attribute {
 	return attribute.Bool(key, value)
-}
-
-// Init initializes OpenTelemetry trace, metric and log providers over OTLP gRPC.
-// It reads OTEL_EXPORTER_OTLP_ENDPOINT from the environment.
-func Init(
-	ctx context.Context,
-	serviceName string,
-) (shutdownTracer func(context.Context) error, shutdownMeter func(context.Context) error, shutdownLogger func(context.Context) error, err error) {
-	shutdownTracer = func(context.Context) error { return nil }
-	shutdownMeter = func(context.Context) error { return nil }
-	shutdownLogger = func(context.Context) error { return nil }
-
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		slog.Warn("OTEL_EXPORTER_OTLP_ENDPOINT not set, telemetry disabled")
-		return shutdownTracer, shutdownMeter, shutdownLogger, nil
-	}
-
-	conn, err := grpc.NewClient(
-		endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		err = fmt.Errorf("failed to create gRPC connection to collector: %w", err)
-		return
-	}
-
-	if serviceName == "" {
-		serviceName = "unknown-service"
-	}
-
-	hostname, _ := os.Hostname()
-	res := resource.NewSchemaless(
-		semconv.ServiceName(serviceName),
-		semconv.HostName(hostname),
-	)
-
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
-	if err != nil {
-		err = fmt.Errorf("failed to create trace exporter: %w", err)
-		return
-	}
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(traceExporter),
-		sdktrace.WithResource(res),
-	)
-	otel.SetTracerProvider(tp)
-	shutdownTracer = tp.Shutdown
-
-	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
-	if err != nil {
-		err = fmt.Errorf("failed to create metric exporter: %w", err)
-		return
-	}
-
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(
-			sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(3*time.Second)),
-		),
-		sdkmetric.WithResource(res),
-	)
-	otel.SetMeterProvider(mp)
-	shutdownMeter = mp.Shutdown
-
-	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
-	if err != nil {
-		err = fmt.Errorf("failed to create log exporter: %w", err)
-		return
-	}
-
-	consoleExporter, err := stdoutlog.New()
-	if err != nil {
-		err = fmt.Errorf("failed to create stdout log exporter: %w", err)
-		return
-	}
-
-	lp := sdklog.NewLoggerProvider(
-		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
-		sdklog.WithProcessor(sdklog.NewSimpleProcessor(consoleExporter)),
-		sdklog.WithResource(res),
-	)
-	otellogglobal.SetLoggerProvider(lp)
-	shutdownLogger = lp.Shutdown
-
-	slog.SetDefault(slog.New(otelslog.NewHandler(ScopeName, otelslog.WithLoggerProvider(lp))))
-	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(e error) {
-		slog.Error("otel_error", "error", e)
-	}))
-
-	slog.Info("otel_telemetry_enabled", "endpoint", endpoint, "service", serviceName)
-	return
-}
-
-// NewHTTPHandler wraps an http.Handler with OpenTelemetry instrumentation.
-func NewHTTPHandler(h http.Handler, serviceName string) http.Handler {
-	return otelhttp.NewHandler(h, serviceName,
-		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-		}),
-	)
-}
-
-// Info logs an info-level message using the bridged OTel-slog handler.
-func Info(msg string, args ...any) {
-	slog.Info(msg, args...)
-}
-
-// Warn logs a warn-level message using the bridged OTel-slog handler.
-func Warn(msg string, args ...any) {
-	slog.Warn(msg, args...)
-}
-
-// Error logs an error-level message using the bridged OTel-slog handler.
-func Error(msg string, args ...any) {
-	slog.Error(msg, args...)
 }

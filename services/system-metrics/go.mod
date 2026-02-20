@@ -9,7 +9,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.1
 	metrics v0.0.0
 	secrets v0.0.0
-	telemetry-next v0.0.0
+	telemetry v0.0.0
 )
 
 replace db => ../../pkg/db
@@ -21,8 +21,6 @@ replace metrics => ../../pkg/metrics
 replace env => ../../pkg/env
 
 replace telemetry => ../../pkg/telemetry
-
-replace telemetry-next => ../../pkg/telemetry-next
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
