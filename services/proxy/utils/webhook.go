@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"logger"
 	"net/http"
 	"os"
 	"os/exec"
@@ -55,7 +54,7 @@ func ensureWebhookMetrics() {
 			"Total webhook requests received",
 		)
 		if err != nil {
-			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.received.total", "error", err)
+			telemetry.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.received.total", "error", err)
 			return
 		}
 
@@ -65,7 +64,7 @@ func ensureWebhookMetrics() {
 			"Total webhook request errors",
 		)
 		if err != nil {
-			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.errors.total", "error", err)
+			telemetry.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.errors.total", "error", err)
 			return
 		}
 
@@ -76,7 +75,7 @@ func ensureWebhookMetrics() {
 			"ms",
 		)
 		if err != nil {
-			logger.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.sync.duration.ms", "error", err)
+			telemetry.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.sync.duration.ms", "error", err)
 			return
 		}
 
@@ -118,7 +117,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("webhook_received", "event", eventType)
+	telemetry.Info("webhook_received", "event", eventType)
 
 	// Gracefully handle ping events
 	if eventType == "ping" {
@@ -134,7 +133,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		span.SetStatus(telemetry.CodeError, "missing_secret")
 		span.SetAttributes(telemetry.BoolAttribute("error", true))
-		logger.Error("webhook_secret_missing")
+		telemetry.Error("webhook_secret_missing")
 		http.Error(w, "Server configuration error", http.StatusInternalServerError)
 		return
 	}
@@ -146,7 +145,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		span.SetStatus(telemetry.CodeError, "missing_signature")
 		span.SetAttributes(telemetry.BoolAttribute("error", true))
-		logger.Warn("webhook_signature_missing")
+		telemetry.Warn("webhook_signature_missing")
 		http.Error(w, "Missing signature", http.StatusUnauthorized)
 		return
 	}
@@ -161,7 +160,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 			telemetry.BoolAttribute("error", true),
 			telemetry.StringAttribute("error.message", err.Error()),
 		)
-		logger.Error("webhook_body_read_failed", "error", err)
+		telemetry.Error("webhook_body_read_failed", "error", err)
 		http.Error(w, "Failed to read body", http.StatusInternalServerError)
 		return
 	}
@@ -172,7 +171,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		span.SetStatus(telemetry.CodeError, "invalid_signature")
 		span.SetAttributes(telemetry.BoolAttribute("error", true))
-		logger.Warn("webhook_signature_invalid")
+		telemetry.Warn("webhook_signature_invalid")
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
@@ -187,7 +186,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 			telemetry.BoolAttribute("error", true),
 			telemetry.StringAttribute("error.message", err.Error()),
 		)
-		logger.Error("webhook_payload_invalid", "error", err)
+		telemetry.Error("webhook_payload_invalid", "error", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -212,7 +211,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !shouldTrigger {
-		logger.Info("webhook_ignored",
+		telemetry.Info("webhook_ignored",
 			"repo", payload.Repository.Name,
 			"event", eventType,
 			"ref", payload.Ref,
@@ -232,7 +231,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		span.SetStatus(telemetry.CodeError, "missing_repo_name")
 		span.SetAttributes(telemetry.BoolAttribute("error", true))
-		logger.Warn("webhook_repo_name_missing", "event", eventType)
+		telemetry.Warn("webhook_repo_name_missing", "event", eventType)
 		http.Error(w, "Repository name missing", http.StatusBadRequest)
 		return
 	}
@@ -254,7 +253,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		)
 		defer syncSpan.End()
 
-		logger.Info("webhook_sync_triggered",
+		telemetry.Info("webhook_sync_triggered",
 			"repo", repo,
 			"event", eventType,
 			"merged", merged,
@@ -265,14 +264,14 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			syncSpan.RecordError(err)
 			syncSpan.SetStatus(telemetry.CodeError, "sync failed")
-			logger.Error("webhook_sync_failed", "repo", repo, "error", err, "output", string(output))
+			telemetry.Error("webhook_sync_failed", "repo", repo, "error", err, "output", string(output))
 		} else {
-			logger.Info("webhook_sync_success", "repo", repo, "output", string(output))
+			telemetry.Info("webhook_sync_success", "repo", repo, "output", string(output))
 		}
 	}(repoName, isMerged, ctx)
 
 	w.WriteHeader(http.StatusAccepted)
-	logger.Info("webhook_processed", "repo", repoName, "event", eventType, "status", http.StatusAccepted)
+	telemetry.Info("webhook_processed", "repo", repoName, "event", eventType, "status", http.StatusAccepted)
 	fmt.Fprintf(w, "Sync triggered for %s", repoName)
 }
 
