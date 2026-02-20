@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"sort"
 	"sync"
@@ -69,16 +68,18 @@ func main() {
 	}
 
 	if err := app.Run(context.Background()); err != nil {
-		slog.Error("second_brain_failed", "error", err)
+		telemetry.Error("second_brain_failed", "error", err)
 		os.Exit(1)
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
+	env.Load()
+
 	// 1. Telemetry Init
 	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "second.brain")
 	if err != nil {
-		slog.Warn("otel_init_failed", "error", err)
+		telemetry.Warn("otel_init_failed", "error", err)
 	}
 	defer func() {
 		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -94,7 +95,6 @@ func (a *App) Run(ctx context.Context) error {
 		}
 	}()
 
-	env.Load()
 	ensureMetrics()
 
 	repo := os.Getenv("JOURNAL_REPO")
@@ -133,7 +133,7 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 	if err != nil {
 		return err
 	}
-	slog.Info("database_check_complete", "latest_entry", latestDate)
+	telemetry.Info("database_check_complete", "latest_entry", latestDate)
 
 	// 4. Fetch delta
 	_, fSpan := tracer.Start(ctx, "github.fetch")
@@ -151,7 +151,7 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 	}
 
 	if len(newIssues) == 0 {
-		slog.Info("sync_skipped", "reason", "already_up_to_date")
+		telemetry.Info("sync_skipped", "reason", "already_up_to_date")
 		return nil
 	}
 
@@ -166,10 +166,10 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 			telemetry.StringAttribute("issue.title", iss.Title),
 		)
 
-		slog.Info("ingesting_issue", "number", iss.Number, "title", iss.Title)
+		telemetry.Info("ingesting_issue", "number", iss.Number, "title", iss.Title)
 		body, err := a.BrainAPI.FetchIssueBody(repo, iss.Number)
 		if err != nil {
-			slog.Error("fetch_body_failed", "issue", iss.Number, "error", err)
+			telemetry.Error("fetch_body_failed", "issue", iss.Number, "error", err)
 			iSpan.End()
 			continue
 		}
@@ -177,7 +177,7 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 		atoms := brain.Atomize(iss.Title, body)
 		for _, a := range atoms {
 			if err := brainStore.InsertThought(iCtx, a.Date, a.Content, a.Category, a.Tags, a.ContextString, a.Checksum, a.TokenCount); err != nil {
-				slog.Error("atom_insert_failed", "checksum", a.Checksum, "error", err)
+				telemetry.Error("atom_insert_failed", "checksum", a.Checksum, "error", err)
 				continue
 			}
 			if ready {
@@ -189,6 +189,6 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainS
 		iSpan.End()
 	}
 
-	slog.Info("sync_complete", "new_atoms", totalAtoms)
+	telemetry.Info("sync_complete", "new_atoms", totalAtoms)
 	return nil
 }

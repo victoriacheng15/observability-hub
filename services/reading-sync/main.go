@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"strconv"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"db/mongodb"
 	"db/postgres"
 	"env"
-	"logger"
 	"secrets"
 	"telemetry"
 )
@@ -48,36 +46,35 @@ func main() {
 	}
 
 	if err := app.Run(context.Background()); err != nil {
-		slog.Error("reading_sync_failed", "error", err)
+		telemetry.Error("reading_sync_failed", "error", err)
 		os.Exit(1)
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
-	logger.Setup(os.Stdout, "reading.sync")
 	env.Load()
 
 	// 1. Telemetry
 	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "reading.sync")
 	if err != nil {
-		slog.Warn("otel_init_failed, continuing without full observability", "error", err)
+		telemetry.Warn("otel_init_failed, continuing without full observability", "error", err)
 	}
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if shutdownTracer != nil {
 			if err := shutdownTracer(shutdownCtx); err != nil {
-				slog.Error("otel_shutdown_failed", "component", "tracer", "error", err)
+				telemetry.Error("otel_shutdown_failed", "component", "tracer", "error", err)
 			}
 		}
 		if shutdownMeter != nil {
 			if err := shutdownMeter(shutdownCtx); err != nil {
-				slog.Error("otel_shutdown_failed", "component", "meter", "error", err)
+				telemetry.Error("otel_shutdown_failed", "component", "meter", "error", err)
 			}
 		}
 		if shutdownLogger != nil {
 			if err := shutdownLogger(shutdownCtx); err != nil {
-				slog.Error("otel_shutdown_failed", "component", "logger", "error", err)
+				telemetry.Error("otel_shutdown_failed", "component", "logger", "error", err)
 			}
 		}
 	}()
@@ -105,7 +102,7 @@ func (a *App) Run(ctx context.Context) error {
 		closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := mongoStore.Close(closeCtx); err != nil {
-			slog.Error("mongo_close_failed", "error", err)
+			telemetry.Error("mongo_close_failed", "error", err)
 		}
 	}()
 
@@ -133,11 +130,11 @@ func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore M
 
 	defer func() {
 		if err := pgStore.RecordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage); err != nil {
-			slog.Error("failed_to_record_sync_history", "error", err)
+			telemetry.Error("failed_to_record_sync_history", "error", err)
 		}
 	}()
 
-	slog.Info("sync_started")
+	telemetry.Info("sync_started")
 
 	// Ensure Schema
 	if err := pgStore.EnsureSchema(ctx); err != nil {
@@ -178,7 +175,7 @@ func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore M
 		// Insert to Postgres
 		err := pgStore.InsertReadingAnalytics(ctx, doc.ID, doc.Timestamp, doc.Source, doc.Type, payloadJSON, metaJSON)
 		if err != nil {
-			slog.Error("postgres_insert_failed", "id", doc.ID, "error", err)
+			telemetry.Error("postgres_insert_failed", "id", doc.ID, "error", err)
 			if errorsCounter != nil {
 				telemetry.AddInt64Counter(ctx, errorsCounter, 1)
 			}
@@ -187,7 +184,7 @@ func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore M
 
 		// Mark as Processed in Mongo
 		if err := mStore.MarkArticleAsProcessed(ctx, doc.ID); err != nil {
-			slog.Warn("mongo_mark_processed_failed", "id", doc.ID, "error", err)
+			telemetry.Warn("mongo_mark_processed_failed", "id", doc.ID, "error", err)
 			if errorsCounter != nil {
 				telemetry.AddInt64Counter(ctx, errorsCounter, 1)
 			}
@@ -205,7 +202,7 @@ func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore M
 		telemetry.RecordInt64Histogram(ctx, durationHist, durationMs)
 	}
 
-	slog.Info("sync_complete",
+	telemetry.Info("sync_complete",
 		"processed_count", processedCount,
 		"duration", time.Since(start).String())
 

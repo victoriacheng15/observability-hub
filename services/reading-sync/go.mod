@@ -6,10 +6,17 @@ require (
 	db v0.0.0
 	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	logger v0.0.0
 	secrets v0.0.0
 	telemetry v0.0.0
 )
+
+replace db => ../../pkg/db
+
+replace secrets => ../../pkg/secrets
+
+replace telemetry => ../../pkg/telemetry
+
+replace env => ../../pkg/env
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -69,13 +76,3 @@ require (
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace db => ../../pkg/db
-
-replace logger => ../../pkg/logger
-
-replace secrets => ../../pkg/secrets
-
-replace telemetry => ../../pkg/telemetry
-
-replace env => ../../pkg/env

@@ -21,8 +21,6 @@ replace env => ../../pkg/env
 
 replace telemetry => ../../pkg/telemetry
 
-replace logger => ../../pkg/logger
-
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
