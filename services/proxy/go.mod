@@ -5,7 +5,7 @@ go 1.26
 require (
 	env v0.0.0
 	secrets v0.0.0
-	telemetry v0.0.0
+	telemetry-next v0.0.0-00010101000000-000000000000
 )
 
 replace db => ../../pkg/db
@@ -14,7 +14,7 @@ replace logger => ../../pkg/logger
 
 replace secrets => ../../pkg/secrets
 
-replace telemetry => ../../pkg/telemetry
+replace telemetry-next => ../../pkg/telemetry-next
 
 replace env => ../../pkg/env
 

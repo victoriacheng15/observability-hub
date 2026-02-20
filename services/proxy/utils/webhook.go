@@ -13,7 +13,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"telemetry"
+	telemetry "telemetry-next"
 	"time"
 )
 
