@@ -21,8 +21,8 @@ func (m *mockSecretStore) GetSecret(path, key, fallback string) string { return 
 func (m *mockSecretStore) Close() error                                { return nil }
 
 func TestApp_InitDB(t *testing.T) {
-	dbMock, _, _ := sqlmock.New()
-	defer dbMock.Close()
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
 
 	tests := []struct {
 		name    string
@@ -45,7 +45,7 @@ func TestApp_InitDB(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &App{
 				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
-					return postgres.NewMetricsStore(dbMock), tt.err
+					return postgres.NewMetricsStore(mdb.DB), tt.err
 				},
 			}
 			err := app.InitDB("postgres", &mockSecretStore{})
@@ -60,12 +60,9 @@ func TestApp_InitDB(t *testing.T) {
 }
 
 func TestApp_Run(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
-	store := postgres.NewMetricsStore(dbConn)
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
+	store := postgres.NewMetricsStore(mdb.DB)
 
 	// Use a fixed time for stability
 	now := time.Date(2026, 1, 29, 12, 0, 0, 0, time.UTC)
@@ -118,28 +115,26 @@ func TestApp_Run(t *testing.T) {
 
 			if !tt.wantErr {
 				// Expectations for Success
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
-					WillReturnResult(sqlmock.NewResult(0, 0))
-				mock.ExpectExec("SELECT create_hypertable").
-					WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.ExpectTableCreation("system_metrics")
+				mdb.ExpectHypertableCreation("system_metrics")
 
 				// Expect 4 inserts (cpu, memory, disk, network)
 				for i := 0; i < 4; i++ {
-					mock.ExpectExec("INSERT INTO system_metrics").
+					mdb.Mock.ExpectExec("INSERT INTO system_metrics").
 						WithArgs(now, "test-host", "linux 6.0", sqlmock.AnyArg(), sqlmock.AnyArg()).
 						WillReturnResult(sqlmock.NewResult(1, 1))
 				}
 			} else if tt.schemaErr != nil {
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
+				mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
 					WillReturnError(tt.schemaErr)
 			} else if tt.dbErr != nil {
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
-				mock.ExpectExec("SELECT create_hypertable").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.ExpectTableCreation("system_metrics")
+				mdb.ExpectHypertableCreation("system_metrics")
 				// Fail the first insert
-				mock.ExpectExec("INSERT INTO system_metrics").WillReturnError(tt.dbErr)
+				mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnError(tt.dbErr)
 				// Remaining inserts still proceed but error is bubbled
 				for i := 0; i < 3; i++ {
-					mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
 				}
 			}
 
@@ -148,7 +143,7 @@ func TestApp_Run(t *testing.T) {
 				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if err := mock.ExpectationsWereMet(); err != nil {
+			if err := mdb.Mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("unfulfilled expectations: %v", err)
 			}
 		})
@@ -156,8 +151,8 @@ func TestApp_Run(t *testing.T) {
 }
 
 func TestApp_Bootstrap(t *testing.T) {
-	dbConn, mock, _ := sqlmock.New()
-	defer dbConn.Close()
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
 
 	// Ensure OTel doesn't try to connect to a real endpoint during tests
 	origEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -182,7 +177,7 @@ func TestApp_Bootstrap(t *testing.T) {
 					return &mockSecretStore{}, tt.secretErr
 				},
 				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
-					return postgres.NewMetricsStore(dbConn), tt.dbErr
+					return postgres.NewMetricsStore(mdb.DB), tt.dbErr
 				},
 				HostInfoFn: func() (*host.InfoStat, error) {
 					return &host.InfoStat{Platform: "linux", PlatformVersion: "6.0"}, nil
@@ -196,10 +191,10 @@ func TestApp_Bootstrap(t *testing.T) {
 			}
 
 			if !tt.wantErr {
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
-				mock.ExpectExec("SELECT create_hypertable").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.ExpectTableCreation("system_metrics")
+				mdb.ExpectHypertableCreation("system_metrics")
 				for i := 0; i < 4; i++ {
-					mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
 				}
 			}
 

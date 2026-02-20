@@ -10,19 +10,14 @@ import (
 )
 
 func TestMetricsStore_EnsureSchema(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewMetricsStore(dbConn)
+	store := NewMetricsStore(mdb.DB)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("SELECT create_hypertable").
-			WillReturnResult(sqlmock.NewResult(0, 0))
+		mdb.ExpectTableCreation("system_metrics")
+		mdb.ExpectHypertableCreation("system_metrics")
 
 		err := store.EnsureSchema(context.Background())
 		if err != nil {
@@ -31,7 +26,7 @@ func TestMetricsStore_EnsureSchema(t *testing.T) {
 	})
 
 	t.Run("Table Creation Failure", func(t *testing.T) {
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
+		mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
 			WillReturnError(errors.New("db error"))
 
 		err := store.EnsureSchema(context.Background())
@@ -41,9 +36,8 @@ func TestMetricsStore_EnsureSchema(t *testing.T) {
 	})
 
 	t.Run("Hypertable Failure (Ignored)", func(t *testing.T) {
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("SELECT create_hypertable").
+		mdb.ExpectTableCreation("system_metrics")
+		mdb.Mock.ExpectExec("SELECT create_hypertable").
 			WillReturnError(errors.New("timescale not available"))
 
 		err := store.EnsureSchema(context.Background())
@@ -54,18 +48,15 @@ func TestMetricsStore_EnsureSchema(t *testing.T) {
 }
 
 func TestMetricsStore_RecordMetric(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewMetricsStore(dbConn)
+	store := NewMetricsStore(mdb.DB)
 	now := time.Now()
 
 	t.Run("Success", func(t *testing.T) {
 		payload := map[string]interface{}{"cpu": 10.5}
-		mock.ExpectExec("INSERT INTO system_metrics").
+		mdb.Mock.ExpectExec("INSERT INTO system_metrics").
 			WithArgs(now, "host1", "linux", "cpu", sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -84,7 +75,7 @@ func TestMetricsStore_RecordMetric(t *testing.T) {
 
 	t.Run("Insert Failure", func(t *testing.T) {
 		payload := map[string]interface{}{"cpu": 10.5}
-		mock.ExpectExec("INSERT INTO system_metrics").
+		mdb.Mock.ExpectExec("INSERT INTO system_metrics").
 			WillReturnError(errors.New("insert failed"))
 
 		err := store.RecordMetric(context.Background(), now, "host1", "linux", "cpu", payload)

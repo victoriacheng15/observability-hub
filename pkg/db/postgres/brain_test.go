@@ -9,16 +9,13 @@ import (
 )
 
 func TestBrainStore_GetLatestEntryDate(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewBrainStore(dbConn)
+	store := NewBrainStore(mdb.DB)
 
 	t.Run("Success with date", func(t *testing.T) {
-		mock.ExpectQuery("SELECT COALESCE").
+		mdb.Mock.ExpectQuery("SELECT COALESCE").
 			WillReturnRows(sqlmock.NewRows([]string{"date"}).AddRow("2026-02-16"))
 
 		date, err := store.GetLatestEntryDate(context.Background())
@@ -31,7 +28,7 @@ func TestBrainStore_GetLatestEntryDate(t *testing.T) {
 	})
 
 	t.Run("Success with default", func(t *testing.T) {
-		mock.ExpectQuery("SELECT COALESCE").
+		mdb.Mock.ExpectQuery("SELECT COALESCE").
 			WillReturnRows(sqlmock.NewRows([]string{"date"}).AddRow("1970-01-01"))
 
 		date, err := store.GetLatestEntryDate(context.Background())
@@ -44,7 +41,7 @@ func TestBrainStore_GetLatestEntryDate(t *testing.T) {
 	})
 
 	t.Run("Database error", func(t *testing.T) {
-		mock.ExpectQuery("SELECT COALESCE").
+		mdb.Mock.ExpectQuery("SELECT COALESCE").
 			WillReturnError(errors.New("db error"))
 
 		_, err := store.GetLatestEntryDate(context.Background())
@@ -55,16 +52,13 @@ func TestBrainStore_GetLatestEntryDate(t *testing.T) {
 }
 
 func TestBrainStore_GetPARAStats(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewBrainStore(dbConn)
+	store := NewBrainStore(mdb.DB)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectQuery("SELECT category, total_entries, latest_entry FROM second_brain_stats").
+		mdb.Mock.ExpectQuery("SELECT category, total_entries, latest_entry FROM second_brain_stats").
 			WillReturnRows(sqlmock.NewRows([]string{"category", "total_entries", "latest_entry"}).
 				AddRow("project", 5, "2026-02-16").
 				AddRow("area", 10, "2026-02-15"))
@@ -82,7 +76,7 @@ func TestBrainStore_GetPARAStats(t *testing.T) {
 	})
 
 	t.Run("Database error", func(t *testing.T) {
-		mock.ExpectQuery("SELECT category, total_entries, latest_entry FROM second_brain_stats").
+		mdb.Mock.ExpectQuery("SELECT category, total_entries, latest_entry FROM second_brain_stats").
 			WillReturnError(errors.New("db error"))
 
 		_, err := store.GetPARAStats(context.Background())
@@ -93,16 +87,13 @@ func TestBrainStore_GetPARAStats(t *testing.T) {
 }
 
 func TestBrainStore_InsertThought(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewBrainStore(dbConn)
+	store := NewBrainStore(mdb.DB)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectExec("INSERT INTO second_brain").
+		mdb.Mock.ExpectExec("INSERT INTO second_brain").
 			WithArgs("2026-02-16", "content", "resource", sqlmock.AnyArg(), "context", "chksum", 100).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -113,7 +104,7 @@ func TestBrainStore_InsertThought(t *testing.T) {
 	})
 
 	t.Run("Database error", func(t *testing.T) {
-		mock.ExpectExec("INSERT INTO second_brain").
+		mdb.Mock.ExpectExec("INSERT INTO second_brain").
 			WillReturnError(errors.New("insert failed"))
 
 		err := store.InsertThought(context.Background(), "2026-02-16", "content", "resource", []string{"tag1"}, "context", "chksum", 100)

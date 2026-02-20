@@ -36,8 +36,8 @@ func (m *mockBrainAPI) FetchIssueBody(repo string, number int) (string, error) {
 }
 
 func TestApp_Run(t *testing.T) {
-	dbConn, mock, _ := sqlmock.New()
-	defer dbConn.Close()
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
 
 	tests := []struct {
 		name      string
@@ -55,7 +55,7 @@ func TestApp_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Success" {
-				mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow("2026-01-01"))
+				mdb.Mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow("2026-01-01"))
 			}
 
 			app := &App{
@@ -63,7 +63,7 @@ func TestApp_Run(t *testing.T) {
 					return &mockSecretStore{}, tt.secretErr
 				},
 				PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.BrainStore, error) {
-					return postgres.NewBrainStore(dbConn), tt.pgErr
+					return postgres.NewBrainStore(mdb.DB), tt.pgErr
 				},
 				BrainAPI: &mockBrainAPI{},
 			}
@@ -79,17 +79,17 @@ func TestApp_Run(t *testing.T) {
 }
 
 func TestApp_Sync(t *testing.T) {
-	dbConn, mock, _ := sqlmock.New()
-	defer dbConn.Close()
-	brainStore := postgres.NewBrainStore(dbConn)
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
+	brainStore := postgres.NewBrainStore(mdb.DB)
 
 	t.Run("Sync Success", func(t *testing.T) {
 		repo := "owner/repo"
 		latestDate := "2026-02-18"
 		newDate := "2026-02-19"
 
-		mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(latestDate))
-		mock.ExpectExec("INSERT INTO second_brain").WillReturnResult(sqlmock.NewResult(1, 1))
+		mdb.Mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(latestDate))
+		mdb.Mock.ExpectExec("INSERT INTO second_brain").WillReturnResult(sqlmock.NewResult(1, 1))
 
 		app := &App{
 			BrainAPI: &mockBrainAPI{
@@ -110,7 +110,7 @@ func TestApp_Sync(t *testing.T) {
 			t.Errorf("Sync() failed: %v", err)
 		}
 
-		if err := mock.ExpectationsWereMet(); err != nil {
+		if err := mdb.Mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("unmet mock expectations: %v", err)
 		}
 	})
@@ -119,7 +119,7 @@ func TestApp_Sync(t *testing.T) {
 		repo := "owner/repo"
 		latestDate := "2026-02-19"
 
-		mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(latestDate))
+		mdb.Mock.ExpectQuery("SELECT COALESCE").WillReturnRows(sqlmock.NewRows([]string{"max"}).AddRow(latestDate))
 
 		app := &App{
 			BrainAPI: &mockBrainAPI{
