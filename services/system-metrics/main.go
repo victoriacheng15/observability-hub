@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -60,16 +59,18 @@ func main() {
 	}
 
 	if err := app.Bootstrap(context.Background()); err != nil {
-		slog.Error("bootstrap_failed", "error", err)
+		telemetry.Error("bootstrap_failed", "error", err)
 		os.Exit(1)
 	}
 }
 
 func (a *App) Bootstrap(ctx context.Context) error {
+	env.Load()
+
 	// 1. Telemetry Takeover
 	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "system.metrics")
 	if err != nil {
-		slog.Warn("otel_init_failed", "error", err)
+		telemetry.Warn("otel_init_failed", "error", err)
 	}
 	defer func() {
 		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -85,7 +86,6 @@ func (a *App) Bootstrap(ctx context.Context) error {
 		}
 	}()
 
-	env.Load()
 	ensureMetrics()
 
 	secretStore, err := a.SecretProviderFn()
@@ -158,7 +158,7 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 	var hasError bool
 	for _, m := range metricEntries {
 		if err := a.Store.RecordMetric(iCtx, now, hostName, osName, m.mType, m.payload); err != nil {
-			slog.Error("db_insert_failed", "metric_type", m.mType, "error", err)
+			telemetry.Error("db_insert_failed", "metric_type", m.mType, "error", err)
 			hasError = true
 		}
 	}
@@ -170,7 +170,7 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 		return fmt.Errorf("partial_collection_failure")
 	}
 
-	slog.Info("collection_complete", "host", hostName, "duration", time.Since(now).String())
+	telemetry.Info("collection_complete", "host", hostName, "duration", time.Since(now).String())
 	return nil
 }
 

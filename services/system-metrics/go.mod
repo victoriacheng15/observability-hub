@@ -14,8 +14,6 @@ require (
 
 replace db => ../../pkg/db
 
-replace logger => ../../pkg/logger
-
 replace secrets => ../../pkg/secrets
 
 replace metrics => ../../pkg/metrics
