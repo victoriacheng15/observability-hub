@@ -1,13 +1,12 @@
 module system-metrics
 
-go 1.25.5
+go 1.26
 
 require (
 	db v0.0.0
 	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/shirou/gopsutil/v4 v4.26.1
-	logger v0.0.0
 	metrics v0.0.0
 	secrets v0.0.0
 	telemetry v0.0.0

@@ -246,7 +246,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 		defer mu.Unlock()
 
-		_, syncSpan := webhookTracer.Start(parentCtx, "webhook.gitops_sync")
+		_, syncSpan := webhookTracer.Start(parentCtx, "webhook.gitops")
 		syncSpan.SetAttributes(
 			telemetry.StringAttribute("github.repo", repo),
 			telemetry.StringAttribute("github.event", eventType),
