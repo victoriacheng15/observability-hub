@@ -47,11 +47,6 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
-    directory: "/pkg/logger"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "gomod"
     directory: "/pkg/metrics"
     schedule:
       interval: "weekly"
