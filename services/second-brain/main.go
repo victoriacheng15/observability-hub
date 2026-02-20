@@ -5,13 +5,12 @@ import (
 	"os"
 	"sort"
 	"sync"
-	"time"
 
 	"brain"
 	"db/postgres"
 	"env"
 	"secrets"
-	"telemetry"
+	telemetry "telemetry-next"
 )
 
 var (
@@ -77,23 +76,11 @@ func (a *App) Run(ctx context.Context) error {
 	env.Load()
 
 	// 1. Telemetry Init
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "second.brain")
+	shutdown, err := telemetry.Init(ctx, "second.brain")
 	if err != nil {
 		telemetry.Warn("otel_init_failed", "error", err)
 	}
-	defer func() {
-		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if shutdownTracer != nil {
-			_ = shutdownTracer(sCtx)
-		}
-		if shutdownMeter != nil {
-			_ = shutdownMeter(sCtx)
-		}
-		if shutdownLogger != nil {
-			_ = shutdownLogger(sCtx)
-		}
-	}()
+	defer shutdown()
 
 	ensureMetrics()
 
