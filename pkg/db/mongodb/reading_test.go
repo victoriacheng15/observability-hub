@@ -7,32 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// mockStore implements StoreAPI for testing
-type mockStore struct {
-	fetchFn func(ctx context.Context, limit int64) ([]ReadingDocument, error)
-	markFn  func(ctx context.Context, id string) error
-}
-
-func (m *mockStore) FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error) {
-	if m.fetchFn != nil {
-		return m.fetchFn(ctx, limit)
-	}
-	return nil, nil
-}
-
-func (m *mockStore) MarkArticleAsProcessed(ctx context.Context, id string) error {
-	if m.markFn != nil {
-		return m.markFn(ctx, id)
-	}
-	return nil
-}
-
 func TestMongoStore_Reading_Mock(t *testing.T) {
 	docID := "507f1f77bcf86cd799439011"
 
 	t.Run("FetchArticles", func(t *testing.T) {
-		m := &mockStore{
-			fetchFn: func(ctx context.Context, limit int64) ([]ReadingDocument, error) {
+		m := &MockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]ReadingDocument, error) {
 				return []ReadingDocument{{ID: docID}}, nil
 			},
 		}
@@ -44,15 +24,15 @@ func TestMongoStore_Reading_Mock(t *testing.T) {
 
 	t.Run("MarkProcessed", func(t *testing.T) {
 		called := false
-		m := &mockStore{
-			markFn: func(ctx context.Context, id string) error {
+		m := &MockMongoStore{
+			MarkFn: func(ctx context.Context, id string) error {
 				called = true
 				return nil
 			},
 		}
 		_ = m.MarkArticleAsProcessed(context.Background(), docID)
 		if !called {
-			t.Error("mock markFn was not called")
+			t.Error("mock MarkFn was not called")
 		}
 	})
 }

@@ -17,34 +17,9 @@ type mockSecretStore struct{}
 func (m *mockSecretStore) GetSecret(path, key, fallback string) string { return fallback }
 func (m *mockSecretStore) Close() error                                { return nil }
 
-type mockMongoStore struct {
-	fetchFn func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error)
-	markFn  func(ctx context.Context, id string) error
-	closeFn func(ctx context.Context) error
-}
-
-func (m *mockMongoStore) FetchIngestedArticles(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
-	if m.fetchFn != nil {
-		return m.fetchFn(ctx, limit)
-	}
-	return nil, nil
-}
-func (m *mockMongoStore) MarkArticleAsProcessed(ctx context.Context, id string) error {
-	if m.markFn != nil {
-		return m.markFn(ctx, id)
-	}
-	return nil
-}
-func (m *mockMongoStore) Close(ctx context.Context) error {
-	if m.closeFn != nil {
-		return m.closeFn(ctx)
-	}
-	return nil
-}
-
 func TestApp_Run(t *testing.T) {
-	dbConn, mock, _ := sqlmock.New()
-	defer dbConn.Close()
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
 
 	tests := []struct {
 		name      string
@@ -62,9 +37,9 @@ func TestApp_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "Success" {
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
-				mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
-				mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
+				mdb.ExpectTableCreation("reading_analytics")
+				mdb.ExpectTableCreation("reading_sync_history")
+				mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
 			}
 
 			app := &App{
@@ -72,10 +47,10 @@ func TestApp_Run(t *testing.T) {
 					return &mockSecretStore{}, tt.secretErr
 				},
 				PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error) {
-					return postgres.NewReadingStore(dbConn), tt.pgErr
+					return postgres.NewReadingStore(mdb.DB), tt.pgErr
 				},
 				MongoConnFn: func(store secrets.SecretStore) (MongoStoreAPI, error) {
-					return &mockMongoStore{}, tt.mongoErr
+					return &mongodb.MockMongoStore{}, tt.mongoErr
 				},
 			}
 
@@ -88,14 +63,14 @@ func TestApp_Run(t *testing.T) {
 }
 
 func TestApp_Sync(t *testing.T) {
-	dbConn, mock, _ := sqlmock.New()
-	defer dbConn.Close()
-	pgStore := postgres.NewReadingStore(dbConn)
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
+	pgStore := postgres.NewReadingStore(mdb.DB)
 
 	t.Run("Sync Success", func(t *testing.T) {
 		docID := "507f1f77bcf86cd799439011"
-		mStore := &mockMongoStore{
-			fetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+		mStore := &mongodb.MockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
 				return []mongodb.ReadingDocument{
 					{
 						ID:        docID,
@@ -109,10 +84,10 @@ func TestApp_Sync(t *testing.T) {
 			},
 		}
 
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("INSERT INTO reading_analytics").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
+		mdb.ExpectTableCreation("reading_analytics")
+		mdb.ExpectTableCreation("reading_sync_history")
+		mdb.Mock.ExpectExec("INSERT INTO reading_analytics").WillReturnResult(sqlmock.NewResult(1, 1))
+		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
 
 		app := &App{}
 		err := app.Sync(context.Background(), pgStore, mStore)
@@ -120,21 +95,21 @@ func TestApp_Sync(t *testing.T) {
 			t.Errorf("Sync() failed: %v", err)
 		}
 
-		if err := mock.ExpectationsWereMet(); err != nil {
+		if err := mdb.Mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("mock expectations not met: %v", err)
 		}
 	})
 
 	t.Run("Sync Fetch Error", func(t *testing.T) {
-		mStore := &mockMongoStore{
-			fetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+		mStore := &mongodb.MockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
 				return nil, errors.New("fetch error")
 			},
 		}
 
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("INSERT INTO reading_sync_history").
+		mdb.ExpectTableCreation("reading_analytics")
+		mdb.ExpectTableCreation("reading_sync_history")
+		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").
 			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "failure", 0, "fetch_from_mongo_failed: fetch error").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 

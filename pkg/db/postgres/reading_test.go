@@ -10,29 +10,24 @@ import (
 )
 
 func TestNewReadingStore(t *testing.T) {
-	dbConn, _, _ := sqlmock.New()
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewReadingStore(dbConn)
-	if store == nil || store.DB != dbConn {
+	store := NewReadingStore(mdb.DB)
+	if store == nil || store.DB != mdb.DB {
 		t.Error("NewReadingStore did not initialize correctly")
 	}
 }
 
 func TestReadingStore_EnsureSchema(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewReadingStore(dbConn)
+	store := NewReadingStore(mdb.DB)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").
-			WillReturnResult(sqlmock.NewResult(0, 0))
+		mdb.ExpectTableCreation("reading_analytics")
+		mdb.ExpectTableCreation("reading_sync_history")
 
 		err := store.EnsureSchema(context.Background())
 		if err != nil {
@@ -41,7 +36,7 @@ func TestReadingStore_EnsureSchema(t *testing.T) {
 	})
 
 	t.Run("First Table Failure", func(t *testing.T) {
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
+		mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").
 			WillReturnError(errors.New("db error"))
 
 		err := store.EnsureSchema(context.Background())
@@ -52,17 +47,14 @@ func TestReadingStore_EnsureSchema(t *testing.T) {
 }
 
 func TestReadingStore_RecordSyncHistory(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewReadingStore(dbConn)
+	store := NewReadingStore(mdb.DB)
 	now := time.Now()
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectExec("INSERT INTO reading_sync_history").
+		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").
 			WithArgs(now, now, "success", 10, "").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -74,16 +66,13 @@ func TestReadingStore_RecordSyncHistory(t *testing.T) {
 }
 
 func TestReadingStore_InsertReadingAnalytics(t *testing.T) {
-	dbConn, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	defer dbConn.Close()
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
 
-	store := NewReadingStore(dbConn)
+	store := NewReadingStore(mdb.DB)
 
 	t.Run("Success", func(t *testing.T) {
-		mock.ExpectExec("INSERT INTO reading_analytics").
+		mdb.Mock.ExpectExec("INSERT INTO reading_analytics").
 			WithArgs("mongo123", "2026-01-01", "source1", "type1", sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
