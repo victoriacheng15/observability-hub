@@ -9,7 +9,7 @@ import (
 	"env"
 	"proxy/utils"
 	"secrets"
-	"telemetry"
+	telemetry "telemetry-next"
 )
 
 type App struct {
@@ -31,27 +31,11 @@ func main() {
 
 func (a *App) Bootstrap(ctx context.Context) error {
 	// 1. Telemetry (gracefully degrades if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "proxy")
+	shutdown, err := telemetry.Init(ctx, "proxy")
 	if err != nil {
 		telemetry.Warn("otel_init_failed, continuing without full observability", "error", err)
 	}
-	defer func() {
-		if shutdownTracer != nil {
-			if err := shutdownTracer(ctx); err != nil {
-				telemetry.Error("otel_shutdown_failed", "component", "tracer", "error", err)
-			}
-		}
-		if shutdownMeter != nil {
-			if err := shutdownMeter(ctx); err != nil {
-				telemetry.Error("otel_shutdown_failed", "component", "meter", "error", err)
-			}
-		}
-		if shutdownLogger != nil {
-			if err := shutdownLogger(ctx); err != nil {
-				telemetry.Error("otel_shutdown_failed", "component", "logger", "error", err)
-			}
-		}
-	}()
+	defer shutdown()
 
 	env.Load()
 

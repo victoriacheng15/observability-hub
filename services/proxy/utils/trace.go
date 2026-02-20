@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"telemetry"
+	telemetry "telemetry-next"
 	"time"
 )
 

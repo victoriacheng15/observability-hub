@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"telemetry"
+	telemetry "telemetry-next"
 )
 
 var homeTracer = telemetry.GetTracer("proxy/home")
