@@ -8,7 +8,7 @@ require (
 	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	secrets v0.0.0
-	telemetry-next v0.0.0
+	telemetry v0.0.0
 )
 
 replace secrets => ../../pkg/secrets
@@ -20,8 +20,6 @@ replace brain => ../../pkg/brain
 replace env => ../../pkg/env
 
 replace telemetry => ../../pkg/telemetry
-
-replace telemetry-next => ../../pkg/telemetry-next
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

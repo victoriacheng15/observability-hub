@@ -2,7 +2,7 @@ package utils
 
 import (
 	"net/http"
-	telemetry "telemetry-next"
+	"telemetry"
 	"time"
 )
 

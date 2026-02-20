@@ -11,7 +11,7 @@ import (
 	"env"
 	"metrics"
 	"secrets"
-	telemetry "telemetry-next"
+	"telemetry"
 
 	"github.com/shirou/gopsutil/v4/host"
 )

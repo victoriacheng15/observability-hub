@@ -7,7 +7,7 @@ require (
 	env v0.0.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	secrets v0.0.0
-	telemetry-next v0.0.0
+	telemetry v0.0.0
 )
 
 replace db => ../../pkg/db
@@ -15,8 +15,6 @@ replace db => ../../pkg/db
 replace secrets => ../../pkg/secrets
 
 replace telemetry => ../../pkg/telemetry
-
-replace telemetry-next => ../../pkg/telemetry-next
 
 replace env => ../../pkg/env
 
@@ -77,5 +75,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260217215200-42d3e9bedb6d // indirect
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	telemetry v0.0.0 // indirect
 )

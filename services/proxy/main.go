@@ -9,7 +9,7 @@ import (
 	"env"
 	"proxy/utils"
 	"secrets"
-	telemetry "telemetry-next"
+	"telemetry"
 )
 
 type App struct {

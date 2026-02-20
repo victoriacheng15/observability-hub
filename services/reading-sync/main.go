@@ -12,7 +12,7 @@ import (
 	"db/postgres"
 	"env"
 	"secrets"
-	telemetry "telemetry-next"
+	"telemetry"
 )
 
 type MongoStoreAPI interface {
