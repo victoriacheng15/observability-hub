@@ -1,44 +1,49 @@
-package postgres
+package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
+
+	"db/postgres"
+)
+
+const (
+	tableSystemMetrics = "system_metrics"
 )
 
 // MetricsStore handles persistence for system metrics in PostgreSQL.
 type MetricsStore struct {
-	DB *sql.DB
+	Wrapper *postgres.PostgresWrapper
 }
 
 // NewMetricsStore creates a new MetricsStore.
-func NewMetricsStore(db *sql.DB) *MetricsStore {
-	return &MetricsStore{DB: db}
+func NewMetricsStore(w *postgres.PostgresWrapper) *MetricsStore {
+	return &MetricsStore{Wrapper: w}
 }
 
 // EnsureSchema initializes the system_metrics table and TimescaleDB hypertable if available.
 func (s *MetricsStore) EnsureSchema(ctx context.Context) error {
-	_, err := s.DB.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS system_metrics (
+	queryTable := fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS %s (
 			time TIMESTAMPTZ(0) NOT NULL,
 			host TEXT NOT NULL,
 			os TEXT NOT NULL,
 			metric_type TEXT NOT NULL,
 			payload JSONB NOT NULL
 		);
-	`)
+	`, tableSystemMetrics)
+
+	_, err := s.Wrapper.Exec(ctx, "db.postgres.ensure_system_metrics", queryTable)
 	if err != nil {
 		return fmt.Errorf("schema_init_failed: %w", err)
 	}
 
 	// Enable hypertable if TimescaleDB is available
-	_, err = s.DB.ExecContext(ctx, "SELECT create_hypertable('system_metrics', 'time', if_not_exists => true);")
-	if err != nil {
-		slog.Info("hypertable_check", "status", "skipped_or_failed", "detail", err)
-	}
+	queryHyper := fmt.Sprintf("SELECT create_hypertable('%s', 'time', if_not_exists => true);", tableSystemMetrics)
+	_, _ = s.Wrapper.Exec(ctx, "db.postgres.create_hypertable", queryHyper)
+
 	return nil
 }
 
@@ -53,9 +58,7 @@ func (s *MetricsStore) RecordMetric(ctx context.Context, t time.Time, hostName, 
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	_, err = s.DB.ExecContext(ctx,
-		"INSERT INTO system_metrics (time, host, os, metric_type, payload) VALUES ($1, $2, $3, $4, $5)",
-		t, hostName, osName, metricType, payloadJSON,
-	)
+	query := fmt.Sprintf("INSERT INTO %s (time, host, os, metric_type, payload) VALUES ($1, $2, $3, $4, $5)", tableSystemMetrics)
+	_, err = s.Wrapper.Exec(ctx, "db.insert_postgres", query, t, hostName, osName, metricType, payloadJSON)
 	return err
 }

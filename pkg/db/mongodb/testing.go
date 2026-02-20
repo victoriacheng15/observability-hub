@@ -2,25 +2,25 @@ package mongodb
 
 import "context"
 
-// MockMongoStore provides a flexible mock implementation of StoreAPI for testing.
+// MockMongoStore provides a flexible mock implementation of MongoStore for testing.
 type MockMongoStore struct {
-	FetchFn func(ctx context.Context, limit int64) ([]ReadingDocument, error)
-	MarkFn  func(ctx context.Context, id string) error
-	CloseFn func(ctx context.Context) error
+	FindFn       func(ctx context.Context, opName, collection string, filter any, results any, limit int64) error
+	UpdateByIDFn func(ctx context.Context, opName, collection string, id string, update any) error
+	CloseFn      func(ctx context.Context) error
 }
 
-// FetchIngestedArticles executes the mocked FetchFn if provided.
-func (m *MockMongoStore) FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error) {
-	if m.FetchFn != nil {
-		return m.FetchFn(ctx, limit)
+// Find executes the mocked FindFn if provided.
+func (m *MockMongoStore) Find(ctx context.Context, opName, collection string, filter any, results any, limit int64) error {
+	if m.FindFn != nil {
+		return m.FindFn(ctx, opName, collection, filter, results, limit)
 	}
-	return nil, nil
+	return nil
 }
 
-// MarkArticleAsProcessed executes the mocked MarkFn if provided.
-func (m *MockMongoStore) MarkArticleAsProcessed(ctx context.Context, id string) error {
-	if m.MarkFn != nil {
-		return m.MarkFn(ctx, id)
+// UpdateByID executes the mocked UpdateByIDFn if provided.
+func (m *MockMongoStore) UpdateByID(ctx context.Context, opName, collection string, id string, update any) error {
+	if m.UpdateByIDFn != nil {
+		return m.UpdateByIDFn(ctx, opName, collection, id, update)
 	}
 	return nil
 }

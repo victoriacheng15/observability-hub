@@ -47,7 +47,7 @@ func (r *realBrainAPI) FetchIssueBody(repo string, number int) (string, error) {
 // App holds dependencies for the second-brain service
 type App struct {
 	SecretProviderFn func() (secrets.SecretStore, error)
-	PostgresConnFn   func(driver string, store secrets.SecretStore) (*postgres.BrainStore, error)
+	PostgresConnFn   func(driver string, store secrets.SecretStore) (*BrainStore, error)
 	BrainAPI         BrainAPI
 }
 
@@ -56,12 +56,12 @@ func main() {
 		SecretProviderFn: func() (secrets.SecretStore, error) {
 			return secrets.NewBaoProvider()
 		},
-		PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.BrainStore, error) {
-			conn, err := postgres.ConnectPostgres(driver, store)
+		PostgresConnFn: func(driver string, store secrets.SecretStore) (*BrainStore, error) {
+			wrapper, err := postgres.ConnectPostgres(driver, store)
 			if err != nil {
 				return nil, err
 			}
-			return postgres.NewBrainStore(conn), nil
+			return NewBrainStore(wrapper), nil
 		},
 		BrainAPI: &realBrainAPI{},
 	}
@@ -108,7 +108,7 @@ func (a *App) Run(ctx context.Context) error {
 	return a.Sync(ctx, repo, brainStore)
 }
 
-func (a *App) Sync(ctx context.Context, repo string, brainStore *postgres.BrainStore) error {
+func (a *App) Sync(ctx context.Context, repo string, brainStore *BrainStore) error {
 	tracer := telemetry.GetTracer("second.brain")
 
 	if ready {

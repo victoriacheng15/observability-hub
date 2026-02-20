@@ -1,23 +1,34 @@
+// Package postgres provides a pure, OTel-instrumented wrapper for PostgreSQL.
+// Supported Operations:
+// - Connection: ConnectPostgres (via OpenBao/Env)
+// - Write: Exec (Generic helper for INSERT, UPDATE, DELETE)
+// - Read: Query, QueryRow (Generic helpers for SELECT)
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
 
 	"secrets"
+	"telemetry"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
-// Internal variables for testing
 var (
 	sqlOpen = sql.Open
+	tracer  = telemetry.GetTracer("db/postgres")
 )
 
-// ConnectPostgres establishes a connection to PostgreSQL and verifies it with a Ping.
-// It accepts a SecretStore to retrieve credentials from OpenBao with env fallbacks.
-func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, error) {
+// PostgresWrapper provides a standardized, OTel-instrumented wrapper around sql.DB.
+type PostgresWrapper struct {
+	DB *sql.DB
+}
+
+// ConnectPostgres establishes a connection to PostgreSQL and returns a PostgresWrapper.
+func ConnectPostgres(driverName string, store secrets.SecretStore) (*PostgresWrapper, error) {
 	dsn, err := GetPostgresDSN(store)
 	if err != nil {
 		return nil, err
@@ -29,23 +40,80 @@ func ConnectPostgres(driverName string, store secrets.SecretStore) (*sql.DB, err
 	}
 
 	if err := db.Ping(); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to ping postgres: %w", err)
 	}
 
-	return db, nil
+	return &PostgresWrapper{DB: db}, nil
+}
+
+// Array returns a wrapper for a slice that can be used as a PostgreSQL array in queries.
+// This allows services to use arrays without importing github.com/lib/pq.
+func (w *PostgresWrapper) Array(v any) any {
+	return pq.Array(v)
+}
+
+// Exec executes a query without returning any rows, with automatic OTel instrumentation.
+func (w *PostgresWrapper) Exec(ctx context.Context, opName, query string, args ...any) (sql.Result, error) {
+	ctx, span := tracer.Start(ctx, opName)
+	defer span.End()
+
+	span.SetAttributes(
+		telemetry.StringAttribute("db.system", "postgresql"),
+		telemetry.StringAttribute("db.statement", query),
+	)
+
+	res, err := w.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(telemetry.CodeError, err.Error())
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// QueryRow executes a query that is expected to return at most one row.
+func (w *PostgresWrapper) QueryRow(ctx context.Context, opName, query string, args ...any) *sql.Row {
+	ctx, span := tracer.Start(ctx, opName)
+	defer span.End()
+
+	span.SetAttributes(
+		telemetry.StringAttribute("db.system", "postgresql"),
+		telemetry.StringAttribute("db.statement", query),
+	)
+
+	return w.DB.QueryRowContext(ctx, query, args...)
+}
+
+// Query executes a query that returns rows, typically a SELECT.
+func (w *PostgresWrapper) Query(ctx context.Context, opName, query string, args ...any) (*sql.Rows, error) {
+	ctx, span := tracer.Start(ctx, opName)
+	defer span.End()
+
+	span.SetAttributes(
+		telemetry.StringAttribute("db.system", "postgresql"),
+		telemetry.StringAttribute("db.statement", query),
+	)
+
+	rows, err := w.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(telemetry.CodeError, err.Error())
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 // GetPostgresDSN constructs the DSN using the SecretStore.
 func GetPostgresDSN(store secrets.SecretStore) (string, error) {
-	// 1. Priority: DATABASE_URL (for local dev/testing override)
 	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
 		return dsn, nil
 	}
 
-	// Path relative to the KV mount (e.g., 'secret').
 	const secretPath = "observability-hub/postgres"
 
-	// Retrieve values with fallbacks to environment variables or defaults
 	host := store.GetSecret(secretPath, "host", getEnv("DB_HOST", "localhost"))
 	port := store.GetSecret(secretPath, "port", getEnv("DB_PORT", "30432"))
 	user := store.GetSecret(secretPath, "user", getEnv("DB_USER", "server"))

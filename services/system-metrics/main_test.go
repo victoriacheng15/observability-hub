@@ -10,7 +10,6 @@ import (
 	"db/postgres"
 	"secrets"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shirou/gopsutil/v4/host"
 )
 
@@ -44,8 +43,8 @@ func TestApp_InitDB(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &App{
-				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
-					return postgres.NewMetricsStore(mdb.DB), tt.err
+				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*MetricsStore, error) {
+					return NewMetricsStore(mdb.Wrapper()), tt.err
 				},
 			}
 			err := app.InitDB("postgres", &mockSecretStore{})
@@ -62,7 +61,7 @@ func TestApp_InitDB(t *testing.T) {
 func TestApp_Run(t *testing.T) {
 	mdb, cleanup := postgres.NewMockDB(t)
 	defer cleanup()
-	store := postgres.NewMetricsStore(mdb.DB)
+	store := NewMetricsStore(mdb.Wrapper())
 
 	// Use a fixed time for stability
 	now := time.Date(2026, 1, 29, 12, 0, 0, 0, time.UTC)
@@ -116,25 +115,25 @@ func TestApp_Run(t *testing.T) {
 			if !tt.wantErr {
 				// Expectations for Success
 				mdb.ExpectTableCreation("system_metrics")
-				mdb.ExpectHypertableCreation("system_metrics")
+				mdb.Mock.ExpectExec("SELECT create_hypertable").WillReturnResult(mdb.NewResult(0, 0))
 
 				// Expect 4 inserts (cpu, memory, disk, network)
 				for i := 0; i < 4; i++ {
 					mdb.Mock.ExpectExec("INSERT INTO system_metrics").
-						WithArgs(now, "test-host", "linux 6.0", sqlmock.AnyArg(), sqlmock.AnyArg()).
-						WillReturnResult(sqlmock.NewResult(1, 1))
+						WithArgs(now, "test-host", "linux 6.0", mdb.AnyArg(), mdb.AnyArg()).
+						WillReturnResult(mdb.NewResult(1, 1))
 				}
 			} else if tt.schemaErr != nil {
 				mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").
 					WillReturnError(tt.schemaErr)
 			} else if tt.dbErr != nil {
 				mdb.ExpectTableCreation("system_metrics")
-				mdb.ExpectHypertableCreation("system_metrics")
+				mdb.Mock.ExpectExec("SELECT create_hypertable").WillReturnResult(mdb.NewResult(0, 0))
 				// Fail the first insert
 				mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnError(tt.dbErr)
 				// Remaining inserts still proceed but error is bubbled
 				for i := 0; i < 3; i++ {
-					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(mdb.NewResult(1, 1))
 				}
 			}
 
@@ -176,8 +175,8 @@ func TestApp_Bootstrap(t *testing.T) {
 				SecretProviderFn: func() (secrets.SecretStore, error) {
 					return &mockSecretStore{}, tt.secretErr
 				},
-				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
-					return postgres.NewMetricsStore(mdb.DB), tt.dbErr
+				ConnectDBFn: func(driverName string, store secrets.SecretStore) (*MetricsStore, error) {
+					return NewMetricsStore(mdb.Wrapper()), tt.dbErr
 				},
 				HostInfoFn: func() (*host.InfoStat, error) {
 					return &host.InfoStat{Platform: "linux", PlatformVersion: "6.0"}, nil
@@ -192,9 +191,9 @@ func TestApp_Bootstrap(t *testing.T) {
 
 			if !tt.wantErr {
 				mdb.ExpectTableCreation("system_metrics")
-				mdb.ExpectHypertableCreation("system_metrics")
+				mdb.Mock.ExpectExec("SELECT create_hypertable").WillReturnResult(mdb.NewResult(0, 0))
 				for i := 0; i < 4; i++ {
-					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(sqlmock.NewResult(1, 1))
+					mdb.Mock.ExpectExec("INSERT INTO system_metrics").WillReturnResult(mdb.NewResult(1, 1))
 				}
 			}
 

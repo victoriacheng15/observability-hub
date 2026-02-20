@@ -16,7 +16,7 @@ import (
 )
 
 type MongoStoreAPI interface {
-	FetchIngestedArticles(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error)
+	FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error)
 	MarkArticleAsProcessed(ctx context.Context, id string) error
 	Close(ctx context.Context) error
 }
@@ -24,7 +24,7 @@ type MongoStoreAPI interface {
 // App holds dependencies for the reading-sync service
 type App struct {
 	SecretProviderFn func() (secrets.SecretStore, error)
-	PostgresConnFn   func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error)
+	PostgresConnFn   func(driver string, store secrets.SecretStore) (*ReadingStore, error)
 	MongoConnFn      func(store secrets.SecretStore) (MongoStoreAPI, error)
 }
 
@@ -33,15 +33,20 @@ func main() {
 		SecretProviderFn: func() (secrets.SecretStore, error) {
 			return secrets.NewBaoProvider()
 		},
-		PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error) {
-			conn, err := postgres.ConnectPostgres(driver, store)
+		PostgresConnFn: func(driver string, store secrets.SecretStore) (*ReadingStore, error) {
+			wrapper, err := postgres.ConnectPostgres(driver, store)
 			if err != nil {
 				return nil, err
 			}
-			return postgres.NewReadingStore(conn), nil
+			return NewReadingStore(wrapper), nil
 		},
 		MongoConnFn: func(store secrets.SecretStore) (MongoStoreAPI, error) {
-			return mongodb.NewMongoStore(store)
+			// Purely generic initialization
+			wrapper, err := mongodb.NewMongoStore(store)
+			if err != nil {
+				return nil, err
+			}
+			return &MongoStoreWrapper{Wrapper: wrapper}, nil
 		},
 	}
 
@@ -73,7 +78,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("postgres_connection_failed: %w", err)
 	}
-	defer readingStore.DB.Close()
+	defer readingStore.Wrapper.DB.Close()
 
 	// 4. Mongo
 	mongoStore, err := a.MongoConnFn(secretStore)
@@ -92,7 +97,7 @@ func (a *App) Run(ctx context.Context) error {
 	return a.Sync(ctx, readingStore, mongoStore)
 }
 
-func (a *App) Sync(ctx context.Context, pgStore *postgres.ReadingStore, mStore MongoStoreAPI) error {
+func (a *App) Sync(ctx context.Context, pgStore *ReadingStore, mStore MongoStoreAPI) error {
 	tracer := telemetry.GetTracer("reading.sync")
 	meter := telemetry.GetMeter("reading.sync")
 
