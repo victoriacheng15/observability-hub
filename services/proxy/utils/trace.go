@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"io"
-	"logger"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -32,7 +31,7 @@ func ensureSyntheticMetrics() {
 			"Total synthetic trace requests received",
 		)
 		if err != nil {
-			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.total", "error", err)
+			telemetry.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.total", "error", err)
 			return
 		}
 
@@ -42,7 +41,7 @@ func ensureSyntheticMetrics() {
 			"Total synthetic trace request errors",
 		)
 		if err != nil {
-			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.errors.total", "error", err)
+			telemetry.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.errors.total", "error", err)
 			return
 		}
 
@@ -53,7 +52,7 @@ func ensureSyntheticMetrics() {
 			"ms",
 		)
 		if err != nil {
-			logger.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration.ms", "error", err)
+			telemetry.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration.ms", "error", err)
 			return
 		}
 
@@ -132,7 +131,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 			telemetry.StringAttribute("app.business.device", payload.Device),
 			telemetry.StringAttribute("app.business.network_type", payload.NetworkType),
 		)
-		logger.Info("synthetic_trace_payload_received",
+		telemetry.Info("synthetic_trace_payload_received",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"region", payload.Region,
@@ -151,7 +150,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 		if syntheticMetricsReady {
 			telemetry.AddInt64Counter(r.Context(), syntheticRequestErrorsTotal, 1, metricAttrs...)
 		}
-		logger.Warn("synthetic_trace_payload_decode_failed",
+		telemetry.Warn("synthetic_trace_payload_decode_failed",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"error", err,
@@ -182,7 +181,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 		if syntheticMetricsReady {
 			telemetry.AddInt64Counter(r.Context(), syntheticRequestErrorsTotal, 1, metricAttrs...)
 		}
-		logger.Error("synthetic_trace_response_encode_failed",
+		telemetry.Error("synthetic_trace_response_encode_failed",
 			"synthetic_id", syntheticID,
 			"traffic_mode", trafficMode,
 			"error", err,
@@ -192,7 +191,7 @@ func SyntheticTraceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	durationMs := time.Since(start).Milliseconds()
-	logger.Info("synthetic_trace_processed",
+	telemetry.Info("synthetic_trace_processed",
 		"synthetic_id", syntheticID,
 		"traffic_mode", trafficMode,
 		"latency_target_ms", latencyTarget,
