@@ -11,7 +11,7 @@ import (
 	"env"
 	"metrics"
 	"secrets"
-	"telemetry"
+	telemetry "telemetry-next"
 
 	"github.com/shirou/gopsutil/v4/host"
 )
@@ -68,23 +68,11 @@ func (a *App) Bootstrap(ctx context.Context) error {
 	env.Load()
 
 	// 1. Telemetry Takeover
-	shutdownTracer, shutdownMeter, shutdownLogger, err := telemetry.Init(ctx, "system.metrics")
+	shutdown, err := telemetry.Init(ctx, "system.metrics")
 	if err != nil {
 		telemetry.Warn("otel_init_failed", "error", err)
 	}
-	defer func() {
-		sCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if shutdownTracer != nil {
-			_ = shutdownTracer(sCtx)
-		}
-		if shutdownMeter != nil {
-			_ = shutdownMeter(sCtx)
-		}
-		if shutdownLogger != nil {
-			_ = shutdownLogger(sCtx)
-		}
-	}()
+	defer shutdown()
 
 	ensureMetrics()
 
