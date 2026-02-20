@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"log/slog"
 	"net/http"
+	"telemetry"
 	"time"
 )
 
@@ -16,7 +16,7 @@ func WithLogging(next http.HandlerFunc) http.HandlerFunc {
 
 		next(lrw, r)
 
-		slog.Info("request_processed",
+		telemetry.Info("request_processed",
 			"http_method", r.Method,
 			"path", r.URL.Path,
 			"remote_ip", r.RemoteAddr,
