@@ -5,17 +5,39 @@ import (
 	"errors"
 	"testing"
 
-	"db/mongodb"
 	"db/postgres"
 	"secrets"
-
-	"github.com/DATA-DOG/go-sqlmock"
 )
 
 type mockSecretStore struct{}
 
 func (m *mockSecretStore) GetSecret(path, key, fallback string) string { return fallback }
 func (m *mockSecretStore) Close() error                                { return nil }
+
+type mockMongoStore struct {
+	FetchFn func(ctx context.Context, limit int64) ([]ReadingDocument, error)
+	MarkFn  func(ctx context.Context, id string) error
+	CloseFn func(ctx context.Context) error
+}
+
+func (m *mockMongoStore) FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error) {
+	if m.FetchFn != nil {
+		return m.FetchFn(ctx, limit)
+	}
+	return nil, nil
+}
+func (m *mockMongoStore) MarkArticleAsProcessed(ctx context.Context, id string) error {
+	if m.MarkFn != nil {
+		return m.MarkFn(ctx, id)
+	}
+	return nil
+}
+func (m *mockMongoStore) Close(ctx context.Context) error {
+	if m.CloseFn != nil {
+		return m.CloseFn(ctx)
+	}
+	return nil
+}
 
 func TestApp_Run(t *testing.T) {
 	mdb, cleanup := postgres.NewMockDB(t)
@@ -39,18 +61,18 @@ func TestApp_Run(t *testing.T) {
 			if tt.name == "Success" {
 				mdb.ExpectTableCreation("reading_analytics")
 				mdb.ExpectTableCreation("reading_sync_history")
-				mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
+				mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(mdb.NewResult(1, 1))
 			}
 
 			app := &App{
 				SecretProviderFn: func() (secrets.SecretStore, error) {
 					return &mockSecretStore{}, tt.secretErr
 				},
-				PostgresConnFn: func(driver string, store secrets.SecretStore) (*postgres.ReadingStore, error) {
-					return postgres.NewReadingStore(mdb.DB), tt.pgErr
+				PostgresConnFn: func(driver string, store secrets.SecretStore) (*ReadingStore, error) {
+					return NewReadingStore(mdb.Wrapper()), tt.pgErr
 				},
 				MongoConnFn: func(store secrets.SecretStore) (MongoStoreAPI, error) {
-					return &mongodb.MockMongoStore{}, tt.mongoErr
+					return &mockMongoStore{}, tt.mongoErr
 				},
 			}
 
@@ -65,13 +87,13 @@ func TestApp_Run(t *testing.T) {
 func TestApp_Sync(t *testing.T) {
 	mdb, cleanup := postgres.NewMockDB(t)
 	defer cleanup()
-	pgStore := postgres.NewReadingStore(mdb.DB)
+	pgStore := NewReadingStore(mdb.Wrapper())
 
 	t.Run("Sync Success", func(t *testing.T) {
 		docID := "507f1f77bcf86cd799439011"
-		mStore := &mongodb.MockMongoStore{
-			FetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
-				return []mongodb.ReadingDocument{
+		mStore := &mockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]ReadingDocument, error) {
+				return []ReadingDocument{
 					{
 						ID:        docID,
 						Source:    "test",
@@ -86,8 +108,8 @@ func TestApp_Sync(t *testing.T) {
 
 		mdb.ExpectTableCreation("reading_analytics")
 		mdb.ExpectTableCreation("reading_sync_history")
-		mdb.Mock.ExpectExec("INSERT INTO reading_analytics").WillReturnResult(sqlmock.NewResult(1, 1))
-		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(sqlmock.NewResult(1, 1))
+		mdb.Mock.ExpectExec("INSERT INTO reading_analytics").WillReturnResult(mdb.NewResult(1, 1))
+		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").WillReturnResult(mdb.NewResult(1, 1))
 
 		app := &App{}
 		err := app.Sync(context.Background(), pgStore, mStore)
@@ -101,8 +123,8 @@ func TestApp_Sync(t *testing.T) {
 	})
 
 	t.Run("Sync Fetch Error", func(t *testing.T) {
-		mStore := &mongodb.MockMongoStore{
-			FetchFn: func(ctx context.Context, limit int64) ([]mongodb.ReadingDocument, error) {
+		mStore := &mockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]ReadingDocument, error) {
 				return nil, errors.New("fetch error")
 			},
 		}
@@ -110,8 +132,8 @@ func TestApp_Sync(t *testing.T) {
 		mdb.ExpectTableCreation("reading_analytics")
 		mdb.ExpectTableCreation("reading_sync_history")
 		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), "failure", 0, "fetch_from_mongo_failed: fetch error").
-			WillReturnResult(sqlmock.NewResult(1, 1))
+			WithArgs(mdb.AnyArg(), mdb.AnyArg(), "failure", 0, "fetch_from_mongo_failed: fetch error").
+			WillReturnResult(mdb.NewResult(1, 1))
 
 		app := &App{}
 		err := app.Sync(context.Background(), pgStore, mStore)

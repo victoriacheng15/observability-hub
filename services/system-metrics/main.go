@@ -33,11 +33,11 @@ func ensureMetrics() {
 }
 
 type App struct {
-	Store            *postgres.MetricsStore
+	Store            *MetricsStore
 	HostInfoFn       func() (*host.InfoStat, error)
 	HostnameFn       func() (string, error)
 	NowFn            func() time.Time
-	ConnectDBFn      func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error)
+	ConnectDBFn      func(driverName string, store secrets.SecretStore) (*MetricsStore, error)
 	SecretProviderFn func() (secrets.SecretStore, error)
 }
 
@@ -46,12 +46,12 @@ func main() {
 		HostInfoFn: host.Info,
 		HostnameFn: os.Hostname,
 		NowFn:      time.Now,
-		ConnectDBFn: func(driverName string, store secrets.SecretStore) (*postgres.MetricsStore, error) {
-			conn, err := postgres.ConnectPostgres(driverName, store)
+		ConnectDBFn: func(driverName string, store secrets.SecretStore) (*MetricsStore, error) {
+			wrapper, err := postgres.ConnectPostgres(driverName, store)
 			if err != nil {
 				return nil, err
 			}
-			return postgres.NewMetricsStore(conn), nil
+			return NewMetricsStore(wrapper), nil
 		},
 		SecretProviderFn: func() (secrets.SecretStore, error) {
 			return secrets.NewBaoProvider()
@@ -85,7 +85,7 @@ func (a *App) Bootstrap(ctx context.Context) error {
 		return fmt.Errorf("db_connection_failed: %w", err)
 	}
 	telemetry.Info("db_connected")
-	defer a.Store.DB.Close()
+	defer a.Store.Wrapper.DB.Close()
 
 	return a.Run(ctx)
 }

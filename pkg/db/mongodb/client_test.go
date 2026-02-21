@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -97,4 +98,17 @@ func TestNewMongoStore(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error due to connection failure in NewMongoStore, got nil")
 	}
+}
+
+func TestMongoStore_Helpers(t *testing.T) {
+	store := &MongoStore{
+		Client: nil,
+	}
+
+	t.Run("UpdateByID Invalid Hex", func(t *testing.T) {
+		err := store.UpdateByID(context.Background(), "test-op", "test-db", "test-coll", "invalid-hex", nil)
+		if err == nil {
+			t.Error("Expected error for invalid hex ID, got nil")
+		}
+	})
 }

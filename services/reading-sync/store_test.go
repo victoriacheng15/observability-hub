@@ -1,4 +1,4 @@
-package postgres
+package main
 
 import (
 	"context"
@@ -6,24 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"db/postgres"
 )
 
-func TestNewReadingStore(t *testing.T) {
-	mdb, cleanup := NewMockDB(t)
-	defer cleanup()
-
-	store := NewReadingStore(mdb.DB)
-	if store == nil || store.DB != mdb.DB {
-		t.Error("NewReadingStore did not initialize correctly")
-	}
-}
-
 func TestReadingStore_EnsureSchema(t *testing.T) {
-	mdb, cleanup := NewMockDB(t)
+	mdb, cleanup := postgres.NewMockDB(t)
 	defer cleanup()
 
-	store := NewReadingStore(mdb.DB)
+	store := NewReadingStore(mdb.Wrapper())
 
 	t.Run("Success", func(t *testing.T) {
 		mdb.ExpectTableCreation("reading_analytics")
@@ -47,16 +37,16 @@ func TestReadingStore_EnsureSchema(t *testing.T) {
 }
 
 func TestReadingStore_RecordSyncHistory(t *testing.T) {
-	mdb, cleanup := NewMockDB(t)
+	mdb, cleanup := postgres.NewMockDB(t)
 	defer cleanup()
 
-	store := NewReadingStore(mdb.DB)
+	store := NewReadingStore(mdb.Wrapper())
 	now := time.Now()
 
 	t.Run("Success", func(t *testing.T) {
 		mdb.Mock.ExpectExec("INSERT INTO reading_sync_history").
 			WithArgs(now, now, "success", 10, "").
-			WillReturnResult(sqlmock.NewResult(1, 1))
+			WillReturnResult(mdb.NewResult(1, 1))
 
 		err := store.RecordSyncHistory(context.Background(), now, now, "success", 10, "")
 		if err != nil {
@@ -66,19 +56,36 @@ func TestReadingStore_RecordSyncHistory(t *testing.T) {
 }
 
 func TestReadingStore_InsertReadingAnalytics(t *testing.T) {
-	mdb, cleanup := NewMockDB(t)
+	mdb, cleanup := postgres.NewMockDB(t)
 	defer cleanup()
 
-	store := NewReadingStore(mdb.DB)
+	store := NewReadingStore(mdb.Wrapper())
 
 	t.Run("Success", func(t *testing.T) {
 		mdb.Mock.ExpectExec("INSERT INTO reading_analytics").
-			WithArgs("mongo123", "2026-01-01", "source1", "type1", sqlmock.AnyArg(), sqlmock.AnyArg()).
-			WillReturnResult(sqlmock.NewResult(1, 1))
+			WithArgs("mongo123", "2026-01-01", "source1", "type1", mdb.AnyArg(), mdb.AnyArg()).
+			WillReturnResult(mdb.NewResult(1, 1))
 
 		err := store.InsertReadingAnalytics(context.Background(), "mongo123", "2026-01-01", "source1", "type1", []byte("{}"), []byte("{}"))
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
+		}
+	})
+}
+
+func TestMongoStoreWrapper_Mock(t *testing.T) {
+	docID := "507f1f77bcf86cd799439011"
+
+	t.Run("FetchArticles", func(t *testing.T) {
+		// Directly testing the interface implementation logic
+		mAPI := &mockMongoStore{
+			FetchFn: func(ctx context.Context, limit int64) ([]ReadingDocument, error) {
+				return []ReadingDocument{{ID: docID}}, nil
+			},
+		}
+		docs, _ := mAPI.FetchIngestedArticles(context.Background(), 10)
+		if len(docs) != 1 || docs[0].ID != docID {
+			t.Errorf("mock failed to return expected document")
 		}
 	})
 }

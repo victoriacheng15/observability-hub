@@ -68,10 +68,10 @@ reading-build:
 brain-sync:
 	$(NIX_WRAP) \
 	echo "Running Second Brain Sync..." && \
-	cd services/second-brain && go run main.go
+	cd services/second-brain && go run .
 
 metrics-build:
 	$(NIX_WRAP) \
 	echo "Building system metrics collector..." && \
-	cd services/system-metrics && go build -o ../../dist/metrics-collector main.go && \
+	cd services/system-metrics && go build -o ../../dist/metrics-collector . && \
 	sudo systemctl restart system-metrics.timer

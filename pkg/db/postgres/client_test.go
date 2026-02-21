@@ -55,14 +55,14 @@ func TestConnectPostgres(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		db, err := ConnectPostgres("mock-postgres", mock)
+		wrapper, err := ConnectPostgres("mock-postgres", mock)
 		if err != nil {
 			t.Fatalf("Expected success, got error: %v", err)
 		}
-		if db == nil {
-			t.Fatal("Expected db instance, got nil")
+		if wrapper == nil || wrapper.DB == nil {
+			t.Fatal("Expected wrapper instance with DB, got nil")
 		}
-		defer db.Close()
+		defer wrapper.DB.Close()
 	})
 
 	t.Run("Unknown Driver", func(t *testing.T) {
