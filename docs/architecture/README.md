@@ -60,5 +60,7 @@ The runtime environment and foundational deployment strategies.
 Deep dives into the logic and implementation of specific system components.
 
 - **[Proxy Service](./services/proxy.md)**: The API Gateway, Data Pipeline, and GitOps listener.
+- **[Reading Sync](./services/reading-sync.md)**: The automated MongoDB to Postgres ETL pipeline.
+- **[Second Brain](./services/second-brain.md)**: Knowledge ingestion from GitHub into PostgreSQL.
 - **[System Metrics](./services/system-metrics.md)**: The host telemetry collector.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.

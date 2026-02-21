@@ -11,7 +11,6 @@ The Proxy Service (`services/proxy/`) is a custom Go application that acts as th
 | `/` | GET | Returns a JSON welcome message. |
 | `/api/health` | GET | **Health Check**: Returns the service status and environment. |
 | `/api/webhook/gitops` | POST | **GitOps Trigger**: Handles GitHub webhooks (Push/PR events) to sync local repositories. |
-| `/api/sync/reading` | POST | Synchronizes reading data from MongoDB to PostgreSQL (TimescaleDB). |
 | `/api/trace/synthetic/` | POST | **Synthetic Validation**: Ingests randomized metadata to stress-test the telemetry pipeline. |
 
 ### Endpoint Details
@@ -32,16 +31,6 @@ This endpoint enables event-driven deployment.
 3. **Trigger**: Executes the local `scripts/gitops_sync.sh` script in the background.
 4. **Log**: Broadcasts success/failure details to the system journal for observability.
 
-#### Data Pipeline Engine (`/api/sync/reading`)
-
-This endpoint triggers the extraction, transformation, and loading of data.
-
-1. **Connect**: Establishes connection to MongoDB using `MONGO_URI`.
-2. **Query**: Finds documents in the source collection where `status="ingested"`.
-3. **Transform**: Converts documents into a standardized JSONB format.
-4. **Load**: Inserts records into the PostgreSQL (TimescaleDB) `reading_analytics` table.
-5. **Update**: Marks the original MongoDB documents as `status="processed"`.
-
 ## Distributed Tracing
 
 The Proxy Service is instrumented with the **OpenTelemetry SDK** to provide visibility into request lifecycles and pipeline performance.
@@ -60,7 +49,6 @@ The service initializes a global TracerProvider during startup, controlled by en
 Spans are manually or automatically created for:
 
 - **GitOps Ingestion**: Tracking webhook validation and script execution time.
-- **Data Pipeline (ETL)**: Measuring MongoDB fetch latency and PostgreSQL insertion throughput.
 - **Synthetic Validation**: Testing pipeline fidelity with randomized business metadata.
 - **API Requests**: Correlating incoming requests with backend pipeline activities.
 

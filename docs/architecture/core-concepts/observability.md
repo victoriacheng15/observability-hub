@@ -8,15 +8,14 @@ The Observability Hub implements a high-fidelity logging, tracing, and metrics p
 graph TD
     subgraph Ingestion ["1. Data Ingestion"]
         ScriptLogs[Scripts]
-        Proxy[Proxy]
+        GoServices["Go Services (Proxy, Metrics, Sync, Brain)"]
         PromScrapes[Prometheus Scrapes]
-        SystemMetrics["System Metrics (Go Custom)"]
     end
 
     subgraph Processing ["2. Transport & Core Processing"]
         Journal[Systemd Journal]
         Alloy[Alloy]
-        OpenTelemetry[OpenTelemetry]
+        OpenTelemetry[OpenTelemetry Collector]
     end
 
     subgraph Persistence ["3. Data Persistence"]
@@ -38,8 +37,7 @@ graph TD
     
     %% Data Flow
     ScriptLogs --> Journal
-    Proxy --> OpenTelemetry
-    SystemMetrics --> PostgreSQL
+    GoServices --> OpenTelemetry
     PromScrapes --> ObservabilityStores
 
     Journal --> Alloy
@@ -50,7 +48,7 @@ graph TD
     Loki --> MinIO
     Tempo --> MinIO
     Prometheus --> MinIO
-    PostgreSQL -->Visualization
+    PostgreSQL --> Visualization
     ObservabilityStores --> Visualization
 ```
 
@@ -91,7 +89,7 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 Distributed tracing is powered by OpenTelemetry for correlation and performance profiling across high-throughput pipelines.
 
 - **Collection Pipeline**:
-  - **Instrumentation**: Services use the **OpenTelemetry SDK** to generate spans in OTLP format.
+  - **Instrumentation**: Services use the **OpenTelemetry SDK** to generate spans in OTLP format. We follow a **Pure Wrapper** philosophy where shared libraries (`pkg/db`) provide standardized infrastructure spans (e.g., `db.postgres.record_metric`), while services own the root spans (`job.*` or `handler.*`).
   - **Ingestion**: Spans are sent to the **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Grafana Tempo**.
   - **Processing**: Tempo analyzes raw spans to generate derived **Service Graphs** and **Span Metrics**, which are pushed to Prometheus via `remote_write` for operational correlation.
 - **Persistence**:

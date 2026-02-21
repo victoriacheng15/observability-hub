@@ -6,6 +6,7 @@ The System Metrics Collector (`services/system-metrics/`) is a lightweight agent
 
 - **Runtime**: Go (compiled binary).
 - **Library**: `gopsutil` for cross-platform hardware statistics.
+- **Infrastructure**: Uses the **Standard PostgresWrapper** (`pkg/db`) for persistent storage and schema management.
 - **Target**: Pushes data directly to the `system_metrics` table in PostgreSQL (TimescaleDB).
 
 ### Metrics Collected
@@ -14,6 +15,7 @@ The System Metrics Collector (`services/system-metrics/`) is a lightweight agent
 - **Memory**: Total, used, and available RAM.
 - **Disk**: IOPS and usage stats.
 - **Network**: Bandwidth usage (bytes sent/received).
+- **Resource Saturation**: Advanced **Observable Gauge** tracking unified CPU and Memory pressure.
 
 ## Data Flow: Metrics Collection
 
