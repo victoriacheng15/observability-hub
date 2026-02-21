@@ -33,7 +33,7 @@ We use the `@` symbol to create a single template that can service multiple repo
 - **Integration:** Native journald logging and `After=network.target` dependency management.
 - **Security:** "Allowlist" logic adheres to Zero Trust principles.
 
-### Negative/Trade-offs
+### Negative
 
 - **Conflict Risk:** If local state deviates manually, the sync will fail (mitigated by non-zero exit codes).
 

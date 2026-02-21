@@ -24,7 +24,7 @@ Shift the trigger mechanism to an **Event-Driven Model** using the existing Go P
 - **Simplicity:** Single configuration point (Github Webhook) vs. multiple systemd timers.
 - **Toil Reduction:** No need to SSH and create new timer units for new repos.
 
-### Negative/Trade-offs
+### Negative
 
 - **Dependency:** Relies on Proxy availability (unlike systemd timers which are independent).
 

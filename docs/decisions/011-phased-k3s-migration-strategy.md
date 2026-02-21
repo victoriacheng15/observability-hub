@@ -41,7 +41,7 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 - **Learning Curve:** Provides an opportunity to master k3s networking and storage on "safe" components (Alloy/Loki) before touching critical business data (Postgres).
 - **Validation:** Each phase acts as a gate. The migration does not proceed to Postgres until k3s stability is confirmed.
 
-### Negative/Trade-offs
+### Negative
 
 - **Temporary Complexity:** The system will temporarily run a "Hybrid" stack (some services in Docker, some in k3s) requiring split-brain network configuration (e.g., exposing Docker ports to K3s).
 - **Duration:** The migration will take longer than a "Big Bang" cutover.

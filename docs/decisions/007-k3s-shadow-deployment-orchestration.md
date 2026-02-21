@@ -26,7 +26,7 @@ Implement a **Shadow Deployment Strategy**. This involves running an experimenta
 - **Risk Mitigation:** Allows prototyping k3s without downtime for the main stack.
 - **Learning:** Enables evaluation of orchestration patterns (Gateway API, Rolling Updates).
 
-### Negative/Trade-offs
+### Negative
 
 - **Complexity:** Managing two runtimes (Docker + k3s) on the same host.
 - **Resources:** k3s and Docker share host RAM (mitigated by resource limits).

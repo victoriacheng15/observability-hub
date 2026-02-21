@@ -34,7 +34,7 @@ Integrate **OpenBao** as the centralized source of truth for all sensitive confi
 - **Security:** Moves away from static `.env` files (long-term).
 - **Auditability:** OpenBao provides access logs for secrets.
 
-### Negative/Trade-offs
+### Negative
 
 - **Complexity:** High operational overhead compared to simple env vars.
 - **Failure Mode:** Secret store becomes a single point of failure for app startup.

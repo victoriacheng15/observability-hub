@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **015** | [Unified Host Telemetry Collectors](./015-unified-host-telemetry-collectors.md) | 🟢 Proposed |
 | **014** | [Library-First Service Architecture](./014-library-first-service-architecture.md) | 🔵 Accepted |
 | **013** | [Standardize on OpenTelemetry](./013-standardize-on-opentelemetry.md) | 🔵 Accepted |
 | **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🔵 Accepted |
@@ -65,8 +66,13 @@ What was the chosen architectural path?
 
 ## Consequences
 
-- **Positive:** (e.g., Faster development, resolved dependency drift).
-- **Negative/Trade-offs:** (e.g., Added complexity to the CI/CD pipeline).
+### Positive
+
+- **[Benefit 1]**: [Description]
+
+### Negative
+
+- **[Drawback 1]**: [Description]
 
 ## Verification
 

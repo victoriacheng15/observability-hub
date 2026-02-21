@@ -28,7 +28,7 @@ A root-level module `pkg/db` will centralize how services connect to persistence
 - **Maintenance:** Updates are centralized in `pkg/db`.
 - **Reliability:** Defaults like `timezone=UTC` are applied universally.
 
-### Negative/Trade-offs
+### Negative
 
 - **Dependency:** Services must rely on the shared module.
 
