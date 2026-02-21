@@ -228,3 +228,10 @@ chapters:
         description: |
           - Executed the structural transition of the repository into the standard `pkg/` and `services/` layout.
           - Decoupled core business logic into transport-agnostic modules to improve testability and reuse across platform interfaces.
+      - date: "2026-02-20"
+        title: "Pure Wrapper Architecture & Advanced OTel"
+        artifacts:
+          - name: "Note: OpenTelemetry & Observability Guide"
+            url: "docs/notes/opentelemetry.md"
+        description: |
+          - Transitioned the Go fleet to a standardized 'Pure Wrapper' architecture, enabling native OpenTelemetry support and advanced operational visibility across all services.
