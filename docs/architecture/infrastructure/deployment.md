@@ -16,6 +16,7 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 | **PostgreSQL** | Primary Storage | StatefulSet with TimescaleDB + PostGIS for metrics and analytical data. |
 | **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
 | **Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence via MinIO. |
+| **Thanos** | Long-term Metrics | StatefulSet for querying historical metrics stored in MinIO. |
 
 ### 🚀 Core Services (Native Go)
 

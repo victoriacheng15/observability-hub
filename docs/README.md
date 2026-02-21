@@ -11,5 +11,5 @@ The Hub operates on a hybrid model: **Host-tier** services handle hardware and s
 | 🏗️ **[Architecture](./architecture/README.md)** | Detailed blueprints and component deep-dives. |
 | 🧠 **[Decision Records (ADRs)](./decisions/README.md)** | Institutional memory and technical rationale for major choices. |
 | 🚨 **[Incident Reports (RCA)](./incidents/README.md)** | Root cause analysis and post-mortems. |
-| 🚀 **[GitHub Workflows](./workflows.md)** | CI/CD pipeline documentation. |
 | 📝 **[Operational Notes](./notes/README.md)** | Operations cheat-sheets and setup guides. |
+| 🚀 **[GitHub Workflows](./workflows.md)** | CI/CD pipeline documentation. |

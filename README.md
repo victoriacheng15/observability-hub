@@ -12,10 +12,10 @@ A resilient and reliability-focused unified telemetry platform architected to de
 
 ## 🏗️ Engineering Principles
 
-- **Unified Observability:** Correlation of infrastructure telemetry and application business events into a single, queryable plane. Full-stack visibility is the default state, ensuring all services are observed via a consistent, unified standard.
-- **Platform Abstraction:** Decoupling of data ingestion from storage engines. Standardized APIs provide stable interfaces for clients, allowing the underlying pipeline logic and database schemas to evolve without disrupting upstream producers.
-- **GitOps & State Convergence:** Enforcement of configuration consistency between version control and the running environment. Automated reconciliation engines detect and correct drift, ensuring the "Source of Truth" is always the reality.
-- **Hybrid Orchestration:** Strategic deployment utilizing the most effective primitives for the task. It combines **Kubernetes (K3s)** isolation for core data services with native host performance (Systemd) for critical automation and hardware-level telemetry.
+- **Observability-First:** Full-stack visibility is foundational. Every service implements advanced signals (lag, saturation, pool health) as a project standard.
+- **Infrastructure Abstraction:** Decoupling plumbing from logic. Shared "Pure Wrappers" handle connection and OTel complexity, allowing services to focus strictly on domain value.
+- **GitOps & State Convergence:** Configuration as code with automated reconciliation. Version control is the ultimate source of truth for the environment state.
+- **Hybrid Orchestration:** Utilizing Kubernetes for data persistence and native Systemd for host-level automation and high-performance telemetry.
 
 ---
 
@@ -30,15 +30,14 @@ A resilient and reliability-focused unified telemetry platform architected to de
 ![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
 
-![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Grafana Alloy](https://img.shields.io/badge/Alloy-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![MinIO (S3)](https://img.shields.io/badge/MinIO-be172d?style=for-the-badge&logo=minio&logoColor=white)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-%23000000.svg?style=for-the-badge&logo=opentelemetry&logoColor=white)
+![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
+![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
 ![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![MinIO (S3)](https://img.shields.io/badge/MinIO-be172d?style=for-the-badge&logo=minio&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 
 ---
@@ -52,57 +51,80 @@ This section provides a deeper look into the system's structure, components, and
 This diagram shows the high-level flow of data from collection to visualization, highlighting the hybrid orchestration between host services and the Kubernetes data platform.
 
 ```mermaid
-flowchart LR
-    subgraph External ["External Sources"]
-        GHW(GitHub Webhooks)
-        GHJ(GitHub Journals)
-        Apps(Client Apps)
-        Mongo(MongoDB Atlas)
+flowchart TD
+    subgraph ObservabilityHub ["Observability Hub Platform Architecture"]
+        subgraph Logic ["1. Ingestion & Logic Domain"]
+            subgraph External ["External Sources"]
+                GHW(GitHub Webhooks)
+                GHJ(GitHub Journals)
+                Mongo(MongoDB Atlas)
+            end
+
+            subgraph Native ["Native Services"]
+                subgraph Automation ["Automation & Security"]
+                    Gate[Tailscale Gate]
+                    Bao[OpenBao Secret Store]
+                end
+                subgraph GoApps ["Go Applications"]
+                    direction TB
+                    Proxy[Proxy API & GitOps]
+                    RS[Reading Sync Pipeline]
+                    SB[Second Brain Ingest]
+                    Metrics[Metrics Collector]
+                end
+            end
+        end
+
+        subgraph Processing ["2. Telemetry Processing (k3s)"]
+            Alloy[Grafana Alloy]
+            OTEL[OpenTelemetry Collector]
+        end
+
+        subgraph Persistence ["3. Persistence Layer (k3s)"]
+            subgraph Signals ["The Big Three (OTel)"]
+                Loki[(Loki - Logs)]
+                Tempo[(Tempo - Traces)]
+                Prometheus[(Prometheus - Scraper & TSDB)]
+                Thanos[(Thanos - History)]
+            end
+            subgraph Storage ["Storage Engines"]
+                S3[(MinIO - S3 Object Store)]
+                PG[(PostgreSQL - Relational)]
+            end
+        end
+
+        subgraph Visualization ["4. Visualization"]
+            Grafana[Grafana Dashboards]
+        end
     end
 
-    subgraph HostServices ["Native Host Services"]
-        Proxy[Proxy API & GitOps]
-        SB[Second Brain Ingest]
-        Metrics[Metrics Collector]
-        Gate[Tailscale Gate]
-        Bao[OpenBao Secret Store]
-    end
-
-    subgraph DataPlatform ["Data Infrastructure (Kubernetes)"]
-        PG[(PostgreSQL)]
-        A[Grafana Alloy]
-        OTEL[OpenTelemetry Collector]
-        L[Grafana Loki]
-        T[Grafana Tempo]
-        P[Prometheus]
-        G[Grafana]
-    end
-
-    %% Data Pipeline
+    %% Data Pipeline Connections
     GHW -- Webhook --> Proxy
     GHJ -- Issues --> SB
-    Apps -- Events --> Mongo
-    Mongo -- Pull --> Proxy
-    SB -- Write --> PG
-    Proxy -- Write --> PG
-    Metrics -- Telemetry --> PG
-    Bao -.->|Secrets| Proxy
-    Bao -.->|Secrets| SB
-    Bao -.->|Secrets| Metrics
+    Mongo -- Pull --> RS
+    Metrics -- Data --> PG
+    RS -- Data --> PG
+    SB -- Data --> PG
 
-    %% Telemetry Pipeline
-    Proxy -- Logs --> A
-    Gate -- Logs --> A
-    Metrics -- Logs --> A
-    Proxy -- Traces --> OTEL
-    OTEL -- Traces --> T
-    A -- Logs --> L
-    A -- Metrics --> P
-    OTEL -- Metrics --> P
-    PG --> G
-    L --> G
-    T --> G
-    P --> G
+    %% Telemetry Pipeline Connections
+    GoApps -- Logs --> OTEL
+    GoApps -- Metrics --> OTEL
+    GoApps -- Traces --> OTEL
+    Automation -- Logs --> Alloy
+
+    
+    Processing -- Logs --> Signals
+    Processing -- Metrics --> Signals
+    Processing -- Traces --> Signals
+    
+    Signals -- Long-term --> S3
+    
+    %% Internal Metrics Flow
+    Prometheus -- Blocks --> Thanos
+    Thanos -- Query --> Prometheus
+
+    %% Visualization Connections
+    Persistence --> Grafana
 ```
 
 ### Component Breakdown
@@ -113,14 +135,14 @@ The platform is split into two logical layers: **Native Host Services** for auto
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
-| **proxy** | API gateway, Data Pipeline engine, and **GitOps Webhook listener**. | `services/proxy/` |
+| **gitops-sync** | Reconciliation script for automated state enforcement. | `scripts/` |
+| **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
+| **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
+| **proxy** | API gateway and **GitOps Webhook listener**. | `services/proxy/` |
+| **reading-sync** | Automated data pipeline syncing MongoDB data to local PostgreSQL. | `services/reading-sync/` |
 | **second-brain** | Ingests atomic thoughts from GitHub journals into PostgreSQL. | `services/second-brain/` |
 | **system-metrics** | Lightweight collector for host hardware telemetry (CPU, Mem, Disk, Net). | `services/system-metrics/` |
-| **openbao** | Centralized, encrypted secret storage and management. | `systemd/` |
 | **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
-| **gitops-sync** | Reconciliation script for automated state enforcement. | `scripts/` |
-| **reading-sync** | Periodic trigger for the `proxy` Data Pipeline. | `systemd/` |
-| **page** | Go static-site generator for the public-facing portfolio page. | `page/` |
 
 #### Data Infrastructure (Kubernetes)
 
@@ -134,6 +156,7 @@ The platform is split into two logical layers: **Native Host Services** for auto
 | **PostgreSQL** | Primary relational storage (TimescaleDB + PostGIS) for metrics and events. | `k3s/postgres/` |
 | **Prometheus** | Metrics storage, service discovery, and alerting engine. | `k3s/prometheus/` |
 | **Grafana Tempo** | Distributed tracing backend for request correlation. | `k3s/tempo/` |
+| **Thanos Store** | Query gateway for historical metrics stored in MinIO. | `k3s/thanos/` |
 
 ### External Dependencies
 
@@ -142,6 +165,7 @@ These components exist outside this repository but are integral to the data pipe
 | Dependency | Role |
 | :--- | :--- |
 | **Client Applications** | Sources of event data (e.g., Cover Craft, Personal Reading Analytics). |
+| **GitHub** | Source of webhooks for GitOps and issues for knowledge ingestion. |
 | **MongoDB Atlas** | Interim cloud storage used as a buffer/queue for external event logs. |
 
 For deep dives into the system's inner workings, operational guides, and decision logs:
@@ -204,9 +228,13 @@ Build and initialize the automation and telemetry collectors on the host:
 # Build Go binaries
 make proxy-build
 make metrics-build
+make reading-build
 
 # Install and start Systemd services (requires sudo)
 make install-services
+
+# Run Second Brain sync manually
+make brain-sync
 ```
 
 ### 3. Verification
