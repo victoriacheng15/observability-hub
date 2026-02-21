@@ -61,6 +61,7 @@ func (w *PostgresWrapper) Exec(ctx context.Context, opName, query string, args .
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
 	res, err := w.DB.ExecContext(ctx, query, args...)
@@ -81,6 +82,7 @@ func (w *PostgresWrapper) QueryRow(ctx context.Context, opName, query string, ar
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
 	return w.DB.QueryRowContext(ctx, query, args...)
@@ -94,6 +96,7 @@ func (w *PostgresWrapper) Query(ctx context.Context, opName, query string, args 
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
 	rows, err := w.DB.QueryContext(ctx, query, args...)

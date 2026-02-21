@@ -23,16 +23,18 @@ import (
 
 // Re-export common OTel types to centralize dependency management
 type (
-	Span           = trace.Span
-	Tracer         = trace.Tracer
-	Attribute      = attribute.KeyValue
-	Code           = codes.Code
-	MeterProvider  = metricapi.MeterProvider
-	Meter          = metricapi.Meter
-	Int64Counter   = metricapi.Int64Counter
-	Int64Histogram = metricapi.Int64Histogram
-	LoggerProvider = otellog.LoggerProvider
-	Logger         = otellog.Logger
+	Span            = trace.Span
+	Tracer          = trace.Tracer
+	Attribute       = attribute.KeyValue
+	Code            = codes.Code
+	MeterProvider   = metricapi.MeterProvider
+	Meter           = metricapi.Meter
+	Int64Counter    = metricapi.Int64Counter
+	Int64Histogram  = metricapi.Int64Histogram
+	Int64Observer   = metricapi.Int64Observer
+	Float64Observer = metricapi.Float64Observer
+	LoggerProvider  = otellog.LoggerProvider
+	Logger          = otellog.Logger
 )
 
 const (
@@ -139,4 +141,14 @@ func IntAttribute(key string, value int) Attribute {
 // BoolAttribute creates a new boolean attribute.
 func BoolAttribute(key string, value bool) Attribute {
 	return attribute.Bool(key, value)
+}
+
+// Int64Attribute creates a new 64-bit integer attribute.
+func Int64Attribute(key string, value int64) Attribute {
+	return attribute.Int64(key, value)
+}
+
+// Float64Attribute creates a new 64-bit float attribute.
+func Float64Attribute(key string, value float64) Attribute {
+	return attribute.Float64(key, value)
 }

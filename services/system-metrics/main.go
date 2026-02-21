@@ -110,6 +110,10 @@ func (a *App) Run(ctx context.Context) error {
 		hostName = "homelab"
 	}
 
+	span.SetAttributes(
+		telemetry.StringAttribute("os.kernel.version", hInfo.KernelVersion),
+	)
+
 	if err := a.Store.EnsureSchema(ctx); err != nil {
 		return err
 	}
@@ -130,9 +134,6 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 	sSpan.End()
 
 	// 2. Insert to Postgres
-	iCtx, iSpan := tracer.Start(ctx, "job.insert_postgres")
-	defer iSpan.End()
-
 	metricEntries := []struct {
 		mType   string
 		payload interface{}
@@ -143,9 +144,24 @@ func (a *App) collectAndStore(ctx context.Context, hostName string, osName strin
 		{"network", net},
 	}
 
+	// Advanced: Resource Saturation Gauge
+	if ready {
+		meter := telemetry.GetMeter("system.metrics")
+		satGauge, _ := telemetry.NewFloat64ObservableGauge(meter, "system.metrics.resource.saturation", "Resource saturation", func(ctx context.Context, obs telemetry.Float64Observer) error {
+			if cpu != nil {
+				obs.Observe(cpu.Usage, telemetry.WithMetricAttributes(telemetry.StringAttribute("resource", "cpu")))
+			}
+			if mem != nil {
+				obs.Observe(mem.UsedPercent, telemetry.WithMetricAttributes(telemetry.StringAttribute("resource", "memory")))
+			}
+			return nil
+		})
+		_ = satGauge
+	}
+
 	var hasError bool
 	for _, m := range metricEntries {
-		if err := a.Store.RecordMetric(iCtx, now, hostName, osName, m.mType, m.payload); err != nil {
+		if err := a.Store.RecordMetric(ctx, now, hostName, osName, m.mType, m.payload); err != nil {
 			telemetry.Error("db_insert_failed", "metric_type", m.mType, "error", err)
 			hasError = true
 		}

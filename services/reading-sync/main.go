@@ -104,7 +104,13 @@ func (a *App) Sync(ctx context.Context, pgStore *ReadingStore, mStore MongoStore
 	processedCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.processed.total", "Total documents processed")
 	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.errors.total", "Total sync errors")
 	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration.ms", "Sync duration in milliseconds", "ms")
-	batchSizeHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.batch.size", "Number of documents processed in a batch", "count")
+
+	// Advanced: Sync Lag Gauge (Time since last successful run)
+	lastSuccessTime := time.Now()
+	_, _ = telemetry.NewInt64ObservableGauge(meter, "reading.sync.lag.seconds", "Time since last successful sync", func(ctx context.Context, obs telemetry.Int64Observer) error {
+		obs.Observe(int64(time.Since(lastSuccessTime).Seconds()))
+		return nil
+	})
 
 	start := time.Now()
 	ctx, span := tracer.Start(ctx, "job.reading_sync")
@@ -116,6 +122,9 @@ func (a *App) Sync(ctx context.Context, pgStore *ReadingStore, mStore MongoStore
 	processedCount := 0
 
 	defer func() {
+		if syncStatus == "success" {
+			lastSuccessTime = time.Now()
+		}
 		if err := pgStore.RecordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage); err != nil {
 			telemetry.Error("failed_to_record_sync_history", "error", err)
 		}
@@ -151,9 +160,7 @@ func (a *App) Sync(ctx context.Context, pgStore *ReadingStore, mStore MongoStore
 		return fmt.Errorf("fetch_from_mongo_failed: %w", err)
 	}
 
-	if batchSizeHist != nil {
-		telemetry.RecordInt64Histogram(ctx, batchSizeHist, int64(len(docs)))
-	}
+	span.SetAttributes(telemetry.IntAttribute("db.documents.count", len(docs)))
 
 	for _, doc := range docs {
 		payloadJSON, _ := json.Marshal(doc.Payload)

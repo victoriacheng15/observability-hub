@@ -91,6 +91,9 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, span := webhookTracer.Start(r.Context(), "handler.webhook")
 	defer span.End()
 
+	// Advanced: Peer IP for analysis
+	span.SetAttributes(telemetry.StringAttribute("net.peer.ip", r.RemoteAddr))
+
 	eventType := r.Header.Get("X-GitHub-Event")
 	span.SetAttributes(telemetry.StringAttribute("github.event", eventType))
 
