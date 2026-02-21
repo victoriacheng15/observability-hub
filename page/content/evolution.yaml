@@ -235,3 +235,11 @@ chapters:
             url: "docs/notes/opentelemetry.md"
         description: |
           - Transitioned the Go fleet to a standardized 'Pure Wrapper' architecture, enabling native OpenTelemetry support and advanced operational visibility across all services.
+      - date: "2026-02-21"
+        title: "Unified Host Telemetry Collectors"
+        artifacts:
+          - name: "ADR 015: Unified Host Telemetry Collectors"
+            url: "docs/decisions/015-unified-host-telemetry-collectors.md"
+        description: |
+          - Proposed consolidating host-level telemetry (CPU, RAM, Disk, Network, Temperature, and Tailscale) into a single, efficient Go service.
+          - Aimed at significant memory reduction by retiring standalone agents and optimizing data collection for long-term FinOps analysis.

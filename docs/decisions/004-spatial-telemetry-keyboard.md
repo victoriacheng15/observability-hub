@@ -32,7 +32,7 @@ A distributed IoT pipeline consisting of three tiers:
 - **Latency:** Deterministic behavior (no GC pauses).
 - **Analysis:** Enables spatial queries via PostGIS.
 
-### Negative/Trade-offs
+### Negative
 
 - **Complexity:** Requires managing a C++ build chain alongside Go.
 - **Portability:** Tightly coupled to Linux `ioctl` and specific hardware layouts.

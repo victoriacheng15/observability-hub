@@ -47,7 +47,7 @@ Standardize the platform on **OpenTelemetry (OTel)** as the primary telemetry fr
 - **Future-Proofing**: Easy integration with future AI/ML or automation components (e.g., Kepler for energy tracking).
 - **Reduced Database Bloat**: Moves high-frequency time-series data out of the relational database.
 
-### Negative/Trade-offs
+### Negative
 
 - **Infrastructure Complexity**: Adds 3-4 new components (Collector, Prometheus, Tempo, MinIO) to the cluster.
 - **Operational Overhead**: Requires managing resource limits and retention policies for multiple specialized backends.

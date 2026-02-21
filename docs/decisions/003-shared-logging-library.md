@@ -44,7 +44,7 @@ All logs are output as JSON to `stdout`.
 - **Consistency:** Enforced by the library across all services.
 - **Maintenance:** Centralized code in `pkg/logger` reduces duplication.
 
-### Negative/Trade-offs
+### Negative
 
 - **Rigidity:** Enforces a strict schema that might not fit every edge case.
 

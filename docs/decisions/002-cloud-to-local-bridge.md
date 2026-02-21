@@ -45,7 +45,7 @@ sequenceDiagram
 - **Cost:** Uses Free Tier of MongoDB Atlas.
 - **Simplicity:** Simple implementation compared to VPN/Tailscale.
 
-### Negative/Trade-offs
+### Negative
 
 - **Latency:** Polling introduces slight latency (not real-time).
 - **Dependency:** Adds dependency on external MongoDB availability.

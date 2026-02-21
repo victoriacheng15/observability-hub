@@ -29,7 +29,7 @@ Switch to **PostgreSQL** using the `JSONB` data type for metrics storage, with t
 - **Maintenance:** Low operational overhead (consolidated into existing DB).
 - **Language:** Uses SQL (Industry Standard) instead of InfluxQL/Flux (Niche).
 
-### Negative/Trade-offs
+### Negative
 
 - **Performance:** PostgreSQL is excellent for mid-range volume but less optimized for high-write TS data compared to InfluxDB (though expandable via TimescaleDB).
 

@@ -35,7 +35,7 @@ The "Strangler Fig" pattern was used to migrate log sources incrementally:
 - **Kubernetes Native:** First-class support for Pod discovery and metadata enrichment.
 - **Future Proofing:** Alloy is the successor to Promtail/Agent, ensuring long-term support and feature updates.
 
-### Negative/Trade-offs
+### Negative
 
 - **Learning Curve:** Alloy's configuration syntax (River/HCL) is different from Promtail's YAML.
 - **Migration Effort:** Requires rewriting log processing pipelines (relabeling rules) into the new format.

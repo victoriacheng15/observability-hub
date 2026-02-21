@@ -36,7 +36,7 @@ Adopt a **Library-First Service Architecture**. This involves extracting all cor
 - **Improved DX**: Clearer project structure makes it easier for developers to navigate and contribute to the codebase.
 - **Robust Automation**: Background tasks and interactive tools benefit from the same hardened logic.
 
-### Negative/Trade-offs
+### Negative
 
 - **Initial Refactoring Effort**: Requires significant movement of files and updates to import paths, Makefiles, and CI/CD pipelines.
 - **Increased Boilerplate**: Each new feature requires a separate library in `pkg/` and a corresponding registration in `services/`.

@@ -23,7 +23,7 @@ Expand `pkg/db` to be a **Connection Factory**.
 - **Consistency:** Best practices (Ping on startup) applied universally.
 - **Dependency Management:** Centralized driver updates.
 
-### Negative/Trade-offs
+### Negative
 
 - **Module Size:** `pkg/db` pulls in multiple drivers (Postgres + Mongo).
 

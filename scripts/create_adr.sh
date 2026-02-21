@@ -61,8 +61,13 @@ What was the chosen architectural path?
 
 ## Consequences
 
-- **Positive:** (e.g., Faster development, resolved dependency drift).
-- **Negative/Trade-offs:** (e.g., Added complexity to the CI/CD pipeline).
+### Positive
+
+- **[Benefit 1]**: [Description]
+
+### Negative
+
+- **[Drawback 1]**: [Description]
 
 ## Verification
 
