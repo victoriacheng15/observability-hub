@@ -59,6 +59,6 @@ func (s *MetricsStore) RecordMetric(ctx context.Context, t time.Time, hostName, 
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (time, host, os, metric_type, payload) VALUES ($1, $2, $3, $4, $5)", tableSystemMetrics)
-	_, err = s.Wrapper.Exec(ctx, "db.insert_postgres", query, t, hostName, osName, metricType, payloadJSON)
+	_, err = s.Wrapper.Exec(ctx, "db.postgres.record_metric", query, t, hostName, osName, metricType, payloadJSON)
 	return err
 }

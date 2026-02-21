@@ -18,13 +18,15 @@ var (
 	ready       bool
 	syncTotal   telemetry.Int64Counter
 	atomsGained telemetry.Int64Counter
+	tokensTotal telemetry.Int64Counter
 )
 
 func ensureMetrics() {
 	brainOnce.Do(func() {
-		meter := telemetry.GetMeter("second.brain")
-		syncTotal, _ = telemetry.NewInt64Counter(meter, "second.brain.sync.total", "Total sync runs")
-		atomsGained, _ = telemetry.NewInt64Counter(meter, "second.brain.atoms.ingested", "Total thoughts ingested")
+		meterObj := telemetry.GetMeter("second.brain")
+		syncTotal, _ = telemetry.NewInt64Counter(meterObj, "second.brain.sync.total", "Total sync runs")
+		atomsGained, _ = telemetry.NewInt64Counter(meterObj, "second.brain.atoms.ingested", "Total thoughts ingested")
+		tokensTotal, _ = telemetry.NewInt64Counter(meterObj, "second.brain.token.count.total", "Total tokens processed")
 		ready = true
 	})
 }
@@ -161,14 +163,19 @@ func (a *App) Sync(ctx context.Context, repo string, brainStore *BrainStore) err
 			continue
 		}
 
+		// Advanced: Markdown Parse Span
+		pCtx, pSpan := tracer.Start(iCtx, "parse.markdown.duration")
 		atoms := brain.Atomize(iss.Title, body)
+		pSpan.End()
+
 		for _, a := range atoms {
-			if err := brainStore.InsertThought(iCtx, a.Date, a.Content, a.Category, a.Tags, a.ContextString, a.Checksum, a.TokenCount); err != nil {
+			if err := brainStore.InsertThought(pCtx, a.Date, a.Content, a.Category, a.Tags, a.ContextString, a.Checksum, a.TokenCount); err != nil {
 				telemetry.Error("atom_insert_failed", "checksum", a.Checksum, "error", err)
 				continue
 			}
 			if ready {
-				telemetry.AddInt64Counter(iCtx, atomsGained, 1)
+				telemetry.AddInt64Counter(pCtx, atomsGained, 1)
+				telemetry.AddInt64Counter(pCtx, tokensTotal, int64(a.TokenCount))
 			}
 			totalAtoms++
 		}

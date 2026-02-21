@@ -52,6 +52,29 @@ func RecordInt64Histogram(ctx context.Context, histogram metricapi.Int64Histogra
 	histogram.Record(ctx, value, metricapi.WithAttributes(attrs...))
 }
 
+// WithMetricAttributes wraps a slice of attributes into a metric option.
+func WithMetricAttributes(attrs ...Attribute) metricapi.ObserveOption {
+	return metricapi.WithAttributes(attrs...)
+}
+
+// NewInt64ObservableGauge creates an int64 observable gauge with a callback.
+func NewInt64ObservableGauge(meter metricapi.Meter, name, description string, callback func(context.Context, metricapi.Int64Observer) error) (metricapi.Int64ObservableGauge, error) {
+	opts := []metricapi.Int64ObservableGaugeOption{}
+	if description != "" {
+		opts = append(opts, metricapi.WithDescription(description))
+	}
+	return meter.Int64ObservableGauge(name, append(opts, metricapi.WithInt64Callback(callback))...)
+}
+
+// NewFloat64ObservableGauge creates a float64 observable gauge with a callback.
+func NewFloat64ObservableGauge(meter metricapi.Meter, name, description string, callback func(context.Context, metricapi.Float64Observer) error) (metricapi.Float64ObservableGauge, error) {
+	opts := []metricapi.Float64ObservableGaugeOption{}
+	if description != "" {
+		opts = append(opts, metricapi.WithDescription(description))
+	}
+	return meter.Float64ObservableGauge(name, append(opts, metricapi.WithFloat64Callback(callback))...)
+}
+
 func initMetrics(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource) (func(context.Context) error, error) {
 	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
 	if err != nil {
