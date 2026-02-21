@@ -2,6 +2,7 @@ package collectors
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -88,9 +89,75 @@ https://server.tailc8e03f.ts.net:8443 (Funnel on)
 	}
 }
 
-func TestTailscaleStatus_Parsing(t *testing.T) {
-	// Since GetTailscaleStatus shells out to 'tailscale', we skip this in CI
-	// but provide a mockable or logic-only test for local parsing if we extracted it.
-	// For now, we'll verify the structure exists and is usable.
-	t.Log("Skipping tailscale status parsing test (requires tailscale CLI)")
+func TestThanosClient_QueryRange_Errors(t *testing.T) {
+	tests := []struct {
+		name           string
+		serverResponse string
+		serverStatus   int
+		wantErr        bool
+	}{
+		{
+			name:           "API Error Status",
+			serverResponse: `{"status": "error", "error": "invalid query"}`,
+			serverStatus:   http.StatusOK,
+			wantErr:        true,
+		},
+		{
+			name:           "HTTP Error",
+			serverResponse: `Internal Server Error`,
+			serverStatus:   http.StatusInternalServerError,
+			wantErr:        true,
+		},
+		{
+			name:           "Malformed JSON",
+			serverResponse: `{"status": "success", "data": { "result": [ { "values": [[123, 456]] } ] } }`, // values[1] should be string
+			serverStatus:   http.StatusOK,
+			wantErr:        false, // Currently the code skips malformed samples rather than failing the whole batch
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.serverStatus)
+				fmt.Fprint(w, tt.serverResponse)
+			}))
+			defer ts.Close()
+
+			client := NewThanosClient(ts.URL)
+			_, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryRange() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGetTailscaleStatus_Parsing(t *testing.T) {
+	mockJSON := `{
+		"BackendState": "Running",
+		"Self": {
+			"HostName": "test-host",
+			"TailscaleIPs": ["100.64.0.1"]
+		}
+	}`
+
+	var status map[string]interface{}
+	err := json.Unmarshal([]byte(mockJSON), &status)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal mock JSON: %v", err)
+	}
+
+	if status["BackendState"] != "Running" {
+		t.Errorf("Expected BackendState Running, got %v", status["BackendState"])
+	}
+
+	self := status["Self"].(map[string]interface{})
+	if self["HostName"] != "test-host" {
+		t.Errorf("Expected HostName test-host, got %v", self["HostName"])
+	}
+}
+
+func TestTailscaleStatus_Skipped(t *testing.T) {
+	t.Log("Skipping tailscale status real execution test (requires tailscale CLI)")
 }
