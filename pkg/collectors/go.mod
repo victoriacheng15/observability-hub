@@ -1,3 +1,3 @@
-module pkg/collectors
+module collectors
 
 go 1.26
