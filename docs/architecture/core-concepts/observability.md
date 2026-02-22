@@ -1,60 +1,46 @@
 # Observability Architecture
 
-The Observability Hub implements a high-fidelity logging, tracing, and metrics pipeline. The architecture is designed for deep visibility into native host services (via unified logging) and cluster infrastructure (via comprehensive metrics).
+The Observability Hub implements a high-fidelity logging, tracing, and metrics pipeline. The architecture is designed for deep visibility into native host services (via unified telemetry) and cluster infrastructure (via comprehensive metrics).
 
 ## 🛠️ The Unified Pipeline
 
 ```mermaid
-graph TD
-    subgraph Ingestion ["1. Data Ingestion"]
-        ScriptLogs[Scripts]
-        GoServices["Go Services (Proxy, Metrics, Sync, Brain)"]
-        PromScrapes[Prometheus Scrapes]
-    end
+flowchart TB
+    subgraph ObservabilityFlow ["Observability Flow"]
+        direction TB
+        External["External Sources"]
 
-    subgraph Processing ["2. Transport & Core Processing"]
-        Journal[Systemd Journal]
-        Alloy[Alloy]
-        OpenTelemetry[OpenTelemetry Collector]
-    end
+        Gate[Tailscale Gate]
+        GoApps["Go Services"]
+        Collectors["Collectors (Host Metrics & Tailscale)"]
 
-    subgraph Persistence ["3. Data Persistence"]
-        subgraph ObservabilityStores ["Observability Stores"]
-            Loki[(Loki)]
-            Tempo[(Tempo)]
-            Prometheus[(Prometheus)]
-        end
+        OTEL[OpenTelemetry Collector]
 
-        subgraph DataStores ["Data Stores"]
-            PostgreSQL[(PostgreSQL)]
-            MinIO[(MinIO S3)]
+        Observability["Loki, Tempo, Prometheus (Thanos)"]
+        subgraph Storage ["Data Engines"]
+            PG[(PostgreSQL)]
+            S3[(MinIO - S3)]
         end
     end
 
-    subgraph Visualization ["4. Data Visualization"]
-        Grafana[Grafana]
-    end
+    %% Data Pipeline Connections
+    External --> GoApps
+    Observability -- "Host Metrics" --> Collectors
+    Gate -- "Status" --> Collectors
+    Collectors -- "Host Metrics Data" --> PG
+    GoApps -- Data --> PG
+
+    %% Telemetry Pipeline (OTLP)
+    GoApps & Collectors -- "Logs, Metrics, Traces" --> OTEL
     
-    %% Data Flow
-    ScriptLogs --> Journal
-    GoServices --> OpenTelemetry
-    PromScrapes --> ObservabilityStores
-
-    Journal --> Alloy
-    Alloy --> ObservabilityStores
-    OpenTelemetry --> ObservabilityStores
-    Tempo --> ObservabilityStores
-
-    Loki --> MinIO
-    Tempo --> MinIO
-    Prometheus --> MinIO
-    PostgreSQL --> Visualization
-    ObservabilityStores --> Visualization
+    OTEL --> Observability
+    
+    Observability -- "Offload" --> S3
 ```
 
 ## 🪵 Logs
 
-The platform implements a dual-path logging strategy: structured application logs via OpenTelemetry and system-level logs via the host journal.
+The platform implements a dual-path logging strategy: structured application logs via OpenTelemetry and structured system-level logs via OpenTelemetry.
 
 - **Logging Standards**: To ensure logs are searchable and actionable, all system components must adhere to the **JSON Logging Standard**:
 
@@ -68,7 +54,7 @@ The platform implements a dual-path logging strategy: structured application log
 
 - **Collection Pipeline**:
   - **Application Logs**: Services are instrumented with the **OpenTelemetry SDK** to generate logs in OTLP format, sent to the central **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Loki**.
-  - **System Logs**: Native host services (e.g., `gitops-sync`, `system-metrics`, `tailscale-gate`) write to `stdout`, which `journald` enriches with metadata. **Alloy** (running as a DaemonSet) scrapes `/var/log/journal` directly, filters for these specific units, and pushes to **Loki**.
+  - **System Logs**: Native host services (e.g., `gitops-sync`, `system-metrics`, `tailscale-gate`) are instrumented to emit structured logs directly to the **OpenTelemetry Collector** (running as a DaemonSet) via OTLP, which filters for specific units and pushes them to **Loki**.
 - **Persistence**:
   - **Loki**: Stores logs with long-term persistence in MinIO S3 buckets (`loki-chunks`, `loki-ruler`, `loki-admin`).
 
@@ -78,8 +64,8 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 
 - **Collection Strategy**:
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
-  - **Telemetry Ingestion**: Prometheus is configured with the `remote-write-receiver` enabled to ingest OTLP metrics from the **OpenTelemetry Collector** and derived span-metrics (e.g., service graphs) from **Tempo**.
-  - **Specialized Analytics**: Custom Go services (`system-metrics`) write specialized host-level time-series data directly to **PostgreSQL** for analytical reporting.
+  - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
+  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. Dedicated **Collectors** then retrieve this host metrics data from **Prometheus**, forward it via the **OpenTelemetry Collector**, which processes and exports it to **PostgreSQL** for long-term analytical reporting.
 - **Persistence**:
   - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.
   - **Long-term Retention**: The **Thanos** sidecar seamlessly offloads TSDB blocks to MinIO S3 (`prometheus-blocks`) for infinite metrics retention and historical analysis.

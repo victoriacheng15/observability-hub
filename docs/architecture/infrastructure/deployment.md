@@ -8,11 +8,11 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **Alloy** | Telemetry Agent | DaemonSet that scrapes the **Host Systemd Journal**. |
+| **Collectors** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
-| **MinIO** | Object Storage | Deployment for S3-compatible storage (Tempo traces and backups). |
-| **OpenTelemetry** | Telemetry Hub | Deployment for receiving and processing traces and metrics. |
+| **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
+| **OpenTelemetry Collector** | Telemetry Hub | Deployment for receiving and processing traces, metrics, and logs. |
 | **PostgreSQL** | Primary Storage | StatefulSet with TimescaleDB + PostGIS for metrics and analytical data. |
 | **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
 | **Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence via MinIO. |
@@ -34,21 +34,23 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 | **Tailscale Gate** | Security Agent | Manages public funnel access based on service health. |
 | **Reading Sync** | Data Pipeline | Timer-triggered task to sync cloud data to local storage. |
 
-## Data Flow: Unified Logging
+## Data Flow: Unified Observability
 
 ```mermaid
 sequenceDiagram
-    participant App as Go Services (stdout)
-    participant Script as Bash Scripts (logger)
-    participant Journal as Systemd Journal
-    participant Alloy as Alloy (k3s)
-    participant Loki as Loki (k3s)
+    participant App as Go Services
+    participant Script as Bash Scripts
+    participant Collectors_Agent as Collectors
+    participant OTel_Collector as OpenTelemetry Collector
+    participant Observability as Observability (Loki, Prometheus, Tempo)
+    participant Grafana as Grafana
 
-    App->>Journal: JSON Logs (Captured)
-    Script->>Journal: JSON Logs (Broadcast)
-    Journal->>Alloy: Scrape (/var/log/journal)
-    Alloy->>Loki: Push with relabeled metadata
-    Loki-->>Grafana: Query via LogQL
+    App->>OTel_Collector: Logs, Metrics, Traces (OTLP)
+    Script->>OTel_Collector: Logs, Metrics, Traces (OTLP)
+    Collectors_Agent->>OTel_Collector: Metrics, Traces (OTLP)
+
+    OTel_Collector->>Observability: Push Logs, Metrics, Traces
+    Observability->>Grafana: Query Logs, Metrics, Traces
 ```
 
 ## Deployment Strategy

@@ -15,7 +15,7 @@ A resilient and reliability-focused unified telemetry platform architected to de
 - **Observability-First:** Full-stack visibility is foundational. Every service implements advanced signals (lag, saturation, pool health) as a project standard.
 - **Infrastructure Abstraction:** Decoupling plumbing from logic. Shared "Pure Wrappers" handle connection and OTel complexity, allowing services to focus strictly on domain value.
 - **GitOps & State Convergence:** Configuration as code with automated reconciliation. Version control is the ultimate source of truth for the environment state.
-- **Hybrid Orchestration:** Utilizing Kubernetes for data persistence and native Systemd for host-level automation and high-performance telemetry.
+- **Hybrid Orchestration:** Utilizing Kubernetes for data persistence and native Systemd for host-level automation.
 
 ---
 
@@ -51,80 +51,53 @@ This section provides a deeper look into the system's structure, components, and
 This diagram shows the high-level flow of data from collection to visualization, highlighting the hybrid orchestration between host services and the Kubernetes data platform.
 
 ```mermaid
-flowchart TD
-    subgraph ObservabilityHub ["Observability Hub Platform Architecture"]
-        subgraph Logic ["1. Ingestion & Logic Domain"]
+flowchart TB
+    subgraph ObservabilityHub ["Observability Hub"]
+        direction TB
+        subgraph Logic ["Data Ingestion"]
             subgraph External ["External Sources"]
-                GHW(GitHub Webhooks)
-                GHJ(GitHub Journals)
+                GH(GitHub Webhooks/Journals)
                 Mongo(MongoDB Atlas)
             end
 
-            subgraph Native ["Native Services"]
-                subgraph Automation ["Automation & Security"]
-                    Gate[Tailscale Gate]
-                    Bao[OpenBao Secret Store]
-                end
-                subgraph GoApps ["Go Applications"]
-                    direction TB
-                    Proxy[Proxy API & GitOps]
-                    RS[Reading Sync Pipeline]
-                    SB[Second Brain Ingest]
-                    Metrics[Metrics Collector]
-                end
+            subgraph Security [Security]
+                Bao[OpenBao]
+                Tailscale[Tailscale]
             end
+
+            GoApps["Go Services (Proxy, Reading Sync, Second Brain)"]
+            Collectors["Collectors (Host Metrics & Tailscale)"]
         end
 
-        subgraph Processing ["2. Telemetry Processing (k3s)"]
-            Alloy[Grafana Alloy]
-            OTEL[OpenTelemetry Collector]
-        end
+        OTEL[OpenTelemetry Collector]
 
-        subgraph Persistence ["3. Persistence Layer (k3s)"]
-            subgraph Signals ["The Big Three (OTel)"]
-                Loki[(Loki - Logs)]
-                Tempo[(Tempo - Traces)]
-                Prometheus[(Prometheus - Scraper & TSDB)]
-                Thanos[(Thanos - History)]
-            end
-            subgraph Storage ["Storage Engines"]
-                S3[(MinIO - S3 Object Store)]
-                PG[(PostgreSQL - Relational)]
-            end
+        Observability["Loki, Tempo, and Prometheus (Thanos)"]
+        subgraph Storage ["Data Engines"]
+            PG[(PostgreSQL)]
+            S3[(MinIO - S3)]
         end
+        
 
-        subgraph Visualization ["4. Visualization"]
+        subgraph Visualization ["Visualization"]
             Grafana[Grafana Dashboards]
         end
     end
 
     %% Data Pipeline Connections
-    GHW -- Webhook --> Proxy
-    GHJ -- Issues --> SB
-    Mongo -- Pull --> RS
-    Metrics -- Data --> PG
-    RS -- Data --> PG
-    SB -- Data --> PG
+    GH --> GoApps
+    Mongo --> GoApps
+    Observability -- "Host Metrics" --> Collectors
+    Tailscale -- "Status" --> Collectors
+    Collectors -- "Host Metrics Data" --> PG
+    GoApps -- Data --> PG
 
-    %% Telemetry Pipeline Connections
-    GoApps -- Logs --> OTEL
-    GoApps -- Metrics --> OTEL
-    GoApps -- Traces --> OTEL
-    Automation -- Logs --> Alloy
-
-    
-    Processing -- Logs --> Signals
-    Processing -- Metrics --> Signals
-    Processing -- Traces --> Signals
-    
-    Signals -- Long-term --> S3
-    
-    %% Internal Metrics Flow
-    Prometheus -- Blocks --> Thanos
-    Thanos -- Query --> Prometheus
+    %% Telemetry Pipeline (OTLP)
+    GoApps & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    OTEL --> Observability
+    Observability -- "Offload" --> S3
 
     %% Visualization Connections
-    Persistence --> Grafana
+    Observability & PG --> Grafana
 ```
 
 ### Component Breakdown
@@ -141,14 +114,13 @@ The platform is split into two logical layers: **Native Host Services** for auto
 | **proxy** | API gateway and **GitOps Webhook listener**. | `services/proxy/` |
 | **reading-sync** | Automated data pipeline syncing MongoDB data to local PostgreSQL. | `services/reading-sync/` |
 | **second-brain** | Ingests atomic thoughts from GitHub journals into PostgreSQL. | `services/second-brain/` |
-| **system-metrics** | Lightweight collector for host hardware telemetry (CPU, Mem, Disk, Net). | `services/system-metrics/` |
 | **tailscale-gate** | Security agent managing public access (Tailscale Funnel) based on Proxy health. | `scripts/` |
 
 #### Data Infrastructure (Kubernetes)
 
 | Service / Component | Responsibility | Location |
 | :------------------ | :------------- | :------- |
-| **Grafana Alloy** | Unified telemetry agent for journal collection and K8s scraping. | `k3s/alloy/` |
+| **Collectors** | Collects Tailscale data from hosts. | `k3s/collectors/` |
 | **Grafana** | Centralized visualization and dashboarding platform. | `k3s/grafana/` |
 | **Grafana Loki** | Log aggregation and query system for the entire stack. | `k3s/loki/` |
 | **MinIO** | S3-compatible object storage for long-term trace and log persistence. | `k3s/minio/` |
@@ -216,7 +188,6 @@ make k3s-prometheus-up
 make k3s-grafana-up
 
 # Deploy telemetry collectors
-make k3s-alloy-up
 make k3s-otel-up
 ```
 
@@ -227,7 +198,6 @@ Build and initialize the automation and telemetry collectors on the host:
 ```bash
 # Build Go binaries
 make proxy-build
-make metrics-build
 make reading-build
 
 # Install and start Systemd services (requires sudo)
@@ -242,8 +212,8 @@ make brain-sync
 Once the stack is running, you can verify the end-to-end telemetry flow:
 
 - **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
-- **Service Logs:** Check logs for host components using `journalctl -u proxy -f`.
-- **System Metrics:** Verify hardware telemetry is reaching PostgreSQL via the Homelab dashboard.
+- **Service Logs:** Check logs for host components via Grafana Loki.
+
 - **Knowledge Sync:** Manually trigger a Second Brain ingestion with `make brain-sync`.
 
 ### 4. Managing the Cluster

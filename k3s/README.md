@@ -8,7 +8,7 @@ For detailed operational procedures, including deployment commands, image sidelo
 
 ## 📂 Directory Structure
 
-- **alloy/**: Alloy DaemonSet for host-level telemetry.
+- **collectors/**: Unified Host Telemetry Collector.
 - **grafana/**: Visualization layer with persistence.
 - **loki/**: Log storage and indexing.
 - **minio/**: S3-compatible object storage for trace persistence.
@@ -16,4 +16,5 @@ For detailed operational procedures, including deployment commands, image sidelo
 - **postgres/**: Relational data store (TimescaleDB/PostGIS).
 - **prometheus/**: Time-series storage for infrastructure metrics.
 - **tempo/**: Distributed trace storage.
+- **thanos/**: Long-term Metrics Access.
 - **namespace.yaml**: Core isolation boundary for the stack.

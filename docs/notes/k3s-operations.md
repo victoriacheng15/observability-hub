@@ -6,19 +6,34 @@ This guide details the procedures for managing the observability stack within th
 
 ## 🚀 Component Management
 
-### 1. Alloy (Telemetry Collector)
+### Collectors (Unified Host Telemetry)
 
-- **Manifest**: `k3s/alloy/manifest.yaml`
-- **Values**: `k3s/alloy/values.yaml`
+- **Manifest**: `k3s/collectors/manifest.yaml`
+- **Values**: `k3s/collectors/values.yaml`
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template alloy grafana/alloy -f k3s/alloy/values.yaml --namespace observability > k3s/alloy/manifest.yaml"
-  kubectl apply -f k3s/alloy/manifest.yaml
-  kubectl rollout restart daemonset alloy -n observability
+  nix-shell --run "helm template collectors k3s/collectors -f k3s/collectors/values.yaml --namespace observability > k3s/collectors/manifest.yaml"
+  kubectl apply -f k3s/collectors/manifest.yaml
+  kubectl rollout restart daemonset collectors -n observability
   ```
 
-### 2. Grafana (Visualization)
+- **Local Image Sideloading**:
+  Since this is a custom internal service, the image must be built and sideloaded into k3s.
+
+```bash
+# 1. Build locally
+docker build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
+
+# 2. Export and Import
+docker save -o collectors.tar collectors:v0.1.0
+sudo k3s ctr images import collectors.tar
+
+# 3. Cleanup
+rm collectors.tar
+```
+
+### Grafana (Visualization)
 
 - **Manifest**: `k3s/grafana/manifest.yaml`
 - **Values**: `k3s/grafana/values.yaml`
@@ -30,7 +45,7 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment grafana -n observability
   ```
 
-### 3. Loki (Log Store)
+### Loki (Log Store)
 
 - **Manifest**: `k3s/loki/manifest.yaml`
 - **Values**: `k3s/loki/values.yaml`
@@ -48,7 +63,7 @@ This guide details the procedures for managing the observability stack within th
   - Requires `-config.expand-env=true` flag (configured in `global.extraArgs`)
   - Secret is injected via `global.extraEnvFrom` in values.yaml
 
-### 4. OpenTelemetry (Collector)
+### OpenTelemetry (Collector)
 
 - **Manifest**: `k3s/opentelemetry/manifest.yaml`
 - **Values**: `k3s/opentelemetry/values.yaml`
@@ -60,7 +75,7 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment opentelemetry -n observability
   ```
 
-### 5. MinIO (S3 Storage Backend)
+### MinIO (S3 Storage Backend)
 
 - **Manifest**: `k3s/minio/manifest.yaml`
 - **Values**: `k3s/minio/values.yaml`
@@ -72,7 +87,7 @@ This guide details the procedures for managing the observability stack within th
   kubectl rollout restart deployment minio -n observability
   ```
 
-### 6. PostgreSQL (Relational Data)
+### PostgreSQL (Relational Data)
 
 - **Manifest**: `k3s/postgres/manifest.yaml`
 - **Values**: `k3s/postgres/values.yaml`
@@ -102,7 +117,7 @@ sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:1
 rm postgres-pod.tar
 ```
 
-### 7. Prometheus (Metrics Store)
+### Prometheus (Metrics Store)
 
 - **Manifest**: `k3s/prometheus/manifest.yaml`
 - **Values**: `k3s/prometheus/values.yaml`
@@ -114,7 +129,7 @@ rm postgres-pod.tar
   kubectl rollout restart deployment prometheus-server -n observability
   ```
 
-### 8. Grafana Tempo (Trace Store)
+### Grafana Tempo (Trace Store)
 
 - **Manifest**: `k3s/tempo/manifest.yaml`
 - **Values**: `k3s/tempo/values.yaml`
@@ -126,7 +141,7 @@ rm postgres-pod.tar
   kubectl rollout restart statefulset tempo -n observability
   ```
 
-### 9. Thanos Store Gateway (Long-term Metrics Storage)
+### Thanos Store Gateway (Long-term Metrics Storage)
 
 - **Manifest**: `k3s/thanos/manifest.yaml`
 - **Values**: `k3s/thanos/values.yaml`
@@ -152,7 +167,7 @@ rm postgres-pod.tar
 
 | Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **alloy** | 10m | 64Mi | 200m | 256Mi | Telemetry Collection |
+| **collectors** | 10m | 40Mi | 100m | 80Mi | Telemetry Collection |
 | **grafana** | 10m | 64Mi | 100m | 128Mi | Visualization |
 | **loki** | 100m | 256Mi | 300m | 640Mi | Log Storage |
 | **minio** | 100m | 256Mi | 200m | 512Mi | S3 Storage Backend |
@@ -164,8 +179,8 @@ rm postgres-pod.tar
 
 **Understanding Usage Totals:**
 
-- **Mini Total (740m CPU / 2.496Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (2.15 Cores / 4.128Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (740m CPU / 2.12Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (2.05 Cores / 4.18Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 

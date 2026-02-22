@@ -6,7 +6,7 @@ The Observability Hub leverages **Systemd** not just for process management, but
 
 - **Resilience through Decoupling**: Critical infrastructure (like GitOps and Security Gates) runs as native Systemd services to avoid "circular dependencies." This ensures the system can self-heal even if the Kubernetes runtime is unresponsive.
 - **Event-Driven Automation**: We prioritize webhooks over polling. By using the Proxy as an entry point, we trigger reconciliation only when changes actually occur, reducing CPU/Network overhead.
-- **Unified Logging Standard**: All services (Go binaries and Bash scripts) emit JSON-formatted logs to `stdout`. This creates a high-fidelity observability pipeline managed by `journald` and **Alloy**.
+- **Unified Observability Standard**: All services follow an OpenTelemetry-first approach. By emitting structured logs, metrics, and traces directly, we ensure a unified high-fidelity pipeline handled by the OTel Collector.
 
 ## Service Inventory
 
@@ -18,7 +18,6 @@ The system consists of several main service families, each with a `.service` uni
 | **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
 | **`gitops-sync`** | `oneshot` | **Webhook** | **Reconciliation**: Triggered by Proxy to pull latest code and apply changes. |
 | **`reading-sync`** | `oneshot` | Twice Daily (00:00, 12:00) | **Data Pipeline Trigger**: Calls Proxy API to sync MongoDB data to Postgres. |
-| **`system-metrics`** | `oneshot` | Every 1 min | **Telemetry**: Collects host hardware stats and flushes them to the database. |
 
 ## Operational Excellence
 
@@ -26,7 +25,7 @@ Our systemd configurations employ several production-grade patterns:
 
 - **Security Gating**: The `tailscale-gate` service implements a loop that ensures the public entry point (Funnel) is automatically closed if the underlying `proxy` service stops, preventing "dead" endpoints from being exposed.
 - **Persistence (`Persistent=true`)**: Used in `reading-sync`. If the host is powered off during the scheduled time, systemd will trigger the service immediately upon the next boot.
-- **Unified Logging**: All units output JSON-formatted logs to `stdout`, which are captured by `journald` and enriched with system metadata.
+- **Unified Observability**: All units emit logs, metrics, and traces, which are captured, enriched, and forwarded by the host-level OpenTelemetry Collector.
 
 ## Architectural Patterns
 
@@ -37,25 +36,21 @@ For GitOps, we transitioned from polling (timers) to event-driven triggers. This
 ```mermaid
 sequenceDiagram
     participant GitHub
-    participant Proxy as Go Proxy (Systemd)
+    participant Proxy as Go Proxy
     participant Script as gitops_sync.sh
-    participant Journal as Journald
 
     GitHub->>Proxy: POST /api/webhook/gitops
     Proxy->>Proxy: Verify Signature & Event
     Proxy->>Script: Execute Background Task
-    Script->>Journal: Log Sync Progress (JSON)
+    Note over Script, Proxy: Logs, Metrics, and Traces collected by OTel
     Proxy-->>GitHub: 202 Accepted
 ```
 
-### 2. Logging & Observability Integration
+### 2. Observability Integration
 
-Unlike traditional "write to file" approaches, our systemd units write strictly to `stdout`/`stderr`. This creates a unified pipeline:
+For a detailed explanation of the unified logging, metrics, and tracing data flow, please refer to the [Data Flow: Unified Observability diagram in the Deployment Model documentation](../infrastructure/deployment.md#data-flow-unified-observability).
 
-1. **Emission**: Service writes to `stdout`.
-2. **Capture**: `journald` captures the stream and adds metadata (timestamp, unit name, PID).
-3. **Collection**: **Alloy** (configured as a Kubernetes DaemonSet) tails the host journal.
-4. **Ingestion**: Alloy pushes logs to Loki for visualization in Grafana.
+Briefly, all systemd units are configured to emit telemetry (logs, metrics, traces) via OTLP. These are collected and forwarded by a host-level OpenTelemetry Collector instance to the observability backend.
 
 ## Configuration Structure
 

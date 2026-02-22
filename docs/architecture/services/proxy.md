@@ -29,7 +29,7 @@ This endpoint enables event-driven deployment.
 1. **Verify**: Validates the `X-Hub-Signature-256` header using the `GITHUB_WEBHOOK_SECRET`.
 2. **Filter**: Inspects the `X-GitHub-Event` and JSON payload to ensure the change is a **Push** to `main` or a **Merged PR** targeting `main`.
 3. **Trigger**: Executes the local `scripts/gitops_sync.sh` script in the background.
-4. **Log**: Broadcasts success/failure details to the system journal for observability.
+4. **Log**: Broadcasts success/failure details to the OpenTelemetry Collector for observability.
 
 ## Distributed Tracing
 
