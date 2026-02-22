@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: k3s-alloy-up k3s-grafana-up k3s-loki-up k3s-minio-up k3s-otel-up k3s-postgres-up k3s-prometheus-up k3s-tempo-up k3s-thanos-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: k3s-alloy-up k3s-collectors-up k3s-grafana-up k3s-loki-up k3s-minio-up k3s-otel-up k3s-postgres-up k3s-prometheus-up k3s-tempo-up k3s-thanos-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 # Maintenance
 kube-lint:
@@ -24,6 +24,13 @@ k3s-alloy-up:
 	@echo "Deploying Alloy..."
 	@$(KC) apply -f k3s/alloy/manifest.yaml
 	@$(KC) rollout restart daemonset/alloy
+
+k3s-collectors-up:
+	@echo "Regenerating Collectors manifest..."
+	$(NIX_RUN) "helm template collectors k3s/collectors -f k3s/collectors/values.yaml --namespace $(NS) > k3s/collectors/manifest.yaml"
+	@echo "Deploying Collectors..."
+	@$(KC) apply -f k3s/collectors/manifest.yaml
+	@$(KC) rollout restart daemonset/collectors
 
 k3s-grafana-up:
 	@echo "Regenerating Grafana manifest..."

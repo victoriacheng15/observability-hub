@@ -1,0 +1,66 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/template/spec/containers/-",
+    "value": {
+      "name": "thanos-sidecar",
+      "image": "quay.io/thanos/thanos:v0.32.2",
+      "args": [
+        "sidecar",
+        "--tsdb.path=/data",
+        "--grpc-address=0.0.0.0:10901",
+        "--http-address=0.0.0.0:10902",
+        "--prometheus.url=http://localhost:9090",
+        "--objstore.config-file=/etc/thanos/objstore.yml"
+      ],
+      "ports": [
+        {
+          "name": "grpc",
+          "containerPort": 10901
+        },
+        {
+          "name": "http",
+          "containerPort": 10902
+        }
+      ],
+      "volumeMounts": [
+        {
+          "name": "storage-volume",
+          "mountPath": "/data"
+        },
+        {
+          "name": "thanos-objstore-config",
+          "mountPath": "/etc/thanos",
+          "readOnly": true
+        }
+      ],
+      "securityContext": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        },
+        "privileged": false,
+        "readOnlyRootFilesystem": true,
+        "runAsGroup": 1001,
+        "runAsNonRoot": true,
+        "runAsUser": 1001,
+        "seLinuxOptions": {},
+        "seccompProfile": {
+          "type": "RuntimeDefault"
+        }
+      },
+      "resources": {
+        "limits": {
+          "cpu": "150m",
+          "memory": "192Mi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "128Mi"
+        }
+      }
+    }
+  }
+]

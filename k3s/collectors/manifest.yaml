@@ -1,0 +1,81 @@
+---
+# Source: collectors/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: collectors
+  labels:
+    helm.sh/chart: collectors-0.1.0
+    app.kubernetes.io/name: collectors
+    app.kubernetes.io/instance: collectors
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: collectors
+      app.kubernetes.io/instance: collectors
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: collectors
+        app.kubernetes.io/instance: collectors
+    spec:
+      securityContext:
+        {}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: collectors
+          securityContext:
+            {}
+          image: "collectors:v0.1.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: THANOS_URL
+              value: "http://thanos-query.observability:9090"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "opentelemetry.observability.svc.cluster.local:4317"
+            - name: DB_HOST
+              value: postgres-postgresql.observability.svc.cluster.local
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: server
+            - name: DB_NAME
+              value: homelab
+            - name: SERVER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: server-db-password
+                  name: postgres-secret
+          resources:
+            limits:
+              cpu: 100m
+              memory: 80Mi
+            requests:
+              cpu: 10m
+              memory: 40Mi
+          volumeMounts:
+            - name: tailscale-sock
+              mountPath: /var/run/tailscale/tailscaled.sock
+              readOnly: true
+            - name: host-hostname
+              mountPath: /etc/host_hostname
+              readOnly: true
+            - name: host-os-release
+              mountPath: /etc/host_os-release
+              readOnly: true
+      volumes:
+        - name: tailscale-sock
+          hostPath:
+            path: /var/run/tailscale/tailscaled.sock
+            type: Socket
+        - name: host-hostname
+          hostPath:
+            path: /etc/hostname
+            type: File
+        - name: host-os-release
+          hostPath:
+            path: /etc/os-release
+            type: File
