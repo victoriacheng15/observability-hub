@@ -1,0 +1,17 @@
+[
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/args",
+    "value": [
+      "query",
+      "--log.level=info",
+      "--log.format=logfmt",
+      "--grpc-address=0.0.0.0:10901",
+      "--http-address=0.0.0.0:10902",
+      "--query.replica-label=replica",
+      "--endpoint=dnssrv+_grpc._tcp.thanos-storegateway.observability.svc.cluster.local",
+      "--endpoint=dns+prometheus-server.observability.svc.cluster.local:10901",
+      "--alert.query-url=http://thanos-query.observability.svc.cluster.local:9090"
+    ]
+  }
+]

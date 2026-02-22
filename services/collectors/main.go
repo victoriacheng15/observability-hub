@@ -23,15 +23,14 @@ const (
 	step        = "1m"
 )
 
-// PromQL queries from promql-queries.md
+// PromQL queries optimized for Grafana dashboard compatibility
 const (
-	queryCPUUtil   = `100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="kubernetes-service-endpoints"}[5m])))`
-	queryRAMUtil   = `100 * (1 - (node_memory_MemAvailable_bytes{job="kubernetes-service-endpoints"} / node_memory_MemTotal_bytes{job="kubernetes-service-endpoints"}))`
-	queryDiskRead  = `sum by (instance) (rate(node_disk_read_bytes_total{job="kubernetes-service-endpoints"}[5m]))`
-	queryDiskWrite = `sum by (instance) (rate(node_disk_written_bytes_total{job="kubernetes-service-endpoints"}[5m]))`
-	queryNetRecv   = `sum by (instance) (rate(node_network_receive_bytes_total{job="kubernetes-service-endpoints"}[5m]))`
-	queryNetSent   = `sum by (instance) (rate(node_network_transmit_bytes_total{job="kubernetes-service-endpoints"}[5m]))`
-	queryTemp      = `node_hwmon_temp_celsius{job="kubernetes-service-endpoints"}`
+	queryCPUUtil  = `100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="kubernetes-service-endpoints"}[5m])))`
+	queryRAMUtil  = `100 * (1 - (node_memory_MemAvailable_bytes{job="kubernetes-service-endpoints"} / node_memory_MemTotal_bytes{job="kubernetes-service-endpoints"}))`
+	queryDiskUsed = `100 * (1 - node_filesystem_avail_bytes{mountpoint="/", job="kubernetes-service-endpoints"} / node_filesystem_size_bytes{mountpoint="/", job="kubernetes-service-endpoints"})`
+	queryNetRX    = `node_network_receive_bytes_total{device="enp5s0", job="kubernetes-service-endpoints"}`
+	queryNetTX    = `node_network_transmit_bytes_total{device="enp5s0", job="kubernetes-service-endpoints"}`
+	queryTemp     = `node_hwmon_temp_celsius{job="kubernetes-service-endpoints"}`
 )
 
 // ThanosSource defines the interface for fetching metrics from Thanos.
@@ -121,42 +120,72 @@ func (a *App) runBatch(ctx context.Context) {
 	end := time.Now().UTC().Truncate(time.Minute)
 	start := end.Add(-interval)
 
-	telemetry.Info("batch_started", "start", start.Format(time.RFC3339), "end", end.Format(time.RFC3339))
+	// Get Host Metadata directly from mounted host files
+	hostName, osName, err := getHostMetadata()
+	if err != nil {
+		telemetry.Error("host_metadata_detection_failed", "error", err)
+		return
+	}
+
+	telemetry.Info("batch_started", "start", start.Format(time.RFC3339), "end", end.Format(time.RFC3339), "host", hostName, "os", osName)
 
 	// Fetch and Persist Host Metrics
-	a.collectAndStoreHostMetrics(ctx, start, end)
+	a.collectAndStoreHostMetrics(ctx, start, end, hostName, osName)
 
-	// Fetch Tailscale State
+	// Fetch Tailscale State (Logs/Metrics only, no DB)
 	a.collectTailscale(ctx)
 
 	telemetry.Info("batch_complete")
 }
 
-func (a *App) collectAndStoreHostMetrics(ctx context.Context, start, end time.Time) {
-	// 1. Fetch CPU Utilization
-	cpuSamples, _ := a.Thanos.QueryRange(ctx, queryCPUUtil, start, end, step)
+func getHostMetadata() (string, string, error) {
+	// 1. Get Hostname from mounted host file
+	hostnameBytes, err := os.ReadFile("/etc/host_hostname")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read /etc/host_hostname: %w", err)
+	}
+	hostname := strings.TrimSpace(string(hostnameBytes))
 
-	// 2. Fetch Temperatures
-	tempSamples, _ := a.Thanos.QueryRange(ctx, queryTemp, start, end, step)
-
-	// 3. Fetch RAM
-	ramSamples, _ := a.Thanos.QueryRange(ctx, queryRAMUtil, start, end, step)
-
-	// 4. Join and Store
-	type hostTime struct {
-		host string
-		ts   int64
+	// 2. Get OS Name from mounted host os-release
+	osReleaseBytes, err := os.ReadFile("/etc/host_os-release")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read /etc/host_os-release: %w", err)
 	}
 
-	// Merge CPU and Temp
-	cpuData := make(map[hostTime]map[string]interface{})
+	var name, version string
+	lines := strings.Split(string(osReleaseBytes), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "ID=") {
+			name = strings.Trim(strings.TrimPrefix(line, "ID="), "\"")
+		}
+		if strings.HasPrefix(line, "VERSION_ID=") {
+			version = strings.Trim(strings.TrimPrefix(line, "VERSION_ID="), "\"")
+		}
+	}
+	osName := fmt.Sprintf("%s %s", name, version)
+
+	if hostname == "" || name == "" {
+		return "", "", fmt.Errorf("detected host metadata is incomplete")
+	}
+
+	return hostname, osName, nil
+}
+
+func (a *App) collectAndStoreHostMetrics(ctx context.Context, start, end time.Time, hostName, osName string) {
+	// 1. Fetch Samples
+	cpuSamples, _ := a.Thanos.QueryRange(ctx, queryCPUUtil, start, end, step)
+	tempSamples, _ := a.Thanos.QueryRange(ctx, queryTemp, start, end, step)
+	ramSamples, _ := a.Thanos.QueryRange(ctx, queryRAMUtil, start, end, step)
+	diskSamples, _ := a.Thanos.QueryRange(ctx, queryDiskUsed, start, end, step)
+	netRXSamples, _ := a.Thanos.QueryRange(ctx, queryNetRX, start, end, step)
+	netTXSamples, _ := a.Thanos.QueryRange(ctx, queryNetTX, start, end, step)
+
+	// 2. Merge CPU and Temp (Robustly by truncating to minute)
+	type timeKey int64
+	cpuData := make(map[timeKey]map[string]interface{})
 
 	for _, s := range cpuSamples {
-		instance := "unknown"
-		if labels, ok := s.Payload["labels"].(map[string]string); ok {
-			instance = strings.Split(labels["instance"], ":")[0]
-		}
-		key := hostTime{instance, s.Timestamp.Unix()}
+		key := timeKey(s.Timestamp.Truncate(time.Minute).Unix())
 		val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
 		cpuData[key] = map[string]interface{}{
 			"usage":      val,
@@ -165,41 +194,66 @@ func (a *App) collectAndStoreHostMetrics(ctx context.Context, start, end time.Ti
 	}
 
 	for _, s := range tempSamples {
-		labels, ok := s.Payload["labels"].(map[string]string)
-		if !ok {
-			continue
-		}
-		host := strings.Split(labels["instance"], ":")[0]
-		key := hostTime{host, s.Timestamp.Unix()}
-
+		key := timeKey(s.Timestamp.Truncate(time.Minute).Unix())
 		if data, ok := cpuData[key]; ok {
+			labels := s.Payload["labels"].(map[string]string)
 			val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
 			sensor := labels["sensor"]
-			label := labels["label"]
 
-			if strings.Contains(label, "Package") {
+			// If temp1 and from coretemp chip, treat as package
+			if sensor == "temp1" && strings.Contains(labels["chip"], "coretemp") {
 				data["package_temp"] = val
 			} else {
 				coreMap := data["core_temps"].(map[string]float64)
-				coreMap[sensor] = val
+				// Map "tempX" to "core_X" for legacy compatibility (e.g., temp0 -> core_0)
+				coreKey := strings.Replace(sensor, "temp", "core_", 1)
+				coreMap[coreKey] = val
 			}
 		}
 	}
 
-	// Flush Merged CPU
+	// 3. Flush Merged CPU
 	for key, payload := range cpuData {
-		a.Store.RecordMetric(ctx, time.Unix(key.ts, 0), key.host, "Linux (Thanos)", "cpu", payload)
+		a.Store.RecordMetric(ctx, time.Unix(int64(key), 0), hostName, osName, "cpu", payload)
 	}
 
-	// Flush RAM
+	// 4. Flush RAM
 	for _, s := range ramSamples {
-		host := "unknown"
-		if labels, ok := s.Payload["labels"].(map[string]string); ok {
-			host = strings.Split(labels["instance"], ":")[0]
-		}
 		val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
-		payload := map[string]interface{}{"used_percent": val}
-		a.Store.RecordMetric(ctx, s.Timestamp, host, "Linux (Thanos)", "memory", payload)
+		a.Store.RecordMetric(ctx, s.Timestamp, hostName, osName, "memory", map[string]interface{}{"used_percent": val})
+	}
+
+	// 5. Flush Disk (Stored as {"/": {"used_percent": ...}} for Grafana)
+	for _, s := range diskSamples {
+		val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
+		payload := map[string]interface{}{
+			"/": map[string]interface{}{"used_percent": val},
+		}
+		a.Store.RecordMetric(ctx, s.Timestamp, hostName, osName, "disk", payload)
+	}
+
+	// 6. Merge and Flush Network (Stored as {"enp5s0": {"rx_bytes": ..., "tx_bytes": ...}} for Grafana)
+	netData := make(map[timeKey]map[string]interface{})
+	for _, s := range netRXSamples {
+		key := timeKey(s.Timestamp.Truncate(time.Minute).Unix())
+		val, _ := strconv.ParseInt(fmt.Sprintf("%v", s.Payload["value"]), 10, 64)
+		netData[key] = map[string]interface{}{
+			"enp5s0": map[string]interface{}{"rx_bytes": val},
+		}
+	}
+	for _, s := range netTXSamples {
+		key := timeKey(s.Timestamp.Truncate(time.Minute).Unix())
+		val, _ := strconv.ParseInt(fmt.Sprintf("%v", s.Payload["value"]), 10, 64)
+		if n, ok := netData[key]; ok {
+			n["enp5s0"].(map[string]interface{})["tx_bytes"] = val
+		} else {
+			netData[key] = map[string]interface{}{
+				"enp5s0": map[string]interface{}{"tx_bytes": val},
+			}
+		}
+	}
+	for key, payload := range netData {
+		a.Store.RecordMetric(ctx, time.Unix(int64(key), 0), hostName, osName, "network", payload)
 	}
 }
 
@@ -209,9 +263,7 @@ func (a *App) collectTailscale(ctx context.Context) {
 	if err != nil {
 		telemetry.Error("funnel_status_failed", "error", err)
 	} else {
-		if err := a.Store.RecordMetric(ctx, funnel.Fetched, "homelab", "Linux", "tailscale_funnel", funnel); err != nil {
-			telemetry.Error("funnel_db_insert_failed", "error", err)
-		}
+		telemetry.Info("tailscale_funnel_status", "active", funnel.Active, "target", funnel.Target)
 	}
 
 	// 2. Node Status
@@ -219,8 +271,6 @@ func (a *App) collectTailscale(ctx context.Context) {
 	if err != nil {
 		telemetry.Error("tailscale_status_failed", "error", err)
 	} else {
-		if err := a.Store.RecordMetric(ctx, time.Now(), "homelab", "Linux", "tailscale_node", status); err != nil {
-			telemetry.Error("node_status_db_insert_failed", "error", err)
-		}
+		telemetry.Info("tailscale_node_status", "backend_state", status["BackendState"])
 	}
 }

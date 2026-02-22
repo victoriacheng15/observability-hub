@@ -1,0 +1,62 @@
+# Default values for collectors.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: collectors
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v0.1.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+config:
+  thanosUrl: "http://thanos-query.observability:9090"
+  otelEndpoint: "opentelemetry.observability.svc.cluster.local:4317"
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 40Mi
+  limits:
+    cpu: 100m
+    memory: 80Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+hostNetwork: true
+
+
+extraEnv:
+  - name: DB_HOST
+    value: "postgres-postgresql.observability.svc.cluster.local"
+  - name: DB_PORT
+    value: "5432"
+  - name: DB_USER
+    value: "server"
+  - name: DB_NAME
+    value: "homelab"
+  - name: SERVER_DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-secret
+        key: server-db-password

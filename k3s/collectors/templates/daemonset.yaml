@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "collectors.fullname" . }}
+  labels:
+    {{- include "collectors.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "collectors.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "collectors.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: THANOS_URL
+              value: {{ .Values.config.thanosUrl | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.config.otelEndpoint | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tailscale-sock
+              mountPath: /var/run/tailscale/tailscaled.sock
+              readOnly: true
+            - name: host-hostname
+              mountPath: /etc/host_hostname
+              readOnly: true
+            - name: host-os-release
+              mountPath: /etc/host_os-release
+              readOnly: true
+      volumes:
+        - name: tailscale-sock
+          hostPath:
+            path: /var/run/tailscale/tailscaled.sock
+            type: Socket
+        - name: host-hostname
+          hostPath:
+            path: /etc/hostname
+            type: File
+        - name: host-os-release
+          hostPath:
+            path: /etc/os-release
+            type: File
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
