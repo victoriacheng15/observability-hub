@@ -8,7 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
-| **015** | [Unified Host Telemetry Collectors](./015-unified-host-telemetry-collectors.md) | 🟢 Proposed |
+| **015** | [Unified Host Telemetry Collectors](./015-unified-host-telemetry-collectors.md) | 🔵 Accepted |
 | **014** | [Library-First Service Architecture](./014-library-first-service-architecture.md) | 🔵 Accepted |
 | **013** | [Standardize on OpenTelemetry](./013-standardize-on-opentelemetry.md) | 🔵 Accepted |
 | **012** | [Migrate Promtail to Alloy](./012-migrate-promtail-to-alloy.md) | 🔵 Accepted |
