@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -22,6 +23,30 @@ const (
 	interval    = 15 * time.Minute
 	step        = "1m"
 )
+
+var (
+	metricsOnce sync.Once
+	collTotal   telemetry.Int64Counter
+	collErrors  telemetry.Int64Counter
+
+	tailscaleMu     sync.RWMutex
+	tailscaleActive int64
+)
+
+func ensureMetrics() {
+	metricsOnce.Do(func() {
+		meter := telemetry.GetMeter(serviceName)
+		collTotal, _ = telemetry.NewInt64Counter(meter, "collectors.collection.total", "Total collection attempts")
+		collErrors, _ = telemetry.NewInt64Counter(meter, "collectors.collection.errors", "Total collection errors")
+
+		_, _ = telemetry.NewInt64ObservableGauge(meter, "collectors.tailscale.active", "Tailscale Funnel active status", func(ctx context.Context, obs telemetry.Int64Observer) error {
+			tailscaleMu.RLock()
+			obs.Observe(tailscaleActive)
+			tailscaleMu.RUnlock()
+			return nil
+		})
+	})
+}
 
 // PromQL queries optimized for Grafana dashboard compatibility
 const (
@@ -66,6 +91,8 @@ func main() {
 		fmt.Printf("Warning: OTel init failed: %v\n", err)
 	}
 	defer shutdown()
+
+	ensureMetrics()
 
 	// 2. Initialize Secrets & DB
 	secretStore, err := secrets.NewBaoProvider()
@@ -117,6 +144,8 @@ func (a *App) runBatch(ctx context.Context) {
 	ctx, span := tracer.Start(ctx, "job.collect_batch")
 	defer span.End()
 
+	telemetry.AddInt64Counter(ctx, collTotal, 1)
+
 	end := time.Now().UTC().Truncate(time.Minute)
 	start := end.Add(-interval)
 
@@ -124,10 +153,18 @@ func (a *App) runBatch(ctx context.Context) {
 	hostName, osName, err := getHostMetadata()
 	if err != nil {
 		telemetry.Error("host_metadata_detection_failed", "error", err)
+		telemetry.AddInt64Counter(ctx, collErrors, 1)
 		return
 	}
 
 	telemetry.Info("batch_started", "start", start.Format(time.RFC3339), "end", end.Format(time.RFC3339), "host", hostName, "os", osName)
+
+	span.SetAttributes(
+		telemetry.StringAttribute("host", hostName),
+		telemetry.StringAttribute("os", osName),
+		telemetry.StringAttribute("start", start.Format(time.RFC3339)),
+		telemetry.StringAttribute("end", end.Format(time.RFC3339)),
+	)
 
 	// Fetch and Persist Host Metrics
 	a.collectAndStoreHostMetrics(ctx, start, end, hostName, osName)
@@ -262,14 +299,24 @@ func (a *App) collectTailscale(ctx context.Context) {
 	funnel, err := collectors.GetFunnelStatus(ctx)
 	if err != nil {
 		telemetry.Error("funnel_status_failed", "error", err)
+		telemetry.AddInt64Counter(ctx, collErrors, 1)
 	} else {
 		telemetry.Info("tailscale_funnel_status", "active", funnel.Active, "target", funnel.Target)
+
+		tailscaleMu.Lock()
+		if funnel.Active {
+			tailscaleActive = 1
+		} else {
+			tailscaleActive = 0
+		}
+		tailscaleMu.Unlock()
 	}
 
 	// 2. Node Status
 	status, err := collectors.GetTailscaleStatus(ctx)
 	if err != nil {
 		telemetry.Error("tailscale_status_failed", "error", err)
+		telemetry.AddInt64Counter(ctx, collErrors, 1)
 	} else {
 		telemetry.Info("tailscale_node_status", "backend_state", status["BackendState"])
 	}
