@@ -203,15 +203,15 @@ chapters:
         description: |
           - Completed high-fidelity OpenTelemetry instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
           - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Grafana Tempo storage and Grafana visualization.
-          - Resolved a critical "silent" failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
+          - Resolved a critical 'silent' failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
       - date: "2026-02-13"
         title: "Storage Scalability & Security Hardening"
         description: |
           - Scaled telemetry persistence by migrating from restricted local disks to professional S3-compatible object storage (MinIO), ensuring long-term data reliability.
-          - Established a "Safe-by-Default" infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
+          - Established a 'Safe-by-Default' infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
 
   - title: "Platform Maturity & Reusability"
-    intro: "Evolving the Hub into a modular platform by organizing core logic into reusable 'building blocks' and executable services."
+    intro: "Evolving the Hub into a modular platform by organizing core logic into reusable 'building blocks' and executable services, culminating in a unified, OpenTelemetry-native architecture."
     timeline:
       - date: "2026-02-16"
         title: "Proposal: Modular Library Architecture"
@@ -219,7 +219,7 @@ chapters:
           - name: "ADR 014: Library-First Service Architecture"
             url: "docs/decisions/014-library-first-service-architecture.md"
         description: |
-          - A strategic proposal to organize the platform's core features into reusable "building blocks." This ensures the system remains reliable and consistent as it grows, allowing new tools to be added easily without duplicating effort.
+          - A strategic proposal to organize the platform's core features into reusable 'building blocks.' This ensures the system remains reliable and consistent as it grows, allowing new tools to be added easily without duplicating effort.
       - date: "2026-02-18"
         title: "Library-First Implementation"
         artifacts:
@@ -235,11 +235,12 @@ chapters:
             url: "docs/notes/opentelemetry.md"
         description: |
           - Transitioned the Go fleet to a standardized 'Pure Wrapper' architecture, enabling native OpenTelemetry support and advanced operational visibility across all services.
-      - date: "2026-02-21"
-        title: "Unified Host Telemetry Collectors"
+      - date: "2026-02-22"
+        title: "Unified Host Telemetry Collectors & Grafana Alloy Retirement"
         artifacts:
           - name: "ADR 015: Unified Host Telemetry Collectors"
             url: "docs/decisions/015-unified-host-telemetry-collectors.md"
         description: |
-          - Proposed consolidating host-level telemetry (CPU, RAM, Disk, Network, Temperature, and Tailscale) into a single, efficient Go service.
-          - Aimed at significant memory reduction by retiring standalone agents and optimizing data collection for long-term FinOps analysis.
+          - Deployed a resource-efficient Collectors service, centralizing host-level data collection and optimizing processing with batch processing.
+          - Achieved significant cost savings and improved system performance by retiring Alloy, resulting in an 80% reduction in idle resource consumption and freeing up ~50% of reserved CPU and ~65% of reserved memory.
+          - Established a modern, OpenTelemetry-native platform, delivering a robust and standardized solution for comprehensive system observability (logs, metrics, traces).
