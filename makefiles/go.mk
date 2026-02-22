@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = page pkg/brain pkg/collectors pkg/db pkg/env pkg/metrics pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain services/system-metrics
+GO_DIRS = page pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain
 
 .PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build reading-build proxy-build brain-sync
 

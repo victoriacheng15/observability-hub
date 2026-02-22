@@ -126,6 +126,25 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `db_connected`, `collection_complete`, `db_insert_failed`, `otel_init_failed`
 
+### 5. Host Collectors Service
+
+**Metrics:**
+
+- `collectors.collection.total`: Counter
+- `collectors.collection.errors`: Counter
+- `collectors.tailscale.active`: Gauge
+
+**Traces:**
+
+- `job.collect_batch`: Root Span
+- `db.postgres.ensure_system_metrics`: Child Span
+- `db.postgres.record_metric`: Child Span
+- `host`, `os`, `start`, `end`: Attributes
+
+**Logs:**
+
+- `service_started`, `batch_started`, `batch_complete`, `tailscale_funnel_status`, `tailscale_node_status`, `host_metadata_detection_failed`, `funnel_status_failed`, `tailscale_status_failed`
+
 ---
 
 ## 5. Operational Commands
