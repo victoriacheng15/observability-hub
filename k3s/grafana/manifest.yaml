@@ -284,10 +284,10 @@ spec:
           resources:
             limits:
               cpu: 100m
-              memory: 128Mi
+              memory: 250Mi
             requests:
               cpu: 10m
-              memory: 64Mi
+              memory: 150Mi
           volumeMounts:
             - name: storage
               mountPath: "/var/lib/grafana"

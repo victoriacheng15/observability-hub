@@ -454,11 +454,11 @@ spec:
               scheme: HTTP
           resources:
             limits:
-              cpu: 200m
-              memory: 512Mi
+              cpu: 50m
+              memory: 150Mi
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 10m
+              memory: 50Mi
           volumeMounts:
             - name: objstore-config
               mountPath: /conf

@@ -51,11 +51,11 @@ spec:
                   name: postgres-secret
           resources:
             limits:
-              cpu: 100m
+              cpu: 50m
               memory: 80Mi
             requests:
-              cpu: 10m
-              memory: 40Mi
+              cpu: 5m
+              memory: 20Mi
           volumeMounts:
             - name: tailscale-sock
               mountPath: /var/run/tailscale/tailscaled.sock
