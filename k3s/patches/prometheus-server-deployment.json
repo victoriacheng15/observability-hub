@@ -1,0 +1,260 @@
+{
+    "apiVersion": "apps/v1",
+    "kind": "Deployment",
+    "metadata": {
+        "annotations": {
+            "deployment.kubernetes.io/revision": "16",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/name\":\"prometheus\",\"app.kubernetes.io/part-of\":\"prometheus\",\"app.kubernetes.io/version\":\"v3.9.1\",\"helm.sh/chart\":\"prometheus-28.9.1\"},\"name\":\"prometheus-server\",\"namespace\":\"observability\"},\"spec\":{\"replicas\":1,\"revisionHistoryLimit\":3,\"selector\":{\"matchLabels\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/name\":\"prometheus\"}},\"strategy\":{\"rollingUpdate\":null,\"type\":\"Recreate\"},\"template\":{\"metadata\":{\"labels\":{\"app.kubernetes.io/component\":\"server\",\"app.kubernetes.io/instance\":\"prometheus\",\"app.kubernetes.io/name\":\"prometheus\",\"app.kubernetes.io/part-of\":\"prometheus\",\"app.kubernetes.io/version\":\"v3.9.1\",\"helm.sh/chart\":\"prometheus-28.9.1\"}},\"spec\":{\"containers\":[{\"args\":[\"--watched-dir=/etc/config\",\"--listen-address=0.0.0.0:8080\",\"--reload-url=http://127.0.0.1:9090/-/reload\"],\"image\":\"quay.io/prometheus-operator/prometheus-config-reloader:v0.89.0\",\"imagePullPolicy\":\"IfNotPresent\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":\"metrics\",\"scheme\":\"HTTP\"},\"initialDelaySeconds\":2,\"periodSeconds\":10},\"name\":\"prometheus-server-configmap-reload\",\"ports\":[{\"containerPort\":8080,\"name\":\"metrics\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":\"metrics\",\"scheme\":\"HTTP\"},\"periodSeconds\":10},\"volumeMounts\":[{\"mountPath\":\"/etc/config\",\"name\":\"config-volume\",\"readOnly\":true}]},{\"args\":[\"--config.file=/etc/config/prometheus.yml\",\"--storage.tsdb.path=/data\",\"--web.console.libraries=/etc/prometheus/console_libraries\",\"--web.console.templates=/etc/prometheus/consoles\",\"--web.enable-lifecycle\",\"--storage.tsdb.retention.time=24h\",\"--web.enable-remote-write-receiver\"],\"image\":\"quay.io/prometheus/prometheus:v3.9.1\",\"imagePullPolicy\":\"IfNotPresent\",\"livenessProbe\":{\"failureThreshold\":3,\"httpGet\":{\"path\":\"/-/healthy\",\"port\":9090,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":30,\"periodSeconds\":15,\"successThreshold\":1,\"timeoutSeconds\":10},\"name\":\"prometheus-server\",\"ports\":[{\"containerPort\":9090}],\"readinessProbe\":{\"failureThreshold\":3,\"httpGet\":{\"path\":\"/-/ready\",\"port\":9090,\"scheme\":\"HTTP\"},\"initialDelaySeconds\":30,\"periodSeconds\":5,\"successThreshold\":1,\"timeoutSeconds\":4},\"resources\":{\"limits\":{\"cpu\":\"300m\",\"memory\":\"768Mi\"},\"requests\":{\"cpu\":\"100m\",\"memory\":\"512Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true,\"runAsGroup\":65534,\"runAsNonRoot\":true,\"runAsUser\":65534},\"volumeMounts\":[{\"mountPath\":\"/etc/config\",\"name\":\"config-volume\"},{\"mountPath\":\"/data\",\"name\":\"storage-volume\",\"subPath\":\"\"},{\"mountPath\":\"/tmp\",\"name\":\"tmp\"}]}],\"dnsPolicy\":\"ClusterFirst\",\"enableServiceLinks\":true,\"securityContext\":{\"fsGroup\":65534,\"runAsGroup\":65534,\"runAsNonRoot\":true,\"runAsUser\":65534},\"serviceAccountName\":\"prometheus-server\",\"terminationGracePeriodSeconds\":300,\"volumes\":[{\"configMap\":{\"name\":\"prometheus-server\"},\"name\":\"config-volume\"},{\"name\":\"thanos-objstore-config\",\"secret\":{\"items\":[{\"key\":\"object-storage.yaml\",\"path\":\"objstore.yml\"}],\"secretName\":\"minio-thanos-secret\"}},{\"emptyDir\":{},\"name\":\"tmp\"},{\"name\":\"storage-volume\",\"persistentVolumeClaim\":{\"claimName\":\"prometheus-server\"}}]}}}}\n"
+        },
+        "creationTimestamp": "2026-02-13T02:06:24Z",
+        "generation": 18,
+        "labels": {
+            "app.kubernetes.io/component": "server",
+            "app.kubernetes.io/instance": "prometheus",
+            "app.kubernetes.io/name": "prometheus",
+            "app.kubernetes.io/part-of": "prometheus",
+            "app.kubernetes.io/version": "v3.9.1",
+            "helm.sh/chart": "prometheus-28.9.1"
+        },
+        "name": "prometheus-server",
+        "namespace": "observability",
+        "resourceVersion": "1344247",
+        "uid": "4c64ed9d-1a2c-46f3-9146-2e941d28de30"
+    },
+    "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 3,
+        "selector": {
+            "matchLabels": {
+                "app.kubernetes.io/component": "server",
+                "app.kubernetes.io/instance": "prometheus",
+                "app.kubernetes.io/name": "prometheus"
+            }
+        },
+        "strategy": {
+            "type": "Recreate"
+        },
+        "template": {
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": "2026-02-21T22:58:20Z"
+                },
+                "labels": {
+                    "app.kubernetes.io/component": "server",
+                    "app.kubernetes.io/instance": "prometheus",
+                    "app.kubernetes.io/name": "prometheus",
+                    "app.kubernetes.io/part-of": "prometheus",
+                    "app.kubernetes.io/version": "v3.9.1",
+                    "helm.sh/chart": "prometheus-28.9.1"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "args": [
+                            "--watched-dir=/etc/config",
+                            "--listen-address=0.0.0.0:8080",
+                            "--reload-url=http://127.0.0.1:9090/-/reload"
+                        ],
+                        "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.89.0",
+                        "imagePullPolicy": "IfNotPresent",
+                        "livenessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/healthz",
+                                "port": "metrics",
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 2,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 1
+                        },
+                        "name": "prometheus-server-configmap-reload",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "name": "metrics",
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/healthz",
+                                "port": "metrics",
+                                "scheme": "HTTP"
+                            },
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 1
+                        },
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/etc/config",
+                                "name": "config-volume",
+                                "readOnly": true
+                            }
+                        ]
+                    },
+                    {
+                        "args": [
+                            "--config.file=/etc/config/prometheus.yml",
+                            "--storage.tsdb.path=/data",
+                            "--web.console.libraries=/etc/prometheus/console_libraries",
+                            "--web.console.templates=/etc/prometheus/consoles",
+                            "--web.enable-lifecycle",
+                            "--storage.tsdb.retention.time=24h",
+                            "--web.enable-remote-write-receiver"
+                        ],
+                        "image": "quay.io/prometheus/prometheus:v3.9.1",
+                        "imagePullPolicy": "IfNotPresent",
+                        "livenessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/-/healthy",
+                                "port": 9090,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "periodSeconds": 15,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 10
+                        },
+                        "name": "prometheus-server",
+                        "ports": [
+                            {
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/-/ready",
+                                "port": 9090,
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "periodSeconds": 5,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 4
+                        },
+                        "resources": {
+                            "limits": {
+                                "cpu": "300m",
+                                "memory": "768Mi"
+                            },
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "512Mi"
+                            }
+                        },
+                        "securityContext": {
+                            "allowPrivilegeEscalation": false,
+                            "capabilities": {
+                                "drop": [
+                                    "ALL"
+                                ]
+                            },
+                            "readOnlyRootFilesystem": true,
+                            "runAsGroup": 65534,
+                            "runAsNonRoot": true,
+                            "runAsUser": 65534
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/etc/config",
+                                "name": "config-volume"
+                            },
+                            {
+                                "mountPath": "/data",
+                                "name": "storage-volume"
+                            },
+                            {
+                                "mountPath": "/tmp",
+                                "name": "tmp"
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "enableServiceLinks": true,
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                    "fsGroup": 65534,
+                    "runAsGroup": 65534,
+                    "runAsNonRoot": true,
+                    "runAsUser": 65534
+                },
+                "serviceAccount": "prometheus-server",
+                "serviceAccountName": "prometheus-server",
+                "terminationGracePeriodSeconds": 300,
+                "volumes": [
+                    {
+                        "configMap": {
+                            "defaultMode": 420,
+                            "name": "prometheus-server"
+                        },
+                        "name": "config-volume"
+                    },
+                    {
+                        "name": "thanos-objstore-config",
+                        "secret": {
+                            "defaultMode": 420,
+                            "items": [
+                                {
+                                    "key": "object-storage.yaml",
+                                    "path": "objstore.yml"
+                                }
+                            ],
+                            "secretName": "minio-thanos-secret"
+                        }
+                    },
+                    {
+                        "emptyDir": {},
+                        "name": "tmp"
+                    },
+                    {
+                        "name": "storage-volume",
+                        "persistentVolumeClaim": {
+                            "claimName": "prometheus-server"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "status": {
+        "availableReplicas": 1,
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-02-21T22:58:53Z",
+                "lastUpdateTime": "2026-02-21T22:58:53Z",
+                "message": "Deployment has minimum availability.",
+                "reason": "MinimumReplicasAvailable",
+                "status": "True",
+                "type": "Available"
+            },
+            {
+                "lastTransitionTime": "2026-02-13T02:06:24Z",
+                "lastUpdateTime": "2026-02-21T22:58:53Z",
+                "message": "ReplicaSet \"prometheus-server-747f6cbd6\" has successfully progressed.",
+                "reason": "NewReplicaSetAvailable",
+                "status": "True",
+                "type": "Progressing"
+            }
+        ],
+        "observedGeneration": 18,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "updatedReplicas": 1
+    }
+}

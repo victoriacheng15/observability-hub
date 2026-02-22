@@ -1,8 +1,13 @@
 server:
   revisionHistoryLimit: 3
+  global:
+    external_labels:
+      cluster: homelab
   extraArgs:
     web.enable-remote-write-receiver: null
     storage.tsdb.retention.time: 24h # Shorten local TSDB retention
+    storage.tsdb.min-block-duration: 2h
+    storage.tsdb.max-block-duration: 2h
   resources:
     requests:
       cpu: 100m
@@ -17,6 +22,28 @@ server:
       objectStorageConfig:
         name: minio-thanos-secret # Name of the secret containing MinIO credentials
         key: object-storage.yaml # Key within the secret for Thanos config
+
+  extraContainers:
+    - name: thanos-sidecar
+      image: quay.io/thanos/thanos:v0.32.2
+      args:
+        - sidecar
+        - --tsdb.path=/data
+        - --grpc-address=0.0.0.0:10901
+        - --http-address=0.0.0.0:10902
+        - --prometheus.url=http://localhost:9090
+        - --objstore.config-file=/etc/thanos/objstore.yml
+      ports:
+        - name: grpc
+          containerPort: 10901
+        - name: http
+          containerPort: 10902
+      volumeMounts:
+        - name: storage-volume
+          mountPath: /data
+        - name: thanos-objstore-config
+          mountPath: /etc/thanos
+          readOnly: true
   
   # Hardening server
   containerSecurityContext:
@@ -72,8 +99,25 @@ server:
     size: 10Gi
     storageClass: local-path
 
-  # Extra volumes for readOnlyRootFilesystem compatibility
+  extraServices:
+    - name: prometheus-thanos-grpc
+      ports:
+        - name: grpc
+          protocol: TCP
+          port: 10901
+          targetPort: 10901
+      selector:
+        app.kubernetes.io/component: server
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/instance: prometheus
+
   extraVolumes:
+    - name: thanos-objstore-config
+      secret:
+        secretName: minio-thanos-secret
+        items:
+          - key: object-storage.yaml
+            path: objstore.yml
     - name: tmp
       emptyDir: {}
   extraVolumeMounts:

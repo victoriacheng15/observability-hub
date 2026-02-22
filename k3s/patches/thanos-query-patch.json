@@ -1,0 +1,7 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/template/spec/containers/0/args/-",
+    "value": "--endpoint=dns+prometheus-server.observability.svc.cluster.local:10901"
+  }
+]

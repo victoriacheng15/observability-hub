@@ -106,7 +106,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 				Store:  mockStore,
 			}
 
-			app.collectAndStoreHostMetrics(context.Background(), now.Add(-15*time.Minute), now)
+			app.collectAndStoreHostMetrics(context.Background(), now.Add(-15*time.Minute), now, "test-host", "linux 6.0")
 
 			if len(mockStore.Recorded) != len(tt.expectedMetric) {
 				t.Errorf("expected %d metrics, got %d", len(tt.expectedMetric), len(mockStore.Recorded))
