@@ -106,8 +106,6 @@ flowchart TB
     Observability & PG --> Grafana
 ```
 
-For a detailed breakdown of all implemented components and their responsibilities, please refer to the **[Project Summary](./PROJECT_SUMMARY.md)**.
-
 ---
 
 ## 🏗️ Engineering Principles
