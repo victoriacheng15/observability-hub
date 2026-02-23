@@ -9,6 +9,7 @@ pkgs.mkShell {
     kube-linter
     hclfmt
     action-validator
+    opentofu
   ];
 }
     
