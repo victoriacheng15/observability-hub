@@ -244,47 +244,9 @@ data:
         - __name__
       relabel_configs:
       - action: keep
-        regex: true
-        source_labels:
-        - __meta_kubernetes_service_annotation_prometheus_io_scrape
-      - action: drop
-        regex: true
-        source_labels:
-        - __meta_kubernetes_service_annotation_prometheus_io_scrape_slow
-      - action: replace
-        regex: (https?)
-        source_labels:
-        - __meta_kubernetes_service_annotation_prometheus_io_scheme
-        target_label: __scheme__
-      - action: replace
-        regex: (.+)
-        source_labels:
-        - __meta_kubernetes_service_annotation_prometheus_io_path
-        target_label: __metrics_path__
-      - action: replace
-        regex: (.+?)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        source_labels:
-        - __address__
-        - __meta_kubernetes_service_annotation_prometheus_io_port
-        target_label: __address__
-      - action: labelmap
-        regex: __meta_kubernetes_service_annotation_prometheus_io_param_(.+)
-        replacement: __param_$1
-      - action: labelmap
-        regex: __meta_kubernetes_service_label_(.+)
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
+        regex: prometheus-prometheus-node-exporter
         source_labels:
         - __meta_kubernetes_service_name
-        target_label: service
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: node
     - job_name: kubernetes-service-endpoints-slow
       honor_labels: true
       kubernetes_sd_configs:
@@ -1099,6 +1061,29 @@ spec:
             runAsGroup: 65534
             runAsNonRoot: true
             runAsUser: 65534
+        - name: thanos-sidecar-manual
+          args:
+          - sidecar
+          - --tsdb.path=/data
+          - --grpc-address=0.0.0.0:10901
+          - --http-address=0.0.0.0:10902
+          - --prometheus.url=http://localhost:9090
+          - --objstore.config-file=/etc/thanos/objstore.yml
+          image: quay.io/thanos/thanos:v0.32.2
+          ports:
+          - containerPort: 10901
+            name: grpc
+          - containerPort: 10902
+            name: http
+          securityContext:
+            runAsGroup: 65534
+            runAsUser: 65534
+          volumeMounts:
+          - mountPath: /data
+            name: storage-volume
+          - mountPath: /etc/thanos
+            name: thanos-objstore-config
+            readOnly: true
       dnsPolicy: ClusterFirst
       securityContext:
         fsGroup: 65534

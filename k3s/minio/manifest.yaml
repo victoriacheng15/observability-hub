@@ -555,7 +555,6 @@ spec:
             capabilities:
               drop:
               - ALL
-            enabled: true
             readOnlyRootFilesystem: true      
       volumes:
         - name: export
@@ -608,7 +607,7 @@ spec:
         - name: minio-make-bucket
           image: "quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z"
           securityContext: 
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
           imagePullPolicy: IfNotPresent
           command: [ "/bin/sh", "/config/initialize" ]
           env:
@@ -633,7 +632,7 @@ spec:
         - name: minio-make-user
           image: "quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z"
           securityContext: 
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
           imagePullPolicy: IfNotPresent
           command: [ "/bin/sh", "/config/add-user" ]
           env:

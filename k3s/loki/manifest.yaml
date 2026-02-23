@@ -47,6 +47,13 @@ data:
           insecure: true
           s3forcepathstyle: true
           secret_access_key: ${rootPassword}
+    compactor:
+      compaction_interval: 10m
+      delete_request_store: s3
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+      retention_enabled: true
+      working_directory: /var/loki/compactor
     frontend:
       scheduler_address: ""
       tail_proxy_url: ""
@@ -59,6 +66,11 @@ data:
       query_timeout: 300s
       reject_old_samples: true
       reject_old_samples_max_age: 168h
+      retention_period: 240h
+      retention_stream:
+      - period: 240h
+        priority: 1
+        selector: '{service!=""}'
       split_queries_by_interval: 15m
       volume_enabled: true
     memberlist:
@@ -603,7 +615,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e6c29f1c9362619d301f23fe9903186c0b72c761a6d10e353c8a84de13c36d87
+        checksum/config: 49f35c6984496671f0e22b148bd33f10e48aabfb245fee93d2d88d719b1a027c
         storage/size: "10Gi"
         kubectl.kubernetes.io/default-container: "loki"
       labels:

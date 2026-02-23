@@ -23,6 +23,19 @@ loki:
         index:
           prefix: index_
           period: 24h
+  limits_config:
+    retention_period: 240h
+    retention_stream:
+      - selector: '{service!=""}'
+        priority: 1
+        period: 240h
+  compactor:
+    working_directory: /var/loki/compactor
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+    delete_request_store: s3
   persistence:
     enabled: false
   sidecar:

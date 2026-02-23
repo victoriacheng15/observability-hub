@@ -40,7 +40,7 @@ data:
       reporting_enabled: true
     compactor:
       compaction:
-        block_retention: 24h
+        block_retention: 96h
     distributor:
       receivers:
         jaeger:
@@ -79,6 +79,7 @@ data:
           access_key: ${rootUser}
           secret_key: ${rootPassword}
           insecure: true
+          forcepathstyle: true
         wal:
           path: /var/tempo/wal
     metrics_generator:
@@ -199,7 +200,7 @@ spec:
         app.kubernetes.io/name: tempo
         app.kubernetes.io/instance: tempo
       annotations:
-        checksum/config: cabc7ed062a98f025ada0db6e9926eda85bf4dfdff531e171de99a2dbd088af6
+        checksum/config: 0dc2ad086a15c4df6afb32ed479f457ac16cb7ff26d6745a009ff18288067e24
     spec:
       serviceAccountName: tempo
       automountServiceAccountToken: true

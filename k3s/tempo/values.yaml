@@ -49,7 +49,7 @@ config: |
     reporting_enabled: true
   compactor:
     compaction:
-      block_retention: 24h
+      block_retention: 96h
   distributor:
     receivers:
       jaeger:
@@ -88,6 +88,7 @@ config: |
         access_key: ${rootUser}
         secret_key: ${rootPassword}
         insecure: true
+        forcepathstyle: true
       wal:
         path: /var/tempo/wal
   metrics_generator:
