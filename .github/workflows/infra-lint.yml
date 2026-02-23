@@ -10,6 +10,9 @@ on:
     paths:
       - 'k3s/**'
 
+env:
+  node-version: '24'
+
 jobs:
   kube-linter:
     runs-on: ubuntu-latest
@@ -20,3 +23,32 @@ jobs:
         uses: stackrox/kube-linter-action@v1.0.7
         with:
           directory: k3s
+
+      - name: Collect CI/CD Metrics (kube-linter)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: kube-linter
+
+      - name: Setup Node.js for MongoDB Sender (kube-linter)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (kube-linter)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (kube-linter)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}

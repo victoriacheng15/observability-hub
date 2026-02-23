@@ -18,6 +18,7 @@ on:
 
 env:
   go-version: '1.26'
+  node-version: '24'
 
 jobs:
   vuln-check:
@@ -31,3 +32,32 @@ jobs:
 
       - name: Run govulncheck
         run: make go-vuln-scan
+
+      - name: Collect CI/CD Metrics (vuln-check)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: go-vuln-check
+
+      - name: Setup Node.js for MongoDB Sender (vuln-check)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (vuln-check)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (vuln-check)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}

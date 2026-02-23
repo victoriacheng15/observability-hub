@@ -18,7 +18,7 @@ concurrency:
 
 env:
   go-version: '1.26'
-
+  node-version: '24'
 
 jobs:
   build:
@@ -38,6 +38,35 @@ jobs:
         with:
           path: ./page/dist
 
+      - name: Collect CI/CD Metrics (build)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: gh-build
+
+      - name: Setup Node.js for MongoDB Sender (build)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (build)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (build)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}
+
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -48,3 +77,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4.0.5
+      
+      - name: Collect CI/CD Metrics (deploy)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: gh-deploy
+
+      - name: Setup Node.js for MongoDB Sender (deploy)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (deploy)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (deploy)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}

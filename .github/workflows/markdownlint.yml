@@ -7,6 +7,9 @@ on:
       - '**/*.md'
   workflow_dispatch:
 
+env:
+  node-version: '24'
+
 jobs:
   markdownlint:
     runs-on: ubuntu-latest
@@ -16,3 +19,32 @@ jobs:
         with:
           paths: |
             **/*.md
+
+      - name: Collect CI/CD Metrics (markdownlint)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: markdownlint
+
+      - name: Setup Node.js for MongoDB Sender (markdownlint)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (markdownlint)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (markdownlint)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}

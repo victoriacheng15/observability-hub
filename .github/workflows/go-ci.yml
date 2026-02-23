@@ -16,6 +16,7 @@ on:
   
 env:
   go-version: '1.26'
+  node-version: '24'
 
 jobs:
   lint:
@@ -33,6 +34,35 @@ jobs:
       - name: Run go vet
         run: make go-lint
 
+      - name: Collect CI/CD Metrics (lint)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: go-lint
+
+      - name: Setup Node.js for MongoDB Sender (lint)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (lint)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (lint)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}
+
   test:
     runs-on: ubuntu-latest
     needs: lint
@@ -45,3 +75,32 @@ jobs:
 
       - name: Run tests
         run: make go-test
+
+      - name: Collect CI/CD Metrics (test)
+        id: duration-record
+        if: always()
+        uses: victoriacheng15hub/platform-actions/metrics-collector@v0
+        with:
+          status: ${{ job.status }}
+          workflow-name: ${{ github.workflow }}
+          job-name: go-test
+
+      - name: Setup Node.js for MongoDB Sender (test)
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Install MongoDB Driver (test)
+        run: npm install mongodb
+        working-directory: scripts
+
+      - name: Send CI/CD Metrics to MongoDB (test)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: require('./scripts/send-metrics-to-mongodb').run()
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          MONGODB_COLLECTION_NAME: ${{ secrets.MONGODB_COLLECTION_NAME }}
+          METRICS_DATA: ${{ steps.duration-record.outputs.metrics-data }}
