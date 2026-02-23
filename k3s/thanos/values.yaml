@@ -52,9 +52,12 @@ storegateway:
     size: 2Gi
     storageClass: local-path
 
-# Disable other components (we only want store-gateway)
-querier:
-  enabled: false
+# Configure Thanos Query to locate the Prometheus sidecar
+query:
+  enabled: true
+  dnsDiscovery:
+    sidecarsService: "prometheus-thanos-grpc"
+    sidecarsNamespace: "observability"
 
 queryFrontend:
   enabled: false
@@ -63,7 +66,38 @@ ruler:
   enabled: false
 
 compactor:
-  enabled: false
+  enabled: true
+  retentionResolutionRaw: 20d
+  retentionResolution5m: 40d
+  retentionResolution1h: 60d
+  
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
+    limits:
+      cpu: 50m
+      memory: 150Mi
+
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1000
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+
+  containerSecurityContext:
+    enabled: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: local-path
 
 receive:
   enabled: false

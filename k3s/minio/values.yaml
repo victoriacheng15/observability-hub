@@ -38,7 +38,6 @@ securityContext:
 
 # Deployment Container Security Context
 containerSecurityContext:
-  enabled: true
   readOnlyRootFilesystem: true # Fixed for linter
   allowPrivilegeEscalation: false
   capabilities:
@@ -87,7 +86,7 @@ makeBucketJob:
     runAsUser: 1000
     runAsNonRoot: true
   containerSecurityContext:
-    readOnlyRootFilesystem: true # Fixed for linter
+    readOnlyRootFilesystem: false # Fixed for linter but breaks mc
   resources:
     requests:
       cpu: 10m
@@ -102,7 +101,7 @@ makeUserJob:
     runAsUser: 1000
     runAsNonRoot: true
   containerSecurityContext:
-    readOnlyRootFilesystem: true # Fixed for linter
+    readOnlyRootFilesystem: false # Fixed for linter but breaks mc
   resources:
     requests:
       cpu: 10m

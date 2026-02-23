@@ -17,15 +17,14 @@ server:
       memory: 600Mi
   thanos:
     sidecar:
-      enabled: true
-      image: quay.io/thanos/thanos:v0.32.2 # Use appropriate version
-      objectStorageConfig:
-        name: minio-thanos-secret # Name of the secret containing MinIO credentials
-        key: object-storage.yaml # Key within the secret for Thanos config
+      enabled: false
 
-  extraContainers:
-    - name: thanos-sidecar
+  sidecarContainers:
+    thanos-sidecar-manual:
       image: quay.io/thanos/thanos:v0.32.2
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
       args:
         - sidecar
         - --tsdb.path=/data
@@ -138,6 +137,13 @@ extraScrapeConfigs: |
 # Scrape job configuration for single-node homelab
 scrapeConfigs:
   kubernetes-service-endpoints:
+    job_name: kubernetes-service-endpoints
+    kubernetes_sd_configs:
+      - role: endpoints
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: "prometheus-prometheus-node-exporter"
     metric_relabel_configs:
       - source_labels: [__name__]
         regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|up|scrape_.*"
