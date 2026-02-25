@@ -6,6 +6,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}}{{ .Landing.PageTitle }}{{end}}</title>
+    <meta name="description" content="{{ .Landing.MetaDescription }}">
+    <meta name="keywords" content="{{ .Landing.Keywords }}">
+    <link rel="canonical" href="{{ .Landing.SiteURL }}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ .Landing.SiteURL }}">
+    <meta property="og:title" content="{{ .Landing.PageTitle }}">
+    <meta property="og:description" content="{{ .Landing.MetaDescription }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ .Landing.SiteURL }}">
+    <meta property="twitter:title" content="{{ .Landing.PageTitle }}">
+    <meta property="twitter:description" content="{{ .Landing.MetaDescription }}">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": "{{ .Landing.PageTitle }}",
+      "description": "{{ .Landing.MetaDescription }}",
+      "author": {
+        "@type": "Person",
+        "name": "{{ .Landing.Author.Name }}",
+        "jobTitle": "Software Developer",
+        "url": "{{ .Landing.Author.Linkedin }}",
+        "sameAs": [
+          "{{ .Landing.Author.Github }}",
+          "{{ .Landing.Author.Linkedin }}"
+        ]
+      },
+      "codeRepository": "https://github.com/victoriacheng15/observability-hub",
+      "runtimePlatform": ["Kubernetes", "K3s", "Docker"],
+      "programmingLanguage": ["Go"]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
@@ -145,18 +183,29 @@
             background: var(--bg);
             color: var(--text-muted);
             text-align: center;
-            padding: var(--space-lg) 0;
+            padding: var(--space-xl) 0;
 
             .container {
                 border-top: var(--border-main);
                 padding-top: var(--space-lg);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: var(--space-md);
+            }
+
+            .footer-links {
+                display: flex;
+                gap: var(--space-md);
+                align-items: center;
             }
 
             a {
                 color: var(--text-muted);
                 text-decoration: none;
-                font-weight: 500;
                 transition: color 0.3s;
+                display: flex;
+                align-items: center;
 
                 &:hover {
                     color: var(--primary);
@@ -573,8 +622,15 @@
 
     <footer>
         <div class="container">
-            <p>&copy; {{ .Year }} Victoria Cheng. <a href="https://github.com/victoriacheng15/observability-platform">View Code
-                    on GitHub</a>.</p>
+            <p>&copy; {{ .Year }} {{ .Landing.Author.Name }}</p>
+            <div class="footer-links">
+                <a href="{{ .Landing.Author.Github }}" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                </a>
+                <a href="{{ .Landing.Author.Linkedin }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                </a>
+            </div>
         </div>
     </footer>
 </body>

@@ -19,6 +19,9 @@ import (
 var (
 	removeAll = os.RemoveAll
 	mkdirAll  = os.MkdirAll
+	readDir   = os.ReadDir
+	readFile  = os.ReadFile
+	writeFile = os.WriteFile
 )
 
 // Build generates the static site from srcDir into dstDir.
@@ -49,7 +52,25 @@ func Build(srcDir, dstDir string) error {
 		}
 	}
 
-	// Process Descriptions and Dates for each Chapter
+	// 3. Copy Static Assets
+	staticDir := filepath.Join(srcDir, "static")
+	if entries, err := readDir(staticDir); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				src := filepath.Join(staticDir, entry.Name())
+				dst := filepath.Join(dstDir, entry.Name())
+				content, err := readFile(src)
+				if err != nil {
+					return fmt.Errorf("failed to read static file %s: %w", entry.Name(), err)
+				}
+				if err := writeFile(dst, content, 0644); err != nil {
+					return fmt.Errorf("failed to write static file %s: %w", entry.Name(), err)
+				}
+			}
+		}
+	}
+
+	// 4. Process Descriptions and Dates for each Chapter
 	for ci := range data.Evolution.Chapters {
 		for ei := range data.Evolution.Chapters[ci].Events {
 			event := &data.Evolution.Chapters[ci].Events[ei]

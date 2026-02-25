@@ -1,0 +1,10 @@
+{
+  "id": "observability-hub",
+  "name": "Self-Hosted Observability Hub",
+  "description": "A resilient, self-hosted observability platform engineered for high-fidelity telemetry and GitOps-driven state reconciliation.",
+  "tech_stack": ["Go", "Kubernetes (K3s)", "OpenTelemetry", "OpenTofu", "OpenBao"],
+  "links": {
+    "repository": "https://github.com/victoriacheng15/observability-hub",
+    "deployment": "https://victoriacheng15.github.io/observability-hub"
+  }
+}
