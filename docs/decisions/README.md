@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **016** | [OpenTofu for K3s Service Management](./016-opentofu-k3s-migration.md) | 🟢 Proposed |
 | **015** | [Unified Host Telemetry Collectors](./015-unified-host-telemetry-collectors.md) | 🔵 Accepted |
 | **014** | [Library-First Service Architecture](./014-library-first-service-architecture.md) | 🔵 Accepted |
 | **013** | [Standardize on OpenTelemetry](./013-standardize-on-opentelemetry.md) | 🔵 Accepted |

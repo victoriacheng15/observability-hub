@@ -244,3 +244,15 @@ chapters:
           - Deployed a resource-efficient Collectors service, centralizing host-level data collection and optimizing processing with batch processing.
           - Achieved significant cost savings and improved system performance by retiring Alloy, resulting in an 80% reduction in idle resource consumption and freeing up ~50% of reserved CPU and ~65% of reserved memory.
           - Established a modern, OpenTelemetry-native platform, delivering a robust and standardized solution for comprehensive system observability (logs, metrics, traces).
+
+  - title: "The Terraform Era"
+    intro: "Adopting OpenTofu (Terraform-compatible) to manage Kubernetes workloads as infrastructure-as-code, replacing manual Helm workflows."
+    timeline:
+      - date: "2026-02-25"
+        title: "Proposal: OpenTofu for K3s Service Management"
+        artifacts:
+          - name: "ADR 016: OpenTofu K3s Migration"
+            url: "docs/decisions/016-opentofu-k3s-migration.md"
+        description: |
+          - Proposed adopting OpenTofu to declaratively manage the K3s observability stack, replacing manual Helm workflows with infrastructure-as-code.
+          - Defined a phased migration strategy using tofu import for zero-downtime adoption of live services.
