@@ -1,0 +1,21 @@
+# Observability Hub - Project Overview
+
+A resilient, self-hosted observability platform engineered for high-fidelity telemetry and GitOps-driven state reconciliation.
+
+## Candidate Profile
+- **Developer:** Victoria Cheng (Software Developer)
+- **Specialization:** Distributed Systems, Cloud-Native Orchestration, Observability.
+- **Background:** Transitioned from physical engineering to software development, bringing a rigor for measurement and reliability (Prev at Shopify).
+- **GitHub:** https://github.com/victoriacheng15
+
+## Tech Stack
+- **Language:** Go (1.26+)
+- **Orchestration:** Kubernetes (K3s)
+- **Observability:** OpenTelemetry (Traces, Metrics, Logs), Prometheus, Grafana, Tempo, Loki.
+- **Infrastructure:** OpenTofu (IaC), OpenBao (Secret Management), Systemd (Host Collectors).
+- **Data:** PostgreSQL (TimescaleDB/PostGIS).
+
+## Key Architectural Decisions
+- **Strangler Fig Migration:** Phased migration from Docker-compose/Systemd to Kubernetes (K3s) with zero downtime.
+- **Pure Wrapper Architecture:** Standardized Go libraries for telemetry and DB connections to ensure architectural consistency.
+- **Unified Collectors:** Resource-optimized host-level telemetry reducing idle consumption by 80%.

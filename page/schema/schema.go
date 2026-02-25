@@ -17,11 +17,22 @@ type Hero struct {
 	Cta2Link string `yaml:"cta2_link"`
 }
 
+// Author represents the creator of the site.
+type Author struct {
+	Name     string `yaml:"name"`
+	Github   string `yaml:"github"`
+	Linkedin string `yaml:"linkedin"`
+}
+
 // Landing holds the data for the landing page.
 type Landing struct {
-	PageTitle  string    `yaml:"page_title"`
-	Hero       Hero      `yaml:"hero"`
-	Principles []Feature `yaml:"principles"`
+	PageTitle       string    `yaml:"page_title"`
+	SiteURL         string    `yaml:"site_url"`
+	MetaDescription string    `yaml:"meta_description"`
+	Keywords        string    `yaml:"keywords"`
+	Author          Author    `yaml:"author"`
+	Hero            Hero      `yaml:"hero"`
+	Principles      []Feature `yaml:"principles"`
 }
 
 // Artifact represents a link to an external artifact related to an event.
