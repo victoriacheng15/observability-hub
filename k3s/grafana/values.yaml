@@ -32,11 +32,11 @@ initChownData:
       cpu: 10m
       memory: 150Mi
   securityContext:
-    runAsNonRoot: true
-    runAsUser: 472
+    runAsNonRoot: false
+    runAsUser: 0
     allowPrivilegeEscalation: false
-    # Fix for linter: init containers should also be hardened where possible
-    readOnlyRootFilesystem: true
+    # Needs to be able to chown the data volume
+    readOnlyRootFilesystem: false
     capabilities:
       add:
         - CHOWN

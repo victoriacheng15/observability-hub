@@ -256,3 +256,8 @@ chapters:
         description: |
           - Proposed adopting OpenTofu to declaratively manage the K3s observability stack, replacing manual Helm workflows with infrastructure-as-code.
           - Defined a phased migration strategy using tofu import for zero-downtime adoption of live services.
+      - date: "2026-02-26"
+        title: "OpenTofu Migration: OpenTelemetry & Grafana"
+        description: |
+          - Migrated the OpenTelemetry Collector and Grafana to OpenTofu orchestration.
+          - Validated zero-downtime migration and resolved specific resource security constraints for init containers.
