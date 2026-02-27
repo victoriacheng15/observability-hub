@@ -261,3 +261,8 @@ chapters:
         description: |
           - Migrated the OpenTelemetry Collector and Grafana to OpenTofu orchestration.
           - Validated zero-downtime migration and resolved specific resource security constraints for init containers.
+      - date: "2026-02-27"
+        title: "OpenTofu Migration: MinIO & Prometheus"
+        description: |
+          - Migrated MinIO and Prometheus to OpenTofu orchestration.
+          - Audited persistent volume claims to ensure stateful datasets correctly reconnect to new managed pods.
