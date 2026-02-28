@@ -2,6 +2,7 @@ resource "helm_release" "prometheus" {
   name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus"
+  version    = "28.10.1"
   namespace  = kubernetes_namespace.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/prometheus/values.yaml")]

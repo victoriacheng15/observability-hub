@@ -226,7 +226,7 @@ chapters:
           - name: "ADR 014: Library-First Service Architecture"
             url: "docs/decisions/014-library-first-service-architecture.md"
         description: |
-          - Executed the structural transition of the repository into the standard `pkg/` and `services/` layout.
+          - Executed the structural transition of the repository into the standard 'pkg/' and 'services/' layout.
           - Decoupled core business logic into transport-agnostic modules to improve testability and reuse across platform interfaces.
       - date: "2026-02-20"
         title: "Pure Wrapper Architecture & Advanced OTel"
@@ -266,3 +266,8 @@ chapters:
         description: |
           - Migrated MinIO and Prometheus to OpenTofu orchestration.
           - Audited persistent volume claims to ensure stateful datasets correctly reconnect to new managed pods.
+      - date: "2026-02-28"
+        title: "OpenTofu Migration: Thanos, Loki, & Tempo"
+        description: |
+          - Migrated Thanos, Loki, and Tempo to OpenTofu orchestration.
+          - Verified persistent data integrity and cross-service telemetry discovery.

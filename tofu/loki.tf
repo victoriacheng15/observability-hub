@@ -1,11 +1,11 @@
-resource "helm_release" "grafana" {
-  name       = "grafana"
+resource "helm_release" "loki" {
+  name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
-  chart      = "grafana"
-  version    = "10.5.15"
+  chart      = "loki"
+  version    = "6.53.0"
   namespace  = kubernetes_namespace.observability.metadata[0].name
 
-  values = [file("${path.module}/../k3s/grafana/values.yaml")]
+  values = [file("${path.module}/../k3s/loki/values.yaml")]
 
   depends_on = [kubernetes_namespace.observability]
 }
