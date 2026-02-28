@@ -91,17 +91,27 @@ k3s-logs-%:
 	@$(KC) logs -f $*
 
 # Backup Strategy (Scales down, archives, scales up)
-# This dynamically detects if the resource is a statefulset or deployment.
+# This dynamically detects if the resource is a statefulset or deployment and finds its local-path PVC.
 k3s-backup-%:
 	@RESOURCE=$$( $(KC) get statefulset,deployment -o name | grep "/$*" | head -n 1 ); \
 	if [ -z "$$RESOURCE" ]; then echo "Error: Resource $* not found in namespace $(NS)"; exit 1; fi; \
-	echo "Backing up $$RESOURCE..."; \
+	PVC_NAME=$$( $(KC) get $$RESOURCE -o jsonpath='{.spec.template.spec.volumes[?(@.persistentVolumeClaim)].persistentVolumeClaim.claimName}' ); \
+	if [ -z "$$PVC_NAME" ]; then \
+		PVC_NAME=$$( $(KC) get $$RESOURCE -o jsonpath='{.spec.volumeClaimTemplates[0].metadata.name}' ); \
+	fi; \
+	if [ -z "$$PVC_NAME" ]; then echo "Error: No PVC found for $$RESOURCE"; exit 1; fi; \
+	VOLUME_NAME=$$( $(KC) get pvc $$PVC_NAME -n $(NS) -o jsonpath='{.spec.volumeName}' ); \
+	echo "Backing up $$RESOURCE (PVC: $$PVC_NAME, Volume: $$VOLUME_NAME)..."; \
 	echo "Scaling down..."; \
 	$(KC) scale --replicas=0 $$RESOURCE; \
-	echo "Waiting for termination..."; \
-	sleep 5; \
-	echo "Finding volume path..."; \
-	# Note: Implementation logic for finding PVC path and archiving to be added based on storage strategy. \
-	echo "Archiving data..."; \
+	echo "Waiting for pods to terminate..."; \
+	$(KC) wait --for=delete pod -l $$( $(KC) get $$RESOURCE -o jsonpath='{.spec.selector.matchLabels}' | jq -r 'to_entries | .[] | .key + "=" + .value' | paste -sd "," - ) --timeout=60s || true; \
+	BACKUP_DIR="/home/server/backups/manual"; \
+	sudo mkdir -p $$BACKUP_DIR; \
+	TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	BACKUP_PATH="$$BACKUP_DIR/$*_"$$TIMESTAMP".tar.gz"; \
+	echo "Archiving data from /var/lib/rancher/k3s/storage/ to $$BACKUP_PATH..."; \
+	sudo tar -czf $$BACKUP_PATH -C /var/lib/rancher/k3s/storage/ $$(sudo ls /var/lib/rancher/k3s/storage/ | grep "$$VOLUME_NAME"); \
 	echo "Scaling up..."; \
-	$(KC) scale --replicas=1 $$RESOURCE
+	$(KC) scale --replicas=1 $$RESOURCE; \
+	echo "Backup complete: $$BACKUP_PATH"
