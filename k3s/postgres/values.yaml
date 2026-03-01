@@ -29,7 +29,7 @@ primary:
     enabled: true
     fsGroup: 1001
     fsGroupChangePolicy: Always
-
+                
   containerSecurityContext:
     enabled: true
     readOnlyRootFilesystem: true
@@ -39,7 +39,7 @@ primary:
     capabilities:
       drop:
         - ALL
-
+                
   resources:
     requests:
       cpu: 50m
@@ -47,31 +47,31 @@ primary:
     limits:
       cpu: 200m
       memory: 400Mi
-  
+                  
   persistence:
     enabled: true
     storageClass: local-path
     size: 10Gi
-
+                
   extraVolumes:
     - name: run-volume
       emptyDir: {}
   extraVolumeMounts:
     - name: run-volume
       mountPath: /var/run/postgresql
-  
+                  
   service:
     type: NodePort
     nodePorts:
       postgresql: 30432
-
+                
 readReplicas:
   enabled: false
-
+                
 volumePermissions:
   enabled: true
   image:
-    registry: registry-1.docker.io
+    registry: "registry-1.docker.io"
     repository: bitnami/os-shell
     digest: "sha256:2894a65763cafc20e72a1ed3176cfbcdabaa9cd77655e0c09f8f58852506c7b9"
   resources:

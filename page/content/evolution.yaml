@@ -246,7 +246,7 @@ chapters:
           - Established a modern, OpenTelemetry-native platform, delivering a robust and standardized solution for comprehensive system observability (logs, metrics, traces).
 
   - title: "The Terraform Era"
-    intro: "Adopting OpenTofu (Terraform-compatible) to manage Kubernetes workloads as infrastructure-as-code, replacing manual Helm workflows."
+    intro: "Adopting OpenTofu (Terraform-compatible) to manage Kubernetes (K3s) workloads as infrastructure-as-code, replacing manual Helm workflows."
     timeline:
       - date: "2026-02-25"
         title: "Proposal: OpenTofu for K3s Service Management"
@@ -271,3 +271,10 @@ chapters:
         description: |
           - Migrated Thanos, Loki, and Tempo to OpenTofu orchestration.
           - Verified persistent data integrity and cross-service telemetry discovery.
+      - date: "2026-03-01"
+        title: "Platform Infrastructure: Immutable Orchestration via OpenTofu"
+        artifacts:
+          - name: "ADR 016: OpenTofu K3s Migration"
+            url: "docs/decisions/016-opentofu-k3s-migration.md"
+        description: |
+          - Achieved 100% declarative infrastructure-as-code orchestration via OpenTofu, enabling auditable drift detection and consistent state management across the Kubernetes (K3s) observability stack.
