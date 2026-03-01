@@ -1,7 +1,7 @@
 page_title: "Self-Hosted Observability Hub"
 site_url: "https://victoriacheng15.github.io/observability-hub"
 meta_description: "A self-hosted observability hub demonstrating SRE and Platform Engineering principles through Go, Kubernetes (K3s), and OpenTelemetry."
-keywords: "Observability, SRE, Platform Engineering, Kubernetes (K3s), Go, OpenTelemetry, GitOps, OpenTofu, OpenBao, Victoria Cheng"
+keywords: "Observability, SRE, Platform Engineering, Kubernetes (K3s), Go, OpenTelemetry, GitOps, OpenTofu (Terraform), OpenBao, Victoria Cheng"
 author:
   name: "Victoria Cheng"
   github: "https://github.com/victoriacheng15"
@@ -9,11 +9,13 @@ author:
 hero:
   title: "Monitor What Matters"
   subtitle: "Unified Telemetry & GitOps-Driven State Reconciliation: A Resilient Platform built on SRE and Platform Engineering Principles."
-  cta_text: "See the Evolution"
-  cta_link: "evolution.html"
+  cta_text: "Explore on GitHub"
+  cta_link: "https://github.com/victoriacheng15/observability-hub"
+  secondary_cta_text: "See the Evolution"
+  secondary_cta_link: "evolution.html"
 principles:
   - title: "Observability-First"
-    description: "Full-stack visibility is foundational, with advanced telemetry signals implemented as a project standard."
+    description: "System-wide visibility is foundational, with advanced telemetry signals implemented as a project standard."
     icon: "chart-line"
   - title: "Infrastructure Abstraction"
     description: "Decoupling plumbing from logic via shared 'Pure Wrappers' to focus services on domain value."

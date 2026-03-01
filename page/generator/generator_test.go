@@ -17,8 +17,8 @@ hero:
   subtitle: "Test Subtitle"
   cta_text: "Click Me"
   cta_link: "/test.html"
-  cta2_text: "Click Me 2"
-  cta2_link: "/test2.html"
+  secondary_cta_text: "Click Me 2"
+  secondary_cta_link: "/test2.html"
 principles:
   - title: "Feat 1"
     description: "Desc 1"

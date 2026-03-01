@@ -112,7 +112,7 @@ flowchart TB
 
 Foundational principles guide every aspect of the platform's development and operation:
 
-* **Observability-First:** Full-stack visibility is foundational, with advanced telemetry signals implemented as a project standard.
+* **Observability-First:** System-wide visibility is foundational, with advanced telemetry signals implemented as a project standard.
 * **Infrastructure Abstraction:** Decoupling plumbing from logic via shared "Pure Wrappers" to focus services on domain value.
 * **GitOps & State Convergence:** Configuration as code with automated reconciliation, making version control the ultimate source of truth.
 * **Hybrid Orchestration:** Leveraging Kubernetes for data persistence and native Systemd for host-level automation.
