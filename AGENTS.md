@@ -9,7 +9,7 @@ Agents must distinguish between the two primary orchestration tiers to avoid "ci
 ### 🌌 Hybrid Orchestration Layers
 
 - **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery. Core logic is extracted into `pkg/` libraries to ensure reusability and consistency across different execution triggers (CLI, API, and future AI tools).
-- **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo, MinIO). Orchestrated via IaC in `k3s/`.
+- **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo, MinIO). Orchestrated via **OpenTofu (IaC)** in `tofu/`.
 
 ### 📦 Distribution Pattern
 
@@ -39,6 +39,7 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 | Domain | Command | Description |
 | :--- | :--- | :--- |
 | **Governance** | `make adr` | Creates a new Architecture Decision Record. |
+| **IaC** | `tofu plan` / `apply` | Manages K3s data services and infrastructure state. |
 | **Quality** | `make lint` | Lints markdown and configuration files (`lint-configs`). |
 | **Go Dev** | `make go-test` | Runs full test suite across the monorepo. |
 | **Security** | `make go-vuln-scan` | Executes `govulncheck` for dependency auditing. |
