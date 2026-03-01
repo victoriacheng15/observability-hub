@@ -9,12 +9,12 @@ type Feature struct {
 
 // Hero represents the hero section of the landing page.
 type Hero struct {
-	Title    string `yaml:"title"`
-	Subtitle string `yaml:"subtitle"`
-	CtaText  string `yaml:"cta_text"`
-	CtaLink  string `yaml:"cta_link"`
-	Cta2Text string `yaml:"cta2_text"`
-	Cta2Link string `yaml:"cta2_link"`
+	Title            string `yaml:"title"`
+	Subtitle         string `yaml:"subtitle"`
+	CtaText          string `yaml:"cta_text"`
+	CtaLink          string `yaml:"cta_link"`
+	SecondaryCtaText string `yaml:"secondary_cta_text"`
+	SecondaryCtaLink string `yaml:"secondary_cta_link"`
 }
 
 // Author represents the creator of the site.

@@ -6,6 +6,9 @@
     <p>{{ .Landing.Hero.Subtitle }}</p>
     <div class="hero-actions">
         <a href="{{ .Landing.Hero.CtaLink }}" class="btn">{{ .Landing.Hero.CtaText }}</a>
+        {{if .Landing.Hero.SecondaryCtaText}}
+        <a href="{{ .Landing.Hero.SecondaryCtaLink }}" class="btn btn-secondary">{{ .Landing.Hero.SecondaryCtaText }}</a>
+        {{end}}
     </div>
 </div>
 {{end}}
