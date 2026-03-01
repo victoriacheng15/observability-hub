@@ -1,6 +1,6 @@
 # Observability Hub Architecture
 
-This directory contains the detailed architectural blueprints for the Observability Hub. The system follows a hybrid model, utilizing **Kubernetes (k3s)** for core data services and native Systemd units for host-level automation and data pipelines.
+This directory contains the detailed architectural blueprints for the Observability Hub. The system follows a hybrid model, utilizing **OpenTofu** to manage **Kubernetes (k3s)** core data services and native Systemd units for host-level automation and data pipelines.
 
 ---
 

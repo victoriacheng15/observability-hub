@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: k3s-collectors-up k3s-grafana-up k3s-loki-up k3s-minio-up k3s-otel-up k3s-postgres-up k3s-prometheus-up k3s-tempo-up k3s-thanos-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 # Maintenance
 kube-lint:
@@ -23,63 +23,6 @@ k3s-collectors-up:
 	@echo "Deploying Collectors..."
 	@$(KC) apply -f k3s/collectors/manifest.yaml
 	@$(KC) rollout restart daemonset/collectors
-
-k3s-grafana-up:
-	@echo "Regenerating Grafana manifest..."
-	$(NIX_RUN) "helm template grafana grafana-community/grafana -f k3s/grafana/values.yaml --namespace $(NS) > k3s/grafana/manifest.yaml"
-	@echo "Deploying Grafana..."
-	@$(KC) create configmap grafana-dashboards --namespace $(NS) --from-file=k3s/grafana/dashboards/ --dry-run=client -o yaml | $(KC) apply -f -
-	@$(KC) apply -f k3s/grafana/manifest.yaml
-	@$(KC) rollout restart deployment/grafana
-
-k3s-loki-up:
-	@echo "Regenerating Loki manifest..."
-	$(NIX_RUN) "helm template loki grafana/loki -f k3s/loki/values.yaml --namespace $(NS) > k3s/loki/manifest.yaml"
-	@echo "Deploying Loki..."
-	@$(KC) apply -f k3s/loki/manifest.yaml
-	@$(KC) rollout restart statefulset/loki
-
-k3s-minio-up:
-	@echo "Regenerating MinIO manifest..."
-	$(NIX_RUN) "helm template minio minio/minio -f k3s/minio/values.yaml --namespace observability > k3s/minio/manifest.yaml"
-	@echo "Deploying MinIO..."
-	@$(KC) apply -f k3s/minio/manifest.yaml
-	@$(KC) rollout restart deployment/minio
-
-k3s-otel-up:
-	@echo "Regenerating OpenTelemetry manifest..."
-	$(NIX_RUN) "helm template opentelemetry open-telemetry/opentelemetry-collector -f k3s/opentelemetry/values.yaml --namespace $(NS) > k3s/opentelemetry/manifest.yaml"
-	@echo "Deploying OpenTelemetry..."
-	@$(KC) apply -f k3s/opentelemetry/manifest.yaml
-	@$(KC) rollout restart deployment/opentelemetry
-
-k3s-postgres-up:
-	@echo "Regenerating PostgreSQL manifest..."
-	$(NIX_RUN) "helm template postgres bitnami/postgresql -f k3s/postgres/values.yaml --namespace $(NS) > k3s/postgres/manifest.yaml"
-	@echo "Deploying PostgreSQL..."
-	@$(KC) apply -f k3s/postgres/manifest.yaml
-	@$(KC) rollout restart statefulset/postgres-postgresql
-
-k3s-prometheus-up:
-	@echo "Regenerating Prometheus manifest..."
-	$(NIX_RUN) "helm template prometheus prometheus-community/prometheus -f k3s/prometheus/values.yaml --namespace $(NS) > k3s/prometheus/manifest.yaml"
-	@echo "Deploying Prometheus..."
-	@$(KC) apply -f k3s/prometheus/manifest.yaml
-	@$(KC) rollout restart deployment/prometheus-server
-
-k3s-tempo-up:
-	@echo "Regenerating Tempo manifest..."
-	$(NIX_RUN) "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace $(NS) > k3s/tempo/manifest.yaml"
-	@echo "Deploying Tempo..."
-	@$(KC) apply -f k3s/tempo/manifest.yaml
-	@$(KC) rollout restart statefulset/tempo
-
-k3s-thanos-up:
-	@echo "Regenerating Thanos manifest..."
-	$(NIX_RUN) "helm template thanos bitnami/thanos -f k3s/thanos/values.yaml --namespace $(NS) > k3s/thanos/manifest.yaml"
-	@echo "Deploying Thanos..."
-	@$(KC) apply -f k3s/thanos/manifest.yaml
-	@$(KC) rollout restart statefulset/thanos-storegateway
 
 # Observability
 k3s-status:

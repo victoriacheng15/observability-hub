@@ -39,6 +39,7 @@ The platform leverages a robust set of modern technologies for its core function
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![Nix](https://img.shields.io/badge/Nix-5277C3?style=for-the-badge&logo=NixOS&logoColor=white)
 ![Kubernetes (K3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
+![OpenTofu](https://img.shields.io/badge/OpenTofu-FF4F00?style=for-the-badge&logo=opentofu&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
@@ -150,19 +151,20 @@ The platform utilizes a hybrid orchestration model. You must deploy both the Kub
 
 #### A. Data Infrastructure (K3s)
 
-Deploy the observability backend into the `observability` namespace:
+Deploy the observability backend using OpenTofu (IaC):
 
 ```bash
-make k3s-postgres-up
-make k3s-minio-up
-make k3s-loki-up
-make k3s-tempo-up
-make k3s-prometheus-up
-make k3s-grafana-up
-make k3s-thanos-up
+cd tofu
+tofu init
+tofu apply
+```
 
-# Deploy telemetry collectors
-make k3s-otel-up
+This will provision PostgreSQL, MinIO, Loki, Tempo, Prometheus, Thanos, Grafana, and the OpenTelemetry Collector in the `observability` namespace.
+
+For the **Collectors** service (which uses a custom local image), use the Makefile target:
+
+```bash
+make k3s-collectors-up
 ```
 
 #### B. Native Host Services

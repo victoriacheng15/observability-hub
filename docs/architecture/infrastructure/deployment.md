@@ -1,14 +1,16 @@
 # Infrastructure & Deployment
 
-The infrastructure layer follows a **hybrid model**: core data services (Storage, Logs, Viz) are orchestrated via **Kubernetes (k3s)**, while application logic and automation agents run as native host-level Systemd services for direct hardware and filesystem access.
+The infrastructure layer follows a **hybrid model**: core data services (Storage, Logs, Viz) are orchestrated via **OpenTofu** on **Kubernetes (k3s)**, while application logic and automation agents run as native host-level Systemd services for direct hardware and filesystem access.
 
 ## Component Details
 
 ### ☸️ Data Infrastructure (Kubernetes)
 
+Managed via **OpenTofu (IaC)** in `tofu/`.
+
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **Collectors** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. |
+| **Collectors** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. (Managed via Makefile/Helm). |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
 | **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
@@ -55,9 +57,9 @@ sequenceDiagram
 
 ## Deployment Strategy
 
-- **Orchestration**: **Kubernetes (k3s)** for data infrastructure.
+- **Orchestration**: **OpenTofu** for Kubernetes data infrastructure.
 - **Native Services**: Systemd units for high-performance and host-level tasks.
-- **Automation**: `Makefile` for lifecycle management (build, restart, install).
+- **Automation**: `Makefile` for lifecycle management (build, restart, install) and `tofu` for infrastructure state.
 - **Persistence**: Kubernetes **PersistentVolumeClaims (PVCs)** for data durability.
 - **Event-Driven Sync**: GitHub Webhooks trigger the local `gitops_sync.sh` via the Proxy.
 
