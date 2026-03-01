@@ -1,5 +1,5 @@
-page_title: "Project Evolution"
-intro_text: "From experimenting with local infrastructure to building a focused observability tool: driven by telemetry needs."
+page_title: "System Logs & Milestones"
+intro_text: "A chronological record of architectural pivots, technical wins, and lessons learned while scaling a single-node laboratory. This is the paper trail of a platform in motion."
 chapters:
   - title: "The Genesis"
     intro: "Infrastructure Foundations & Telemetry Prototypes"

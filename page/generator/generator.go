@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -120,7 +121,61 @@ func Build(srcDir, dstDir string) error {
 		}
 	}
 
+	// 5. Generate llms.txt
+	if err := generateLLMS(filepath.Join(dstDir, "llms.txt"), &data.Landing); err != nil {
+		return fmt.Errorf("failed to generate llms.txt: %w", err)
+	}
+
+	// 6. Generate evolution-registry.json
+	apiDir := filepath.Join(dstDir, "api")
+	if err := os.MkdirAll(apiDir, 0755); err != nil {
+		return fmt.Errorf("failed to create api dir: %w", err)
+	}
+	if err := generateRegistry(filepath.Join(apiDir, "evolution-registry.json"), &data.Evolution); err != nil {
+		return fmt.Errorf("failed to generate evolution-registry.json: %w", err)
+	}
+
 	return nil
+}
+
+func generateRegistry(path string, evolution *schema.Evolution) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return json.NewEncoder(f).Encode(evolution)
+}
+
+func generateLLMS(path string, landing *schema.Landing) error {
+	content := fmt.Sprintf(`# %s - System Specification
+
+## Objective
+
+%s
+
+## Technical Stack
+
+%s
+
+## Core Architecture
+
+- **Pattern**: %s
+- **Entry Point**: %s
+- **Persistence Strategy**: %s
+- **Observability**: %s
+
+## Discovery & Registry
+
+- **Machine Registry**: %s
+
+## Key 
+
+- **GitHub Repository**: %s
+`, landing.PageTitle, landing.Hero.Subtitle, landing.Spec.Stack, landing.Spec.Pattern, landing.Spec.EntryPoint, landing.Spec.PersistenceStrategy, landing.Spec.Observability, landing.Spec.MachineRegistry, landing.Hero.CtaLink)
+
+	return os.WriteFile(path, []byte(content), 0644)
 }
 
 func loadYaml(path string, out interface{}) error {
