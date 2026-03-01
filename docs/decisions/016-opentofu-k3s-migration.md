@@ -1,6 +1,6 @@
 # ADR 016: OpenTofu for Kubernetes Service Management
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-02-25
 - **Author:** Victoria Cheng
 
@@ -42,10 +42,10 @@ build and sideload workflow.
 
 ## Verification
 
-- [ ] **Step 1 Complete:** OTel Collector running in observability, `tofu plan` shows zero diff.
-- [ ] **Step 2 Complete:** Grafana running in observability, dashboards load in browser.
-- [ ] **Step 3 Complete:** MinIO running in observability, Loki and Thanos buckets accessible.
-- [ ] **Step 4 Complete:** Prometheus running in observability, metrics visible in Grafana.
-- [ ] **Step 5 Complete:** Thanos running in observability, long-term metrics queryable via Grafana.
-- [ ] **Step 6 Complete:** Loki and Tempo running in observability, logs and traces visible in Grafana.
-- [ ] **Step 7 Complete:** PostgreSQL running in observability, application services reconnect successfully.
+- [x] **Step 1 Complete:** OTel Collector running in observability, `tofu plan` shows zero diff.
+- [x] **Step 2 Complete:** Grafana running in observability, dashboards load in browser.
+- [x] **Step 3 Complete:** MinIO running in observability, Loki and Thanos buckets accessible.
+- [x] **Step 4 Complete:** Prometheus running in observability, metrics visible in Grafana.
+- [x] **Step 5 Complete:** Thanos running in observability, long-term metrics queryable via Grafana.
+- [x] **Step 6 Complete:** Loki and Tempo running in observability, logs and traces visible in Grafana.
+- [x] **Step 7 Complete:** PostgreSQL running in observability, application services reconnect successfully. (Note: OpenTofu apply may flag custom OCI tags like `:17.2.0-ext` as invalid, but state is synchronized via `helm upgrade` and `tofu import`).
