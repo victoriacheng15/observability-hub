@@ -112,10 +112,10 @@ flowchart TB
 
 Foundational principles guide every aspect of the platform's development and operation:
 
-* **Observability-First:** System-wide visibility is foundational, with advanced telemetry signals implemented as a project standard.
-* **Infrastructure Abstraction:** Decoupling plumbing from logic via shared "Pure Wrappers" to focus services on domain value.
-* **GitOps & State Convergence:** Configuration as code with automated reconciliation, making version control the ultimate source of truth.
-* **Hybrid Orchestration:** Leveraging Kubernetes for data persistence and native Systemd for host-level automation.
+* **Signals over Noise:** Standardizing telemetry signals to provide immediate clarity on service behavior across the entire stack.
+* **Logic over Plumbing:** Decoupling infrastructure boilerplate from service logic using shared Go wrappers to focus on domain value.
+* **Config as the Truth:** Using GitOps to ensure version control remains the ultimate source of truth, with automated state reconciliation.
+* **Pragmatic Orchestration:** Leveraging Kubernetes for persistence and native Systemd for host automation to maximize reliability with minimal overhead.
 
 ---
 

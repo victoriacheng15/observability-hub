@@ -24,15 +24,26 @@ type Author struct {
 	Linkedin string `yaml:"linkedin"`
 }
 
+// TechnicalSpec represents the system specification for LLM discovery.
+type TechnicalSpec struct {
+	Stack               string `yaml:"stack"`
+	Pattern             string `yaml:"pattern"`
+	EntryPoint          string `yaml:"entry_point"`
+	PersistenceStrategy string `yaml:"persistence_strategy"`
+	Observability       string `yaml:"observability"`
+	MachineRegistry     string `yaml:"machine_registry"`
+}
+
 // Landing holds the data for the landing page.
 type Landing struct {
-	PageTitle       string    `yaml:"page_title"`
-	SiteURL         string    `yaml:"site_url"`
-	MetaDescription string    `yaml:"meta_description"`
-	Keywords        string    `yaml:"keywords"`
-	Author          Author    `yaml:"author"`
-	Hero            Hero      `yaml:"hero"`
-	Principles      []Feature `yaml:"principles"`
+	PageTitle       string        `yaml:"page_title"`
+	SiteURL         string        `yaml:"site_url"`
+	MetaDescription string        `yaml:"meta_description"`
+	Keywords        string        `yaml:"keywords"`
+	Author          Author        `yaml:"author"`
+	Hero            Hero          `yaml:"hero"`
+	Principles      []Feature     `yaml:"principles"`
+	Spec            TechnicalSpec `yaml:"specification"`
 }
 
 // Artifact represents a link to an external artifact related to an event.

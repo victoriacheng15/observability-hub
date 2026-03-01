@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_DIRS = page pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain
 
-.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build reading-build proxy-build brain-sync
+.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build reading-build proxy-build brain-sync setup-tailwind
 
 go-format:
 	$(NIX_WRAP) \
@@ -48,10 +48,20 @@ go-cov:
 		(cd $$dir && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out) || exit 1; \
 	done
 
-page-build:
-	$(NIX_WRAP) \
-	echo "Running page build..." && \
-	cd page && go build -o page.exe . && ./page.exe && rm page.exe
+setup-tailwind:
+	echo "Downloading tailwind css cli v4..." && \
+	curl -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss && \
+	chmod +x tailwindcss
+
+page-build: setup-tailwind
+	$(NIX_WRAP) echo "Running page build..." && \
+	rm -rf page/dist && \
+	mkdir -p page/dist && \
+	(cd page && go build -o ../page-ssg .) && \
+	(cd page && ../page-ssg) && \
+	./tailwindcss -i ./page/static/css/input.css -o ./page/dist/styles.css --minify && \
+	rm page-ssg && \
+	rm tailwindcss
 
 proxy-build:
 	$(NIX_WRAP) \
