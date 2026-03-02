@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"page/generator"
+	"web/generator"
 )
 
 func main() {

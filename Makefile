@@ -20,7 +20,7 @@ help:
 	@echo "  make go-lint            - Run Go lint/vet"
 	@echo "  make go-vuln-scan       - Run govulncheck for security vulnerabilities"
 	@echo "  make go-cov             - Run tests with coverage report"
-	@echo "  make page-build         - Build the GitHub Page"
+	@echo "  make web-build         - Build the GitHub Page"
 	@echo "  make reading-build      - Build the reading sync service"
 	@echo "  make proxy-build        - Build and restart the go proxy server"
 	@echo "  make brain-sync         - Run the second brain knowledge ingestion"

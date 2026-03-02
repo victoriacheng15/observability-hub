@@ -11,7 +11,7 @@ updates:
 
   # --- Portal ---
   - package-ecosystem: "gomod"
-    directory: "/page"
+    directory: "/web"
     schedule:
       interval: "weekly"
 

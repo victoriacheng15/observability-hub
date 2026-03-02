@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"page/schema"
+	"web/schema"
 
 	"gopkg.in/yaml.v3"
 )

@@ -8,9 +8,9 @@ This document details the CI/CD and automation pipelines configured in `.github/
 
 ### 🚢 [GitHub Pages Deployment](../.github/workflows/deploy.yml)
 
-Handles the automated build and hosting of the public-facing portfolio page.
+Handles the automated build and hosting of the public-facing portfolio web.
 
-- **Trigger**: Pushes to the main branch affecting the page generator directory or manual trigger.
+- **Trigger**: Pushes to the main branch affecting the web generator directory or manual trigger.
 - **Responsibility**: Sets up the Go environment, builds the site generator, executes it to generate static assets, and deploys the output to the public environment.
 - **Key Feature**: Leverages native GitHub Actions for seamless artifact management and hosting.
 

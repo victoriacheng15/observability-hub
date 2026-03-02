@@ -26,7 +26,7 @@ To maintain a clean repository and ensure operational stability, all compiled bi
 - **`k3s/`**: Kubernetes manifests and Helm values for the data platform.
 - **`makefiles/`**: Modular logic for the root automation layer.
 - **`systemd/`**: Host-tier unit files for production service management.
-- **`page/`**: Static site generator for public-facing portfolio.
+- **`web/`**: Static site generator for public-facing portfolio.
 - **`scripts/`**: Operational utilities (Traffic gen, ADR creation, Tailscale gate).
 - **`docs/`**: Institutional memory. ADRs, Architecture, Incidents, and Notes.
 

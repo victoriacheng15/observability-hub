@@ -1,4 +1,4 @@
-module page
+module web
 
 go 1.26
 
