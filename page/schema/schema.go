@@ -1,31 +1,21 @@
 package schema
 
-// Feature represents a single feature with a title, description, and icon.
+// Feature represents a single feature with a name, description, and icon.
 type Feature struct {
-	Title       string `yaml:"title"`
+	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Icon        string `yaml:"icon"`
 }
 
-// Hero represents the hero section of the landing page.
-type Hero struct {
-	Title            string `yaml:"title"`
-	Subtitle         string `yaml:"subtitle"`
-	CtaText          string `yaml:"cta_text"`
-	CtaLink          string `yaml:"cta_link"`
-	SecondaryCtaText string `yaml:"secondary_cta_text"`
-	SecondaryCtaLink string `yaml:"secondary_cta_link"`
+// Header represents the header section of the landing page.
+type Header struct {
+	ProjectName string `yaml:"project_name"`
+	SiteURL     string `yaml:"site_url"`
 }
 
-// Author represents the creator of the site.
-type Author struct {
-	Name     string `yaml:"name"`
-	Github   string `yaml:"github"`
-	Linkedin string `yaml:"linkedin"`
-}
-
-// TechnicalSpec represents the system specification for LLM discovery.
-type TechnicalSpec struct {
+// SystemSpec represents the system specification for LLM discovery.
+type SystemSpec struct {
+	Objective           string `yaml:"objective"`
 	Stack               string `yaml:"stack"`
 	Pattern             string `yaml:"pattern"`
 	EntryPoint          string `yaml:"entry_point"`
@@ -34,16 +24,51 @@ type TechnicalSpec struct {
 	MachineRegistry     string `yaml:"machine_registry"`
 }
 
+// Hero represents the hero section of the landing page.
+type Hero struct {
+	Headline         string `yaml:"headline"`
+	SubHeadline      string `yaml:"sub_headline"`
+	BriefDescription string `yaml:"brief_description"`
+	CtaText          string `yaml:"cta_text"`
+	CtaLink          string `yaml:"cta_link"`
+	SecondaryCtaText string `yaml:"secondary_cta_text"`
+	SecondaryCtaLink string `yaml:"secondary_cta_link"`
+}
+
+// WhatIs represents the "What is" section.
+type WhatIs struct {
+	Title   string   `yaml:"title"`
+	Content []string `yaml:"content"`
+}
+
+// KeyFeatures represents the key features section.
+type KeyFeatures struct {
+	Title    string    `yaml:"title"`
+	Features []Feature `yaml:"features"`
+}
+
+// WhyItMatters represents the "Why it matters" section.
+type WhyItMatters struct {
+	Title  string   `yaml:"title"`
+	Points []string `yaml:"points"`
+}
+
+// Footer represents the footer section of the landing page.
+type Footer struct {
+	Author       string `yaml:"author"`
+	GithubLink   string `yaml:"github_link"`
+	LinkedinLink string `yaml:"linkedin_link"`
+}
+
 // Landing holds the data for the landing page.
 type Landing struct {
-	PageTitle       string        `yaml:"page_title"`
-	SiteURL         string        `yaml:"site_url"`
-	MetaDescription string        `yaml:"meta_description"`
-	Keywords        string        `yaml:"keywords"`
-	Author          Author        `yaml:"author"`
-	Hero            Hero          `yaml:"hero"`
-	Principles      []Feature     `yaml:"principles"`
-	Spec            TechnicalSpec `yaml:"specification"`
+	Header       Header       `yaml:"header"`
+	SystemSpec   SystemSpec   `yaml:"system_specification"`
+	Hero         Hero         `yaml:"hero"`
+	WhatIs       WhatIs       `yaml:"what_is_observability_hub"`
+	KeyFeatures  KeyFeatures  `yaml:"key_features"`
+	WhyItMatters WhyItMatters `yaml:"why_it_matters"`
+	Footer       Footer       `yaml:"footer"`
 }
 
 // Artifact represents a link to an external artifact related to an event.

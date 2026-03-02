@@ -121,9 +121,19 @@ func Build(srcDir, dstDir string) error {
 		}
 	}
 
-	// 5. Generate llms.txt
-	if err := generateLLMS(filepath.Join(dstDir, "llms.txt"), &data.Landing); err != nil {
-		return fmt.Errorf("failed to generate llms.txt: %w", err)
+	// 5. Generate Other Templates
+	templates := []struct {
+		out string
+		tpl string
+	}{
+		{"llms.txt", "templates/llms.txt"},
+		{"robots.txt", "templates/robots.txt"},
+	}
+
+	for _, t := range templates {
+		if err := renderTemplate(filepath.Join(dstDir, t.out), filepath.Join(srcDir, t.tpl), &data); err != nil {
+			return fmt.Errorf("failed to generate %s: %w", t.out, err)
+		}
 	}
 
 	// 6. Generate evolution-registry.json
@@ -148,34 +158,23 @@ func generateRegistry(path string, evolution *schema.Evolution) error {
 	return json.NewEncoder(f).Encode(evolution)
 }
 
-func generateLLMS(path string, landing *schema.Landing) error {
-	content := fmt.Sprintf(`# %s - System Specification
+func renderTemplate(path string, tplPath string, data interface{}) error {
+	tmpl, err := template.ParseFiles(tplPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse template: %w", err)
+	}
 
-## Objective
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create output file %s: %w", path, err)
+	}
+	defer f.Close()
 
-%s
+	if err := tmpl.Execute(f, data); err != nil {
+		return fmt.Errorf("failed to execute template %s: %w", path, err)
+	}
 
-## Technical Stack
-
-%s
-
-## Core Architecture
-
-- **Pattern**: %s
-- **Entry Point**: %s
-- **Persistence Strategy**: %s
-- **Observability**: %s
-
-## Discovery & Registry
-
-- **Machine Registry**: %s
-
-## Key 
-
-- **GitHub Repository**: %s
-`, landing.PageTitle, landing.Hero.Subtitle, landing.Spec.Stack, landing.Spec.Pattern, landing.Spec.EntryPoint, landing.Spec.PersistenceStrategy, landing.Spec.Observability, landing.Spec.MachineRegistry, landing.Hero.CtaLink)
-
-	return os.WriteFile(path, []byte(content), 0644)
+	return nil
 }
 
 func loadYaml(path string, out interface{}) error {
