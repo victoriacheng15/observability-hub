@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "page/**"
+      - "web/**"
   workflow_dispatch:
 
 permissions:
@@ -24,19 +24,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-go@v6.3.0
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.go-version }}
-          cache-dependency-path: page/go.sum
+          cache-dependency-path: web/go.sum
 
       - name: Build
-        run: make page-build
+        run: make web-build
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4.0.0
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: ./page/dist
+          path: ./web/dist
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,4 +47,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.5
+        uses: actions/deploy-pages@v4

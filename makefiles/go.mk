@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = page pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain
+GO_DIRS = web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain
 
-.PHONY: go-format go-lint go-update go-test go-cov page-build metrics-build reading-build proxy-build brain-sync setup-tailwind
+.PHONY: go-format go-lint go-update go-test go-cov web-build metrics-build reading-build proxy-build brain-sync setup-tailwind
 
 go-format:
 	$(NIX_WRAP) \
@@ -53,14 +53,14 @@ setup-tailwind:
 	curl -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss && \
 	chmod +x tailwindcss
 
-page-build: setup-tailwind
-	$(NIX_WRAP) echo "Running page build..." && \
-	rm -rf page/dist && \
-	mkdir -p page/dist && \
-	(cd page && go build -o ../page-ssg .) && \
-	(cd page && ../page-ssg) && \
-	./tailwindcss -i ./page/templates/input.css -o ./page/dist/styles.css --minify && \
-	rm page-ssg && \
+web-build: setup-tailwind
+	$(NIX_WRAP) echo "Running web build..." && \
+	rm -rf web/dist && \
+	mkdir -p web/dist && \
+	(cd web && go build -o ../web-ssg .) && \
+	(cd web && ../web-ssg) && \
+	./tailwindcss -i ./web/templates/input.css -o ./web/dist/styles.css --minify && \
+	rm web-ssg && \
 	rm tailwindcss
 
 proxy-build:

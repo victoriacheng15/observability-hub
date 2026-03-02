@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"page/schema"
+	"web/schema"
 )
 
 func TestLoadYaml(t *testing.T) {
@@ -102,7 +102,7 @@ chapters:
 
 func TestBuild(t *testing.T) {
 	// Setup temporary source directory
-	srcDir, err := os.MkdirTemp("", "page-build-src")
+	srcDir, err := os.MkdirTemp("", "web-build-src")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,11 +157,11 @@ chapters:
 	if err := os.WriteFile(filepath.Join(tplDir, "base.html"), baseTpl, 0644); err != nil {
 		t.Fatal(err)
 	}
-	pageTpl := []byte(`{{define "content"}}Page{{end}}`)
-	if err := os.WriteFile(filepath.Join(tplDir, "index.html"), pageTpl, 0644); err != nil {
+	webTpl := []byte(`{{define "content"}}Page{{end}}`)
+	if err := os.WriteFile(filepath.Join(tplDir, "index.html"), webTpl, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(tplDir, "evolution.html"), pageTpl, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tplDir, "evolution.html"), webTpl, 0644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(tplDir, "llms.txt"), []byte("LLMS"), 0644); err != nil {
@@ -172,7 +172,7 @@ chapters:
 	}
 
 	t.Run("Successful Build", func(t *testing.T) {
-		dstDir, err := os.MkdirTemp("", "page-build-dst")
+		dstDir, err := os.MkdirTemp("", "web-build-dst")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -202,7 +202,7 @@ func TestRenderPage(t *testing.T) {
 	testCases := []struct {
 		name            string
 		baseTpl         string
-		pageTpl         string
+		webTpl          string
 		outFileName     string
 		mockProjectName string
 		expectedError   bool
@@ -211,7 +211,7 @@ func TestRenderPage(t *testing.T) {
 		{
 			name:            "Successful Render",
 			baseTpl:         `{{define "base"}}<html><body>{{template "content" .}}</body></html>{{end}}`,
-			pageTpl:         `{{define "content"}}<h1>{{.Landing.Header.ProjectName}}</h1>{{end}}`,
+			webTpl:          `{{define "content"}}<h1>{{.Landing.Header.ProjectName}}</h1>{{end}}`,
 			mockProjectName: "Test Render Page",
 			expectedError:   false,
 			expectedContent: "<html><body><h1>Test Render Page</h1></body></html>",
@@ -236,9 +236,9 @@ func TestRenderPage(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			pageTplFileName := "test_page.html"
-			pageTplPath := filepath.Join(tmpTemplatesDir, pageTplFileName)
-			if err := os.WriteFile(pageTplPath, []byte(tc.pageTpl), 0644); err != nil {
+			webTplFileName := "test_web.html"
+			webTplPath := filepath.Join(tmpTemplatesDir, webTplFileName)
+			if err := os.WriteFile(webTplPath, []byte(tc.webTpl), 0644); err != nil {
 				t.Fatal(err)
 			}
 
@@ -259,7 +259,7 @@ func TestRenderPage(t *testing.T) {
 			}
 
 			outFile := filepath.Join("dist", "output.html")
-			err = renderPage(outFile, baseTplPath, pageTplPath, mockData)
+			err = renderPage(outFile, baseTplPath, webTplPath, mockData)
 
 			if tc.expectedError {
 				if err == nil {
