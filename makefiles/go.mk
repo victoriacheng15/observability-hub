@@ -40,7 +40,7 @@ go-test:
 		(cd $$dir && go test ./... -v) || exit 1; \
 	done
 
-go-cov:
+go-test-cov:
 	$(NIX_WRAP) \
 	echo "Running tests with coverage..." && \
 	for dir in $(GO_DIRS); do \

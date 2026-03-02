@@ -9,6 +9,22 @@ import (
 	"time"
 )
 
+// CommandRunner defines the interface for executing shell commands.
+type CommandRunner interface {
+	Run(ctx context.Context, name string, arg ...string) ([]byte, error)
+}
+
+// RealCommandRunner is the production implementation that actually runs commands.
+type RealCommandRunner struct{}
+
+func (r *RealCommandRunner) Run(ctx context.Context, name string, arg ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, name, arg...)
+	return cmd.CombinedOutput()
+}
+
+// Global runner that can be swapped in tests.
+var runner CommandRunner = &RealCommandRunner{}
+
 // FunnelStatus represents the current public-facing state of the Tailscale Funnel.
 type FunnelStatus struct {
 	Active  bool      `json:"active"`
@@ -19,8 +35,7 @@ type FunnelStatus struct {
 
 // GetFunnelStatus executes 'tailscale funnel status' to get the definitive source of truth.
 func GetFunnelStatus(ctx context.Context) (*FunnelStatus, error) {
-	cmd := exec.CommandContext(ctx, "tailscale", "funnel", "status")
-	output, err := cmd.CombinedOutput()
+	output, err := runner.Run(ctx, "tailscale", "funnel", "status")
 	if err != nil {
 		// If 'funnel status' returns an error, it usually means it's off or not configured.
 		return &FunnelStatus{Active: false, Fetched: time.Now()}, nil
@@ -36,8 +51,9 @@ func GetFunnelStatus(ctx context.Context) (*FunnelStatus, error) {
 	if status.Active {
 		lines := strings.Split(outStr, "\n")
 		for _, line := range lines {
-			if strings.Contains(line, "https://") {
-				status.Target = strings.TrimSpace(strings.Split(line, " ")[0])
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "https://") {
+				status.Target = strings.Fields(trimmed)[0]
 				break
 			}
 		}
@@ -48,8 +64,7 @@ func GetFunnelStatus(ctx context.Context) (*FunnelStatus, error) {
 
 // GetTailscaleStatus executes the Tailscale CLI to fetch current node health via JSON.
 func GetTailscaleStatus(ctx context.Context) (map[string]interface{}, error) {
-	cmd := exec.CommandContext(ctx, "tailscale", "status", "--json")
-	output, err := cmd.CombinedOutput()
+	output, err := runner.Run(ctx, "tailscale", "status", "--json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to run tailscale status --json: %w", err)
 	}

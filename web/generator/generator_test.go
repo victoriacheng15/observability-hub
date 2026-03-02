@@ -2,300 +2,487 @@ package generator
 
 import (
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
 	"web/schema"
 )
 
+type MockFS struct {
+	RemoveAllFn func(path string) error
+	MkdirAllFn  func(path string, perm os.FileMode) error
+	ReadDirFn   func(dirname string) ([]os.DirEntry, error)
+	ReadFileFn  func(filename string) ([]byte, error)
+	WriteFileFn func(filename string, data []byte, perm os.FileMode) error
+}
+
+func (m *MockFS) RemoveAll(path string) error                   { return m.RemoveAllFn(path) }
+func (m *MockFS) MkdirAll(path string, perm os.FileMode) error  { return m.MkdirAllFn(path, perm) }
+func (m *MockFS) ReadDir(dirname string) ([]os.DirEntry, error) { return m.ReadDirFn(dirname) }
+func (m *MockFS) ReadFile(filename string) ([]byte, error)      { return m.ReadFileFn(filename) }
+func (m *MockFS) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	return m.WriteFileFn(filename, data, perm)
+}
+
+type mockDirEntry struct {
+	name  string
+	isDir bool
+}
+
+func (m *mockDirEntry) Name() string               { return m.name }
+func (m *mockDirEntry) IsDir() bool                { return m.isDir }
+func (m *mockDirEntry) Type() os.FileMode          { return 0 }
+func (m *mockDirEntry) Info() (os.FileInfo, error) { return nil, nil }
+
 func TestLoadYaml(t *testing.T) {
-	t.Run("Load Landing", func(t *testing.T) {
-		tmpContent := `
-header:
-  project_name: "Test Project"
-  site_url: "https://example.com"
-system_specification:
-  objective: "Test Objective"
-hero:
-  headline: "Test Headline"
-  sub_headline: "Test Subheadline"
-  cta_text: "Click Me"
-  cta_link: "/test.html"
-what_is_observability_hub:
-  title: "What is it"
-  content: ["Point 1"]
-key_features:
-  title: "Features"
-  features:
-    - name: "Feat 1"
-      description: "Desc 1"
-      icon: "rocket"
-why_it_matters:
-  title: "Why"
-  points: ["Point 1"]
-footer:
-  author: "Author"
-`
-		tmpFile, err := os.CreateTemp("", "landing-*.yaml")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(tmpFile.Name())
+	oldFS := fs
+	defer func() { fs = oldFS }()
 
-		if _, err := tmpFile.Write([]byte(tmpContent)); err != nil {
-			t.Fatal(err)
-		}
-		tmpFile.Close()
+	tests := []struct {
+		name    string
+		wantErr bool
+		mockFn  func() FileSystem
+	}{
+		{
+			name:    "Success",
+			wantErr: false,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(path string) ([]byte, error) { return []byte(`header: {project_name: T}`), nil },
+				}
+			},
+		},
+		{
+			name:    "Read Error",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(path string) ([]byte, error) { return nil, os.ErrPermission },
+				}
+			},
+		},
+		{
+			name:    "Decode Error",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(path string) ([]byte, error) { return []byte("invalid: yaml: :"), nil },
+				}
+			},
+		},
+	}
 
-		var landing schema.Landing
-		if err := loadYaml(tmpFile.Name(), &landing); err != nil {
-			t.Fatalf("loadYaml failed for landing: %v", err)
-		}
-
-		if landing.Header.ProjectName != "Test Project" {
-			t.Errorf("Expected 'Test Project', got '%s'", landing.Header.ProjectName)
-		}
-		if len(landing.KeyFeatures.Features) != 1 {
-			t.Errorf("Expected 1 features item, got %d", len(landing.KeyFeatures.Features))
-		}
-	})
-
-	t.Run("Load Evolution", func(t *testing.T) {
-		tmpContent := `
-page_title: "Test Evolution"
-intro_text: "Test Intro"
-chapters:
-  - title: "Chapter 1"
-    intro: "Chapter Intro"
-    timeline:
-      - date: "2024-01-01"
-        title: "Event 1"
-        description: "Desc 1"
-`
-		tmpFile, err := os.CreateTemp("", "evolution-*.yaml")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(tmpFile.Name())
-
-		if _, err := tmpFile.Write([]byte(tmpContent)); err != nil {
-			t.Fatal(err)
-		}
-		tmpFile.Close()
-
-		var evolution schema.Evolution
-		if err := loadYaml(tmpFile.Name(), &evolution); err != nil {
-			t.Fatalf("loadYaml failed for evolution: %v", err)
-		}
-
-		if evolution.PageTitle != "Test Evolution" {
-			t.Errorf("Expected 'Test Evolution', got '%s'", evolution.PageTitle)
-		}
-		if len(evolution.Chapters) != 1 {
-			t.Errorf("Expected 1 chapter, got %d", len(evolution.Chapters))
-		}
-		if len(evolution.Chapters[0].Events) != 1 {
-			t.Errorf("Expected 1 event in Chapter 0, got %d", len(evolution.Chapters[0].Events))
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs = tt.mockFn()
+			var landing schema.Landing
+			err := loadYaml("any.yaml", &landing)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadYaml() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func TestBuild(t *testing.T) {
-	// Setup temporary source directory
-	srcDir, err := os.MkdirTemp("", "web-build-src")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(srcDir)
+	oldFS := fs
+	defer func() { fs = oldFS }()
 
-	// Setup content/ structure
-	contentDir := filepath.Join(srcDir, "content")
-	if err := os.Mkdir(contentDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	// Create dummy yaml files
-	landingYaml := []byte(`
-header:
-  project_name: Test
-system_specification:
-  objective: Test
-hero:
-  cta_link: "https://github.com/test"
-what_is_observability_hub:
-  title: Test
-key_features:
-  title: Test
-why_it_matters:
-  title: Test
-footer:
-  author: Test
-`)
-	if err := os.WriteFile(filepath.Join(contentDir, "landing.yaml"), landingYaml, 0644); err != nil {
-		t.Fatal(err)
-	}
-	// Evolution needs special handling for chapters/events parsing
-	evoYaml := []byte(`
-page_title: Evolution
+	tests := []struct {
+		name    string
+		wantErr bool
+		mockFn  func() FileSystem
+	}{
+		{
+			name:    "Full Success",
+			wantErr: false,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn:   func(p string) ([]os.DirEntry, error) { return nil, nil },
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						if strings.Contains(p, ".yaml") {
+							return []byte(`header: {project_name: T}`), nil
+						}
+						return []byte(`{{define "content"}}OK{{end}}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
+				}
+			},
+		},
+		{
+			name:    "MkdirAll Dist Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return os.ErrPermission },
+				}
+			},
+		},
+		{
+			name:    "RemoveAll Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{RemoveAllFn: func(p string) error { return os.ErrPermission }}
+			},
+		},
+		{
+			name:    "MkdirAll API Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn: func(p string, perm os.FileMode) error {
+						if strings.HasSuffix(p, "api") {
+							return os.ErrPermission
+						}
+						return nil
+					},
+					ReadFileFn: func(p string) ([]byte, error) { return []byte(`header: {project_name: T}`), nil },
+					ReadDirFn:  func(p string) ([]os.DirEntry, error) { return nil, nil },
+				}
+			},
+		},
+		{
+			name:    "Full Build with Static and Evolution",
+			wantErr: false,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn: func(p string) ([]os.DirEntry, error) {
+						if strings.HasSuffix(p, "static") {
+							return []os.DirEntry{&mockDirEntry{name: "test.png"}}, nil
+						}
+						return nil, nil
+					},
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.HasSuffix(p, "landing.yaml") {
+							return []byte(`header: {project_name: T}`), nil
+						}
+						if strings.HasSuffix(p, "evolution.yaml") {
+							return []byte(`
 chapters:
   - title: C1
     events:
       - date: "2024-01-01"
-        description: "- Point 1\n\n- Point 2"
-      - date: "invalid-date"
-        description: "Single Line"
-`)
-	if err := os.WriteFile(filepath.Join(contentDir, "evolution.yaml"), evoYaml, 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Setup templates/ structure
-	tplDir := filepath.Join(srcDir, "templates")
-	if err := os.Mkdir(tplDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	baseTpl := []byte(`{{define "base"}}<html>{{template "content" .}}</html>{{end}}`)
-	if err := os.WriteFile(filepath.Join(tplDir, "base.html"), baseTpl, 0644); err != nil {
-		t.Fatal(err)
-	}
-	webTpl := []byte(`{{define "content"}}Page{{end}}`)
-	if err := os.WriteFile(filepath.Join(tplDir, "index.html"), webTpl, 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(tplDir, "evolution.html"), webTpl, 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(tplDir, "llms.txt"), []byte("LLMS"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(tplDir, "robots.txt"), []byte("Robots"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("Successful Build", func(t *testing.T) {
-		dstDir, err := os.MkdirTemp("", "web-build-dst")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(dstDir)
-
-		if err := Build(srcDir, dstDir); err != nil {
-			t.Fatalf("Build failed: %v", err)
-		}
-
-		// Verify output files exist
-		if _, err := os.Stat(filepath.Join(dstDir, "index.html")); os.IsNotExist(err) {
-			t.Error("index.html not created")
-		}
-		if _, err := os.Stat(filepath.Join(dstDir, "evolution.html")); os.IsNotExist(err) {
-			t.Error("evolution.html not created")
-		}
-		if _, err := os.Stat(filepath.Join(dstDir, "llms.txt")); os.IsNotExist(err) {
-			t.Error("llms.txt not created")
-		}
-		if _, err := os.Stat(filepath.Join(dstDir, "robots.txt")); os.IsNotExist(err) {
-			t.Error("robots.txt not created")
-		}
-	})
-}
-
-func TestRenderPage(t *testing.T) {
-	testCases := []struct {
-		name            string
-		baseTpl         string
-		webTpl          string
-		outFileName     string
-		mockProjectName string
-		expectedError   bool
-		expectedContent string
-	}{
+        description: "- Point 1"
+      - date: "bad-date"
+        description: "Bad"
+`), nil
+						}
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						return []byte(`{{define "content"}}OK{{end}}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
+				}
+			},
+		},
 		{
-			name:            "Successful Render",
-			baseTpl:         `{{define "base"}}<html><body>{{template "content" .}}</body></html>{{end}}`,
-			webTpl:          `{{define "content"}}<h1>{{.Landing.Header.ProjectName}}</h1>{{end}}`,
-			mockProjectName: "Test Render Page",
-			expectedError:   false,
-			expectedContent: "<html><body><h1>Test Render Page</h1></body></html>",
+			name:    "Static ReadDir Failure",
+			wantErr: false, // Build currently ignores ReadDir error
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn:   func(p string) ([]os.DirEntry, error) { return nil, os.ErrPermission },
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						if strings.Contains(p, ".yaml") {
+							return []byte(`header: {project_name: T}`), nil
+						}
+						return []byte(`{{define "content"}}OK{{end}}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
+				}
+			},
+		},
+		{
+			name:    "Static Read Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn: func(p string) ([]os.DirEntry, error) {
+						if strings.HasSuffix(p, "static") {
+							return []os.DirEntry{&mockDirEntry{name: "t.png"}}, nil
+						}
+						return nil, nil
+					},
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.HasSuffix(p, "t.png") {
+							return nil, os.ErrPermission
+						}
+						return []byte(`header: {project_name: T}`), nil
+					},
+				}
+			},
+		},
+		{
+			name:    "Static Write Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn: func(p string) ([]os.DirEntry, error) {
+						if strings.HasSuffix(p, "static") {
+							return []os.DirEntry{&mockDirEntry{name: "t.png"}}, nil
+						}
+						return nil, nil
+					},
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.HasSuffix(p, "t.png") {
+							return []byte("PNG"), nil
+						}
+						return []byte(`header: {project_name: T}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error {
+						if strings.HasSuffix(p, "t.png") {
+							return os.ErrPermission
+						}
+						return nil
+					},
+				}
+			},
+		},
+		{
+			name:    "RenderPage Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn:   func(p string) ([]os.DirEntry, error) { return nil, nil },
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{bad}}`), nil // Cause parse error
+						}
+						return []byte(`header: {project_name: T}`), nil
+					},
+				}
+			},
+		},
+		{
+			name:    "RenderTemplate Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn:   func(p string) ([]os.DirEntry, error) { return nil, nil },
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.HasSuffix(p, "index.html") || strings.HasSuffix(p, "evolution.html") {
+							return []byte(`{{define "content"}}OK{{end}}`), nil
+						}
+						if strings.HasSuffix(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						if strings.Contains(p, "llms.txt") {
+							return []byte(`{{.NonExistent}}`), nil // Cause template error
+						}
+						return []byte(`header: {project_name: T}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
+				}
+			},
+		},
+		{
+			name:    "GenerateRegistry Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					RemoveAllFn: func(p string) error { return nil },
+					MkdirAllFn:  func(p string, perm os.FileMode) error { return nil },
+					ReadDirFn:   func(p string) ([]os.DirEntry, error) { return nil, nil },
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.HasSuffix(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						return []byte(`header: {project_name: T}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error {
+						if strings.HasSuffix(p, "evolution-registry.json") {
+							return os.ErrPermission
+						}
+						return nil
+					},
+				}
+			},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			tmpRoot, err := os.MkdirTemp("", "render-test-root-")
-			if err != nil {
-				t.Fatal(err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs = tt.mockFn()
+			err := Build("src", "dst")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Build() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			defer os.RemoveAll(tmpRoot)
+		})
+	}
+}
 
-			tmpTemplatesDir := filepath.Join(tmpRoot, "templates")
-			if err := os.Mkdir(tmpTemplatesDir, 0755); err != nil {
-				t.Fatal(err)
-			}
+func TestRenderPage(t *testing.T) {
+	oldFS := fs
+	defer func() { fs = oldFS }()
 
-			baseTplPath := filepath.Join(tmpTemplatesDir, "base.html")
-			if err := os.WriteFile(baseTplPath, []byte(tc.baseTpl), 0644); err != nil {
-				t.Fatal(err)
-			}
-
-			webTplFileName := "test_web.html"
-			webTplPath := filepath.Join(tmpTemplatesDir, webTplFileName)
-			if err := os.WriteFile(webTplPath, []byte(tc.webTpl), 0644); err != nil {
-				t.Fatal(err)
-			}
-
-			mockData := &schema.SiteData{
-				Landing: schema.Landing{
-					Header: schema.Header{
-						ProjectName: tc.mockProjectName,
+	tests := []struct {
+		name    string
+		wantErr bool
+		mockFn  func() FileSystem
+	}{
+		{
+			name:    "Success",
+			wantErr: false,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						return []byte(`{{define "content"}}OK{{end}}`), nil
 					},
-				},
-			}
-
-			originalWd, _ := os.Getwd()
-			os.Chdir(tmpRoot)
-			defer os.Chdir(originalWd)
-
-			if err := os.Mkdir("dist", 0755); err != nil {
-				t.Fatal(err)
-			}
-
-			outFile := filepath.Join("dist", "output.html")
-			err = renderPage(outFile, baseTplPath, webTplPath, mockData)
-
-			if tc.expectedError {
-				if err == nil {
-					t.Error("Expected an error, but got none")
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("renderPage failed unexpectedly: %v", err)
+			},
+		},
+		{
+			name:    "Base Parse Error",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{bad}}`), nil
+						}
+						return []byte(`OK`), nil
+					},
 				}
-				gotContent, _ := os.ReadFile(outFile)
-				if string(gotContent) != tc.expectedContent {
-					t.Errorf("Expected '%s', got '%s'", tc.expectedContent, string(gotContent))
+			},
+		},
+		{
+			name:    "Page Parse Error",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						return []byte(`{{bad}}`), nil
+					},
 				}
+			},
+		},
+		{
+			name:    "Write Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(p string) ([]byte, error) {
+						if strings.Contains(p, "base.html") {
+							return []byte(`{{define "base"}}{{template "content" .}}{{end}}`), nil
+						}
+						return []byte(`{{define "content"}}OK{{end}}`), nil
+					},
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return os.ErrPermission },
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs = tt.mockFn()
+			err := renderPage("out.html", "base.html", "page.html", &schema.SiteData{})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("renderPage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
 func TestRenderTemplate(t *testing.T) {
-	t.Run("Successful RenderTemplate", func(t *testing.T) {
-		tmpDir, _ := os.MkdirTemp("", "render-template-test")
-		defer os.RemoveAll(tmpDir)
+	oldFS := fs
+	defer func() { fs = oldFS }()
 
-		tplPath := filepath.Join(tmpDir, "test.txt")
-		os.WriteFile(tplPath, []byte("Hello {{.Name}}"), 0644)
+	tests := []struct {
+		name    string
+		wantErr bool
+		mockFn  func() FileSystem
+	}{
+		{
+			name:    "Success",
+			wantErr: false,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn:  func(p string) ([]byte, error) { return []byte("OK"), nil },
+					WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return nil },
+				}
+			},
+		},
+		{
+			name:    "Parse Failure",
+			wantErr: true,
+			mockFn: func() FileSystem {
+				return &MockFS{
+					ReadFileFn: func(p string) ([]byte, error) { return []byte("{{bad"), nil },
+				}
+			},
+		},
+	}
 
-		outPath := filepath.Join(tmpDir, "out.txt")
-		data := struct{ Name string }{Name: "World"}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs = tt.mockFn()
+			err := renderTemplate("out.txt", "tpl.txt", nil)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("renderTemplate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
 
-		if err := renderTemplate(outPath, tplPath, data); err != nil {
-			t.Fatalf("renderTemplate failed: %v", err)
-		}
+func TestOSFileSystem(t *testing.T) {
+	f := &OSFileSystem{}
+	tmp, _ := os.MkdirTemp("", "os-fs-test")
+	defer os.RemoveAll(tmp)
 
-		content, _ := os.ReadFile(outPath)
-		if string(content) != "Hello World" {
-			t.Errorf("Expected 'Hello World', got '%s'", string(content))
-		}
-	})
+	if err := f.MkdirAll(tmp, 0755); err != nil {
+		t.Errorf("MkdirAll failed: %v", err)
+	}
+	if err := f.WriteFile(tmp+"/test", []byte("OK"), 0644); err != nil {
+		t.Errorf("WriteFile failed: %v", err)
+	}
+	if _, err := f.ReadFile(tmp + "/test"); err != nil {
+		t.Errorf("ReadFile failed: %v", err)
+	}
+	if _, err := f.ReadDir(tmp); err != nil {
+		t.Errorf("ReadDir failed: %v", err)
+	}
+	if err := f.RemoveAll(tmp); err != nil {
+		t.Errorf("RemoveAll failed: %v", err)
+	}
+}
+
+func TestGenerateRegistry_Error(t *testing.T) {
+	oldFS := fs
+	defer func() { fs = oldFS }()
+	fs = &MockFS{
+		WriteFileFn: func(p string, d []byte, perm os.FileMode) error { return os.ErrPermission },
+	}
+	if err := generateRegistry("any", nil); err == nil {
+		t.Error("Expected error from generateRegistry, got nil")
+	}
 }

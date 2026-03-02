@@ -105,10 +105,72 @@ func TestMongoStore_Helpers(t *testing.T) {
 		Client: nil,
 	}
 
+	t.Run("Close Nil Client", func(t *testing.T) {
+		err := store.Close(context.Background())
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Find Nil Client", func(t *testing.T) {
+		err := store.Find(context.Background(), "test-op", "db", "coll", nil, nil, 10)
+		if err == nil {
+			t.Error("Expected error for nil client, got nil")
+		}
+	})
+
+	t.Run("UpdateByID Nil Client", func(t *testing.T) {
+		err := store.UpdateByID(context.Background(), "test-op", "db", "coll", "507f1f77bcf86cd799439011", nil)
+		if err == nil {
+			t.Error("Expected error for nil client, got nil")
+		}
+	})
+
 	t.Run("UpdateByID Invalid Hex", func(t *testing.T) {
 		err := store.UpdateByID(context.Background(), "test-op", "test-db", "test-coll", "invalid-hex", nil)
 		if err == nil {
 			t.Error("Expected error for invalid hex ID, got nil")
+		}
+	})
+}
+
+func TestMockMongoStore(t *testing.T) {
+	t.Run("Populated Mock", func(t *testing.T) {
+		mock := &MockMongoStore{
+			FindFn: func(ctx context.Context, opName, collection string, filter any, results any, limit int64) error {
+				return errors.New("mock find")
+			},
+			UpdateByIDFn: func(ctx context.Context, opName, collection string, id string, update any) error {
+				return errors.New("mock update")
+			},
+			CloseFn: func(ctx context.Context) error {
+				return errors.New("mock close")
+			},
+		}
+
+		ctx := context.Background()
+		if err := mock.Find(ctx, "op", "coll", nil, nil, 0); err == nil || err.Error() != "mock find" {
+			t.Errorf("Expected mock find error, got %v", err)
+		}
+		if err := mock.UpdateByID(ctx, "op", "coll", "id", nil); err == nil || err.Error() != "mock update" {
+			t.Errorf("Expected mock update error, got %v", err)
+		}
+		if err := mock.Close(ctx); err == nil || err.Error() != "mock close" {
+			t.Errorf("Expected mock close error, got %v", err)
+		}
+	})
+
+	t.Run("Nil Mock", func(t *testing.T) {
+		mock := &MockMongoStore{}
+		ctx := context.Background()
+		if err := mock.Find(ctx, "op", "coll", nil, nil, 0); err != nil {
+			t.Errorf("Expected nil error for default mock find, got %v", err)
+		}
+		if err := mock.UpdateByID(ctx, "op", "coll", "id", nil); err != nil {
+			t.Errorf("Expected nil error for default mock update, got %v", err)
+		}
+		if err := mock.Close(ctx); err != nil {
+			t.Errorf("Expected nil error for default mock close, got %v", err)
 		}
 	})
 }
