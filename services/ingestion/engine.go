@@ -8,8 +8,6 @@ import (
 	"ingestion/tasks"
 	"secrets"
 	"telemetry"
-
-	"go.opentelemetry.io/otel/codes"
 )
 
 // RunTask executes a single ingestion task, wrapping it with observability and error handling.
@@ -24,11 +22,11 @@ func RunTask(ctx context.Context, task tasks.Task, db *postgres.PostgresWrapper,
 	err := task.Run(ctx, db, secretStore)
 	if err != nil {
 		telemetry.Error("task_failed", "task", task.Name(), "error", err)
-		span.SetStatus(codes.Error, err.Error())
+		span.SetStatus(telemetry.CodeError, err.Error())
 		return err
 	}
 
 	telemetry.Info("task_succeeded", "task", task.Name())
-	span.SetStatus(codes.Ok, "success")
+	span.SetStatus(telemetry.CodeOk, "success")
 	return nil
 }
