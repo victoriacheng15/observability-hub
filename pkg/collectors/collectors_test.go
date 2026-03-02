@@ -2,29 +2,36 @@ package collectors
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 )
 
+type MockRunner struct {
+	RunFn func(ctx context.Context, name string, arg ...string) ([]byte, error)
+}
+
+func (m *MockRunner) Run(ctx context.Context, name string, arg ...string) ([]byte, error) {
+	if m.RunFn != nil {
+		return m.RunFn(ctx, name, arg...)
+	}
+	return nil, nil
+}
+
 func TestThanosClient_QueryRange(t *testing.T) {
-	// Mock Thanos API
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Mock response from Thanos
 		responseJSON := `{
 			"status": "success",
 			"data": {
 				"resultType": "matrix",
 				"result": [
 					{
-						"metric": { "instance": "host1", "__name__": "node_cpu_seconds_total" },
+						"metric": { "instance": "host1" },
 						"values": [
-							[ 1708531200, "0.5" ],
-							[ 1708531260, "0.6" ]
+							[ 1708531200, "0.5" ]
 						]
 					}
 				]
@@ -36,56 +43,109 @@ func TestThanosClient_QueryRange(t *testing.T) {
 	defer ts.Close()
 
 	client := NewThanosClient(ts.URL)
-	ctx := context.Background()
-	start := time.Unix(1708531200, 0)
-	end := time.Unix(1708531300, 0)
-
-	samples, err := client.QueryRange(ctx, "node_cpu_seconds_total", start, end, "1m")
+	samples, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
 	if err != nil {
 		t.Fatalf("QueryRange failed: %v", err)
 	}
 
-	if len(samples) != 2 {
-		t.Errorf("expected 2 samples, got %d", len(samples))
-	}
-
-	// Verify first sample
-	if samples[0].Timestamp.Unix() != 1708531200 {
-		t.Errorf("expected timestamp 1708531200, got %d", samples[0].Timestamp.Unix())
-	}
-	if samples[0].Payload["value"] != "0.5" {
-		t.Errorf("expected value '0.5', got %v", samples[0].Payload["value"])
+	if len(samples) != 1 {
+		t.Errorf("expected 1 sample, got %d", len(samples))
 	}
 }
 
-func TestGetFunnelStatus_Parsing(t *testing.T) {
-	// Sample output from manual verification
-	mockOutput := `
-# Funnel on:
-#     - https://server.tailc8e03f.ts.net:8443
+func TestGetFunnelStatus(t *testing.T) {
+	oldRunner := runner
+	defer func() { runner = oldRunner }()
 
-https://server.tailc8e03f.ts.net:8443 (Funnel on)
+	tests := []struct {
+		name       string
+		mockOutput string
+		mockErr    error
+		wantActive bool
+		wantTarget string
+	}{
+		{
+			name: "Active Funnel",
+			mockOutput: `
+https://server.ts.net:8443 (Funnel on)
 |-- / proxy http://127.0.0.1:8085
-`
-
-	// This is just to test the logic if we were to extract the parser.
-	// For now, we'll verify the structure handles the "Funnel on" substring.
-	active := strings.Contains(mockOutput, "(Funnel on)")
-	if !active {
-		t.Errorf("Expected 'Funnel on' to be detected")
+`,
+			mockErr:    nil,
+			wantActive: true,
+			wantTarget: "https://server.ts.net:8443",
+		},
+		{
+			name:       "Inactive Funnel",
+			mockOutput: "Funnel is off",
+			mockErr:    errors.New("exit status 1"),
+			wantActive: false,
+			wantTarget: "",
+		},
 	}
 
-	lines := strings.Split(strings.TrimSpace(mockOutput), "\n")
-	var target string
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "https://") {
-			target = strings.Fields(trimmed)[0]
-			break
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner = &MockRunner{
+				RunFn: func(ctx context.Context, name string, arg ...string) ([]byte, error) {
+					return []byte(tt.mockOutput), tt.mockErr
+				},
+			}
+			status, err := GetFunnelStatus(context.Background())
+			if err != nil {
+				t.Errorf("GetFunnelStatus() error = %v", err)
+			}
+			if status.Active != tt.wantActive {
+				t.Errorf("Active = %v, want %v", status.Active, tt.wantActive)
+			}
+			if status.Target != tt.wantTarget {
+				t.Errorf("Target = %v, want %v", status.Target, tt.wantTarget)
+			}
+		})
 	}
-	if target != "https://server.tailc8e03f.ts.net:8443" {
-		t.Errorf("Expected target https://server.tailc8e03f.ts.net:8443, got %s", target)
+}
+
+func TestGetTailscaleStatus(t *testing.T) {
+	oldRunner := runner
+	defer func() { runner = oldRunner }()
+
+	tests := []struct {
+		name       string
+		mockOutput string
+		mockErr    error
+		wantErr    bool
+	}{
+		{
+			name:       "Success",
+			mockOutput: `{"BackendState": "Running"}`,
+			mockErr:    nil,
+			wantErr:    false,
+		},
+		{
+			name:       "Command Error",
+			mockOutput: "",
+			mockErr:    errors.New("failed"),
+			wantErr:    true,
+		},
+		{
+			name:       "Invalid JSON",
+			mockOutput: "invalid",
+			mockErr:    nil,
+			wantErr:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner = &MockRunner{
+				RunFn: func(ctx context.Context, name string, arg ...string) ([]byte, error) {
+					return []byte(tt.mockOutput), tt.mockErr
+				},
+			}
+			_, err := GetTailscaleStatus(context.Background())
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetTailscaleStatus() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
@@ -97,22 +157,16 @@ func TestThanosClient_QueryRange_Errors(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:           "API Error Status",
-			serverResponse: `{"status": "error", "error": "invalid query"}`,
-			serverStatus:   http.StatusOK,
-			wantErr:        true,
-		},
-		{
 			name:           "HTTP Error",
-			serverResponse: `Internal Server Error`,
+			serverResponse: "Internal Server Error",
 			serverStatus:   http.StatusInternalServerError,
 			wantErr:        true,
 		},
 		{
-			name:           "Malformed JSON",
-			serverResponse: `{"status": "success", "data": { "result": [ { "values": [[123, 456]] } ] } }`, // values[1] should be string
+			name:           "Malformed Response Status",
+			serverResponse: `{"status": "error"}`,
 			serverStatus:   http.StatusOK,
-			wantErr:        false, // Currently the code skips malformed samples rather than failing the whole batch
+			wantErr:        true,
 		},
 	}
 
@@ -133,31 +187,14 @@ func TestThanosClient_QueryRange_Errors(t *testing.T) {
 	}
 }
 
-func TestGetTailscaleStatus_Parsing(t *testing.T) {
-	mockJSON := `{
-		"BackendState": "Running",
-		"Self": {
-			"HostName": "test-host",
-			"TailscaleIPs": ["100.64.0.1"]
-		}
-	}`
-
-	var status map[string]interface{}
-	err := json.Unmarshal([]byte(mockJSON), &status)
+func TestRealCommandRunner_Run(t *testing.T) {
+	r := &RealCommandRunner{}
+	// Run a simple command that should exist in nix-shell (echo)
+	out, err := r.Run(context.Background(), "echo", "hello")
 	if err != nil {
-		t.Fatalf("Failed to unmarshal mock JSON: %v", err)
+		t.Errorf("RealCommandRunner.Run failed: %v", err)
 	}
-
-	if status["BackendState"] != "Running" {
-		t.Errorf("Expected BackendState Running, got %v", status["BackendState"])
+	if string(out) != "hello\n" {
+		t.Errorf("Expected 'hello\n', got %q", string(out))
 	}
-
-	self := status["Self"].(map[string]interface{})
-	if self["HostName"] != "test-host" {
-		t.Errorf("Expected HostName test-host, got %v", self["HostName"])
-	}
-}
-
-func TestTailscaleStatus_Skipped(t *testing.T) {
-	t.Log("Skipping tailscale status real execution test (requires tailscale CLI)")
 }

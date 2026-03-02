@@ -31,6 +31,9 @@ var (
 
 	tailscaleMu     sync.RWMutex
 	tailscaleActive int64
+
+	pathHostname  = "/etc/host_hostname"
+	pathOSRelease = "/etc/host_os-release"
 )
 
 func ensureMetrics() {
@@ -76,14 +79,20 @@ type App struct {
 func main() {
 	env.Load()
 
-	thanosURL := os.Getenv("THANOS_URL")
-	if thanosURL == "" {
-		telemetry.Error("THANOS_URL_missing", "error", "THANOS_URL environment variable is required")
-		os.Exit(1)
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if err := Run(ctx); err != nil {
+		telemetry.Error("service_failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+func Run(ctx context.Context) error {
+	thanosURL := os.Getenv("THANOS_URL")
+	if thanosURL == "" {
+		return fmt.Errorf("THANOS_URL environment variable is required")
+	}
 
 	// 1. Initialize Telemetry
 	shutdown, err := telemetry.Init(ctx, serviceName)
@@ -97,21 +106,18 @@ func main() {
 	// 2. Initialize Secrets & DB
 	secretStore, err := secrets.NewBaoProvider()
 	if err != nil {
-		telemetry.Error("secret_provider_init_failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("secret_provider_init_failed: %w", err)
 	}
 
 	wrapper, err := postgres.ConnectPostgres("postgres", secretStore)
 	if err != nil {
-		telemetry.Error("db_connection_failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("db_connection_failed: %w", err)
 	}
 	defer wrapper.DB.Close()
 
 	store := NewMetricsStore(wrapper)
 	if err := store.EnsureSchema(ctx); err != nil {
-		telemetry.Error("schema_init_failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("schema_init_failed: %w", err)
 	}
 
 	app := &App{
@@ -134,7 +140,7 @@ func main() {
 			app.runBatch(ctx)
 		case <-ctx.Done():
 			telemetry.Info("service_shutting_down")
-			return
+			return nil
 		}
 	}
 }
@@ -177,16 +183,16 @@ func (a *App) runBatch(ctx context.Context) {
 
 func getHostMetadata() (string, string, error) {
 	// 1. Get Hostname from mounted host file
-	hostnameBytes, err := os.ReadFile("/etc/host_hostname")
+	hostnameBytes, err := os.ReadFile(pathHostname)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read /etc/host_hostname: %w", err)
+		return "", "", fmt.Errorf("failed to read %s: %w", pathHostname, err)
 	}
 	hostname := strings.TrimSpace(string(hostnameBytes))
 
 	// 2. Get OS Name from mounted host os-release
-	osReleaseBytes, err := os.ReadFile("/etc/host_os-release")
+	osReleaseBytes, err := os.ReadFile(pathOSRelease)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read /etc/host_os-release: %w", err)
+		return "", "", fmt.Errorf("failed to read %s: %w", pathOSRelease, err)
 	}
 
 	var name, version string

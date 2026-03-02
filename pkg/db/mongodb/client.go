@@ -1,8 +1,4 @@
 // Package mongodb provides a pure, OTel-instrumented wrapper for MongoDB.
-// Supported Operations:
-// - Connection: NewMongoStore (via OpenBao/Env)
-// - Read: Find (Generic helper for multiple documents)
-// - Update: UpdateByID (Standardized helper for single document update)
 package mongodb
 
 import (
@@ -24,6 +20,13 @@ var (
 	mongoConnect = mongo.Connect
 	tracer       = telemetry.GetTracer("db/mongodb")
 )
+
+// IMongoStore defines the interface for our MongoDB operations.
+type IMongoStore interface {
+	Find(ctx context.Context, opName, database, collection string, filter any, results any, limit int64) error
+	UpdateByID(ctx context.Context, opName, database, collection string, id string, update any) error
+	Close(ctx context.Context) error
+}
 
 // MongoStore provides a standardized, OTel-instrumented wrapper around mongo.Client.
 type MongoStore struct {
@@ -64,6 +67,10 @@ func (w *MongoStore) Find(ctx context.Context, opName, database, collection stri
 		opts.SetLimit(limit)
 	}
 
+	if w.Client == nil {
+		return fmt.Errorf("mongo client is nil")
+	}
+
 	coll := w.Client.Database(database).Collection(collection)
 	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
@@ -99,6 +106,10 @@ func (w *MongoStore) UpdateByID(ctx context.Context, opName, database, collectio
 		span.RecordError(err)
 		span.SetStatus(telemetry.CodeError, "invalid_object_id")
 		return fmt.Errorf("invalid object id: %w", err)
+	}
+
+	if w.Client == nil {
+		return fmt.Errorf("mongo client is nil")
 	}
 
 	coll := w.Client.Database(database).Collection(collection)

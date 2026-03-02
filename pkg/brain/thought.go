@@ -46,6 +46,8 @@ func Atomize(date, body string) []AtomicThought {
 	flush := func() {
 		if len(currentBlocks) > 0 {
 			text := strings.TrimSpace(strings.Join(currentBlocks, "\n"))
+			currentBlocks = nil // Clear it immediately
+
 			// Remove leading dash if present
 			if strings.HasPrefix(text, "- ") {
 				text = strings.TrimPrefix(text, "- ")
@@ -74,7 +76,6 @@ func Atomize(date, body string) []AtomicThought {
 				Checksum:      GetChecksum(text),
 				TokenCount:    EstimateTokens(context),
 			})
-			currentBlocks = nil
 		}
 	}
 

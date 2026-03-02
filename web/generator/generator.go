@@ -16,22 +16,36 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Internal variables for testing
-var (
-	removeAll = os.RemoveAll
-	mkdirAll  = os.MkdirAll
-	readDir   = os.ReadDir
-	readFile  = os.ReadFile
-	writeFile = os.WriteFile
-)
+// FileSystem defines the interface for file operations to allow mocking.
+type FileSystem interface {
+	RemoveAll(path string) error
+	MkdirAll(path string, perm os.FileMode) error
+	ReadDir(dirname string) ([]os.DirEntry, error)
+	ReadFile(filename string) ([]byte, error)
+	WriteFile(filename string, data []byte, perm os.FileMode) error
+}
+
+// OSFileSystem implements FileSystem using the standard os package.
+type OSFileSystem struct{}
+
+func (f *OSFileSystem) RemoveAll(path string) error                   { return os.RemoveAll(path) }
+func (f *OSFileSystem) MkdirAll(path string, perm os.FileMode) error  { return os.MkdirAll(path, perm) }
+func (f *OSFileSystem) ReadDir(dirname string) ([]os.DirEntry, error) { return os.ReadDir(dirname) }
+func (f *OSFileSystem) ReadFile(filename string) ([]byte, error)      { return os.ReadFile(filename) }
+func (f *OSFileSystem) WriteFile(filename string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(filename, data, perm)
+}
+
+// Global FS used by the generator, can be swapped in tests.
+var fs FileSystem = &OSFileSystem{}
 
 // Build generates the static site from srcDir into dstDir.
 func Build(srcDir, dstDir string) error {
 	// 1. Cleanup dist
-	if err := removeAll(dstDir); err != nil {
+	if err := fs.RemoveAll(dstDir); err != nil {
 		return fmt.Errorf("failed to remove dist: %w", err)
 	}
-	if err := mkdirAll(dstDir, 0755); err != nil {
+	if err := fs.MkdirAll(dstDir, 0755); err != nil {
 		return fmt.Errorf("failed to create dist: %w", err)
 	}
 
@@ -55,16 +69,16 @@ func Build(srcDir, dstDir string) error {
 
 	// 3. Copy Static Assets
 	staticDir := filepath.Join(srcDir, "static")
-	if entries, err := readDir(staticDir); err == nil {
+	if entries, err := fs.ReadDir(staticDir); err == nil {
 		for _, entry := range entries {
 			if !entry.IsDir() {
 				src := filepath.Join(staticDir, entry.Name())
 				dst := filepath.Join(dstDir, entry.Name())
-				content, err := readFile(src)
+				content, err := fs.ReadFile(src)
 				if err != nil {
 					return fmt.Errorf("failed to read static file %s: %w", entry.Name(), err)
 				}
-				if err := writeFile(dst, content, 0644); err != nil {
+				if err := fs.WriteFile(dst, content, 0644); err != nil {
 					return fmt.Errorf("failed to write static file %s: %w", entry.Name(), err)
 				}
 			}
@@ -96,11 +110,8 @@ func Build(srcDir, dstDir string) error {
 				event.FormattedDate = t.Format("2006-01-02")
 			}
 		}
-		// Reverse Events within each chapter (Newest First)
 		slices.Reverse(data.Evolution.Chapters[ci].Events)
 	}
-
-	// Reverse Chapters (Newest First)
 	slices.Reverse(data.Evolution.Chapters)
 
 	// 4. Render Pages
@@ -138,7 +149,7 @@ func Build(srcDir, dstDir string) error {
 
 	// 6. Generate evolution-registry.json
 	apiDir := filepath.Join(dstDir, "api")
-	if err := os.MkdirAll(apiDir, 0755); err != nil {
+	if err := fs.MkdirAll(apiDir, 0755); err != nil {
 		return fmt.Errorf("failed to create api dir: %w", err)
 	}
 	if err := generateRegistry(filepath.Join(apiDir, "evolution-registry.json"), &data.Evolution); err != nil {
@@ -149,74 +160,73 @@ func Build(srcDir, dstDir string) error {
 }
 
 func generateRegistry(path string, evolution *schema.Evolution) error {
-	f, err := os.Create(path)
+	data, err := json.Marshal(evolution)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-
-	return json.NewEncoder(f).Encode(evolution)
+	return fs.WriteFile(path, data, 0644)
 }
 
 func renderTemplate(path string, tplPath string, data interface{}) error {
-	tmpl, err := template.ParseFiles(tplPath)
+	tplContent, err := fs.ReadFile(tplPath)
+	if err != nil {
+		return fmt.Errorf("failed to read template %s: %w", tplPath, err)
+	}
+
+	tmpl, err := template.New(filepath.Base(tplPath)).Parse(string(tplContent))
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
 	}
 
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("failed to create output file %s: %w", path, err)
-	}
-	defer f.Close()
-
-	if err := tmpl.Execute(f, data); err != nil {
+	var out strings.Builder
+	if err := tmpl.Execute(&out, data); err != nil {
 		return fmt.Errorf("failed to execute template %s: %w", path, err)
 	}
 
-	return nil
+	return fs.WriteFile(path, []byte(out.String()), 0644)
 }
 
 func loadYaml(path string, out interface{}) error {
-	f, err := os.Open(path)
+	content, err := fs.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to open %s: %w", path, err)
+		return fmt.Errorf("failed to read %s: %w", path, err)
 	}
-	defer f.Close()
 
-	if err := yaml.NewDecoder(f).Decode(out); err != nil {
+	if err := yaml.Unmarshal(content, out); err != nil {
 		return fmt.Errorf("failed to decode %s: %w", path, err)
 	}
 	return nil
 }
 
 func renderPage(outFile, baseFile, tplFile string, data *schema.SiteData) error {
-	// Add template functions
 	funcMap := template.FuncMap{
-		"add": func(a, b int) int {
-			return a + b
-		},
-		"sub": func(a, b int) int {
-			return a - b
-		},
+		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
 	}
 
-	// Always parse base.html + the specific page template
-	tmpl, err := template.New(filepath.Base(tplFile)).Funcs(funcMap).ParseFiles(baseFile, tplFile)
+	baseContent, err := fs.ReadFile(baseFile)
 	if err != nil {
-		return fmt.Errorf("failed to parse templates for %s: %w", outFile, err)
+		return fmt.Errorf("failed to read base template: %w", err)
 	}
 
-	f, err := os.Create(outFile)
+	tplContent, err := fs.ReadFile(tplFile)
 	if err != nil {
-		return fmt.Errorf("failed to create output file %s: %w", outFile, err)
+		return fmt.Errorf("failed to read page template: %w", err)
 	}
-	defer f.Close()
 
-	// Execute "base" which should include the specific page content
-	if err := tmpl.ExecuteTemplate(f, "base", data); err != nil {
+	tmpl, err := template.New("page").Funcs(funcMap).Parse(string(baseContent))
+	if err != nil {
+		return fmt.Errorf("failed to parse base template: %w", err)
+	}
+	tmpl, err = tmpl.Parse(string(tplContent))
+	if err != nil {
+		return fmt.Errorf("failed to parse page template: %w", err)
+	}
+
+	var out strings.Builder
+	if err := tmpl.ExecuteTemplate(&out, "base", data); err != nil {
 		return fmt.Errorf("failed to execute template %s: %w", outFile, err)
 	}
 
-	return nil
+	return fs.WriteFile(outFile, []byte(out.String()), 0644)
 }
