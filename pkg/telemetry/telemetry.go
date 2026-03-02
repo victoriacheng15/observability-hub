@@ -95,7 +95,7 @@ func Init(ctx context.Context, serviceName string) (func(), error) {
 	slog.Info("otel_telemetry_enabled", "endpoint", endpoint, "service", serviceName)
 
 	return func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		if shutdownTracer != nil {

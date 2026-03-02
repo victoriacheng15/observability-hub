@@ -1,0 +1,260 @@
+package tasks
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strconv"
+	"time"
+
+	"db/mongodb"
+	"db/postgres"
+	"secrets"
+	"telemetry"
+)
+
+// ReadingTask implements the Task interface for syncing reading analytics data.
+type ReadingTask struct{}
+
+// Name returns the name of the task.
+func (t *ReadingTask) Name() string {
+	return "reading"
+}
+
+// Run executes the reading sync task.
+func (t *ReadingTask) Run(ctx context.Context, db *postgres.PostgresWrapper, secretStore secrets.SecretStore) error {
+	readingStore := NewReadingStore(db)
+
+	mongoStore, err := newMongoStore(secretStore)
+	if err != nil {
+		return fmt.Errorf("mongo_connection_failed: %w", err)
+	}
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := mongoStore.Close(closeCtx); err != nil {
+			telemetry.Error("mongo_close_failed", "error", err)
+		}
+	}()
+
+	return t.Sync(ctx, readingStore, mongoStore)
+}
+
+// Sync performs the data synchronization from MongoDB to PostgreSQL.
+func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore MongoStoreAPI) error {
+	tracer := telemetry.GetTracer("reading.sync")
+	meter := telemetry.GetMeter("reading.sync")
+
+	processedCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.processed.total", "Total documents processed")
+	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.errors.total", "Total sync errors")
+	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration.ms", "Sync duration in milliseconds", "ms")
+
+	lastSuccessTime := time.Now()
+	_, _ = telemetry.NewInt64ObservableGauge(meter, "reading.sync.lag.seconds", "Time since last successful sync", func(ctx context.Context, obs telemetry.Int64Observer) error {
+		obs.Observe(int64(time.Since(lastSuccessTime).Seconds()))
+		return nil
+	})
+
+	start := time.Now()
+	ctx, span := tracer.Start(ctx, "job.reading_sync")
+	defer span.End()
+
+	startTime := time.Now().UTC()
+	syncStatus := "success"
+	var syncErrorMessage string
+	processedCount := 0
+
+	defer func() {
+		if syncStatus == "success" {
+			lastSuccessTime = time.Now()
+		}
+		if err := pgStore.RecordSyncHistory(ctx, startTime, time.Now().UTC(), syncStatus, processedCount, syncErrorMessage); err != nil {
+			telemetry.Error("failed_to_record_sync_history", "error", err)
+		}
+	}()
+
+	telemetry.Info("sync_started")
+
+	if err := pgStore.EnsureSchema(ctx); err != nil {
+		syncStatus = "failure"
+		syncErrorMessage = err.Error()
+		if errorsCounter != nil {
+			telemetry.AddInt64Counter(ctx, errorsCounter, 1)
+		}
+		return fmt.Errorf("schema_ensure_failed: %w", err)
+	}
+
+	batchSize := int64(100)
+	if envSize := os.Getenv("BATCH_SIZE"); envSize != "" {
+		if val, err := strconv.ParseInt(envSize, 10, 64); err == nil && val > 0 {
+			batchSize = val
+		}
+	}
+
+	docs, err := mStore.FetchIngestedArticles(ctx, batchSize)
+	if err != nil {
+		syncStatus = "failure"
+		syncErrorMessage = err.Error()
+		if errorsCounter != nil {
+			telemetry.AddInt64Counter(ctx, errorsCounter, 1)
+		}
+		return fmt.Errorf("fetch_from_mongo_failed: %w", err)
+	}
+
+	span.SetAttributes(telemetry.IntAttribute("db.documents.count", len(docs)))
+
+	for _, doc := range docs {
+		payloadJSON, _ := json.Marshal(doc.Payload)
+		metaJSON, _ := json.Marshal(doc.Meta)
+
+		err := pgStore.InsertReadingAnalytics(ctx, doc.ID, doc.Timestamp, doc.Source, doc.Type, payloadJSON, metaJSON)
+		if err != nil {
+			telemetry.Error("postgres_insert_failed", "id", doc.ID, "error", err)
+			if errorsCounter != nil {
+				telemetry.AddInt64Counter(ctx, errorsCounter, 1)
+			}
+			continue
+		}
+
+		if err := mStore.MarkArticleAsProcessed(ctx, doc.ID); err != nil {
+			telemetry.Warn("mongo_mark_processed_failed", "id", doc.ID, "error", err)
+			if errorsCounter != nil {
+				telemetry.AddInt64Counter(ctx, errorsCounter, 1)
+			}
+		} else {
+			processedCount++
+		}
+	}
+
+	if processedCount > 0 && processedCounter != nil {
+		telemetry.AddInt64Counter(ctx, processedCounter, int64(processedCount))
+	}
+
+	durationMs := time.Since(start).Milliseconds()
+	if durationHist != nil {
+		telemetry.RecordInt64Histogram(ctx, durationHist, durationMs)
+	}
+
+	telemetry.Info("sync_complete",
+		"processed_count", processedCount,
+		"duration", time.Since(start).String())
+
+	return nil
+}
+
+// --- Store logic copied from services/reading-sync/store.go ---
+
+const (
+	tableReadingAnalytics = "reading_analytics"
+	tableSyncHistory      = "reading_sync_history"
+	mongoDatabase         = "reading-analytics"
+	mongoCollection       = "articles"
+)
+
+type ReadingStore struct {
+	Wrapper *postgres.PostgresWrapper
+}
+
+func NewReadingStore(w *postgres.PostgresWrapper) *ReadingStore {
+	return &ReadingStore{Wrapper: w}
+}
+
+type ReadingDocument struct {
+	ID        string                 `json:"id" bson:"_id"`
+	Source    string                 `json:"source" bson:"source"`
+	Type      string                 `json:"event_type" bson:"event_type"`
+	Timestamp interface{}            `json:"timestamp" bson:"timestamp"`
+	Payload   map[string]interface{} `json:"payload" bson:"payload"`
+	Meta      map[string]interface{} `json:"meta" bson:"meta"`
+}
+
+func (s *ReadingStore) EnsureSchema(ctx context.Context) error {
+	queryAnalytics := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+		id SERIAL PRIMARY KEY,
+		mongo_id TEXT UNIQUE NOT NULL,
+		event_timestamp TIMESTAMPTZ,
+		source TEXT,
+		event_type TEXT,
+		payload JSONB,
+		meta JSONB,
+		created_at TIMESTAMPTZ DEFAULT NOW()
+	)`, tableReadingAnalytics)
+
+	_, err := s.Wrapper.Exec(ctx, "db.postgres.ensure_reading_analytics", queryAnalytics)
+	if err != nil {
+		return fmt.Errorf("failed to ensure %s table: %w", tableReadingAnalytics, err)
+	}
+
+	queryHistory := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+		id SERIAL PRIMARY KEY,
+		start_time TIMESTAMPTZ NOT NULL,
+		end_time TIMESTAMPTZ NOT NULL,
+		status TEXT NOT NULL,
+		processed_count INTEGER NOT NULL,
+		error_message TEXT,
+		created_at TIMESTAMPTZ DEFAULT NOW()
+	)`, tableSyncHistory)
+
+	_, err = s.Wrapper.Exec(ctx, "db.postgres.ensure_reading_sync_history", queryHistory)
+	if err != nil {
+		return fmt.Errorf("failed to ensure %s table: %w", tableSyncHistory, err)
+	}
+
+	return nil
+}
+
+func (s *ReadingStore) RecordSyncHistory(ctx context.Context, startTime, endTime time.Time, status string, processedCount int, errorMessage string) error {
+	query := fmt.Sprintf(`INSERT INTO %s (start_time, end_time, status, processed_count, error_message)
+		VALUES ($1, $2, $3, $4, $5)`, tableSyncHistory)
+
+	_, err := s.Wrapper.Exec(ctx, "db.postgres.record_sync_history", query, startTime, endTime, status, processedCount, errorMessage)
+	return err
+}
+
+func (s *ReadingStore) InsertReadingAnalytics(ctx context.Context, mongoID string, timestamp interface{}, source, eventType string, payloadJSON, metaJSON []byte) error {
+	query := fmt.Sprintf(`INSERT INTO %s (mongo_id, event_timestamp, source, event_type, payload, meta, created_at) 
+		 VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		 ON CONFLICT (mongo_id) DO NOTHING`, tableReadingAnalytics)
+
+	_, err := s.Wrapper.Exec(ctx, "db.postgres.insert_reading_analytics", query, mongoID, timestamp, source, eventType, payloadJSON, metaJSON)
+	return err
+}
+
+// MongoStoreAPI defines the interface for MongoDB operations.
+type MongoStoreAPI interface {
+	FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error)
+	MarkArticleAsProcessed(ctx context.Context, id string) error
+	Close(ctx context.Context) error
+}
+
+type MongoStoreWrapper struct {
+	Wrapper *mongodb.MongoStore
+}
+
+func newMongoStore(store secrets.SecretStore) (MongoStoreAPI, error) {
+	wrapper, err := mongodb.NewMongoStore(store)
+	if err != nil {
+		return nil, err
+	}
+	return &MongoStoreWrapper{Wrapper: wrapper}, nil
+}
+
+func (m *MongoStoreWrapper) FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error) {
+	var docs []ReadingDocument
+	filter := map[string]any{"status": "ingested"}
+	err := m.Wrapper.Find(ctx, "db.mongodb.fetch_ingested_articles", mongoDatabase, mongoCollection, filter, &docs, limit)
+	if err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
+func (m *MongoStoreWrapper) MarkArticleAsProcessed(ctx context.Context, id string) error {
+	update := map[string]any{"$set": map[string]any{"status": "processed"}}
+	return m.Wrapper.UpdateByID(ctx, "db.mongodb.mark_article_processed", mongoDatabase, mongoCollection, id, update)
+}
+
+func (m *MongoStoreWrapper) Close(ctx context.Context) error {
+	return m.Wrapper.Close(ctx)
+}

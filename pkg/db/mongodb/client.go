@@ -133,7 +133,9 @@ func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongoConnect(options.Client().ApplyURI(uri))
+	client, err := mongoConnect(options.Client().ApplyURI(uri).SetBSONOptions(&options.BSONOptions{
+		ObjectIDAsHexString: true,
+	}))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mongodb: %w", err)
 	}
