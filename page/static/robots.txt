@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-Allow: /api/
-Sitemap: https://victoriacheng15.github.io/observability-hub/sitemap.xml

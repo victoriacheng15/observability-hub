@@ -59,7 +59,7 @@ page-build: setup-tailwind
 	mkdir -p page/dist && \
 	(cd page && go build -o ../page-ssg .) && \
 	(cd page && ../page-ssg) && \
-	./tailwindcss -i ./page/static/css/input.css -o ./page/dist/styles.css --minify && \
+	./tailwindcss -i ./page/templates/input.css -o ./page/dist/styles.css --minify && \
 	rm page-ssg && \
 	rm tailwindcss
 

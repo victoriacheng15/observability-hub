@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Allow: /api/
+Sitemap: {{ .Landing.Header.SiteURL }}/sitemap.xml
