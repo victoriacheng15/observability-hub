@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/ingestion
+GO_DIRS = cmd/web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/ingestion
 
 .PHONY: go-format go-lint go-update go-test go-cov web-build proxy-build brain-sync
 
@@ -55,11 +55,11 @@ setup-tailwind:
 
 web-build: setup-tailwind
 	$(NIX_WRAP) echo "Running web build..." && \
-	rm -rf web/dist && \
-	mkdir -p web/dist && \
-	(cd web && go build -o ../web-ssg .) && \
-	(cd web && ../web-ssg) && \
-	./tailwindcss -i ./web/templates/input.css -o ./web/dist/styles.css --minify && \
+	rm -rf cmd/web/dist && \
+	mkdir -p cmd/web/dist && \
+	(cd cmd/web && go build -o ../../web-ssg .) && \
+	(cd cmd/web && ../../web-ssg) && \
+	./tailwindcss -i ./cmd/web/templates/input.css -o ./cmd/web/dist/styles.css --minify && \
 	rm web-ssg && \
 	rm tailwindcss
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"web/schema"
+	"observability-hub/cmd/web/schema"
 )
 
 type MockFS struct {
