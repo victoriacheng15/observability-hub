@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"web/generator"
+	"observability-hub/cmd/web/generator"
 )
 
 func main() {

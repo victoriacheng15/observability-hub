@@ -6,7 +6,7 @@ system_specification:
   objective: "A self-hosted observability hub orchestrated via OpenTofu (Terraform), demonstrating SRE and Platform Engineering principles through Go, Kubernetes (K3s), and OpenTelemetry."
   stack: "Go (Goroutine), OpenTelemetry, Kubernetes (K3s), OpenTofu (Terraform), Grafana, Loki, Prometheus, Tempo, OpenBao, PostgreSQL"
   pattern: "Pure Wrapper / Hybrid Orchestration (K3s + Systemd)"
-  entry_point: "web/main.go"
+  entry_point: "cmd/web/main.go"
   persistence_strategy: "PostgreSQL (TimescaleDB) on K3s with MinIO S3 backend"
   observability: "OpenTelemetry (OTLP/gRPC) with Prometheus, Tempo, and Loki"
   machine_registry: "/api/evolution-registry.json"

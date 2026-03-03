@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"web/schema"
+	"observability-hub/cmd/web/schema"
 
 	"gopkg.in/yaml.v3"
 )

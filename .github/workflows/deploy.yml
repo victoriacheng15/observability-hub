@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "web/**"
+      - "cmd/web/**"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.go-version }}
-          cache-dependency-path: web/go.sum
+          cache-dependency-path: go.sum
 
       - name: Build
         run: make web-build
@@ -36,7 +36,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./web/dist
+          path: ./cmd/web/dist
 
   deploy:
     runs-on: ubuntu-latest
