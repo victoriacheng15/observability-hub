@@ -1,6 +1,6 @@
 [Unit]
-Description=Trigger Reading Analytics Sync
-Wants=reading-sync.timer
+Description=Unified Ingestion Service (Reading + Brain Sync)
+Wants=ingestion.timer
 After=network.target
 
 [Service]
@@ -8,8 +8,7 @@ Type=oneshot
 User=server
 WorkingDirectory=/home/server/software/observability-hub
 EnvironmentFile=/home/server/software/observability-hub/.env
-ExecStart=/home/server/software/observability-hub/dist/reading-sync
-# Standardize logging for journald
+ExecStart=/home/server/software/observability-hub/dist/ingestion
 StandardOutput=journal
 StandardError=journal
 
