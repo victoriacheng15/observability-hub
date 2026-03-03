@@ -178,4 +178,3 @@ func (r *realBrainAPI) FetchRecentJournals(repo string) ([]brain.GitHubIssue, er
 func (r *realBrainAPI) FetchIssueBody(repo string, number int) (string, error) {
 	return brain.FetchIssueBody(repo, number)
 }
-

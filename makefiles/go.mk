@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/reading-sync services/second-brain
+GO_DIRS = web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/ingestion
 
-.PHONY: go-format go-lint go-update go-test go-cov web-build metrics-build reading-build proxy-build brain-sync setup-tailwind
+.PHONY: go-format go-lint go-update go-test go-cov web-build proxy-build brain-sync
 
 go-format:
 	$(NIX_WRAP) \
@@ -69,19 +69,8 @@ proxy-build:
 	cd services/proxy && go build -o ../../dist/proxy_server . && \
 	sudo systemctl restart proxy.service
 
-reading-build:
+ingestion-build:
 	$(NIX_WRAP) \
-	echo "Building reading sync..." && \
-	cd services/reading-sync && go build -o ../../dist/reading-sync . && \
-	sudo systemctl restart reading-sync.timer
-
-brain-sync:
-	$(NIX_WRAP) \
-	echo "Running Second Brain Sync..." && \
-	cd services/second-brain && go run .
-
-metrics-build:
-	$(NIX_WRAP) \
-	echo "Building system metrics collector..." && \
-	cd services/system-metrics && go build -o ../../dist/metrics-collector . && \
-	sudo systemctl restart system-metrics.timer
+	echo "Updating ingestion service..." && \
+	cd services/ingestion && go build -o ../../dist/ingestion . && \
+	sudo systemctl restart ingestion.timer
