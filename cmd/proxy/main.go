@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"observability-hub/cmd/proxy/utils"
 	"observability-hub/internal/env"
+	"observability-hub/internal/proxy"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )
@@ -52,10 +52,10 @@ func (a *App) Bootstrap(ctx context.Context) error {
 
 	// 3. Routes with OTel-instrumented mux
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", utils.WithLogging(utils.HomeHandler))
-	mux.HandleFunc("/api/health", utils.WithLogging(utils.HealthHandler))
-	mux.HandleFunc("/api/webhook/gitops", utils.WithLogging(utils.WebhookHandler))
-	mux.HandleFunc("/api/trace/synthetic/", utils.WithLogging(utils.SyntheticTraceHandler))
+	mux.HandleFunc("/", proxy.WithLogging(proxy.HomeHandler))
+	mux.HandleFunc("/api/health", proxy.WithLogging(proxy.HealthHandler))
+	mux.HandleFunc("/api/webhook/gitops", proxy.WithLogging(proxy.WebhookHandler))
+	mux.HandleFunc("/api/trace/synthetic/", proxy.WithLogging(proxy.SyntheticTraceHandler))
 
 	handler := telemetry.NewHTTPHandler(mux, "proxy")
 

@@ -1,11 +1,11 @@
-package main
+package ingestion
 
 import (
 	"context"
 	"fmt"
 
-	"observability-hub/cmd/ingestion/tasks"
 	"observability-hub/internal/db/postgres"
+	"observability-hub/internal/ingestion/tasks"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )

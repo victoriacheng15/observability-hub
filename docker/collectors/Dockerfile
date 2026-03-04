@@ -7,8 +7,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy shared libraries and collectors service
-COPY internal/ internal/
+# Copy specific internal libraries and service logic
+COPY internal/collectors/ internal/collectors/
+COPY internal/db/ internal/db/
+COPY internal/env/ internal/env/
+COPY internal/secrets/ internal/secrets/
+COPY internal/telemetry/ internal/telemetry/
 COPY cmd/collectors/ cmd/collectors/
 
 # Build the binary from the root module context

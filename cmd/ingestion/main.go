@@ -4,9 +4,10 @@ import (
 	"context"
 	"os"
 
-	"observability-hub/cmd/ingestion/tasks"
 	"observability-hub/internal/db/postgres"
 	"observability-hub/internal/env"
+	"observability-hub/internal/ingestion"
+	"observability-hub/internal/ingestion/tasks"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )
@@ -48,7 +49,7 @@ func main() {
 	telemetry.Info("starting_ingestion_tasks", "task_count", len(registeredTasks))
 
 	for _, task := range registeredTasks {
-		if err := RunTask(ctx, task, pgWrapper, secretStore); err != nil {
+		if err := ingestion.RunTask(ctx, task, pgWrapper, secretStore); err != nil {
 			// The error is already logged within RunTask.
 			// Depending on requirements, you might want to stop all tasks if one fails.
 			// For now, we continue to the next task.

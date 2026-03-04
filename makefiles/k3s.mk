@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: build-collectors k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 # Maintenance
 kube-lint:
@@ -16,6 +16,13 @@ k3s-prune:
 	@echo "Deleting completed/failed pods across all namespaces..."
 	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Succeeded' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
 	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Failed' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
+
+build-collectors:
+	@echo "Building Collectors image..."
+	docker build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
+	docker save -o collectors.tar collectors:v0.1.0
+	sudo k3s ctr images import collectors.tar
+	rm collectors.tar
 
 k3s-collectors-up:
 	@echo "Regenerating Collectors manifest..."
