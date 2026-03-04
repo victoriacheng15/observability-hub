@@ -115,7 +115,7 @@ func Run(ctx context.Context) error {
 	}
 	defer wrapper.DB.Close()
 
-	store := NewMetricsStore(wrapper)
+	store := collectors.NewMetricsStore(wrapper)
 	if err := store.EnsureSchema(ctx); err != nil {
 		return fmt.Errorf("schema_init_failed: %w", err)
 	}

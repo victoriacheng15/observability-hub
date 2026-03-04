@@ -1,4 +1,4 @@
-package main
+package collectors
 
 import (
 	"context"
