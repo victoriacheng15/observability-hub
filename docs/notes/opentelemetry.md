@@ -6,10 +6,13 @@ The Observability Hub uses **OpenTelemetry (OTel)** as the standardized protocol
 
 - **Protocol**: OTLP over gRPC.
 - **Backend**:
-  - **Logs**: Loki
-  - **Metrics**: Prometheus
-  - **Traces**: Tempo
+  - **Logs**: Loki (via OTLP)
+  - **Metrics**: Prometheus (via Prometheus Remote Write)
+  - **Traces**: Tempo (via OTLP)
 - **Library**: `internal/telemetry` (A wrapper around the OTel Go SDK).
+- **Collector Endpoint**:
+  - **Host Services**: `localhost:30317` (NodePort)
+  - **K3s Services**: `opentelemetry.observability.svc.cluster.local:4317`
 
 ---
 
@@ -29,7 +32,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 | Signal Type | Format / Convention | Example |
 | :--- | :--- | :--- |
 | **Metrics** | `service.entity.action.suffix` | `proxy.webhook.received.total` |
-| **Root Spans** | `handler.<name>` (API) or `job.<name>` (Background) | `job.second_brain_sync` |
+| **Root Spans** | `handler.<name>` (API) or `job.<name>` (Background) | `job.reading_sync` |
 | **Child Spans** | `<category>.<operation>` | `db.postgres.insert_thought`, `github.fetch` |
 | **Attributes** | `entity.property` (Dot notation) | `github.repo`, `db.system` |
 | **Log Keys** | `snake_case` for attribute keys | `telemetry.Info("msg", "error_code", 500)` |
@@ -40,93 +43,94 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 ### 1. Proxy Service
 
+**Service Name:** `proxy` | **Tracer/Meter:** `proxy.synthetic`
+
 **Metrics:**
 
-- `proxy.webhook.received.total`: Counter
-- `proxy.webhook.errors.total`: Counter
-- `proxy.webhook.sync.duration.ms`: Histogram
 - `proxy.synthetic.request.total`: Counter
 - `proxy.synthetic.request.errors.total`: Counter
 - `proxy.synthetic.request.duration.ms`: Histogram
 
 **Traces:**
 
-- `handler.webhook`: Root Span
-- `webhook.gitops`: Child Span
-- `handler.synthetic_trace`: Root Span
-- `github.event`, `github.repo`, `github.ref`, `github.action`, `github.merged`: Attributes
-- `net.peer.ip`: Attribute
-- `webhook.payload_received`: Event
+- `HTTP <method> <path>`: Root Span (via `otelhttp`)
+- `handler.synthetic_trace`: Process Span
+- **Attributes:** `app.synthetic_id`, `app.traffic_mode`, `app.business.region`, `app.business.timezone`, `app.business.device`, `app.business.network_type`, `app.latency_target_ms`, `error`, `error.message`
+- **Events:** `request.payload.received`, `request.payload.decode_failed`, `processing.simulated_delay`
 
 **Logs:**
 
-- `webhook_received`, `webhook_sync_triggered`, `webhook_sync_success`, `webhook_sync_failed`, `webhook_ignored`, `webhook_processed`, `synthetic_trace_payload_received`, `synthetic_trace_processed`
+- `otel_telemetry_enabled`, `🚀 The GO proxy listening on port`, `request_processed`, `synthetic_trace_payload_received`, `synthetic_trace_payload_decode_failed`, `synthetic_trace_response_encode_failed`, `synthetic_trace_processed`
 
 ### 2. Ingestion Service
 
+**Service Name:** `ingestion` | **Tracer:** `ingestion.engine`
+
+**Root Spans:**
+
+- `task.reading`: Root for Reading Sync
+- `task.brain`: Root for Brain Sync
+
+#### 2.1 Reading Task
+
+**Tracer/Meter:** `reading.sync`
+
 **Metrics:**
 
-- `reading.sync.processed.total`: Counter
-- `reading.sync.errors.total`: Counter
-- `reading.sync.duration.ms`: Histogram
-- `reading.sync.lag.seconds`: Gauge
+- `reading.sync.total`: Counter (Sync Runs)
+- `reading.sync.processed.total`: Counter (Documents, Global Scope)
+- `reading.sync.errors.total`: Counter (Errors during sync)
+- `reading.sync.duration.ms`: Histogram (Sync latency)
+- `reading.sync.lag.seconds`: Gauge (Time since last success)
 
 **Traces:**
 
-- `job.reading_sync`: Root Span
+- `job.reading_sync`: Process Span
 - `db.postgres.ensure_reading_analytics`: Child Span
+- `db.postgres.ensure_reading_sync_history`: Child Span
 - `db.postgres.record_sync_history`: Child Span
+- `db.postgres.insert_reading_analytics`: Child Span
 - `db.mongodb.fetch_ingested_articles`: Child Span
 - `db.mongodb.mark_article_processed`: Child Span
-- `db.system`, `db.name`, `db.collection`, `db.query.limit`, `db.mongodb.id`, `db.documents.count`: Attributes
-- `db.pool.wait_time`: Attribute
+- **Attributes:** `task.name`, `db.documents.count`
 
 **Logs:**
 
-- `sync_started`, `sync_complete`, `postgres_insert_failed`, `mongo_mark_processed_failed`, `mongo_close_failed`
+- `sync_started`, `failed_to_record_sync_history`, `postgres_insert_failed`, `mongo_mark_processed_failed`, `sync_complete`, `mongo_close_failed`
 
-### 3. Ingestion Service
+#### 2.2 Brain Task
+
+**Tracer/Meter:** `second.brain`
 
 **Metrics:**
 
-- `second.brain.sync.total`: Counter
-- `second.brain.atoms.ingested`: Counter
-- `second.brain.token.count.total`: Counter
+- `second.brain.sync.total`: Counter (Sync Runs)
+- `second.brain.sync.processed.total`: Counter (Thoughts, Global Scope)
+- `second.brain.sync.errors.total`: Counter (Errors during sync)
+- `second.brain.sync.duration.ms`: Histogram (Sync latency)
+- `second.brain.sync.lag.seconds`: Gauge (Time since last success)
+- `second.brain.token.count.total`: Counter (Tokens, Global Scope)
 
 **Traces:**
 
-- `job.second_brain_sync`: Root Span
-- `db.postgres.get_para_stats`: Child Span
-- `db.postgres.insert_thought`: Child Span
+- `job.second_brain_sync`: Process Span
 - `github.fetch`: Child Span
-- `ingest.delta`: Iterative Span
+- `ingest.delta`: Child Span
 - `parse.markdown.duration`: Child Span
+- `db.postgres.ensure_second_brain`: Child Span
+- `db.postgres.ensure_brain_sync_history`: Child Span
+- `db.postgres.record_brain_sync_history`: Child Span
+- `db.postgres.get_latest_entry_date`: Child Span
+- `db.postgres.insert_thought`: Child Span
+- **Attributes:** `github.issue_number`, `issue.title`, `atoms.count`
 
 **Logs:**
 
-- `database_check_complete`, `ingesting_issue`, `sync_complete`, `sync_skipped`, `fetch_body_failed`, `atom_insert_failed`
+- `sync_started`, `database_check_complete`, `sync_skipped`, `ingesting_issue`, `fetch_body_failed`, `atom_insert_failed`, `failed_to_record_brain_sync_history`, `sync_complete`
 
-### 4. System Metrics Service
+### 3. Collectors Service (Host Telemetry)
 
-**Metrics:**
-
-- `system.metrics.collection.total`: Counter
-- `system.metrics.collection.errors`: Counter
-- `system.metrics.resource.saturation`: Gauge
-
-**Traces:**
-
-- `job.system_metrics`: Root Span
-- `db.postgres.ensure_system_metrics`: Child Span
-- `db.postgres.record_metric`: Child Span
-- `os.poll_stats`: Child Span
-- `os.kernel.version`: Attribute
-
-**Logs:**
-
-- `db_connected`, `collection_complete`, `db_insert_failed`, `otel_init_failed`
-
-### 5. Host Collectors Service
+**Service Name:** `collectors` | **Tracer/Meter:** `collectors`
 
 **Metrics:**
 
@@ -138,12 +142,13 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `job.collect_batch`: Root Span
 - `db.postgres.ensure_system_metrics`: Child Span
+- `db.postgres.create_hypertable`: Child Span
 - `db.postgres.record_metric`: Child Span
-- `host`, `os`, `start`, `end`: Attributes
+- **Attributes:** `host`, `os`, `start`, `end`
 
 **Logs:**
 
-- `service_started`, `batch_started`, `batch_complete`, `tailscale_funnel_status`, `tailscale_node_status`, `host_metadata_detection_failed`, `funnel_status_failed`, `tailscale_status_failed`
+- `service_started`, `batch_started`, `batch_complete`, `tailscale_funnel_status`, `tailscale_node_status`, `host_metadata_detection_failed`, `funnel_status_failed`, `tailscale_status_failed`, `service_shutting_down`
 
 ---
 
@@ -160,8 +165,15 @@ kubectl logs -l app.kubernetes.io/name=opentelemetry-collector -n observability
 **2. Test Local Connectivity:**
 
 ```bash
-# Ensure the OTLP gRPC port is reachable (standard: 4317)
-nc -zv localhost 4317
+# Ensure the OTLP gRPC NodePort is reachable (30317)
+nc -zv localhost 30317
+```
+
+**3. Check Health Extension:**
+
+```bash
+# The collector exposes a health check on port 13133
+curl http://localhost:13133/
 ```
 
 ### Adding a New Signal
