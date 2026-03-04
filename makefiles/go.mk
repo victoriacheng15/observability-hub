@@ -55,22 +55,22 @@ setup-tailwind:
 
 web-build: setup-tailwind
 	$(NIX_WRAP) echo "Running web build..." && \
-	rm -rf cmd/web/dist && \
-	mkdir -p cmd/web/dist && \
+	rm -rf dist && \
+	mkdir -p dist && \
 	(cd cmd/web && go build -o ../../web-ssg .) && \
 	(cd cmd/web && ../../web-ssg) && \
-	./tailwindcss -i ./internal/web/templates/input.css -o ./cmd/web/dist/styles.css --minify && \
+	./tailwindcss -i ./internal/web/templates/input.css -o ./dist/styles.css --minify && \
 	rm web-ssg && \
 	rm tailwindcss
 
 proxy-build:
 	$(NIX_WRAP) \
 	echo "Updating Proxy..." && \
-	cd cmd/proxy && go build -o ../../dist/proxy_server . && \
+	cd cmd/proxy && go build -o ../../bin/proxy_server . && \
 	sudo systemctl restart proxy.service
 
 ingestion-build:
 	$(NIX_WRAP) \
 	echo "Updating ingestion service..." && \
-	cd cmd/ingestion && go build -o ../../dist/ingestion . && \
+	cd cmd/ingestion && go build -o ../../bin/ingestion . && \
 	sudo systemctl restart ingestion.timer

@@ -6,12 +6,10 @@ After=network.target postgresql.service
 Type=simple
 User=server
 WorkingDirectory=/home/server/software/observability-hub
-# Pointing to the binary we will build
-ExecStart=/home/server/software/observability-hub/dist/proxy_server
+EnvironmentFile=/home/server/software/observability-hub/.env
+ExecStart=/home/server/software/observability-hub/bin/proxy_server
 Restart=always
 RestartSec=5
-# Load environment variables from the root .env
-EnvironmentFile=/home/server/software/observability-hub/.env
 StandardOutput=journal
 StandardError=journal
 
