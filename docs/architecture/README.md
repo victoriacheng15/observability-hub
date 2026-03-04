@@ -28,5 +28,3 @@ Deep dives into the logic and implementation of specific system components.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway and GitOps listener.
 - **[Ingestion Service](./services/ingestion.md)**: Unified data orchestration engine (Reading Analytics + Second Brain).
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
-
-

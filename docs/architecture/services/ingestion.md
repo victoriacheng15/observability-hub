@@ -19,19 +19,19 @@ The service follows a **Task-Oriented Design**, where specific data synchronizat
 
 Synchronizes Cloud-based MongoDB data with the local PostgreSQL environment.
 
-1.  **Fetch**: Retrieves unprocessed documents from MongoDB Atlas in configurable batches.
-2.  **Transform**: Maps MongoDB BSON/JSON metadata to the structured PostgreSQL `reading_analytics` schema.
-3.  **Persist**: Executes UPSERT operations in PostgreSQL to ensure data consistency.
-4.  **Acknowledge**: Marks documents as "processed" in MongoDB to prevent duplicate ingestion.
+1. **Fetch**: Retrieves unprocessed documents from MongoDB Atlas in configurable batches.
+2. **Transform**: Maps MongoDB BSON/JSON metadata to the structured PostgreSQL `reading_analytics` schema.
+3. **Persist**: Executes UPSERT operations in PostgreSQL to ensure data consistency.
+4. **Acknowledge**: Marks documents as "processed" in MongoDB to prevent duplicate ingestion.
 
 #### Second Brain Task (`brain`)
 
 Transforms GitHub-based journaling entries into atomic, searchable database records.
 
-1.  **Check**: Queries PostgreSQL for the most recent entry date to determine the sync delta.
-2.  **Ingest**: Fetches new journal entries from the configured GitHub repository via the GitHub API.
-3.  **Atomize**: Decomposes long-form markdown logs into granular "thought atoms," including metadata like tags and categories.
-4.  **Quantify**: Calculates token counts for each atom to support future LLM-based analytical workloads.
+1. **Check**: Queries PostgreSQL for the most recent entry date to determine the sync delta.
+2. **Ingest**: Fetches new journal entries from the configured GitHub repository via the GitHub API.
+3. **Atomize**: Decomposes long-form markdown logs into granular "thought atoms," including metadata like tags and categories.
+4. **Quantify**: Calculates token counts for each atom to support future LLM-based analytical workloads.
 
 ## Distributed Tracing
 
@@ -50,13 +50,13 @@ The service initializes a global TracerProvider during startup, controlled by en
 
 Spans are created for the entire job lifecycle:
 
--   **Job Lifecycle**: Root span `job.ingestion` tracks the overall synchronization run.
--   **Task Execution**: Child spans (`task.reading`, `task.brain`) provide granular visibility into individual task performance.
--   **API/DB Operations**: Sub-spans for GitHub API requests, MongoDB fetches, and PostgreSQL transactions.
+- **Job Lifecycle**: Root span `job.ingestion` tracks the overall synchronization run.
+- **Task Execution**: Child spans (`task.reading`, `task.brain`) provide granular visibility into individual task performance.
+- **API/DB Operations**: Sub-spans for GitHub API requests, MongoDB fetches, and PostgreSQL transactions.
 
 Traces are exported to the central **OpenTelemetry Collector** via gRPC and stored in **Grafana Tempo**.
 
 ### Instrumentation Strategy
 
-1.  **Task Engine Wrapper**: The service uses a centralized `RunTask` engine that automatically wraps every registered task in a named OpenTelemetry span, capturing task-specific attributes and success/failure status.
-2.  **Manual Spans**: High-latency operations (external API calls and complex database syncs) are manually instrumented to provide precise timing and error context for pipeline optimization.
+1. **Task Engine Wrapper**: The service uses a centralized `RunTask` engine that automatically wraps every registered task in a named OpenTelemetry span, capturing task-specific attributes and success/failure status.
+2. **Manual Spans**: High-latency operations (external API calls and complex database syncs) are manually instrumented to provide precise timing and error context for pipeline optimization.

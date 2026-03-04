@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"observability-hub/internal/db/mongodb"
@@ -17,6 +18,21 @@ import (
 // ReadingTask implements the Task interface for syncing reading analytics data.
 type ReadingTask struct{}
 
+var (
+	readingOnce sync.Once
+	readingReady bool
+	// Global metrics initialized once
+	processedCounter telemetry.Int64Counter
+)
+
+func ensureReadingGlobalMetrics() {
+	readingOnce.Do(func() {
+		meterObj := telemetry.GetMeter("reading.sync")
+		processedCounter, _ = telemetry.NewInt64Counter(meterObj, "reading.sync.processed.total", "Total documents processed")
+		readingReady = true
+	})
+}
+
 // Name returns the name of the task.
 func (t *ReadingTask) Name() string {
 	return "reading"
@@ -24,6 +40,7 @@ func (t *ReadingTask) Name() string {
 
 // Run executes the reading sync task.
 func (t *ReadingTask) Run(ctx context.Context, db *postgres.PostgresWrapper, secretStore secrets.SecretStore) error {
+	ensureReadingGlobalMetrics()
 	readingStore := NewReadingStore(db)
 
 	mongoStore, err := newMongoStore(secretStore)
@@ -46,7 +63,8 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 	tracer := telemetry.GetTracer("reading.sync")
 	meter := telemetry.GetMeter("reading.sync")
 
-	processedCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.processed.total", "Total documents processed")
+	// Task-specific metrics
+	syncTotal, _ := telemetry.NewInt64Counter(meter, "reading.sync.total", "Total sync runs")
 	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.errors.total", "Total sync errors")
 	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration.ms", "Sync duration in milliseconds", "ms")
 
@@ -55,6 +73,10 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 		obs.Observe(int64(time.Since(lastSuccessTime).Seconds()))
 		return nil
 	})
+
+	if syncTotal != nil {
+		telemetry.AddInt64Counter(ctx, syncTotal, 1)
+	}
 
 	start := time.Now()
 	ctx, span := tracer.Start(ctx, "job.reading_sync")
@@ -127,7 +149,7 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 		}
 	}
 
-	if processedCount > 0 && processedCounter != nil {
+	if processedCount > 0 && readingReady {
 		telemetry.AddInt64Counter(ctx, processedCounter, int64(processedCount))
 	}
 
@@ -143,7 +165,7 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 	return nil
 }
 
-// --- Store logic copied from services/reading-sync/store.go ---
+// --- Store logic ---
 
 const (
 	tableReadingAnalytics = "reading_analytics"
