@@ -1,5 +1,5 @@
 # Go Project Configuration
-GO_DIRS = cmd/web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry services/collectors services/proxy services/ingestion
+GO_DIRS = cmd/web cmd/proxy cmd/collectors pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry cmd/ingestion
 
 .PHONY: go-format go-lint go-update go-test go-cov web-build proxy-build brain-sync
 
@@ -66,11 +66,11 @@ web-build: setup-tailwind
 proxy-build:
 	$(NIX_WRAP) \
 	echo "Updating Proxy..." && \
-	cd services/proxy && go build -o ../../dist/proxy_server . && \
+	cd cmd/proxy && go build -o ../../dist/proxy_server . && \
 	sudo systemctl restart proxy.service
 
 ingestion-build:
 	$(NIX_WRAP) \
 	echo "Updating ingestion service..." && \
-	cd services/ingestion && go build -o ../../dist/ingestion . && \
+	cd cmd/ingestion && go build -o ../../dist/ingestion . && \
 	sudo systemctl restart ingestion.timer

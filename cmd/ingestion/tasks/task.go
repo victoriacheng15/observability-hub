@@ -3,8 +3,8 @@ package tasks
 import (
 	"context"
 
-	"db/postgres"
-	"secrets"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/secrets"
 )
 
 // Task is the interface that all ingestion tasks must implement.

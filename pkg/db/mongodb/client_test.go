@@ -113,14 +113,14 @@ func TestMongoStore_Helpers(t *testing.T) {
 	})
 
 	t.Run("Find Nil Client", func(t *testing.T) {
-		err := store.Find(context.Background(), "test-op", "db", "coll", nil, nil, 10)
+		err := store.Find(context.Background(), "test-op", "observability-hub/pkg/db", "coll", nil, nil, 10)
 		if err == nil {
 			t.Error("Expected error for nil client, got nil")
 		}
 	})
 
 	t.Run("UpdateByID Nil Client", func(t *testing.T) {
-		err := store.UpdateByID(context.Background(), "test-op", "db", "coll", "507f1f77bcf86cd799439011", nil)
+		err := store.UpdateByID(context.Background(), "test-op", "observability-hub/pkg/db", "coll", "507f1f77bcf86cd799439011", nil)
 		if err == nil {
 			t.Error("Expected error for nil client, got nil")
 		}
