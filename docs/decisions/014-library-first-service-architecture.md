@@ -12,13 +12,13 @@ The current architecture tightly couples business logic (e.g., metric collection
 
 ## Decision Outcome
 
-Adopt a **Library-First Service Architecture**. This involves extracting all core domain logic into a highly modular `pkg/` directory and reorganizing the root structure to separate reusable libraries from executable services.
+Adopt a **Library-First Service Architecture**. This involves extracting all core domain logic into a highly modular `internal/` directory and reorganizing the root structure to separate reusable libraries from executable services.
 
 ### The Strategy
 
-- **Module Extraction**: Relocate core logic to dedicated packages in `pkg/` (e.g., `pkg/metrics`, `pkg/brain`).
-- **Service Relocation**: Move all standalone binaries into a `services/` directory (e.g., `services/proxy`, `services/system-metrics`).
-- **Interface Decoupling**: Ensure `pkg/` libraries are transport-agnostic (no HTTP or CLI logic), allowing them to be imported by any service or tool within the hub.
+- **Module Extraction**: Relocate core logic to dedicated packages in `internal/` (e.g., `internal/metrics`, `internal/brain`).
+- **Service Relocation**: Move all standalone binaries into a `cmd/` directory (e.g., `cmd/proxy`, `cmd/system-metrics`).
+- **Interface Decoupling**: Ensure `internal/` libraries are transport-agnostic (no HTTP or CLI logic), allowing them to be imported by any service or tool within the hub.
 - **Consistent Initialization**: Standardize how shared resources (OTel, Database connections) are initialized across the platform.
 
 ### Rationale
@@ -26,7 +26,7 @@ Adopt a **Library-First Service Architecture**. This involves extracting all cor
 - **Consistency**: Guarantees that different entry points (CLI, API, Background Tasks) execute the exact same business logic.
 - **Maintainability**: Reduces root directory noise and enforces a clear "Paved Road" for adding new capabilities.
 - **Testability**: Facilitates 80%+ unit test coverage by isolating business logic from external side effects and transport layers.
-- **Scalability**: Allows the platform to support new "access patterns" (like a TUI or Mobile API) simply by importing the relevant `pkg/` modules.
+- **Scalability**: Allows the platform to support new "access patterns" (like a TUI or Mobile API) simply by importing the relevant `internal/` modules.
 
 ## Consequences
 
@@ -39,10 +39,10 @@ Adopt a **Library-First Service Architecture**. This involves extracting all cor
 ### Negative
 
 - **Initial Refactoring Effort**: Requires significant movement of files and updates to import paths, Makefiles, and CI/CD pipelines.
-- **Increased Boilerplate**: Each new feature requires a separate library in `pkg/` and a corresponding registration in `services/`.
+- **Increased Boilerplate**: Each new feature requires a separate library in `internal/` and a corresponding registration in `cmd/`.
 
 ## Verification
 
-- [x] **Structural Reorg**: `services/` and `pkg/` directories populated and following the new convention.
-- [x] **Library Extraction**: Core logic from `second-brain` and `system-metrics` successfully ported to `pkg/`.
+- [x] **Structural Reorg**: `cmd/` and `internal/` directories populated and following the new convention.
+- [x] **Library Extraction**: Core logic from `second-brain` and `system-metrics` successfully ported to `internal/`.
 - [x] **Build Integrity**: All services build and test successfully from their new locations.

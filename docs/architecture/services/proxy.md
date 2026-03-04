@@ -1,6 +1,6 @@
 # Proxy Service Architecture
 
-The Proxy Service (`services/proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
+The Proxy Service (`cmd/proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
 
 ## Component Details
 
