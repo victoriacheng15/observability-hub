@@ -5,14 +5,14 @@ on:
     branches: [main]
     paths:
       - '**/*.go'
-      - '**/go.mod'
-      - '**/go.sum'
+      - 'go.mod'
+      - 'go.sum'
   pull_request:
     branches: [main]
     paths:
       - '**/*.go'
-      - '**/go.mod'
-      - '**/go.sum'
+      - 'go.mod'
+      - 'go.sum'
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sundays
 
@@ -23,11 +23,11 @@ jobs:
   vuln-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-go@v6.3.0
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.go-version }}
-          cache-dependency-path: "**/go.sum"
+          cache-dependency-path: "go.sum"
 
-      - name: Run govulncheck
-        run: make go-vuln-scan
+      - name: Run vuln-scan
+        run: make vuln-scan

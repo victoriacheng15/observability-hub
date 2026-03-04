@@ -1,4 +1,4 @@
-package tasks
+package ingestion
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 type ReadingTask struct{}
 
 var (
-	readingOnce sync.Once
+	readingOnce  sync.Once
 	readingReady bool
 	// Global metrics initialized once
 	processedCounter telemetry.Int64Counter
@@ -165,84 +165,6 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 	return nil
 }
 
-// --- Store logic ---
-
-const (
-	tableReadingAnalytics = "reading_analytics"
-	tableSyncHistory      = "reading_sync_history"
-	mongoDatabase         = "reading-analytics"
-	mongoCollection       = "articles"
-)
-
-type ReadingStore struct {
-	Wrapper *postgres.PostgresWrapper
-}
-
-func NewReadingStore(w *postgres.PostgresWrapper) *ReadingStore {
-	return &ReadingStore{Wrapper: w}
-}
-
-type ReadingDocument struct {
-	ID        string                 `json:"id" bson:"_id"`
-	Source    string                 `json:"source" bson:"source"`
-	Type      string                 `json:"event_type" bson:"event_type"`
-	Timestamp interface{}            `json:"timestamp" bson:"timestamp"`
-	Payload   map[string]interface{} `json:"payload" bson:"payload"`
-	Meta      map[string]interface{} `json:"meta" bson:"meta"`
-}
-
-func (s *ReadingStore) EnsureSchema(ctx context.Context) error {
-	queryAnalytics := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-		id SERIAL PRIMARY KEY,
-		mongo_id TEXT UNIQUE NOT NULL,
-		event_timestamp TIMESTAMPTZ,
-		source TEXT,
-		event_type TEXT,
-		payload JSONB,
-		meta JSONB,
-		created_at TIMESTAMPTZ DEFAULT NOW()
-	)`, tableReadingAnalytics)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.ensure_reading_analytics", queryAnalytics)
-	if err != nil {
-		return fmt.Errorf("failed to ensure %s table: %w", tableReadingAnalytics, err)
-	}
-
-	queryHistory := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-		id SERIAL PRIMARY KEY,
-		start_time TIMESTAMPTZ NOT NULL,
-		end_time TIMESTAMPTZ NOT NULL,
-		status TEXT NOT NULL,
-		processed_count INTEGER NOT NULL,
-		error_message TEXT,
-		created_at TIMESTAMPTZ DEFAULT NOW()
-	)`, tableSyncHistory)
-
-	_, err = s.Wrapper.Exec(ctx, "db.postgres.ensure_reading_sync_history", queryHistory)
-	if err != nil {
-		return fmt.Errorf("failed to ensure %s table: %w", tableSyncHistory, err)
-	}
-
-	return nil
-}
-
-func (s *ReadingStore) RecordSyncHistory(ctx context.Context, startTime, endTime time.Time, status string, processedCount int, errorMessage string) error {
-	query := fmt.Sprintf(`INSERT INTO %s (start_time, end_time, status, processed_count, error_message)
-		VALUES ($1, $2, $3, $4, $5)`, tableSyncHistory)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.record_sync_history", query, startTime, endTime, status, processedCount, errorMessage)
-	return err
-}
-
-func (s *ReadingStore) InsertReadingAnalytics(ctx context.Context, mongoID string, timestamp interface{}, source, eventType string, payloadJSON, metaJSON []byte) error {
-	query := fmt.Sprintf(`INSERT INTO %s (mongo_id, event_timestamp, source, event_type, payload, meta, created_at) 
-		 VALUES ($1, $2, $3, $4, $5, $6, NOW())
-		 ON CONFLICT (mongo_id) DO NOTHING`, tableReadingAnalytics)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.insert_reading_analytics", query, mongoID, timestamp, source, eventType, payloadJSON, metaJSON)
-	return err
-}
-
 // MongoStoreAPI defines the interface for MongoDB operations.
 type MongoStoreAPI interface {
 	FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error)
@@ -265,7 +187,7 @@ func newMongoStore(store secrets.SecretStore) (MongoStoreAPI, error) {
 func (m *MongoStoreWrapper) FetchIngestedArticles(ctx context.Context, limit int64) ([]ReadingDocument, error) {
 	var docs []ReadingDocument
 	filter := map[string]any{"status": "ingested"}
-	err := m.Wrapper.Find(ctx, "db.mongodb.fetch_ingested_articles", mongoDatabase, mongoCollection, filter, &docs, limit)
+	err := m.Wrapper.Find(ctx, "db.mongodb.fetch_ingested_articles", MongoDatabase, MongoCollection, filter, &docs, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +196,7 @@ func (m *MongoStoreWrapper) FetchIngestedArticles(ctx context.Context, limit int
 
 func (m *MongoStoreWrapper) MarkArticleAsProcessed(ctx context.Context, id string) error {
 	update := map[string]any{"$set": map[string]any{"status": "processed"}}
-	return m.Wrapper.UpdateByID(ctx, "db.mongodb.mark_article_processed", mongoDatabase, mongoCollection, id, update)
+	return m.Wrapper.UpdateByID(ctx, "db.mongodb.mark_article_processed", MongoDatabase, MongoCollection, id, update)
 }
 
 func (m *MongoStoreWrapper) Close(ctx context.Context) error {

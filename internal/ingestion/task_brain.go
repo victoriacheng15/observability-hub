@@ -1,4 +1,4 @@
-package tasks
+package ingestion
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"observability-hub/internal/brain"
 	"observability-hub/internal/db/postgres"
+	"observability-hub/internal/ingestion/brain"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )
@@ -49,13 +49,13 @@ func (t *BrainTask) Run(ctx context.Context, db *postgres.PostgresWrapper, secre
 	}
 
 	brainStore := NewBrainStore(db)
-	api := &realBrainAPI{}
+	api := brain.NewBrainAPI()
 
 	return t.Sync(ctx, repo, brainStore, api)
 }
 
 // Sync performs the data synchronization from GitHub to PostgreSQL.
-func (t *BrainTask) Sync(ctx context.Context, repo string, brainStore *BrainStore, api BrainAPI) error {
+func (t *BrainTask) Sync(ctx context.Context, repo string, brainStore *BrainStore, api brain.BrainAPI) error {
 	tracer := telemetry.GetTracer("second.brain")
 	meter := telemetry.GetMeter("second.brain")
 
@@ -187,103 +187,4 @@ func (t *BrainTask) Sync(ctx context.Context, repo string, brainStore *BrainStor
 
 	telemetry.Info("sync_complete", "new_atoms", processedCount)
 	return nil
-}
-
-// --- Store logic ---
-
-const (
-	tableSecondBrain = "second_brain"
-	tableBrainSync   = "second_brain_sync_history"
-)
-
-type BrainStore struct {
-	Wrapper *postgres.PostgresWrapper
-}
-
-func NewBrainStore(w *postgres.PostgresWrapper) *BrainStore {
-	return &BrainStore{Wrapper: w}
-}
-
-func (s *BrainStore) EnsureSchema(ctx context.Context) error {
-	queryBrain := fmt.Sprintf(`
-		CREATE TABLE IF NOT EXISTS %s (
-			id SERIAL PRIMARY KEY,
-			entry_date DATE NOT NULL,
-			content TEXT NOT NULL,
-			category TEXT,
-			origin_type TEXT,
-			tags TEXT[],
-			context_string TEXT,
-			checksum TEXT UNIQUE NOT NULL,
-			token_count INTEGER,
-			created_at TIMESTAMPTZ DEFAULT NOW()
-		)`, tableSecondBrain)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.ensure_second_brain", queryBrain)
-	if err != nil {
-		return fmt.Errorf("failed to ensure %s table: %w", tableSecondBrain, err)
-	}
-
-	queryHistory := fmt.Sprintf(`
-		CREATE TABLE IF NOT EXISTS %s (
-			id SERIAL PRIMARY KEY,
-			start_time TIMESTAMPTZ NOT NULL,
-			end_time TIMESTAMPTZ NOT NULL,
-			status TEXT NOT NULL,
-			processed_count INTEGER NOT NULL,
-			error_message TEXT,
-			created_at TIMESTAMPTZ DEFAULT NOW()
-		)`, tableBrainSync)
-
-	_, err = s.Wrapper.Exec(ctx, "db.postgres.ensure_brain_sync_history", queryHistory)
-	if err != nil {
-		return fmt.Errorf("failed to ensure %s table: %w", tableBrainSync, err)
-	}
-
-	return nil
-}
-
-func (s *BrainStore) RecordSyncHistory(ctx context.Context, startTime, endTime time.Time, status string, processedCount int, errorMessage string) error {
-	query := fmt.Sprintf(`INSERT INTO %s (start_time, end_time, status, processed_count, error_message)
-		VALUES ($1, $2, $3, $4, $5)`, tableBrainSync)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.record_brain_sync_history", query, startTime, endTime, status, processedCount, errorMessage)
-	return err
-}
-
-func (s *BrainStore) GetLatestEntryDate(ctx context.Context) (string, error) {
-	var latestDate string
-	query := fmt.Sprintf("SELECT COALESCE(MAX(entry_date)::text, '1970-01-01') FROM %s", tableSecondBrain)
-	err := s.Wrapper.QueryRow(ctx, "db.postgres.get_latest_entry_date", query).Scan(&latestDate)
-	if err != nil {
-		return "", err
-	}
-	return latestDate, nil
-}
-
-func (s *BrainStore) InsertThought(ctx context.Context, date, content, category string, tags []string, contextString, checksum string, tokenCount int) error {
-	query := fmt.Sprintf(`
-		INSERT INTO %s (entry_date, content, category, origin_type, tags, context_string, checksum, token_count)
-		VALUES ($1, $2, $3, 'journal', $4, $5, $6, $7)
-		ON CONFLICT (checksum) DO NOTHING`, tableSecondBrain)
-
-	_, err := s.Wrapper.Exec(ctx, "db.postgres.insert_thought", query,
-		date, content, category, s.Wrapper.Array(tags), contextString, checksum, tokenCount)
-	return err
-}
-
-// --- GitHub API implementation ---
-
-type BrainAPI interface {
-	FetchRecentJournals(repo string) ([]brain.GitHubIssue, error)
-	FetchIssueBody(repo string, number int) (string, error)
-}
-
-type realBrainAPI struct{}
-
-func (r *realBrainAPI) FetchRecentJournals(repo string) ([]brain.GitHubIssue, error) {
-	return brain.FetchRecentJournals(repo)
-}
-func (r *realBrainAPI) FetchIssueBody(repo string, number int) (string, error) {
-	return brain.FetchIssueBody(repo, number)
 }

@@ -5,13 +5,12 @@ import (
 	"fmt"
 
 	"observability-hub/internal/db/postgres"
-	"observability-hub/internal/ingestion/tasks"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )
 
 // RunTask executes a single ingestion task, wrapping it with observability and error handling.
-func RunTask(ctx context.Context, task tasks.Task, db *postgres.PostgresWrapper, secretStore secrets.SecretStore) error {
+func RunTask(ctx context.Context, task Task, db *postgres.PostgresWrapper, secretStore secrets.SecretStore) error {
 	tracer := telemetry.GetTracer("ingestion.engine")
 	ctx, span := tracer.Start(ctx, fmt.Sprintf("task.%s", task.Name()))
 	defer span.End()
