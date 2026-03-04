@@ -5,9 +5,9 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"observability-hub/pkg/telemetry"
 	"strings"
 	"sync"
-	"telemetry"
 	"time"
 )
 

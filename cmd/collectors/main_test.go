@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"collectors"
+	"observability-hub/pkg/collectors"
 )
 
 // MockThanos satisfies the ThanosSource interface.

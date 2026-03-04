@@ -3,18 +3,16 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files (libraries and service)
-COPY pkg/collectors/ pkg/collectors/
-COPY pkg/db/ pkg/db/
-COPY pkg/env/ pkg/env/
-COPY pkg/secrets/ pkg/secrets/
-COPY pkg/telemetry/ pkg/telemetry/
-COPY services/collectors/ services/collectors/
+# Copy root module files and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Tidy and build
-WORKDIR /app/services/collectors
-RUN go mod tidy
-RUN CGO_ENABLED=0 GOOS=linux go build -o collectors .
+# Copy shared libraries and collectors service
+COPY pkg/ pkg/
+COPY cmd/collectors/ cmd/collectors/
+
+# Build the binary from the root module context
+RUN CGO_ENABLED=0 GOOS=linux go build -o collectors ./cmd/collectors
 
 # Stage 2: Runtime
 FROM alpine:3.20
@@ -27,6 +25,6 @@ RUN wget https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz && \
     rm -rf tailscale_*
 
 WORKDIR /app
-COPY --from=builder /app/services/collectors/collectors .
+COPY --from=builder /app/collectors .
 
 ENTRYPOINT ["./collectors"]

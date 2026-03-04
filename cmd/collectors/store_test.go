@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"db/postgres"
 	"fmt"
+	"observability-hub/pkg/db/postgres"
 	"testing"
 	"time"
 

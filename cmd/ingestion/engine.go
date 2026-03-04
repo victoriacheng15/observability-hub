@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"db/postgres"
-	"ingestion/tasks"
-	"secrets"
-	"telemetry"
+	"observability-hub/cmd/ingestion/tasks"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 // RunTask executes a single ingestion task, wrapping it with observability and error handling.

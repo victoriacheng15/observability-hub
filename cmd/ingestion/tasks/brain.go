@@ -7,10 +7,10 @@ import (
 	"sort"
 	"sync"
 
-	"brain"
-	"db/postgres"
-	"secrets"
-	"telemetry"
+	"observability-hub/pkg/brain"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 // BrainTask implements the Task interface for syncing second brain data.
@@ -36,7 +36,7 @@ func ensureMetrics() {
 
 // Name returns the name of the task.
 func (t *BrainTask) Name() string {
-	return "brain"
+	return "observability-hub/pkg/brain"
 }
 
 // Run executes the brain sync task.

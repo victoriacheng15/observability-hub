@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"env"
-	"proxy/utils"
-	"secrets"
-	"telemetry"
+	"observability-hub/cmd/proxy/utils"
+	"observability-hub/pkg/env"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 type App struct {

@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"collectors"
-	"db/postgres"
-	"env"
-	"secrets"
-	"telemetry"
+	"observability-hub/pkg/collectors"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/env"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 const (

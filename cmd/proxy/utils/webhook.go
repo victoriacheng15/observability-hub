@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"observability-hub/pkg/telemetry"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
-	"telemetry"
 	"time"
 )
 

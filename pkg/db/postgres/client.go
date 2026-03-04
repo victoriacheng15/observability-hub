@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
-	"secrets"
-	"telemetry"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 
 	"github.com/lib/pq"
 )

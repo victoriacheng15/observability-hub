@@ -30,7 +30,7 @@ func TestConnectPostgres(t *testing.T) {
 			"host":               "localhost",
 			"port":               "5432",
 			"user":               "user",
-			"dbname":             "db",
+			"dbname":             "observability-hub/pkg/db",
 			"server_db_password": "pass",
 		},
 	}

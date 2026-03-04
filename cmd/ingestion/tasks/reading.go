@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"db/mongodb"
-	"db/postgres"
-	"secrets"
-	"telemetry"
+	"observability-hub/pkg/db/mongodb"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 // ReadingTask implements the Task interface for syncing reading analytics data.

@@ -2,7 +2,7 @@ package utils
 
 import (
 	"net/http"
-	"telemetry"
+	"observability-hub/pkg/telemetry"
 	"time"
 )
 

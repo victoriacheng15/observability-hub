@@ -4,11 +4,11 @@ import (
 	"context"
 	"os"
 
-	"db/postgres"
-	"env"
-	"ingestion/tasks"
-	"secrets"
-	"telemetry"
+	"observability-hub/cmd/ingestion/tasks"
+	"observability-hub/pkg/db/postgres"
+	"observability-hub/pkg/env"
+	"observability-hub/pkg/secrets"
+	"observability-hub/pkg/telemetry"
 )
 
 func main() {
