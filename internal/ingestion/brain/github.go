@@ -7,9 +7,31 @@ import (
 	"os/exec"
 )
 
+// GitHubIssue represents a simplified issue structure from the gh CLI.
 type GitHubIssue struct {
 	Number int    `json:"number"`
 	Title  string `json:"title"`
+}
+
+// BrainAPI defines the interface for fetching journal data from external sources.
+type BrainAPI interface {
+	FetchRecentJournals(repo string) ([]GitHubIssue, error)
+	FetchIssueBody(repo string, number int) (string, error)
+}
+
+// RealBrainAPI is the production implementation using the GitHub CLI.
+type RealBrainAPI struct{}
+
+func NewBrainAPI() BrainAPI {
+	return &RealBrainAPI{}
+}
+
+func (r *RealBrainAPI) FetchRecentJournals(repo string) ([]GitHubIssue, error) {
+	return FetchRecentJournals(repo)
+}
+
+func (r *RealBrainAPI) FetchIssueBody(repo string, number int) (string, error) {
+	return FetchIssueBody(repo, number)
 }
 
 // FetchRecentJournals retrieves the 50 most recent issues labeled 'journal' from the specified repo.

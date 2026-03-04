@@ -7,7 +7,6 @@ import (
 	"observability-hub/internal/db/postgres"
 	"observability-hub/internal/env"
 	"observability-hub/internal/ingestion"
-	"observability-hub/internal/ingestion/tasks"
 	"observability-hub/internal/secrets"
 	"observability-hub/internal/telemetry"
 )
@@ -41,9 +40,9 @@ func main() {
 	defer pgWrapper.DB.Close()
 
 	// 4. Define and Run Ingestion Tasks
-	registeredTasks := []tasks.Task{
-		&tasks.ReadingTask{},
-		&tasks.BrainTask{},
+	registeredTasks := []ingestion.Task{
+		&ingestion.ReadingTask{},
+		&ingestion.BrainTask{},
 	}
 
 	telemetry.Info("starting_ingestion_tasks", "task_count", len(registeredTasks))

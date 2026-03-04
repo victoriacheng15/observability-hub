@@ -1,52 +1,38 @@
 # Go Project Configuration
-GO_DIRS = cmd/web cmd/proxy cmd/collectors cmd/ingestion internal/web internal/brain internal/collectors internal/db internal/env internal/secrets internal/telemetry
+GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: go-format go-lint go-vuln-scan go-update go-test go-test-cov setup-tailwind web-build proxy-build ingestion-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build
 
-go-format:
+format:
 	$(NIX_WRAP) \
 	echo "Formatting Go code..." && \
-	gofmt -w -s $(GO_DIRS)
+	gofmt -w -s .
 
-go-lint:
-	$(NIX_WRAP) \
-	echo "Running go vet (as lint)..." && \
-	for dir in $(GO_DIRS); do \
-		echo "Vetting $$dir..."; \
-		(cd $$dir && go vet ./...) || exit 1; \
-	done
-
-go-vuln-scan:
-	$(NIX_WRAP) \
-	echo "Running govulncheck..." && \
-	for dir in $(GO_DIRS); do \
-		echo "Scanning $$dir..."; \
-		(cd $$dir && go run golang.org/x/vuln/cmd/govulncheck@latest ./...) || exit 1; \
-	done
-
-go-update:
-	$(NIX_WRAP) \
-	echo "Updating Go dependencies..." && \
-	for dir in $(GO_DIRS); do \
-		echo "Updating $$dir..."; \
-		(cd $$dir && go get -u ./... && go mod tidy) || exit 1; \
-	done
-
-go-test:
+test:
 	$(NIX_WRAP) \
 	echo "Running Go tests..." && \
-	for dir in $(GO_DIRS); do \
-		echo "Testing $$dir..."; \
-		(cd $$dir && go test ./... -v) || exit 1; \
-	done
+	go test $(GO_PACKAGES) -v
 
-go-test-cov:
+test-cov:
 	$(NIX_WRAP) \
 	echo "Running tests with coverage..." && \
-	for dir in $(GO_DIRS); do \
-		echo "Coverage for $$dir..."; \
-		(cd $$dir && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out && rm coverage.out) || exit 1; \
-	done
+	go test -coverprofile=coverage.out $(GO_PACKAGES) && \
+	go tool cover -func=coverage.out && rm coverage.out
+
+update:
+	$(NIX_WRAP) \
+	echo "Updating Go dependencies..." && \
+	go get -u ./... && go mod tidy
+
+vet:
+	$(NIX_WRAP) \
+	echo "Running go vet..." && \
+	go vet $(GO_PACKAGES)
+
+vuln-scan:
+	$(NIX_WRAP) \
+	echo "Running govulncheck..." && \
+	go run golang.org/x/vuln/cmd/govulncheck@latest $(GO_PACKAGES)
 
 setup-tailwind:
 	echo "Downloading tailwind css cli v4..." && \

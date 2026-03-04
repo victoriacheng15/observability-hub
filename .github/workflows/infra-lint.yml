@@ -14,9 +14,9 @@ jobs:
   kube-linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6
 
       - name: Scan manifests
-        uses: stackrox/kube-linter-action@v1.0.7
+        uses: stackrox/kube-linter-action@v1
         with:
           directory: k3s
