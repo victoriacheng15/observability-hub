@@ -1,7 +1,7 @@
 # Go Project Configuration
-GO_DIRS = cmd/web cmd/proxy cmd/collectors cmd/ingestion internal/web pkg/brain pkg/collectors pkg/db pkg/env pkg/secrets pkg/telemetry
+GO_DIRS = cmd/web cmd/proxy cmd/collectors cmd/ingestion internal/web internal/brain internal/collectors internal/db internal/env internal/secrets internal/telemetry
 
-.PHONY: go-format go-lint go-update go-test go-cov web-build proxy-build brain-sync
+.PHONY: go-format go-lint go-vuln-scan go-update go-test go-test-cov setup-tailwind web-build proxy-build ingestion-build
 
 go-format:
 	$(NIX_WRAP) \

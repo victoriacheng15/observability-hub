@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"observability-hub/pkg/db/postgres"
+	"observability-hub/internal/db/postgres"
 )
 
 const (

@@ -8,7 +8,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy shared libraries and collectors service
-COPY pkg/ pkg/
+COPY internal/ internal/
 COPY cmd/collectors/ cmd/collectors/
 
 # Build the binary from the root module context

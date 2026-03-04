@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"observability-hub/pkg/secrets"
+	"observability-hub/internal/secrets"
 )
 
 type mockSecretStore struct{}

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"observability-hub/cmd/ingestion/tasks"
-	"observability-hub/pkg/db/postgres"
-	"observability-hub/pkg/secrets"
-	"observability-hub/pkg/telemetry"
+	"observability-hub/internal/db/postgres"
+	"observability-hub/internal/secrets"
+	"observability-hub/internal/telemetry"
 )
 
 // RunTask executes a single ingestion task, wrapping it with observability and error handling.

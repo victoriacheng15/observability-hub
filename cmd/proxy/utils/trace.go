@@ -5,7 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"observability-hub/pkg/telemetry"
+	"observability-hub/internal/telemetry"
 	"strings"
 	"sync"
 	"time"

@@ -4,12 +4,12 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"observability-hub/pkg/telemetry"
+	"observability-hub/internal/telemetry"
 	"os"
 	"strings"
 	"time"
 
-	"observability-hub/pkg/secrets"
+	"observability-hub/internal/secrets"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
