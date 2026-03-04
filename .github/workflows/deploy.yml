@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "cmd/web/**"
+      - "internal/web/**"
   workflow_dispatch:
 
 permissions:
@@ -36,7 +37,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./cmd/web/dist
+          path: ./dist
 
   deploy:
     runs-on: ubuntu-latest
