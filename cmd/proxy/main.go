@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"observability-hub/cmd/proxy/utils"
-	"observability-hub/pkg/env"
-	"observability-hub/pkg/secrets"
-	"observability-hub/pkg/telemetry"
+	"observability-hub/internal/env"
+	"observability-hub/internal/secrets"
+	"observability-hub/internal/telemetry"
 )
 
 type App struct {

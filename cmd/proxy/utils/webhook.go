@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"observability-hub/pkg/telemetry"
+	"observability-hub/internal/telemetry"
 	"os"
 	"os/exec"
 	"strings"
