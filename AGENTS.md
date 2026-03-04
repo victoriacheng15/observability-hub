@@ -8,25 +8,20 @@ Agents must distinguish between the two primary orchestration tiers to avoid "ci
 
 ### 🌌 Hybrid Orchestration Layers
 
-- **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery. Core logic is extracted into `pkg/` libraries to ensure reusability and consistency across different execution triggers (CLI, API, and future AI tools).
+- **Host Tier (Systemd)**: Reserved for hardware-level telemetry, security gates, and GitOps reconciliation. Reliability here is critical for cluster recovery. Core logic is strictly encapsulated in `internal/` to ensure reusability and enforce project boundaries.
 - **Cluster Tier (K3s)**: Handles scalable data services (Postgres, Loki, Prometheus, Grafana, Tempo, MinIO). Orchestrated via **OpenTofu (IaC)** in `tofu/`.
 
-### 📦 Distribution Pattern
+### 🏗️ Directory Map (Consolidated Monorepo)
 
-To maintain a clean repository and ensure operational stability, all compiled binaries must be output to the root `dist/` directory. Systemd unit files and automated scripts should reference artifacts from this location.
-
-### 🏗️ Directory Map
-
-- **`pkg/`**: Shared Go modules (DB, brain, env, logger, metrics, secrets, telemetry). Maintain stable interfaces.
-- **`services/`**: Standalone binaries and operational entry points.
-  - **`services/proxy/`**: The \"Central Nervous System.\" API gateway and GitOps webhook listener.
-  - **`services/system-metrics/`**: Host hardware telemetry collector.
-  - **`services/second-brain/`**: Knowledge ingestion pipeline.
-- **`dist/`**: Production artifacts. Centralized directory for all compiled binaries.
+- **`cmd/`**: Minimal entry points for services. Focuses on configuration and orchestration.
+  - **`cmd/web/`**: Static site generator entry point.
+  - **`cmd/proxy/`**: API Gateway and GitOps webhook listener entry point.
+  - **`cmd/collectors/`**: Host telemetry collection daemon entry point.
+  - **`cmd/ingestion/`**: Daily data sync and second brain integration entry point.
+- **`internal/`**: Private Implementation Layer. Enforces Go's internal package visibility rules.
 - **`k3s/`**: Kubernetes manifests and Helm values for the data platform.
 - **`makefiles/`**: Modular logic for the root automation layer.
 - **`systemd/`**: Host-tier unit files for production service management.
-- **`web/`**: Static site generator for public-facing portfolio.
 - **`scripts/`**: Operational utilities (Traffic gen, ADR creation, Tailscale gate).
 - **`docs/`**: Institutional memory. ADRs, Architecture, Incidents, and Notes.
 
@@ -40,28 +35,22 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 | :--- | :--- | :--- |
 | **Governance** | `make adr` | Creates a new Architecture Decision Record. |
 | **IaC** | `tofu plan` / `apply` | Manages K3s data services and infrastructure state. |
-| **Quality** | `make lint` | Lints markdown and configuration files (`lint-configs`). |
+| **Quality** | `make lint` | Lints markdown and configuration files. |
 | **Go Dev** | `make go-test` | Runs full test suite across the monorepo. |
 | **Security** | `make go-vuln-scan` | Executes `govulncheck` for dependency auditing. |
-| **K3s Ops** | `make kube-lint` | Validates K8s manifests for security violations. |
-| **Host Ops** | `make reload-services` | Safely reloads host-tier systemd units. |
+| **K3s Ops** | `make build-collectors` | Builds and imports the collectors Docker image into K3s. |
+| **Host Ops** | `make proxy-build` | Builds proxy server to `bin/` and restarts the service. |
 
 ## 3. Engineering Standards
 
 ### 🐹 Go (Backend)
 
-- **Library-First**: Move core domain logic to `pkg/` before implementing the service entry point. Services should be thin wrappers around library capabilities.
-- **Environment Loading**: Always use `pkg/env` for standardized `.env` discovery. Do not use `godotenv` directly in services.
-- **Dependency Management**: Delegate driver registration (e.g., `lib/pq`) to `pkg/db` to avoid redundant blank imports in services.
-- **Failure Modes**: Never swallow errors. Use explicit wrapping: `fmt.Errorf(\"context: %w\", err)`.
-- **Observability**: Every service must emit JSON-formatted logs to `stdout` using `pkg/logger`.
-- **Telemetry**: All instrumentation must be handled through the centralized `pkg/telemetry` library.
-- **Testing**: Table-driven tests are the standard. Run `make go-cov` to verify coverage. Maintain a minimum of 80% coverage for `pkg/` libraries.
-
-### 🎨 HTML/CSS (Frontend)
-
-- **Zero Frameworks**: Use native HTML5 and CSS3 only.
-- **Styling**: Leverage CSS variables in `:root` for dark-theme consistency.
+- **Thin Main**: Entry points in `cmd/` must be minimal. Move all core domain logic to `internal/`.
+- **Internal-First**: Shared libraries reside in `internal/` to prevent external logic leakage.
+- **Environment Loading**: Always use `internal/env` for standardized `.env` discovery.
+- **Observability**: Every service must emit structured JSON logs using `internal/telemetry`.
+- **Telemetry**: All instrumentation must be handled through the centralized `internal/telemetry` library.
+- **Testing**: Table-driven tests are the standard. Run `make go-cov` to verify coverage.
 
 ### 📝 Institutional Memory (Documentation)
 
@@ -71,15 +60,6 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 
 ## 4. Operational Excellence & Safety
 
-- **Secrets**: NEVER commit secrets. Use `.env` for local dev and OpenBao for production secrets.
+- **Secrets**: NEVER commit secrets. Use `.env` for local dev and OpenBao for production.
 - **GitOps**: Host-tier changes are applied via `gitops_sync.sh` (triggered by Proxy webhooks).
-- **Observability**: Any new service must be integrated into the telemetry pipeline (Logs to Loki, Metrics to Postgres/Prometheus).
 - **Security**: All Kubernetes manifests must pass `kube-lint`. All Go code must pass `go-vuln-scan`.
-
-## 5. Failure Mode Analysis (FMA)
-
-Before proposing a change, agents should ask:
-
-1. "Does this create a circular dependency between the host and the cluster?"
-2. "How will this be debugged in production if the network is down?"
-3. "Is this change recorded in an ADR to preserve the 'Why'?"

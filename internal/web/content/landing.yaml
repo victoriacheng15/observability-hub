@@ -31,20 +31,20 @@ key_features:
   title: "Core Principles"
   features:
     - name: "Signals over Noise"
-      description: "Standardizing telemetry signals to provide immediate clarity on service behavior across the entire stack."
+      description: "Standardizing on OpenTelemetry to provide immediate, high-fidelity clarity on service behavior across the entire stack."
       icon: "chart-line"
     - name: "Logic over Plumbing"
-      description: "Decoupling infrastructure boilerplate from service logic using shared Go wrappers to focus on domain value."
+      description: "Enforcing strict project encapsulation in the internal/ namespace to isolate core domain logic from infrastructure boilerplate."
       icon: "layers-half"
     - name: "Config as the Truth"
       description: "Using GitOps to ensure version control remains the ultimate source of truth, with automated state reconciliation."
       icon: "shield-check"
     - name: "Pragmatic Orchestration"
-      description: "Leveraging Kubernetes for persistence and native Systemd for host automation to maximize reliability."
+      description: "Leveraging Kubernetes for the data platform, managed declaratively via OpenTofu (Terraform) to ensure consistent and scalable deployments."
       icon: "cpu"
 
 why_it_matters:
-  title: "Mastering the Telemetry Stack"
+  title: "Mastering the OpenTelemetry Stack"
   points:
     - "Full Ownership: Complete control over data retention and privacy through self-hosting."
     - "Operational Excellence: Demonstrates real-world SRE practices in a constrained environment."

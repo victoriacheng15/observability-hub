@@ -16,15 +16,14 @@ The system consists of several main service families, each with a `.service` uni
 | :--- | :--- | :--- | :--- |
 | **`tailscale-gate`** | `simple` | Continuous | **Security**: Monitors Proxy health and toggles Tailscale Funnel access. |
 | **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
-| **`gitops-sync`** | `oneshot` | **Webhook** | **Reconciliation**: Triggered by Proxy to pull latest code and apply changes. |
-| **`reading-sync`** | `oneshot` | Twice Daily (00:00, 12:00) | **Data Pipeline Trigger**: Calls Proxy API to sync MongoDB data to Postgres. |
+| **`ingestion`** | `oneshot` | Daily (00:00) | **Data Ingestion**: Unified engine for Reading Analytics and Second Brain sync. |
 
 ## Operational Excellence
 
 Our systemd configurations employ several production-grade patterns:
 
 - **Security Gating**: The `tailscale-gate` service implements a loop that ensures the public entry point (Funnel) is automatically closed if the underlying `proxy` service stops, preventing "dead" endpoints from being exposed.
-- **Persistence (`Persistent=true`)**: Used in `reading-sync`. If the host is powered off during the scheduled time, systemd will trigger the service immediately upon the next boot.
+- **Persistence (`Persistent=true`)**: Used in `ingestion`. If the host is powered off during the scheduled time, systemd will trigger the service immediately upon the next boot.
 - **Unified Observability**: All units emit logs, metrics, and traces, which are captured, enriched, and forwarded by the host-level OpenTelemetry Collector.
 
 ## Architectural Patterns

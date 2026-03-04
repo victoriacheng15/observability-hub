@@ -6,14 +6,14 @@
 
 ## Context and Problem Statement
 
-`pkg/db` currently only centralizes configuration (DSN). The actual connection logic (`sql.Open`, `Ping`) is duplicated across services, leading to inconsistent reliability and scattered dependency management.
+`internal/db` currently only centralizes configuration (DSN). The actual connection logic (`sql.Open`, `Ping`) is duplicated across services, leading to inconsistent reliability and scattered dependency management.
 
 ## Decision Outcome
 
-Expand `pkg/db` to be a **Connection Factory**.
+Expand `internal/db` to be a **Connection Factory**.
 
 - **Functionality:** `ConnectPostgres` and `ConnectMongo` handle initialization and verification (Ping).
-- **Dependency Management:** Drivers are centralized in `pkg/db/go.mod`.
+- **Dependency Management:** Drivers are centralized in `internal/db/go.mod`.
 
 ## Consequences
 
@@ -25,7 +25,7 @@ Expand `pkg/db` to be a **Connection Factory**.
 
 ### Negative
 
-- **Module Size:** `pkg/db` pulls in multiple drivers (Postgres + Mongo).
+- **Module Size:** `internal/db` pulls in multiple drivers (Postgres + Mongo).
 
 ## Verification
 

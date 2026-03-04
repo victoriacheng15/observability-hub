@@ -9,7 +9,7 @@ The Observability Hub uses **OpenTelemetry (OTel)** as the standardized protocol
   - **Logs**: Loki
   - **Metrics**: Prometheus
   - **Traces**: Tempo
-- **Library**: `pkg/telemetry` (A wrapper around the OTel Go SDK).
+- **Library**: `internal/telemetry` (A wrapper around the OTel Go SDK).
 
 ---
 
@@ -17,8 +17,8 @@ The Observability Hub uses **OpenTelemetry (OTel)** as the standardized protocol
 
 To maintain scalability and clean separation of concerns, we follow the **Pure Wrapper** pattern:
 
-1. **Library (`pkg/telemetry`, `pkg/db`)**: Owns the "Infrastructure." It handles connection management, standard OTel attributes (like `db.system`), and span lifecycle.
-2. **Service (`services/*`)**: Owns the "Domain." It provides the specific business logic, SQL/BSON queries, and schema constants.
+1. **Library (`internal/telemetry`, `internal/db`)**: Owns the "Infrastructure." It handles connection management, standard OTel attributes (like `db.system`), and span lifecycle.
+2. **Service (`cmd/*`)**: Owns the "Domain." It provides the specific business logic, SQL/BSON queries, and schema constants.
 
 ---
 
@@ -62,7 +62,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `webhook_received`, `webhook_sync_triggered`, `webhook_sync_success`, `webhook_sync_failed`, `webhook_ignored`, `webhook_processed`, `synthetic_trace_payload_received`, `synthetic_trace_processed`
 
-### 2. Reading Sync Service
+### 2. Ingestion Service
 
 **Metrics:**
 
@@ -85,7 +85,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `sync_started`, `sync_complete`, `postgres_insert_failed`, `mongo_mark_processed_failed`, `mongo_close_failed`
 
-### 3. Second Brain Service
+### 3. Ingestion Service
 
 **Metrics:**
 

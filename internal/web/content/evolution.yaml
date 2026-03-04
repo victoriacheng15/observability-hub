@@ -40,7 +40,7 @@ chapters:
           - name: "ADR 003: Shared Logging Library"
             url: "docs/decisions/003-shared-logging-library.md"
         description: |
-          - Implemented a shared 'pkg/logger' to enforce consistent structured observability across all services.
+          - Implemented a shared 'internal/logger' to enforce consistent structured observability across all services.
           - Formalized 'Documentation as Code' by treating architectural decisions (ADRs) as first-class artifacts.
       - date: "2026-01-08"
         title: "Automated Insights & GitOps"
@@ -58,7 +58,7 @@ chapters:
           - name: "ADR 006: Shared Database Connection"
             url: "docs/decisions/006-shared-database-module.md"
         description: |
-          - Standardized connection configuration and DSN generation in 'pkg/db', enforcing safe defaults (UTC, SSL) across services.
+          - Standardized connection configuration and DSN generation in 'internal/db', enforcing safe defaults (UTC, SSL) across services.
           - Eliminated configuration drift by refactoring services to use the shared configuration module.
 
   - title: "GitOps & Host Observability"
@@ -226,7 +226,7 @@ chapters:
           - name: "ADR 014: Library-First Service Architecture"
             url: "docs/decisions/014-library-first-service-architecture.md"
         description: |
-          - Executed the structural transition of the repository into the standard 'pkg/' and 'services/' layout.
+          - Executed the structural transition of the repository into the standard 'internal/' and 'cmd/' layout.
           - Decoupled core business logic into transport-agnostic modules to improve testability and reuse across platform interfaces.
       - date: "2026-02-20"
         title: "Pure Wrapper Architecture & Advanced OTel"

@@ -14,11 +14,11 @@ As the project matures into a multi-service architecture (Proxy, System Metrics)
 
 ## Decision Outcome
 
-Implement a centralized logging strategy using a **Shared Go Package** pattern (`pkg/logger`), leveraging the standard library's `log/slog` (Go 1.21+).
+Implement a centralized logging strategy using a **Shared Go Package** pattern (`internal/logger`), leveraging the standard library's `log/slog` (Go 1.21+).
 
 ### The "Paved Road" Approach
 
-A root-level module `pkg/logger` was created for all services to import. This module enforces a strict schema and configuration, removing the need for individual service developers to configure loggers manually.
+A root-level module `internal/logger` was created for all services to import. This module enforces a strict schema and configuration, removing the need for individual service developers to configure loggers manually.
 
 ### Standard Schema
 
@@ -42,7 +42,7 @@ All logs are output as JSON to `stdout`.
 
 - **Observability:** Structured JSON logs are automatically parsed by Loki (no Regex needed).
 - **Consistency:** Enforced by the library across all services.
-- **Maintenance:** Centralized code in `pkg/logger` reduces duplication.
+- **Maintenance:** Centralized code in `internal/logger` reduces duplication.
 
 ### Negative
 

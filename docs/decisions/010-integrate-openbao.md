@@ -22,7 +22,7 @@ Integrate **OpenBao** as the centralized source of truth for all sensitive confi
 ### Application Integration
 
 - **Tiered Config:** Go services try OpenBao first, fall back to `.env`.
-- **Abstraction:** New `pkg/secrets` interface.
+- **Abstraction:** New `internal/secrets` interface.
 - **Compatibility:** Use existing Vault SDKs (API compatible).
 
 ## Consequences
@@ -42,4 +42,4 @@ Integrate **OpenBao** as the centralized source of truth for all sensitive confi
 ## Planned Verification
 
 - [x] **Manual Check:** Verify services can fetch secrets from OpenBao.
-- [x] **Automated Tests:** `pkg/secrets` unit tests with mocked client.
+- [x] **Automated Tests:** `internal/secrets` unit tests with mocked client.

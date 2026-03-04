@@ -14,18 +14,18 @@ As the platform expands to include multiple services (`proxy`, `system-metrics`)
 
 ## Decision Outcome
 
-Extract the database connection configuration into a **Shared `pkg/db` Module**, following the "Paved Road" pattern.
+Extract the database connection configuration into a **Shared `internal/db` Module**, following the "Paved Road" pattern.
 
 ### The "Single Source of Truth" Approach
 
-A root-level module `pkg/db` will centralize how services connect to persistence layers. This module enforces "safe by default" configurations (e.g., `timezone=UTC`, `sslmode=disable`) and handles environment variable parsing.
+A root-level module `internal/db` will centralize how services connect to persistence layers. This module enforces "safe by default" configurations (e.g., `timezone=UTC`, `sslmode=disable`) and handles environment variable parsing.
 
 ## Consequences
 
 ### Positive
 
 - **Consistency:** Connection logic is enforced by the library.
-- **Maintenance:** Updates are centralized in `pkg/db`.
+- **Maintenance:** Updates are centralized in `internal/db`.
 - **Reliability:** Defaults like `timezone=UTC` are applied universally.
 
 ### Negative
@@ -35,4 +35,4 @@ A root-level module `pkg/db` will centralize how services connect to persistence
 ## Verification
 
 - [x] **Manual Check:** Verify services connect successfully.
-- [x] **Automated Tests:** `pkg/db` unit tests for DSN generation.
+- [x] **Automated Tests:** `internal/db` unit tests for DSN generation.

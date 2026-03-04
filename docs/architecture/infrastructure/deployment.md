@@ -25,8 +25,7 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **Proxy Service** | API Gateway | Handles webhooks, GitOps triggers, and Data Pipelines. |
-| **Metrics Collector** | Telemetry Agent | Collects host hardware statistics (CPU, RAM, Disk). |
-| **Second Brain** | Knowledge Ingest | Ingests atomic journal entries from GitHub Issues. |
+| **Ingestion Service** | Data Orchestrator | Unified engine for syncing Reading Analytics and Second Brain knowledge. |
 
 ### 🛠️ Automation & Security (Native Script)
 
@@ -34,7 +33,6 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 | :--- | :--- | :--- |
 | **OpenBao** | Secret Store | Centralized, encrypted management for sensitive config. |
 | **Tailscale Gate** | Security Agent | Manages public funnel access based on service health. |
-| **Reading Sync** | Data Pipeline | Timer-triggered task to sync cloud data to local storage. |
 
 ## Data Flow: Unified Observability
 

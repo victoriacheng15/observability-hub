@@ -12,11 +12,12 @@ Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system
 
 This project highlights significant accomplishments in building a modern observability and platform engineering solution:
 
-* **Full OpenTelemetry (LMT) Implementation:** Achieved end-to-end observability with a unified OTel Collector, Tempo (Traces), Prometheus (Metrics), Loki (Logs), and Go SDK for instrumentation. Includes Service Graphs, synthetic transaction monitoring, and comprehensive host-level telemetry.
+* **Unified Go Monorepo:** Consolidated fragmented modules into a single root module, eliminating 17 `replace` directives and standardizing dependency management across all services.
+* **Encapsulated Architecture:** Transitioned to an `internal/` and `cmd/` layout, enforcing Go's package visibility rules and adopting the "Thin Main" pattern for better testability and system integrity.
+* **Full OpenTelemetry (LMT) Implementation:** Achieved end-to-end observability with a unified OTel Collector, Tempo (Traces), Prometheus (Metrics), Loki (Logs), and Go SDK for instrumentation.
 * **GitOps Reconciliation Engine:** Implemented a secure, templated GitOps reconciliation engine for automated state enforcement via webhooks, scaled to support multi-tenant synchronization.
 * **Kubernetes Migration & Cloud-Native Operations:** All core observability stack components (Loki, Grafana, Tempo, Prometheus, Postgres) are running natively in Kubernetes with persistent storage.
-* **Library-First Architecture:** Structural transition into `pkg/` and `services/` layout, decoupling core business logic into transport-agnostic modules for improved reusability and testability.
-* **Centralized Secrets Management:** Transitioned to OpenBao for secure secrets storage and retrieval, replacing insecure static configurations.
+* **Centralized Secrets Management:** Integrated OpenBao for secure, dynamic credential retrieval across all services, replacing insecure static configurations.
 * **Hybrid Cloud Architecture (Store-and-Forward Bridge):** Designed and implemented a secure bridge for ingesting external telemetry without exposing local ports, ensuring reliable data flow from diverse sources.
 * **Reproducible Local Development:** Ensures consistent and reproducible developer environments via `shell.nix` and `docker-compose`.
 * **Formalized Decision-Making & Incident Response:** Established an Architectural Decision Record (ADR) process and an Incident Response/RCA framework for structured decision-making and operational excellence.
@@ -72,7 +73,7 @@ flowchart TB
                 Tailscale[Tailscale]
             end
 
-            GoApps["Go Services (Proxy, Reading Sync, Second Brain)"]
+            GoApps["Go Services (Proxy, Ingestion)"]
             Collectors["Collectors (Host Metrics & Tailscale)"]
         end
 
@@ -128,7 +129,7 @@ This guide will help you set up and run the `observability-hub` locally using **
 
 Ensure you have the following installed on your system:
 
-* [Go](https://go.dev/doc/install) (version 1.25 or newer)
+* [Go](https://go.dev/doc/install)
 * [K3s](https://k3s.io/) (Lightweight Kubernetes)
 * [Helm](https://helm.sh/)
 * `make` (GNU Make)
@@ -174,13 +175,10 @@ Build and initialize the automation and telemetry collectors on the host:
 ```bash
 # Build Go binaries
 make proxy-build
-make reading-build
+make ingestion-build
 
 # Install and start Systemd services (requires sudo)
 make install-services
-
-# Run Second Brain sync manually
-make brain-sync
 ```
 
 ### 3. Verification
@@ -189,7 +187,6 @@ Once the stack is running, you can verify the end-to-end telemetry flow:
 
 * **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
 * **Service Logs:** Check logs for host components via Grafana Loki.
-* **Knowledge Sync:** Manually trigger a Second Brain ingestion with `make brain-sync`.
 
 ### 4. Managing the Cluster
 
