@@ -1,6 +1,6 @@
 resource "helm_release" "postgres" {
   name       = "postgres"
-  repository = "https://charts.bitnami.com/bitnami"
+  repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "postgresql"
   version    = "18.3.0"
   namespace  = kubernetes_namespace.observability.metadata[0].name
@@ -8,8 +8,4 @@ resource "helm_release" "postgres" {
   values = [file("${path.module}/../k3s/postgres/values.yaml")]
 
   depends_on = [kubernetes_namespace.observability]
-
-  lifecycle {
-    ignore_changes = [values]
-  }
 }

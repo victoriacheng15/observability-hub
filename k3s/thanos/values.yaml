@@ -58,6 +58,10 @@ query:
   dnsDiscovery:
     sidecarsService: "prometheus-thanos-grpc"
     sidecarsNamespace: "observability"
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30090
 
 queryFrontend:
   enabled: false
@@ -101,8 +105,3 @@ compactor:
 
 receive:
   enabled: false
-
-# Service configuration
-service:
-  type: ClusterIP
-  port: 10901
