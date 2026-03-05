@@ -2,6 +2,15 @@
 
 ## What You Should Run (Recommended Setup)
 
+To initialize the database, you must first connect to the Postgres pod as the **superuser** (`postgres`). Run the following command from your host terminal:
+
+```bash
+kubectl exec -it postgres-postgresql-0 -n observability -- psql -U postgres
+```
+
+### 1. Application Owner (`server`)
+The `server` user is for automated services (ingestion, proxy) that require write access to manage the platform's state.
+
 ```sql
 -- Create dedicated database
 CREATE DATABASE homelab;
@@ -20,77 +29,81 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
-✅ This gives the `server` user:
+### 2. Agentic Investigator (`mcp_ro`)
+The `mcp_ro` user is for the MCP-Domain server. It is strictly read-only to ensure AI agents can investigate without risking data integrity.
 
-- **Full ownership** of the `homelab` database
-- Ability to create/modify **all objects** (tables, functions, etc.) inside `homelab`
-- **No access** to other databases (e.g., `postgres`)
-- **No superuser privileges** (secure by default)
+```sql
+-- Create read-only investigator user
+CREATE USER mcp_ro WITH PASSWORD 'agent_safe_password';
 
-> 💡 **Why this is better than `GRANT ALL PRIVILEGES`**:  
-> Database ownership is cleaner, more maintainable, and avoids permission gaps.
+-- Connect to the target database
+\c homelab
+
+-- Grant connection and usage
+GRANT CONNECT ON DATABASE homelab TO mcp_ro;
+GRANT USAGE ON SCHEMA public TO mcp_ro;
+
+-- Grant read-only access to current and future tables
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO mcp_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_ro;
+```
+
+✅ **Resulting Permissions**:
+- `server`: **Full ownership**. Can create, update, and delete all objects in `homelab`.
+- `mcp_ro`: **Read-only**. Can perform `SELECT` and `EXPLAIN` but cannot modify state.
 
 ---
 
 ## How to Check Your Current Session (Inside `psql`)
 
-- `SELECT current_user;` → shows your role
-- `SELECT user;` → shorthand for `current_user`
-- `\conninfo` → full connection info (user, database, socket/port)
-- `\du` → list all roles/users
-- `\l` → list all databases
+- `SELECT current_user;` (shows your active role)
+- `SELECT user;` (shorthand for current_user)
+- `\conninfo` (user, database, and port)
+- `\du` (list all roles/users)
+- `\l` (list all databases)
 
-💡 **Prompt clues**:
-
-- `postgres=#` → superuser
-- `server=>` → regular user
-
----
-
-## (Optional) If You *Don’t* Set Database Owner
-
-If you prefer explicit grants (e.g., shared DB), run after `\c homelab`:
-
-```sql
--- Grant schema usage
-GRANT USAGE ON SCHEMA public TO server;
-
--- Allow creating new tables in public schema
-GRANT CREATE ON SCHEMA public TO server;
-
--- Full access to existing objects
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO server;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO server;
-
--- Future-proof: auto-grant on new objects
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO server;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO server;
-```
-
-> ⚠️ **Note**: This is more complex and error-prone than database ownership.
+💡 **Prompt Clues**:
+- `postgres=#` (superuser)
+- `server=>` (regular app user)
+- `mcp_ro=>` (read-only agent user)
 
 ---
 
-## Test as the `server` User
+## Verification: Test Both Users
 
-From host terminal:
+You can verify connectivity either from **inside the cluster** (via `kubectl`) or from the **host machine** (via the NodePort).
 
-```sql
-# Connect to your dedicated DB
-docker exec -it postgres_server psql -U server -d homelab
+### Method A: From the Host (via NodePort)
+This is how your host-based services (`proxy`, `mcp-telemetry`) will connect.
+
+```bash
+# Test 'server' (Write Access)
+psql -h localhost -p 30432 -U server -d homelab
+
+# Test 'mcp_ro' (Read-Only Access)
+psql -h localhost -p 30432 -U mcp_ro -d homelab
 ```
 
-Inside `psql`:
+### Method B: From the Cluster (via `kubectl`)
+Use this for direct cluster-level debugging.
 
-```sql
-SELECT current_user;        -- should return 'server'
-SELECT version();           -- should work
-CREATE TABLE test (id SERIAL, name TEXT);
-INSERT INTO test (name) VALUES ('hello');
-SELECT * FROM test;
-\dt                         -- should list 'test'
+```bash
+# Test 'server' (Write Access)
+kubectl exec -it postgres-postgresql-0 -n observability -- psql -U server -d homelab
+
+# Test 'mcp_ro' (Read-Only Access)
+kubectl exec -it postgres-postgresql-0 -n observability -- psql -U mcp_ro -d homelab
 ```
 
-✅ If all commands succeed → your app user is ready for production!
+---
+
+## Testing Permissions
+
+Once connected as `mcp_ro`, verify the security layer:
+
+- `SELECT * FROM audit;` (Should succeed)
+- `DROP TABLE audit;` (Should **FAIL** with permission denied)
+
+✅ If the `DROP` command fails for `mcp_ro`, your security layer is correctly implemented!
 
 > 🔒 **Security tip**: Store credentials in environment variables or a secrets manager; never hardcode!
