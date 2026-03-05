@@ -37,6 +37,11 @@ tempo:
 
   multitenancy_enabled: false
 
+service:
+  type: NodePort
+  nodePorts:
+    tempo-prom-metrics: 30200
+
 # Manually specify the config to ensure correct schema for v2.10.0
 config: |
   memberlist:

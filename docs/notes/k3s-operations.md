@@ -94,7 +94,7 @@ rm collectors.tar
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template postgres bitnami/postgresql -f k3s/postgres/values.yaml --namespace observability > k3s/postgres/manifest.yaml"
+  nix-shell --run "helm template postgres oci://registry-1.docker.io/bitnamicharts/postgresql -f k3s/postgres/values.yaml --namespace observability > k3s/postgres/manifest.yaml"
   kubectl apply -f k3s/postgres/manifest.yaml
   kubectl rollout restart statefulset postgres-postgresql -n observability
   ```
@@ -104,14 +104,14 @@ rm collectors.tar
 
 ```bash
 # 1. Build locally
-docker build -t postgres-pod:17.2.0-ext -f docker/postgres/Dockerfile .
+docker build -t postgres-pod:17 -f docker/postgres/Dockerfile .
 
 # 2. Export and Import
-docker save -o postgres-pod.tar postgres-pod:17.2.0-ext
+docker save -o postgres-pod.tar postgres-pod:17
 sudo k3s ctr images import postgres-pod.tar
 
 # 3. Tag for consistency
-sudo k3s ctr images tag docker.io/library/postgres-pod:17.2.0-ext postgres-pod:17.2.0-ext
+sudo k3s ctr images tag docker.io/library/postgres-pod:17 postgres-pod:17
 
 # 4. Cleanup
 rm postgres-pod.tar
@@ -160,6 +160,19 @@ rm postgres-pod.tar
   - Secret contains S3 credentials for MinIO `prometheus-blocks` bucket
   - Store gateway only mode (querier, ruler, compactor, receive disabled)
   - Reference: [bitnami/thanos Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/thanos)
+
+## 🔌 Connectivity Bridge (MCP Era)
+
+The platform utilizes **NodePort** to bridge host-based services (MCP agents, proxy, ingestion) with the K3s cluster via `localhost`.
+
+| Service | Protocol | NodePort | Target URI (Host-View) |
+| :--- | :--- | :--- | :--- |
+| **Grafana** | HTTP | 30000 | `http://localhost:30000` |
+| **Loki (Gateway)** | HTTP | 30100 | `http://localhost:30100` |
+| **Thanos (Query)** | HTTP | 30090 | `http://localhost:30090` |
+| **Tempo** | HTTP | 30200 | `http://localhost:30200` |
+| **OTel Collector**| gRPC | 30317 | `localhost:30317` |
+| **PostgreSQL** | TCP | 30432 | `localhost:30432` |
 
 ---
 

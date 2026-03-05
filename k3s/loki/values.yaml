@@ -79,6 +79,9 @@ singleBinary:
 gateway:
   enabled: true
   replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30100
   resources:
     requests:
       cpu: 50m

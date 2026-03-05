@@ -4,9 +4,9 @@ global:
     allowInsecureImages: true
 
 image:
-  registry: ""
-  repository: postgres-pod
-  tag: 17.2.0-ext
+  registry: "docker.io"
+  repository: library/postgres-pod
+  tag: "17"
   pullPolicy: Never
 
 auth:
@@ -73,7 +73,7 @@ volumePermissions:
   image:
     registry: "registry-1.docker.io"
     repository: bitnami/os-shell
-    digest: "sha256:2894a65763cafc20e72a1ed3176cfbcdabaa9cd77655e0c09f8f58852506c7b9"
+    tag: "latest"
   resources:
     limits:
       cpu: 100m
