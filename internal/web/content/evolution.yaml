@@ -278,3 +278,14 @@ chapters:
             url: "docs/decisions/016-opentofu-k3s-migration.md"
         description: |
           - Achieved 100% declarative infrastructure-as-code orchestration via OpenTofu, enabling auditable drift detection and consistent state management across the Kubernetes (K3s) observability stack.
+
+  - title: "The MCP Era"
+    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), enabling autonomous reasoning over high-fidelity system telemetry."
+    timeline:
+      - date: "2026-03-05"
+        title: "Proposal: The MCP Era"
+        artifacts:
+          - name: "ADR 017: Agentic Interface via MCP"
+            url: "docs/decisions/017-agentic-interface-mcp.md"
+        description: |
+          - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to enable autonomous reasoning and establish a high-fidelity bridge for host-to-cluster agentic reasoning.
