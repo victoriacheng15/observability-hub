@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build
 
 format:
 	$(NIX_WRAP) \
@@ -60,3 +60,9 @@ ingestion-build:
 	echo "Updating ingestion service..." && \
 	cd cmd/ingestion && go build -o ../../bin/ingestion . && \
 	sudo systemctl restart ingestion.timer
+
+mcp-telemetry-build:
+	$(NIX_WRAP) \
+	echo "Updating mcp-telemetry..." && \
+	cd cmd/mcp-telemetry && go build -o ../../bin/mcp_telemetry . && \
+	sudo systemctl restart mcp-telemetry.service

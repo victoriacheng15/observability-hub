@@ -289,3 +289,7 @@ chapters:
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
           - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to enable autonomous reasoning and establish a high-fidelity bridge for host-to-cluster agentic reasoning.
+      - date: "2026-03-06"
+        title: "MCP Level 1: Metrics Intelligence"
+        description: |
+          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via the official MCP Go SDK, enabling autonomous performance baselining and anomaly detection against live Thanos data.

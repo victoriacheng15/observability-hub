@@ -3,7 +3,8 @@
 # Define exact units to install
 ACTIVE_UNITS = proxy.service tailscale-gate.service openbao.service  \
                traffic-generator.service traffic-generator.timer \
-							 ingestion.service ingestion.timer
+							 ingestion.service ingestion.timer \
+							 mcp-telemetry.service
 
 .PHONY: install-services reload-services uninstall-services bao-status
 
