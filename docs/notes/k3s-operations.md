@@ -6,9 +6,58 @@ This guide details the procedures for managing the observability stack within th
 
 ## 🚀 Component Management
 
+### 🔄 Update & Maintenance Workflow
+
+To maintain the observability stack, follow this three-step lifecycle for all Tofu-managed components.
+
+#### Step 1: Check Current vs. Latest Versions
+
+Verify what is currently running and what is available in the repositories.
+
+```bash
+# 1.1 View CURRENTly installed versions
+nix-shell --run "helm list -n observability"
+# CHART column: name-version (e.g., grafana-10.5.15)
+# APP VERSION column: software version (e.g., 12.3.1)
+
+# 1.2 Update Helm repository cache
+nix-shell --run "helm repo update"
+
+# 1.3 View LATEST available versions
+nix-shell --run "
+  helm search repo grafana-community/grafana && \
+  helm search repo grafana/loki && \
+  helm search repo open-telemetry/opentelemetry-collector && \
+  helm search repo minio/minio && \
+  helm search repo bitnami/postgresql && \
+  helm search repo prometheus-community/prometheus && \
+  helm search repo grafana-community/tempo && \
+  helm search repo bitnami/thanos
+"
+```
+
+#### Step 2: Update Configuration
+
+If an update is available, manually update the corresponding file:
+
+- **Tofu**: Edit the `version` field in `tofu/<component>.tf` (e.g., `version = "11.3.0"`).
+- **Values**: If necessary, update configurations in `k3s/<component>/values.yaml`.
+
+#### Step 3: Plan & Apply Changes
+
+Apply the new configuration to the cluster.
+
+```bash
+nix-shell --run "tofu plan"
+nix-shell --run "tofu apply"
+```
+
+---
+
 ### Collectors (Unified Host Telemetry)
 
-- **Manifest**: `k3s/collectors/manifest.yaml`
+- **Status**: **Manually Managed** (Excluded from Tofu due to custom local image requirement).
+- **Chart**: `k3s/collectors` (Local Chart)
 - **Values**: `k3s/collectors/values.yaml`
 - **Update Command**:
 
@@ -35,28 +84,15 @@ rm collectors.tar
 
 ### Grafana (Visualization)
 
-- **Manifest**: `k3s/grafana/manifest.yaml`
+- **Chart**: `grafana-community/grafana`
+- **Tofu Configuration**: `tofu/grafana.tf`
 - **Values**: `k3s/grafana/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template grafana grafana-community/grafana -f k3s/grafana/values.yaml --namespace observability > k3s/grafana/manifest.yaml"
-  kubectl apply -f k3s/grafana/manifest.yaml
-  kubectl rollout restart deployment grafana -n observability
-  ```
 
 ### Loki (Log Store)
 
-- **Manifest**: `k3s/loki/manifest.yaml`
+- **Chart**: `grafana/loki`
+- **Tofu Configuration**: `tofu/loki.tf`
 - **Values**: `k3s/loki/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template loki grafana/loki -f k3s/loki/values.yaml --namespace observability > k3s/loki/manifest.yaml"
-  kubectl apply -f k3s/loki/manifest.yaml
-  kubectl rollout restart statefulset loki -n observability
-  ```
-
 - **Notes**:
   - S3 credentials are injected from `minio-loki-secret` via environment variables
   - Loki Helm values use `${MINIO_LOKI_ACCESS_KEY}` and `${MINIO_LOKI_SECRET_KEY}` placeholders
@@ -65,40 +101,21 @@ rm collectors.tar
 
 ### OpenTelemetry (Collector)
 
-- **Manifest**: `k3s/opentelemetry/manifest.yaml`
+- **Chart**: `open-telemetry/opentelemetry-collector`
+- **Tofu Configuration**: `tofu/opentelemetry.tf`
 - **Values**: `k3s/opentelemetry/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template opentelemetry open-telemetry/opentelemetry-collector -f k3s/opentelemetry/values.yaml --namespace observability > k3s/opentelemetry/manifest.yaml"
-  kubectl apply -f k3s/opentelemetry/manifest.yaml
-  kubectl rollout restart deployment opentelemetry -n observability
-  ```
 
 ### MinIO (S3 Storage Backend)
 
-- **Manifest**: `k3s/minio/manifest.yaml`
+- **Chart**: `minio/minio`
+- **Tofu Configuration**: `tofu/minio.tf`
 - **Values**: `k3s/minio/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template minio minio/minio -f k3s/minio/values.yaml --namespace observability > k3s/minio/manifest.yaml"
-  kubectl apply -f k3s/minio/manifest.yaml
-  kubectl rollout restart deployment minio -n observability
-  ```
 
 ### PostgreSQL (Relational Data)
 
-- **Manifest**: `k3s/postgres/manifest.yaml`
+- **Chart**: `oci://registry-1.docker.io/bitnamicharts/postgresql`
+- **Tofu Configuration**: `tofu/postgres.tf`
 - **Values**: `k3s/postgres/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template postgres oci://registry-1.docker.io/bitnamicharts/postgresql -f k3s/postgres/values.yaml --namespace observability > k3s/postgres/manifest.yaml"
-  kubectl apply -f k3s/postgres/manifest.yaml
-  kubectl rollout restart statefulset postgres-postgresql -n observability
-  ```
-
 - **Local Image Sideloading**:
   Since we use a custom PostgreSQL image with extensions, it must be manually imported into the k3s node.
 
@@ -119,42 +136,22 @@ rm postgres-pod.tar
 
 ### Prometheus (Metrics Store)
 
-- **Manifest**: `k3s/prometheus/manifest.yaml`
+- **Chart**: `prometheus-community/prometheus`
+- **Tofu Configuration**: `tofu/prometheus.tf`
 - **Values**: `k3s/prometheus/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template prometheus prometheus-community/prometheus -f k3s/prometheus/values.yaml --namespace observability > k3s/prometheus/manifest.yaml"
-  kubectl apply -f k3s/prometheus/manifest.yaml
-  kubectl rollout restart deployment prometheus-server -n observability
-  ```
 
 ### Grafana Tempo (Trace Store)
 
-- **Manifest**: `k3s/tempo/manifest.yaml`
+- **Chart**: `grafana-community/tempo`
+- **Tofu Configuration**: `tofu/tempo.tf`
 - **Values**: `k3s/tempo/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template tempo grafana-community/tempo -f k3s/tempo/values.yaml --namespace observability > k3s/tempo/manifest.yaml"
-  kubectl apply -f k3s/tempo/manifest.yaml
-  kubectl rollout restart statefulset tempo -n observability
-  ```
 
 ### Thanos Store Gateway (Long-term Metrics Storage)
 
-- **Manifest**: `k3s/thanos/manifest.yaml`
+- **Chart**: `bitnami/thanos`
+- **Tofu Configuration**: `tofu/thanos.tf`
 - **Values**: `k3s/thanos/values.yaml`
-- **Update Command**:
-
-  ```bash
-  nix-shell --run "helm template thanos bitnami/thanos -f k3s/thanos/values.yaml --namespace observability > k3s/thanos/manifest.yaml"
-  kubectl apply -f k3s/thanos/manifest.yaml
-  kubectl rollout restart statefulset thanos-storegateway -n observability
-  ```
-
 - **Notes**:
-  - Helm-managed deployment using bitnami/thanos chart
   - Uses official quay.io/thanos/thanos:v0.32.2 image (not bitnami variant)
   - Requires existing secret: `minio-thanos-secret` (created via kubectl)
   - Secret contains S3 credentials for MinIO `prometheus-blocks` bucket

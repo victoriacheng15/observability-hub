@@ -74,6 +74,7 @@ flowchart TB
             end
 
             GoApps["Go Services (Proxy, Ingestion)"]
+            MCP["MCP Telemetry"]
             Collectors["Collectors (Host Metrics & Tailscale)"]
         end
 
@@ -95,12 +96,13 @@ flowchart TB
     GH --> GoApps
     Mongo --> GoApps
     Observability -- "Host Metrics" --> Collectors
+    Observability -- "Query Data" --> MCP
     Tailscale -- "Status" --> Collectors
     Collectors -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP & Collectors -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
     Observability -- "Offload" --> S3
 

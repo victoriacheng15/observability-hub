@@ -27,4 +27,5 @@ Deep dives into the logic and implementation of specific system components.
 - **[Collectors Service](./services/collectors.md)**: Host-level telemetry collector for metrics and Tailscale status.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway and GitOps listener.
 - **[Ingestion Service](./services/ingestion.md)**: Unified data orchestration engine (Reading Analytics + Second Brain).
+- **[MCP Servers](./services/mcp-servers.md)**: The "Agentic Interface" suite for autonomous operations.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
