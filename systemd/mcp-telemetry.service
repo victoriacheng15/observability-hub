@@ -1,0 +1,17 @@
+[Unit]
+Description=MCP Telemetry Server
+After=network.target
+
+[Service]
+Type=simple
+User=server
+WorkingDirectory=/home/server/software/observability-hub
+EnvironmentFile=/home/server/software/observability-hub/.env
+ExecStart=/home/server/software/observability-hub/bin/mcp_telemetry
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

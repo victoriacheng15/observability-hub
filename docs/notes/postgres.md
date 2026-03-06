@@ -9,6 +9,7 @@ kubectl exec -it postgres-postgresql-0 -n observability -- psql -U postgres
 ```
 
 ### 1. Application Owner (`server`)
+
 The `server` user is for automated services (ingestion, proxy) that require write access to manage the platform's state.
 
 ```sql
@@ -30,6 +31,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
 ### 2. Agentic Investigator (`mcp_ro`)
+
 The `mcp_ro` user is for the MCP-Domain server. It is strictly read-only to ensure AI agents can investigate without risking data integrity.
 
 ```sql
@@ -49,6 +51,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_ro;
 ```
 
 ✅ **Resulting Permissions**:
+
 - `server`: **Full ownership**. Can create, update, and delete all objects in `homelab`.
 - `mcp_ro`: **Read-only**. Can perform `SELECT` and `EXPLAIN` but cannot modify state.
 
@@ -63,6 +66,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_ro;
 - `\l` (list all databases)
 
 💡 **Prompt Clues**:
+
 - `postgres=#` (superuser)
 - `server=>` (regular app user)
 - `mcp_ro=>` (read-only agent user)
@@ -74,6 +78,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_ro;
 You can verify connectivity either from **inside the cluster** (via `kubectl`) or from the **host machine** (via the NodePort).
 
 ### Method A: From the Host (via NodePort)
+
 This is how your host-based services (`proxy`, `mcp-telemetry`) will connect.
 
 ```bash
@@ -85,6 +90,7 @@ psql -h localhost -p 30432 -U mcp_ro -d homelab
 ```
 
 ### Method B: From the Cluster (via `kubectl`)
+
 Use this for direct cluster-level debugging.
 
 ```bash
