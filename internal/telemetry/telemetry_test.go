@@ -13,157 +13,212 @@ import (
 func TestInit(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("Disabled when endpoint missing", func(t *testing.T) {
-		os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-		shutdown, err := Init(ctx, "test")
-		if err != nil {
-			t.Fatalf("Init failed: %v", err)
-		}
-		if shutdown == nil {
-			t.Fatal("shutdown function should not be nil")
-		}
-		shutdown()
-	})
+	tests := []struct {
+		name     string
+		endpoint string
+		service  string
+	}{
+		{
+			name:     "Disabled when endpoint missing",
+			endpoint: "",
+			service:  "test",
+		},
+		{
+			name:     "Uses default service name",
+			endpoint: "localhost:4317",
+			service:  "",
+		},
+	}
 
-	t.Run("Uses default service name", func(t *testing.T) {
-		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
-		defer os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.endpoint != "" {
+				os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", tt.endpoint)
+			} else {
+				os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+			}
+			defer os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
-		shutdown, err := Init(ctx, "")
-		if err != nil {
-			t.Fatalf("Init failed: %v", err)
-		}
-		if shutdown == nil {
-			t.Fatal("shutdown function should not be nil")
-		}
-		shutdown()
-	})
+			shutdown, err := Init(ctx, tt.service)
+			if err != nil {
+				t.Fatalf("Init failed: %v", err)
+			}
+			if shutdown == nil {
+				t.Fatal("shutdown function should not be nil")
+			}
+			shutdown()
+		})
+	}
 }
 
 func TestAttributes(t *testing.T) {
-	t.Run("StringAttribute", func(t *testing.T) {
-		attr := StringAttribute("key", "value")
-		if attr.Key != "key" || attr.Value.AsString() != "value" {
-			t.Errorf("Unexpected attribute: %v", attr)
-		}
-	})
-	t.Run("IntAttribute", func(t *testing.T) {
-		attr := IntAttribute("key", 123)
-		if attr.Key != "key" || attr.Value.AsInt64() != 123 {
-			t.Errorf("Unexpected attribute: %v", attr)
-		}
-	})
-	t.Run("BoolAttribute", func(t *testing.T) {
-		attr := BoolAttribute("key", true)
-		if attr.Key != "key" || !attr.Value.AsBool() {
-			t.Errorf("Unexpected attribute: %v", attr)
-		}
-	})
-	t.Run("Int64Attribute", func(t *testing.T) {
-		attr := Int64Attribute("key", int64(456))
-		if attr.Key != "key" || attr.Value.AsInt64() != 456 {
-			t.Errorf("Unexpected attribute: %v", attr)
-		}
-	})
-	t.Run("Float64Attribute", func(t *testing.T) {
-		attr := Float64Attribute("key", 1.23)
-		if attr.Key != "key" || attr.Value.AsFloat64() != 1.23 {
-			t.Errorf("Unexpected attribute: %v", attr)
-		}
-	})
+	tests := []struct {
+		name string
+		attr Attribute
+		want interface{}
+	}{
+		{
+			name: "StringAttribute",
+			attr: StringAttribute("key", "value"),
+			want: "value",
+		},
+		{
+			name: "IntAttribute",
+			attr: IntAttribute("key", 123),
+			want: int64(123),
+		},
+		{
+			name: "BoolAttribute",
+			attr: BoolAttribute("key", true),
+			want: true,
+		},
+		{
+			name: "Int64Attribute",
+			attr: Int64Attribute("key", int64(456)),
+			want: int64(456),
+		},
+		{
+			name: "Float64Attribute",
+			attr: Float64Attribute("key", 1.23),
+			want: 1.23,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch v := tt.want.(type) {
+			case string:
+				if tt.attr.Value.AsString() != v {
+					t.Errorf("got %v, want %v", tt.attr.Value.AsString(), v)
+				}
+			case int64:
+				if tt.attr.Value.AsInt64() != v {
+					t.Errorf("got %v, want %v", tt.attr.Value.AsInt64(), v)
+				}
+			case bool:
+				if tt.attr.Value.AsBool() != v {
+					t.Errorf("got %v, want %v", tt.attr.Value.AsBool(), v)
+				}
+			case float64:
+				if tt.attr.Value.AsFloat64() != v {
+					t.Errorf("got %v, want %v", tt.attr.Value.AsFloat64(), v)
+				}
+			}
+		})
+	}
 }
 
 func TestLogs(t *testing.T) {
-	t.Run("GetLogger", func(t *testing.T) {
-		l := GetLogger("test-logger")
-		if l == nil {
-			t.Fatal("Logger should not be nil")
-		}
-		lDefault := GetLogger("")
-		if lDefault == nil {
-			t.Fatal("Default logger should not be nil")
-		}
-	})
+	tests := []struct {
+		name   string
+		testFn func(t *testing.T)
+	}{
+		{
+			name: "GetLogger",
+			testFn: func(t *testing.T) {
+				l := GetLogger("test-logger")
+				if l == nil {
+					t.Fatal("Logger should not be nil")
+				}
+				lDefault := GetLogger("")
+				if lDefault == nil {
+					t.Fatal("Default logger should not be nil")
+				}
+			},
+		},
+		{
+			name: "Log Methods",
+			testFn: func(t *testing.T) {
+				Info("info message", "key", "val")
+				Warn("warn message", "key", "val")
+				Error("error message", "key", "val")
+			},
+		},
+		{
+			name: "PII Masking",
+			testFn: func(t *testing.T) {
+				attr := MaskPII(nil, slog.String("password", "secret123"))
+				if attr.Value.String() != "[REDACTED]" {
+					t.Errorf("Expected [REDACTED], got %v", attr.Value)
+				}
 
-	t.Run("Log Methods", func(t *testing.T) {
-		Info("info message", "key", "val")
-		Warn("warn message", "key", "val")
-		Error("error message", "key", "val")
-	})
+				attrEmail := MaskPII(nil, slog.String("email", "test@example.com"))
+				if attrEmail.Value.String() != "[REDACTED]" {
+					t.Errorf("Expected [REDACTED], got %v", attrEmail.Value)
+				}
 
-	t.Run("PII Masking", func(t *testing.T) {
-		attr := MaskPII(nil, slog.String("password", "secret123"))
-		if attr.Value.String() != "[REDACTED]" {
-			t.Errorf("Expected [REDACTED], got %v", attr.Value)
-		}
+				attrSafe := MaskPII(nil, slog.String("safe", "data"))
+				if attrSafe.Value.String() != "data" {
+					t.Errorf("Expected data, got %v", attrSafe.Value)
+				}
 
-		attrEmail := MaskPII(nil, slog.String("email", "test@example.com"))
-		if attrEmail.Value.String() != "[REDACTED]" {
-			t.Errorf("Expected [REDACTED], got %v", attrEmail.Value)
-		}
+				// Nested group: sensitive key inside a slog.Group must be redacted
+				attrGroup := MaskPII(nil, slog.Group("request", slog.String("token", "nested-secret"), slog.String("path", "/api")))
+				for _, ga := range attrGroup.Value.Group() {
+					if ga.Key == "token" && ga.Value.String() != "[REDACTED]" {
+						t.Errorf("Expected nested token to be [REDACTED], got %v", ga.Value)
+					}
+					if ga.Key == "path" && ga.Value.String() != "/api" {
+						t.Errorf("Expected safe nested attr to pass through, got %v", ga.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "PIIHandler",
+			testFn: func(t *testing.T) {
+				newHandler := func(buf *strings.Builder) slog.Handler {
+					return NewPIIHandler(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+				}
 
-		attrSafe := MaskPII(nil, slog.String("safe", "data"))
-		if attrSafe.Value.String() != "data" {
-			t.Errorf("Expected data, got %v", attrSafe.Value)
-		}
+				t.Run("Handle redacts top-level sensitive attr", func(t *testing.T) {
+					var buf strings.Builder
+					slog.New(newHandler(&buf)).Info("test", "token", "top-secret")
+					out := buf.String()
+					if strings.Contains(out, "top-secret") {
+						t.Error("expected token value to be redacted")
+					}
+					if !strings.Contains(out, "[REDACTED]") {
+						t.Error("expected [REDACTED] in output")
+					}
+				})
 
-		// Nested group: sensitive key inside a slog.Group must be redacted
-		attrGroup := MaskPII(nil, slog.Group("request", slog.String("token", "nested-secret"), slog.String("path", "/api")))
-		for _, ga := range attrGroup.Value.Group() {
-			if ga.Key == "token" && ga.Value.String() != "[REDACTED]" {
-				t.Errorf("Expected nested token to be [REDACTED], got %v", ga.Value)
-			}
-			if ga.Key == "path" && ga.Value.String() != "/api" {
-				t.Errorf("Expected safe nested attr to pass through, got %v", ga.Value)
-			}
-		}
-	})
+				t.Run("WithAttrs redacts sensitive attrs", func(t *testing.T) {
+					var buf strings.Builder
+					slog.New(newHandler(&buf)).With("password", "mypassword").Info("test")
+					if strings.Contains(buf.String(), "mypassword") {
+						t.Error("expected password to be redacted in WithAttrs")
+					}
+				})
 
-	t.Run("PIIHandler", func(t *testing.T) {
-		newHandler := func(buf *strings.Builder) slog.Handler {
-			return NewPIIHandler(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		}
+				t.Run("Handle redacts nested group sensitive attr", func(t *testing.T) {
+					var buf strings.Builder
+					slog.New(newHandler(&buf)).Info("test", slog.Group("req", "token", "nested-secret", "path", "/api"))
+					out := buf.String()
+					if strings.Contains(out, "nested-secret") {
+						t.Error("expected nested token to be redacted")
+					}
+					if !strings.Contains(out, "/api") {
+						t.Error("expected safe nested attr to pass through")
+					}
+				})
 
-		t.Run("Handle redacts top-level sensitive attr", func(t *testing.T) {
-			var buf strings.Builder
-			slog.New(newHandler(&buf)).Info("test", "token", "top-secret")
-			out := buf.String()
-			if strings.Contains(out, "top-secret") {
-				t.Error("expected token value to be redacted")
-			}
-			if !strings.Contains(out, "[REDACTED]") {
-				t.Error("expected [REDACTED] in output")
-			}
+				t.Run("safe attrs pass through", func(t *testing.T) {
+					var buf strings.Builder
+					slog.New(newHandler(&buf)).Info("test", "user_id", "12345")
+					if !strings.Contains(buf.String(), "12345") {
+						t.Error("expected safe attr to pass through unmodified")
+					}
+				})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFn(t)
 		})
-
-		t.Run("WithAttrs redacts sensitive attrs", func(t *testing.T) {
-			var buf strings.Builder
-			slog.New(newHandler(&buf)).With("password", "mypassword").Info("test")
-			if strings.Contains(buf.String(), "mypassword") {
-				t.Error("expected password to be redacted in WithAttrs")
-			}
-		})
-
-		t.Run("Handle redacts nested group sensitive attr", func(t *testing.T) {
-			var buf strings.Builder
-			slog.New(newHandler(&buf)).Info("test", slog.Group("req", "token", "nested-secret", "path", "/api"))
-			out := buf.String()
-			if strings.Contains(out, "nested-secret") {
-				t.Error("expected nested token to be redacted")
-			}
-			if !strings.Contains(out, "/api") {
-				t.Error("expected safe nested attr to pass through")
-			}
-		})
-
-		t.Run("safe attrs pass through", func(t *testing.T) {
-			var buf strings.Builder
-			slog.New(newHandler(&buf)).Info("test", "user_id", "12345")
-			if !strings.Contains(buf.String(), "12345") {
-				t.Error("expected safe attr to pass through unmodified")
-			}
-		})
-	})
+	}
 }
 
 func TestMetrics(t *testing.T) {
@@ -178,46 +233,66 @@ func TestMetrics(t *testing.T) {
 
 	ctx := context.Background()
 
-	t.Run("Counter", func(t *testing.T) {
-		c, err := NewInt64Counter(meter, "test-counter", "desc")
-		if err != nil {
-			t.Fatalf("Failed to create counter: %v", err)
-		}
-		AddInt64Counter(ctx, c, 1, StringAttribute("tag", "val"))
-	})
+	tests := []struct {
+		name   string
+		testFn func(t *testing.T)
+	}{
+		{
+			name: "Counter",
+			testFn: func(t *testing.T) {
+				c, err := NewInt64Counter(meter, "test-counter", "desc")
+				if err != nil {
+					t.Fatalf("Failed to create counter: %v", err)
+				}
+				AddInt64Counter(ctx, c, 1, StringAttribute("tag", "val"))
+			},
+		},
+		{
+			name: "Histogram",
+			testFn: func(t *testing.T) {
+				h, err := NewInt64Histogram(meter, "test-histogram", "desc", "ms")
+				if err != nil {
+					t.Fatalf("Failed to create histogram: %v", err)
+				}
+				RecordInt64Histogram(ctx, h, 100, StringAttribute("tag", "val"))
+			},
+		},
+		{
+			name: "Gauges",
+			testFn: func(t *testing.T) {
+				_, err := NewInt64ObservableGauge(meter, "test-gauge-int", "desc", func(ctx context.Context, obs Int64Observer) error {
+					obs.Observe(1)
+					return nil
+				})
+				if err != nil {
+					t.Fatalf("Failed to create int gauge: %v", err)
+				}
 
-	t.Run("Histogram", func(t *testing.T) {
-		h, err := NewInt64Histogram(meter, "test-histogram", "desc", "ms")
-		if err != nil {
-			t.Fatalf("Failed to create histogram: %v", err)
-		}
-		RecordInt64Histogram(ctx, h, 100, StringAttribute("tag", "val"))
-	})
+				_, err = NewFloat64ObservableGauge(meter, "test-gauge-float", "desc", func(ctx context.Context, obs Float64Observer) error {
+					obs.Observe(1.5)
+					return nil
+				})
+				if err != nil {
+					t.Fatalf("Failed to create float gauge: %v", err)
+				}
+			},
+		},
+		{
+			name: "WithMetricAttributes",
+			testFn: func(t *testing.T) {
+				opt := WithMetricAttributes(StringAttribute("a", "b"))
+				if opt == nil {
+					t.Error("Expected non-nil option")
+				}
+			},
+		},
+	}
 
-	t.Run("Gauges", func(t *testing.T) {
-		_, err := NewInt64ObservableGauge(meter, "test-gauge-int", "desc", func(ctx context.Context, obs Int64Observer) error {
-			obs.Observe(1)
-			return nil
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFn(t)
 		})
-		if err != nil {
-			t.Fatalf("Failed to create int gauge: %v", err)
-		}
-
-		_, err = NewFloat64ObservableGauge(meter, "test-gauge-float", "desc", func(ctx context.Context, obs Float64Observer) error {
-			obs.Observe(1.5)
-			return nil
-		})
-		if err != nil {
-			t.Fatalf("Failed to create float gauge: %v", err)
-		}
-	})
-
-	t.Run("WithMetricAttributes", func(t *testing.T) {
-		opt := WithMetricAttributes(StringAttribute("a", "b"))
-		if opt == nil {
-			t.Error("Expected non-nil option")
-		}
-	})
+	}
 }
 
 func TestTraces(t *testing.T) {
@@ -234,30 +309,64 @@ func TestTraces(t *testing.T) {
 	ctx, span := tracer.Start(ctx, "test-span")
 	defer span.End()
 
-	t.Run("SpanFromContext", func(t *testing.T) {
-		s := SpanFromContext(ctx)
-		if s == nil {
-			t.Fatal("Span should not be nil")
-		}
-	})
+	tests := []struct {
+		name   string
+		testFn func(t *testing.T)
+	}{
+		{
+			name: "SpanFromContext",
+			testFn: func(t *testing.T) {
+				s := SpanFromContext(ctx)
+				if s == nil {
+					t.Fatal("Span should not be nil")
+				}
+			},
+		},
+		{
+			name: "Trace Options",
+			testFn: func(t *testing.T) {
+				WithAttributes(StringAttribute("a", "b"))
+				WithEventAttributes(StringAttribute("e", "f"))
+			},
+		},
+	}
 
-	t.Run("Trace Options", func(t *testing.T) {
-		WithAttributes(StringAttribute("a", "b"))
-		WithEventAttributes(StringAttribute("e", "f"))
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFn(t)
+		})
+	}
 }
 
 func TestHTTPHandler(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	instrumented := NewHTTPHandler(handler, "test-service")
+	tests := []struct {
+		name        string
+		serviceName string
+		path        string
+		wantStatus  int
+	}{
+		{
+			name:        "Basic instrumentation",
+			serviceName: "test-service",
+			path:        "/test",
+			wantStatus:  http.StatusOK,
+		},
+	}
 
-	req := httptest.NewRequest("GET", "/test", nil)
-	w := httptest.NewRecorder()
-	instrumented.ServeHTTP(w, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.wantStatus)
+			})
+			instrumented := NewHTTPHandler(handler, tt.serviceName)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
+			req := httptest.NewRequest("GET", tt.path, nil)
+			w := httptest.NewRecorder()
+			instrumented.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("Expected status %d, got %d", tt.wantStatus, w.Code)
+			}
+		})
 	}
 }

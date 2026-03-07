@@ -179,23 +179,67 @@ func TestGetTags(t *testing.T) {
 }
 
 func TestGetChecksum(t *testing.T) {
-	t1 := "hello world"
-	t2 := "hello world"
-	t3 := "different"
-
-	if GetChecksum(t1) != GetChecksum(t2) {
-		t.Error("Checksums for identical text should match")
+	tests := []struct {
+		name      string
+		t1        string
+		t2        string
+		wantMatch bool
+	}{
+		{
+			name:      "Identical Text",
+			t1:        "hello world",
+			t2:        "hello world",
+			wantMatch: true,
+		},
+		{
+			name:      "Different Text",
+			t1:        "hello world",
+			t2:        "different",
+			wantMatch: false,
+		},
 	}
 
-	if GetChecksum(t1) == GetChecksum(t3) {
-		t.Error("Checksums for different text should not match")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if (GetChecksum(tt.t1) == GetChecksum(tt.t2)) != tt.wantMatch {
+				if tt.wantMatch {
+					t.Errorf("Checksums for %q and %q should match", tt.t1, tt.t2)
+				} else {
+					t.Errorf("Checksums for %q and %q should not match", tt.t1, tt.t2)
+				}
+			}
+		})
 	}
 }
 
 func TestEstimateTokens(t *testing.T) {
-	text := "This is a simple test case."
-	got := EstimateTokens(text)
-	if got <= 0 {
-		t.Errorf("EstimateTokens() returned non-positive value: %d", got)
+	tests := []struct {
+		name string
+		text string
+	}{
+		{
+			name: "Basic Sentence",
+			text: "This is a simple test case.",
+		},
+		{
+			name: "Empty String",
+			text: "",
+		},
+		{
+			name: "Long String",
+			text: "This is a much longer string to test the token estimation logic with more words.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := EstimateTokens(tt.text)
+			if tt.text != "" && got <= 0 {
+				t.Errorf("EstimateTokens(%q) returned non-positive value: %d", tt.text, got)
+			}
+			if tt.text == "" && got != 1 {
+				t.Errorf("EstimateTokens(%q) expected 1, got %d", tt.text, got)
+			}
+		})
 	}
 }

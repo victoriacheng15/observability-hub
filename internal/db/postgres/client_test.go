@@ -35,52 +35,60 @@ func TestConnectPostgres(t *testing.T) {
 		},
 	}
 
-	t.Run("Success", func(t *testing.T) {
-		db, mockSQL, _ := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		mockSQL.ExpectPing()
+	tests := []struct {
+		name    string
+		setup   func(mockSQL sqlmock.Sqlmock)
+		openErr error
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			setup: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectPing()
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Open Failure",
+			openErr: errors.New("open failed"),
+			wantErr: true,
+		},
+		{
+			name: "Ping Failure",
+			setup: func(mockSQL sqlmock.Sqlmock) {
+				mockSQL.ExpectPing().WillReturnError(errors.New("ping failed"))
+			},
+			wantErr: true,
+		},
+	}
 
-		oldSqlOpen := sqlOpen
-		defer func() { sqlOpen = oldSqlOpen }()
-		sqlOpen = func(driverName, dataSourceName string) (*sql.DB, error) {
-			return db, nil
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, mockSQL, _ := sqlmock.New(sqlmock.MonitorPingsOption(true))
+			if tt.setup != nil {
+				tt.setup(mockSQL)
+			}
 
-		wrapper, err := ConnectPostgres("mock-postgres", mock)
-		if err != nil {
-			t.Fatalf("Expected success, got error: %v", err)
-		}
-		if wrapper == nil || wrapper.DB == nil {
-			t.Fatal("Expected wrapper instance with DB, got nil")
-		}
-	})
+			oldSqlOpen := sqlOpen
+			defer func() { sqlOpen = oldSqlOpen }()
+			sqlOpen = func(driverName, dataSourceName string) (*sql.DB, error) {
+				if tt.openErr != nil {
+					return nil, tt.openErr
+				}
+				return db, nil
+			}
 
-	t.Run("Open Failure", func(t *testing.T) {
-		oldSqlOpen := sqlOpen
-		defer func() { sqlOpen = oldSqlOpen }()
-		sqlOpen = func(driverName, dataSourceName string) (*sql.DB, error) {
-			return nil, errors.New("open failed")
-		}
-		_, err := ConnectPostgres("mock-postgres", mock)
-		if err == nil {
-			t.Error("Expected error for open failure, got nil")
-		}
-	})
-
-	t.Run("Ping Failure", func(t *testing.T) {
-		db, mockSQL, _ := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		mockSQL.ExpectPing().WillReturnError(errors.New("ping failed"))
-
-		oldSqlOpen := sqlOpen
-		defer func() { sqlOpen = oldSqlOpen }()
-		sqlOpen = func(driverName, dataSourceName string) (*sql.DB, error) {
-			return db, nil
-		}
-
-		_, err := ConnectPostgres("mock-postgres", mock)
-		if err == nil {
-			t.Error("Expected error for ping failure, got nil")
-		}
-	})
+			wrapper, err := ConnectPostgres("mock-postgres", mock)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConnectPostgres() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				if wrapper == nil || wrapper.DB == nil {
+					t.Fatal("Expected wrapper instance with DB, got nil")
+				}
+			}
+		})
+	}
 }
 
 func TestPostgresWrapper_Operations(t *testing.T) {
@@ -89,89 +97,155 @@ func TestPostgresWrapper_Operations(t *testing.T) {
 	wrapper := mdb.Wrapper()
 	ctx := context.Background()
 
-	t.Run("Exec Success", func(t *testing.T) {
-		mdb.Mock.ExpectExec("INSERT INTO test").
-			WithArgs(1, "test").
-			WillReturnResult(mdb.NewResult(1, 1))
+	tests := []struct {
+		name    string
+		testFn  func(t *testing.T)
+		wantErr bool
+	}{
+		{
+			name: "Exec Success",
+			testFn: func(t *testing.T) {
+				mdb.Mock.ExpectExec("INSERT INTO test").
+					WithArgs(1, "test").
+					WillReturnResult(mdb.NewResult(1, 1))
 
-		_, err := wrapper.Exec(ctx, "test-op", "INSERT INTO test VALUES ($1, $2)", 1, "test")
-		if err != nil {
-			t.Errorf("Exec failed: %v", err)
-		}
-	})
+				_, err := wrapper.Exec(ctx, "test-op", "INSERT INTO test VALUES ($1, $2)", 1, "test")
+				if err != nil {
+					t.Errorf("Exec failed: %v", err)
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "Exec Failure",
+			testFn: func(t *testing.T) {
+				mdb.Mock.ExpectExec("INSERT INTO test").
+					WillReturnError(errors.New("exec error"))
 
-	t.Run("Exec Failure", func(t *testing.T) {
-		mdb.Mock.ExpectExec("INSERT INTO test").
-			WillReturnError(errors.New("exec error"))
+				_, err := wrapper.Exec(ctx, "test-op", "INSERT INTO test")
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "Query Success",
+			testFn: func(t *testing.T) {
+				rows := mdb.NewRows([]string{"id", "name"}).AddRow(1, "test")
+				mdb.Mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
-		_, err := wrapper.Exec(ctx, "test-op", "INSERT INTO test")
-		if err == nil {
-			t.Error("Expected error, got nil")
-		}
-	})
+				res, err := wrapper.Query(ctx, "test-op", "SELECT * FROM test")
+				if err != nil {
+					t.Errorf("Query failed: %v", err)
+				}
+				res.Close()
+			},
+			wantErr: false,
+		},
+		{
+			name: "Query Failure",
+			testFn: func(t *testing.T) {
+				mdb.Mock.ExpectQuery("SELECT").WillReturnError(errors.New("query error"))
 
-	t.Run("Query Success", func(t *testing.T) {
-		rows := mdb.NewRows([]string{"id", "name"}).AddRow(1, "test")
-		mdb.Mock.ExpectQuery("SELECT").WillReturnRows(rows)
+				_, err := wrapper.Query(ctx, "test-op", "SELECT * FROM test")
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "QueryRow",
+			testFn: func(t *testing.T) {
+				mdb.Mock.ExpectQuery("SELECT").WillReturnRows(mdb.NewRows([]string{"id"}).AddRow(1))
+				row := wrapper.QueryRow(ctx, "test-op", "SELECT id FROM test")
+				var id int
+				if err := row.Scan(&id); err != nil {
+					t.Errorf("QueryRow Scan failed: %v", err)
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "Array Helper",
+			testFn: func(t *testing.T) {
+				arr := wrapper.Array([]string{"a", "b"})
+				if arr == nil {
+					t.Error("Expected non-nil array wrapper")
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "AnyArg",
+			testFn: func(t *testing.T) {
+				if mdb.AnyArg() == nil {
+					t.Error("Expected non-nil AnyArg")
+				}
+			},
+			wantErr: false,
+		},
+	}
 
-		res, err := wrapper.Query(ctx, "test-op", "SELECT * FROM test")
-		if err != nil {
-			t.Errorf("Query failed: %v", err)
-		}
-		res.Close()
-	})
-
-	t.Run("Query Failure", func(t *testing.T) {
-		mdb.Mock.ExpectQuery("SELECT").WillReturnError(errors.New("query error"))
-
-		_, err := wrapper.Query(ctx, "test-op", "SELECT * FROM test")
-		if err == nil {
-			t.Error("Expected error, got nil")
-		}
-	})
-
-	t.Run("QueryRow", func(t *testing.T) {
-		mdb.Mock.ExpectQuery("SELECT").WillReturnRows(mdb.NewRows([]string{"id"}).AddRow(1))
-		row := wrapper.QueryRow(ctx, "test-op", "SELECT id FROM test")
-		var id int
-		if err := row.Scan(&id); err != nil {
-			t.Errorf("QueryRow Scan failed: %v", err)
-		}
-	})
-
-	t.Run("Array Helper", func(t *testing.T) {
-		arr := wrapper.Array([]string{"a", "b"})
-		if arr == nil {
-			t.Error("Expected non-nil array wrapper")
-		}
-	})
-
-	t.Run("AnyArg", func(t *testing.T) {
-		if mdb.AnyArg() == nil {
-			t.Error("Expected non-nil AnyArg")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFn(t)
+		})
+	}
 }
 
 func TestGetPostgresDSN(t *testing.T) {
-	t.Run("DATABASE_URL Env", func(t *testing.T) {
-		os.Setenv("DATABASE_URL", "postgres://user:pass@host/db")
-		defer os.Unsetenv("DATABASE_URL")
-		dsn, _ := GetPostgresDSN(nil)
-		if dsn != "postgres://user:pass@host/db" {
-			t.Errorf("Expected DATABASE_URL, got %s", dsn)
-		}
-	})
+	tests := []struct {
+		name      string
+		env       map[string]string
+		mockStore *simpleMockStore
+		want      string
+		wantErr   bool
+	}{
+		{
+			name: "DATABASE_URL Env",
+			env: map[string]string{
+				"DATABASE_URL": "postgres://user:pass@host/db",
+			},
+			want:    "postgres://user:pass@host/db",
+			wantErr: false,
+		},
+		{
+			name: "Missing Credentials",
+			env: map[string]string{
+				"DATABASE_URL":       "",
+				"SERVER_DB_PASSWORD": "",
+			},
+			mockStore: &simpleMockStore{values: map[string]string{}},
+			wantErr:   true,
+		},
+	}
 
-	t.Run("Missing Credentials", func(t *testing.T) {
-		os.Unsetenv("DATABASE_URL")
-		os.Unsetenv("SERVER_DB_PASSWORD")
-		mock := &simpleMockStore{values: map[string]string{}}
-		_, err := GetPostgresDSN(mock)
-		if err == nil {
-			t.Error("Expected error for missing credentials, got nil")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.env {
+				if v == "" {
+					os.Unsetenv(k)
+				} else {
+					os.Setenv(k, v)
+				}
+			}
+			defer func() {
+				for k := range tt.env {
+					os.Unsetenv(k)
+				}
+			}()
+
+			dsn, err := GetPostgresDSN(tt.mockStore)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetPostgresDSN() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr && dsn != tt.want {
+				t.Errorf("GetPostgresDSN() got = %v, want %v", dsn, tt.want)
+			}
+		})
+	}
 
 	t.Run("getEnv Fallback", func(t *testing.T) {
 		os.Unsetenv("NON_EXISTENT_VAR")
@@ -186,11 +260,27 @@ func TestMockDB_Helpers(t *testing.T) {
 	mdb, cleanup := NewMockDB(t)
 	defer cleanup()
 
-	t.Run("ExpectTableCreation", func(t *testing.T) {
-		mdb.ExpectTableCreation("test_table")
-	})
+	tests := []struct {
+		name   string
+		testFn func()
+	}{
+		{
+			name: "ExpectTableCreation",
+			testFn: func() {
+				mdb.ExpectTableCreation("test_table")
+			},
+		},
+		{
+			name: "ExpectHypertableCreation",
+			testFn: func() {
+				mdb.ExpectHypertableCreation("test_table")
+			},
+		},
+	}
 
-	t.Run("ExpectHypertableCreation", func(t *testing.T) {
-		mdb.ExpectHypertableCreation("test_table")
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFn()
+		})
+	}
 }

@@ -22,34 +22,54 @@ func (m *MockRunner) Run(ctx context.Context, name string, arg ...string) ([]byt
 }
 
 func TestThanosClient_QueryRange(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responseJSON := `{
-			"status": "success",
-			"data": {
-				"resultType": "matrix",
-				"result": [
-					{
-						"metric": { "instance": "host1" },
-						"values": [
-							[ 1708531200, "0.5" ]
-						]
-					}
-				]
-			}
-		}`
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, responseJSON)
-	}))
-	defer ts.Close()
-
-	client := NewThanosClient(ts.URL)
-	samples, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
-	if err != nil {
-		t.Fatalf("QueryRange failed: %v", err)
+	tests := []struct {
+		name         string
+		responseJSON string
+		status       int
+		wantErr      bool
+		wantCount    int
+	}{
+		{
+			name: "Success",
+			responseJSON: `{
+				"status": "success",
+				"data": {
+					"resultType": "matrix",
+					"result": [
+						{
+							"metric": { "instance": "host1" },
+							"values": [
+								[ 1708531200, "0.5" ]
+							]
+						}
+					]
+				}
+			}`,
+			status:    http.StatusOK,
+			wantErr:   false,
+			wantCount: 1,
+		},
 	}
 
-	if len(samples) != 1 {
-		t.Errorf("expected 1 sample, got %d", len(samples))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.status)
+				fmt.Fprint(w, tt.responseJSON)
+			}))
+			defer ts.Close()
+
+			client := NewThanosClient(ts.URL)
+			samples, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("QueryRange() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if len(samples) != tt.wantCount {
+				t.Errorf("expected %d samples, got %d", tt.wantCount, len(samples))
+			}
+		})
 	}
 }
 
@@ -188,13 +208,32 @@ func TestThanosClient_QueryRange_Errors(t *testing.T) {
 }
 
 func TestRealCommandRunner_Run(t *testing.T) {
-	r := &RealCommandRunner{}
-	// Run a simple command that should exist in nix-shell (echo)
-	out, err := r.Run(context.Background(), "echo", "hello")
-	if err != nil {
-		t.Errorf("RealCommandRunner.Run failed: %v", err)
+	tests := []struct {
+		name    string
+		command string
+		args    []string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "Echo Success",
+			command: "echo",
+			args:    []string{"hello"},
+			want:    "hello\n",
+			wantErr: false,
+		},
 	}
-	if string(out) != "hello\n" {
-		t.Errorf("Expected 'hello\n', got %q", string(out))
+
+	r := &RealCommandRunner{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := r.Run(context.Background(), tt.command, tt.args...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RealCommandRunner.Run() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if string(out) != tt.want {
+				t.Errorf("Expected %q, got %q", tt.want, string(out))
+			}
+		})
 	}
 }
