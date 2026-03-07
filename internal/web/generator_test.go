@@ -1,11 +1,9 @@
-package generator
+package web
 
 import (
 	"os"
 	"strings"
 	"testing"
-
-	"observability-hub/internal/web/schema"
 )
 
 type MockFS struct {
@@ -75,7 +73,7 @@ func TestLoadYaml(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fs = tt.mockFn()
-			var landing schema.Landing
+			var landing Landing
 			err := loadYaml("any.yaml", &landing)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("loadYaml() error = %v, wantErr %v", err, tt.wantErr)
@@ -405,7 +403,7 @@ func TestRenderPage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fs = tt.mockFn()
-			err := renderPage("out.html", "base.html", "page.html", &schema.SiteData{})
+			err := renderPage("out.html", "base.html", "page.html", &SiteData{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("renderPage() error = %v, wantErr %v", err, tt.wantErr)
 			}

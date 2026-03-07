@@ -1,4 +1,4 @@
-package generator
+package web
 
 import (
 	"encoding/json"
@@ -10,8 +10,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"observability-hub/internal/web/schema"
 
 	"gopkg.in/yaml.v3"
 )
@@ -50,15 +48,15 @@ func Build(srcDir, dstDir string) error {
 	}
 
 	// 2. Load Modular Data
-	var data schema.SiteData
+	var data SiteData
 	data.Year = time.Now().Year()
 
 	configs := []struct {
 		path string
 		dest interface{}
 	}{
-		{filepath.Join(srcDir, "content/landing.yaml"), &data.Landing},
-		{filepath.Join(srcDir, "content/evolution.yaml"), &data.Evolution},
+		{filepath.Join(srcDir, "templates/content/landing.yaml"), &data.Landing},
+		{filepath.Join(srcDir, "templates/content/evolution.yaml"), &data.Evolution},
 	}
 
 	for _, cfg := range configs {
@@ -159,7 +157,7 @@ func Build(srcDir, dstDir string) error {
 	return nil
 }
 
-func generateRegistry(path string, evolution *schema.Evolution) error {
+func generateRegistry(path string, evolution *Evolution) error {
 	data, err := json.Marshal(evolution)
 	if err != nil {
 		return err
@@ -198,7 +196,7 @@ func loadYaml(path string, out interface{}) error {
 	return nil
 }
 
-func renderPage(outFile, baseFile, tplFile string, data *schema.SiteData) error {
+func renderPage(outFile, baseFile, tplFile string, data *SiteData) error {
 	funcMap := template.FuncMap{
 		"add": func(a, b int) int { return a + b },
 		"sub": func(a, b int) int { return a - b },
