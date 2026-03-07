@@ -1,4 +1,4 @@
-package schema
+package web
 
 // Feature represents a single feature with a name, description, and icon.
 type Feature struct {
