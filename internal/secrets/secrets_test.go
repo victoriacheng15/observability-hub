@@ -160,22 +160,38 @@ func TestBaoProvider_Integration(t *testing.T) {
 		t.Fatalf("Failed to create provider: %v", err)
 	}
 
-	// Setup a test secret directly using the client
-	testPath := "test-app"
-	testKey := "api_key"
-	testValue := "super-secret-123"
-
-	data := map[string]interface{}{
-		testKey: testValue,
+	tests := []struct {
+		name     string
+		path     string
+		key      string
+		value    string
+		fallback string
+	}{
+		{
+			name:     "Basic Secret Retrieval",
+			path:     "test-app",
+			key:      "api_key",
+			value:    "super-secret-123",
+			fallback: "fallback",
+		},
 	}
 
-	_, err = provider.client.KVv2("secret").Put(context.Background(), testPath, data)
-	if err != nil {
-		t.Skipf("Skipping integration test: Failed to put test secret (likely permission or server issue): %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := map[string]interface{}{
+				tt.key: tt.value,
+			}
 
-	got := provider.GetSecret(testPath, testKey, "fallback")
-	if got != testValue {
-		t.Errorf("GetSecret() = %v, want %v", got, testValue)
+			_, err = provider.client.KVv2("secret").Put(context.Background(), tt.path, data)
+			if err != nil {
+				t.Skipf("Skipping subtest: Failed to put test secret: %v", err)
+				return
+			}
+
+			got := provider.GetSecret(tt.path, tt.key, tt.fallback)
+			if got != tt.value {
+				t.Errorf("GetSecret() = %v, want %v", got, tt.value)
+			}
+		})
 	}
 }

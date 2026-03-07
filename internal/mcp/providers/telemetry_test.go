@@ -116,27 +116,59 @@ func TestTelemetryProvider_QueryMetrics(t *testing.T) {
 }
 
 func TestTelemetryProvider_RequestTimeout(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(2 * time.Second)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
+	tests := []struct {
+		name    string
+		timeout time.Duration
+		sleep   time.Duration
+		wantErr bool
+	}{
+		{
+			name:    "Request Timeout",
+			timeout: 100 * time.Millisecond,
+			sleep:   2 * time.Second,
+			wantErr: true,
+		},
+	}
 
-	provider := NewTelemetryProvider(server.URL, "http://localhost:30100")
-	provider.httpClient.Timeout = 100 * time.Millisecond
-	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(tt.sleep)
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
 
-	_, err := provider.QueryMetrics(ctx, "up")
-	if err == nil {
-		t.Error("expected timeout error")
+			provider := NewTelemetryProvider(server.URL, "http://localhost:30100")
+			provider.httpClient.Timeout = tt.timeout
+			ctx := context.Background()
+
+			_, err := provider.QueryMetrics(ctx, "up")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryMetrics() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
 func TestTelemetryProvider_Close(t *testing.T) {
-	provider := NewTelemetryProvider("http://localhost:30090", "http://localhost:30100")
-	err := provider.Close()
-	if err != nil {
-		t.Errorf("unexpected error on close: %v", err)
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "Close Success",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := NewTelemetryProvider("http://localhost:30090", "http://localhost:30100")
+			err := provider.Close()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
