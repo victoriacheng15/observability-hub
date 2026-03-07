@@ -42,7 +42,7 @@ journalctl -u mcp-telemetry.service -f
 
 ### Deployment Architecture
 
-```
+```text
 Host Tier (Systemd)
 ├── mcp-telemetry.service (Long-running server)
 │   └─ Persistent connections to:
@@ -121,7 +121,7 @@ Check for:
 - Verify network latency to K3s: `time curl http://localhost:30090/api/v1/query?query=up`
 - Check **service logs in Loki** for performance issues:
 
-  ```
+  ```pomql
   {service="mcp.telemetry"} | logfmt
   ```
 
@@ -131,7 +131,7 @@ All logs from mcp-telemetry are exported via **OTLP gRPC** to Loki and Tempo. Do
 
 **Via Loki Dashboard:**
 
-```
+```logql
 {service="mcp.telemetry"}
 ```
 
@@ -214,7 +214,7 @@ Track service health in your observability stack:
 
 **Via Loki (Logs):**
 
-```
+```logql
 {service="mcp.telemetry"}
 ```
 
@@ -293,14 +293,14 @@ Restart Gemini CLI after saving.
 
 Ask Copilot/Gemini:
 
-```
+```text
 Query metrics to get the 95th percentile request latency:
 histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 ```
 
 The AI will call `query_metrics` and return results from Thanos.
 
-### Troubleshooting
+### Integration Troubleshooting
 
 - **Binary not found**: Verify path and run `chmod +x bin/mcp_telemetry`
 - **Connection refused**: Ensure mcp-telemetry is running (`systemctl status mcp-telemetry.service`)

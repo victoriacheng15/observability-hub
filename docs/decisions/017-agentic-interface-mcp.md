@@ -12,6 +12,13 @@ Simultaneously, as the industry moves toward Agentic Infrastructure (where AI ag
 
 To bridge the gap between the high-fidelity OpenTelemetry foundation and these emerging workflows, the platform requires a standardized, machine-readable interface.
 
+This decision builds upon foundational refactorings that established the structural and data predictability required for an agentic interface. Key impact-oriented preparations included:
+
+- **Architectural Mapping:** Flattened the monorepo into `cmd/` and `internal/` packages, allowing agents to reliably locate and reuse service logic.
+- **Machine-Readable State:** Migrated infrastructure to OpenTofu (ADR-016), replacing imperative scripts with a declarative graph that an agent can reason about.
+- **High-Fidelity Telemetry:** Standardized observability signals via the "Pure Wrapper" pattern and unified host collectors (ADR-015), ensuring consistent, correlated data across the entire stack.
+These changes transformed the repository from a collection of services into a cohesive, observable platform ready for protocol-driven automation.
+
 ## Decision Outcome
 
 Adopt the Model Context Protocol (MCP) to implement a **dedicated telemetry control plane**:
