@@ -176,7 +176,7 @@ type MongoStoreWrapper struct {
 	Wrapper *mongodb.MongoStore
 }
 
-func newMongoStore(store secrets.SecretStore) (MongoStoreAPI, error) {
+var newMongoStore = func(store secrets.SecretStore) (MongoStoreAPI, error) {
 	wrapper, err := mongodb.NewMongoStore(store)
 	if err != nil {
 		return nil, err

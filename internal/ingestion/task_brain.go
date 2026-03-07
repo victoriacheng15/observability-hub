@@ -39,6 +39,10 @@ func (t *BrainTask) Name() string {
 	return "brain"
 }
 
+var newBrainAPI = func() brain.BrainAPI {
+	return brain.NewBrainAPI()
+}
+
 // Run executes the brain sync task.
 func (t *BrainTask) Run(ctx context.Context, db *postgres.PostgresWrapper, secretStore secrets.SecretStore) error {
 	ensureGlobalMetrics()
@@ -49,7 +53,7 @@ func (t *BrainTask) Run(ctx context.Context, db *postgres.PostgresWrapper, secre
 	}
 
 	brainStore := NewBrainStore(db)
-	api := brain.NewBrainAPI()
+	api := newBrainAPI()
 
 	return t.Sync(ctx, repo, brainStore, api)
 }

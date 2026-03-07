@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -42,6 +43,16 @@ func TestConnectMongo(t *testing.T) {
 			mockErr: errors.New("mongo connect failed"),
 			wantErr: true,
 		},
+		{
+			name:    "Invalid URI",
+			envVar:  "mongodb:// ", // Space is invalid in URI
+			wantErr: true,
+		},
+		{
+			name:    "Ping Failure",
+			envVar:  "mongodb://localhost:1", // Invalid port/no service
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -57,8 +68,17 @@ func TestConnectMongo(t *testing.T) {
 
 			originalConnect := mongoConnect
 			defer func() { mongoConnect = originalConnect }()
-			mongoConnect = func(opts ...*options.ClientOptions) (*mongo.Client, error) {
-				return nil, tt.mockErr
+			if tt.mockErr != nil {
+				mongoConnect = func(opts ...*options.ClientOptions) (*mongo.Client, error) {
+					return nil, tt.mockErr
+				}
+			} else if tt.name == "Ping Failure" {
+				// Use short timeout for faster test
+				mongoConnect = func(opts ...*options.ClientOptions) (*mongo.Client, error) {
+					// Apply short timeout via options if possible, but easier to just use real Connect
+					// which will fail Ping because port 1 is unlikely to have mongo.
+					return originalConnect(options.Client().ApplyURI(tt.envVar).SetConnectTimeout(10 * time.Millisecond))
+				}
 			}
 
 			_, err := ConnectMongo(mock)
@@ -89,6 +109,12 @@ func TestGetMongoURI(t *testing.T) {
 				"uri": "mongodb://user:pass@localhost:27017",
 			},
 			want:    "mongodb://user:pass@localhost:27017",
+			wantErr: false,
+		},
+		{
+			name:    "With Env Fallback",
+			envVar:  "mongodb://env:pass@localhost:27017",
+			want:    "mongodb://env:pass@localhost:27017",
 			wantErr: false,
 		},
 	}
@@ -191,6 +217,32 @@ func TestMongoStore_Helpers(t *testing.T) {
 				err := store.UpdateByID(context.Background(), "test-op", "test-db", "test-coll", "invalid-hex", nil)
 				if err == nil {
 					t.Error("Expected error for invalid hex ID, got nil")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "Find Broken Client",
+			testFn: func(t *testing.T) {
+				// Use a real client that is NOT connected to any mongo.
+				// mongo.Connect with localhost:1 will probably not connect but will return a client.
+				client, _ := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:1"))
+				storeWithClient := &MongoStore{Client: client}
+				err := storeWithClient.Find(context.Background(), "test-op", "db", "coll", nil, nil, 10)
+				if err == nil {
+					t.Error("Expected error for broken client, got nil")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "UpdateByID Broken Client",
+			testFn: func(t *testing.T) {
+				client, _ := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:1"))
+				storeWithClient := &MongoStore{Client: client}
+				err := storeWithClient.UpdateByID(context.Background(), "test-op", "db", "coll", "507f1f77bcf86cd799439011", nil)
+				if err == nil {
+					t.Error("Expected error for broken client, got nil")
 				}
 			},
 			wantErr: true,
