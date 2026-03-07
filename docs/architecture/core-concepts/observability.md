@@ -52,6 +52,11 @@ The platform implements a dual-path logging strategy: structured application log
 | `msg` | Human-readable description | `GitOps sync failed` |
 | `repo` | (Optional) Target repository | `mehub` |
 
+- **PII Masking & Redaction**: To prevent the accidental leakage of sensitive information, the platform implements automated PII masking at the telemetry package level.
+  - **Mechanism**: A custom `slog.Handler` (the `PIIHandler`) intercepts all log records and redacts values for a predefined list of sensitive keys using a `ReplaceAttr` strategy.
+  - **Redacted Keys**: Includes `password`, `secret`, `token`, `api_key`, `email`, `phone`, `authorization`, `cookie`, etc.
+  - **Output**: Sensitive values are replaced with the literal string `[REDACTED]` before being exported to either stdout or Loki.
+
 - **Collection Pipeline**:
   - **Application Logs**: Services are instrumented with the **OpenTelemetry SDK** to generate logs in OTLP format, sent to the central **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Loki**.
   - **System Logs**: Native host services (e.g., `gitops-sync`, `system-metrics`, `tailscale-gate`) are instrumented to emit structured logs directly to the **OpenTelemetry Collector** (running as a DaemonSet) via OTLP, which filters for specific units and pushes them to **Loki**.

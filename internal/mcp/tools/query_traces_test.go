@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -72,7 +73,7 @@ func TestQueryTracesHandler_Execute(t *testing.T) {
 				t.Errorf("got error %v, want error %v", err, tt.wantErr)
 			}
 			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !matchErrorMsg(err.Error(), tt.errMsg) {
+				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("got error %q, want error containing %q", err.Error(), tt.errMsg)
 				}
 			}

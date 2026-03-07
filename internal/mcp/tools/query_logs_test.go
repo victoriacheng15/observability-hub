@@ -2,11 +2,12 @@ package tools
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
 func TestQueryLogsHandler_Execute(t *testing.T) {
-	mockQuery := func(ctx context.Context, query string) (interface{}, error) {
+	mockQuery := func(ctx context.Context, query string, limit int, hours int) (interface{}, error) {
 		return map[string]interface{}{"streams": []interface{}{}}, nil
 	}
 
@@ -34,7 +35,7 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 		},
 		{
 			name:    "query too long",
-			query:   string(make([]byte, 10001)),
+			query:   string(make([]byte, 5001)),
 			wantErr: true,
 			errMsg:  "query too long",
 		},
@@ -59,6 +60,11 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("got error %v, want error %v", err, tt.wantErr)
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("got error %q, want error containing %q", err.Error(), tt.errMsg)
+				}
 			}
 		})
 	}

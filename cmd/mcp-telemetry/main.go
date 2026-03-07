@@ -35,8 +35,12 @@ func main() {
 		telemetry.Error("THANOS_URL not set")
 		os.Exit(1)
 	}
+	if lokiURL == "" {
+		telemetry.Error("LOKI_URL not set")
+		os.Exit(1)
+	}
 
-	provider := providers.NewTelemetryProvider(thanosURL)
+	provider := providers.NewTelemetryProvider(thanosURL, lokiURL)
 	telemetry.Info("MCP Telemetry server initialized", "thanos_url", thanosURL, "loki_url", lokiURL, "tempo_url", tempoURL)
 
 	server := mcp.NewServer(&mcp.Implementation{
