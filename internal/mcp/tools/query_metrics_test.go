@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +35,7 @@ func TestQueryMetricsHandler_Execute(t *testing.T) {
 		},
 		{
 			name:    "query too long",
-			query:   string(make([]byte, 10001)),
+			query:   string(make([]byte, 5001)),
 			wantErr: true,
 			errMsg:  "query too long",
 		},
@@ -73,16 +74,10 @@ func TestQueryMetricsHandler_Execute(t *testing.T) {
 				t.Errorf("got error %v, want error %v", err, tt.wantErr)
 			}
 			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !matchErrorMsg(err.Error(), tt.errMsg) {
+				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("got error %q, want error containing %q", err.Error(), tt.errMsg)
 				}
 			}
 		})
 	}
-}
-
-// matchErrorMsg checks if errorMsg contains substring
-func matchErrorMsg(errorMsg, substring string) bool {
-	// Simple substring check
-	return len(errorMsg) >= len(substring)
 }

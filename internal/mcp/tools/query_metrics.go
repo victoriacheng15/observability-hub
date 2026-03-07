@@ -3,10 +3,21 @@ package tools
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"strings"
 
 	"observability-hub/internal/telemetry"
 )
+
+// dangerousPatterns are keywords that must not appear in any query.
+var dangerousPatterns = []string{
+	"delete",
+	"drop",
+	"truncate",
+	"insert",
+	"update",
+	"create",
+	"alter",
+}
 
 // QueryMetricsInput represents the input for query_metrics tool.
 type QueryMetricsInput struct {
@@ -52,34 +63,18 @@ func (h *QueryMetricsHandler) validateInput(input QueryMetricsInput) error {
 		return fmt.Errorf("query cannot be empty")
 	}
 
-	if len(query) > 10000 {
+	if len(query) > 5000 {
 		telemetry.Warn("query exceeds max length", "query_len", len(query))
-		return fmt.Errorf("query too long (max 10000 chars)")
+		return fmt.Errorf("query too long (max 5000 chars)")
 	}
 
-	// Prevent potentially dangerous patterns (e.g., attempts to write/delete)
-	dangerousPatterns := []string{
-		"delete",
-		"drop",
-		"truncate",
-		"insert",
-		"update",
-		"create",
-		"alter",
-	}
-
+	lower := strings.ToLower(query)
 	for _, pattern := range dangerousPatterns {
-		if matchCaseInsensitive(query, pattern) {
+		if strings.Contains(lower, pattern) {
 			telemetry.Warn("dangerous keyword detected in query", "keyword", pattern)
 			return fmt.Errorf("query contains potentially dangerous keyword: %s", pattern)
 		}
 	}
 
 	return nil
-}
-
-// matchCaseInsensitive checks if pattern appears in text (case-insensitive).
-func matchCaseInsensitive(text, pattern string) bool {
-	regex := regexp.MustCompile(`(?i:` + pattern + `)`)
-	return regex.MatchString(text)
 }

@@ -293,3 +293,8 @@ chapters:
         title: "MCP Level 1: Metrics Intelligence"
         description: |
           - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via the official MCP Go SDK, enabling autonomous performance baselining and anomaly detection against live Thanos data.
+      - date: "2026-03-07"
+        title: "MCP Level 2: Semantic Logging"
+        description: |
+          - Reduced Mean-Time-To-Discovery (MTTD) by implementing semantic log filtering via Loki, allowing agents to correlate unstructured events with system failures.
+          - Implemented PII masking to sensitive keys (e.g. password, tokens) to prevent data leakage in logs.

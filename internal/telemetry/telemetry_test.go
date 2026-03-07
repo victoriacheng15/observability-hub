@@ -2,9 +2,11 @@ package telemetry
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -87,6 +89,80 @@ func TestLogs(t *testing.T) {
 		Info("info message", "key", "val")
 		Warn("warn message", "key", "val")
 		Error("error message", "key", "val")
+	})
+
+	t.Run("PII Masking", func(t *testing.T) {
+		attr := MaskPII(nil, slog.String("password", "secret123"))
+		if attr.Value.String() != "[REDACTED]" {
+			t.Errorf("Expected [REDACTED], got %v", attr.Value)
+		}
+
+		attrEmail := MaskPII(nil, slog.String("email", "test@example.com"))
+		if attrEmail.Value.String() != "[REDACTED]" {
+			t.Errorf("Expected [REDACTED], got %v", attrEmail.Value)
+		}
+
+		attrSafe := MaskPII(nil, slog.String("safe", "data"))
+		if attrSafe.Value.String() != "data" {
+			t.Errorf("Expected data, got %v", attrSafe.Value)
+		}
+
+		// Nested group: sensitive key inside a slog.Group must be redacted
+		attrGroup := MaskPII(nil, slog.Group("request", slog.String("token", "nested-secret"), slog.String("path", "/api")))
+		for _, ga := range attrGroup.Value.Group() {
+			if ga.Key == "token" && ga.Value.String() != "[REDACTED]" {
+				t.Errorf("Expected nested token to be [REDACTED], got %v", ga.Value)
+			}
+			if ga.Key == "path" && ga.Value.String() != "/api" {
+				t.Errorf("Expected safe nested attr to pass through, got %v", ga.Value)
+			}
+		}
+	})
+
+	t.Run("PIIHandler", func(t *testing.T) {
+		newHandler := func(buf *strings.Builder) slog.Handler {
+			return NewPIIHandler(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		}
+
+		t.Run("Handle redacts top-level sensitive attr", func(t *testing.T) {
+			var buf strings.Builder
+			slog.New(newHandler(&buf)).Info("test", "token", "top-secret")
+			out := buf.String()
+			if strings.Contains(out, "top-secret") {
+				t.Error("expected token value to be redacted")
+			}
+			if !strings.Contains(out, "[REDACTED]") {
+				t.Error("expected [REDACTED] in output")
+			}
+		})
+
+		t.Run("WithAttrs redacts sensitive attrs", func(t *testing.T) {
+			var buf strings.Builder
+			slog.New(newHandler(&buf)).With("password", "mypassword").Info("test")
+			if strings.Contains(buf.String(), "mypassword") {
+				t.Error("expected password to be redacted in WithAttrs")
+			}
+		})
+
+		t.Run("Handle redacts nested group sensitive attr", func(t *testing.T) {
+			var buf strings.Builder
+			slog.New(newHandler(&buf)).Info("test", slog.Group("req", "token", "nested-secret", "path", "/api"))
+			out := buf.String()
+			if strings.Contains(out, "nested-secret") {
+				t.Error("expected nested token to be redacted")
+			}
+			if !strings.Contains(out, "/api") {
+				t.Error("expected safe nested attr to pass through")
+			}
+		})
+
+		t.Run("safe attrs pass through", func(t *testing.T) {
+			var buf strings.Builder
+			slog.New(newHandler(&buf)).Info("test", "user_id", "12345")
+			if !strings.Contains(buf.String(), "12345") {
+				t.Error("expected safe attr to pass through unmodified")
+			}
+		})
 	})
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
@@ -38,6 +39,45 @@ func Error(msg string, args ...any) {
 	slog.Error(msg, args...)
 }
 
+// MultiHandler sends log records to multiple handlers.
+type MultiHandler struct {
+	Handlers []slog.Handler
+}
+
+func (h *MultiHandler) Enabled(ctx context.Context, l slog.Level) bool {
+	for _, h := range h.Handlers {
+		if h.Enabled(ctx, l) {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *MultiHandler) Handle(ctx context.Context, r slog.Record) error {
+	for _, h := range h.Handlers {
+		if err := h.Handle(ctx, r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (h *MultiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	newHandlers := make([]slog.Handler, len(h.Handlers))
+	for i, h := range h.Handlers {
+		newHandlers[i] = h.WithAttrs(attrs)
+	}
+	return &MultiHandler{Handlers: newHandlers}
+}
+
+func (h *MultiHandler) WithGroup(name string) slog.Handler {
+	newHandlers := make([]slog.Handler, len(h.Handlers))
+	for i, h := range h.Handlers {
+		newHandlers[i] = h.WithGroup(name)
+	}
+	return &MultiHandler{Handlers: newHandlers}
+}
+
 func initLogs(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource) (func(context.Context) error, error) {
 	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
 	if err != nil {
@@ -56,7 +96,25 @@ func initLogs(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource
 	)
 	otellogglobal.SetLoggerProvider(lp)
 
-	slog.SetDefault(slog.New(otelslog.NewHandler(ScopeName, otelslog.WithLoggerProvider(lp))))
+	// OTel Handler for remote ingestion
+	otelHandler := otelslog.NewHandler(ScopeName, otelslog.WithLoggerProvider(lp))
+
+	// JSON Handler for local stdout with PII masking
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		ReplaceAttr: MaskPII,
+	})
+
+	// Wrap the multi-handler with PII masking to ensure it's applied everywhere
+	// although jsonHandler already does it, OTel handler doesn't support it directly.
+	multiHandler := &MultiHandler{
+		Handlers: []slog.Handler{
+			otelHandler,
+			jsonHandler,
+		},
+	}
+
+	// Set the global slog logger with PII masking at the top level
+	slog.SetDefault(slog.New(NewPIIHandler(multiHandler)))
 
 	return lp.Shutdown, nil
 }
