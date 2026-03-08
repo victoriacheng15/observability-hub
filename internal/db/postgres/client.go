@@ -24,12 +24,14 @@ var (
 
 // PostgresWrapper provides a standardized, OTel-instrumented wrapper around sql.DB.
 type PostgresWrapper struct {
-	DB *sql.DB
+	DB   *sql.DB
+	user string
+	db   string
 }
 
 // ConnectPostgres establishes a connection to PostgreSQL and returns a PostgresWrapper.
 func ConnectPostgres(driverName string, store secrets.SecretStore) (*PostgresWrapper, error) {
-	dsn, err := GetPostgresDSN(store)
+	dsn, user, dbname, err := GetPostgresDSN(store)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +46,7 @@ func ConnectPostgres(driverName string, store secrets.SecretStore) (*PostgresWra
 		return nil, fmt.Errorf("failed to ping postgres: %w", err)
 	}
 
-	return &PostgresWrapper{DB: db}, nil
+	return &PostgresWrapper{DB: db, user: user, db: dbname}, nil
 }
 
 // Array returns a wrapper for a slice that can be used as a PostgreSQL array in queries.
@@ -61,6 +63,8 @@ func (w *PostgresWrapper) Exec(ctx context.Context, opName, query string, args .
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.StringAttribute("db.user", w.user),
+		telemetry.StringAttribute("db.name", w.db),
 		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
@@ -82,6 +86,8 @@ func (w *PostgresWrapper) QueryRow(ctx context.Context, opName, query string, ar
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.StringAttribute("db.user", w.user),
+		telemetry.StringAttribute("db.name", w.db),
 		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
@@ -96,6 +102,8 @@ func (w *PostgresWrapper) Query(ctx context.Context, opName, query string, args 
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "postgresql"),
 		telemetry.StringAttribute("db.statement", query),
+		telemetry.StringAttribute("db.user", w.user),
+		telemetry.StringAttribute("db.name", w.db),
 		telemetry.Int64Attribute("db.pool.wait_time", int64(w.DB.Stats().WaitDuration)),
 	)
 
@@ -110,9 +118,11 @@ func (w *PostgresWrapper) Query(ctx context.Context, opName, query string, args 
 }
 
 // GetPostgresDSN constructs the DSN using the SecretStore.
-func GetPostgresDSN(store secrets.SecretStore) (string, error) {
+// Returns DSN, user, dbname, and error.
+func GetPostgresDSN(store secrets.SecretStore) (string, string, string, error) {
 	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
-		return dsn, nil
+		// Basic extraction if DATABASE_URL is used (not exhaustive but handles common formats)
+		return dsn, "env-user", "env-db", nil
 	}
 
 	const secretPath = "observability-hub/postgres"
@@ -124,13 +134,14 @@ func GetPostgresDSN(store secrets.SecretStore) (string, error) {
 	password := store.GetSecret(secretPath, "server_db_password", os.Getenv("SERVER_DB_PASSWORD"))
 
 	if host == "" || user == "" || dbname == "" || password == "" {
-		return "", fmt.Errorf("missing required database credentials (host, user, dbname, or password)")
+		return "", "", "", fmt.Errorf("missing required database credentials (host, user, dbname, or password)")
 	}
 
-	return fmt.Sprintf(
+	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC",
 		host, port, user, password, dbname,
-	), nil
+	)
+	return dsn, user, dbname, nil
 }
 
 func getEnv(key, fallback string) string {

@@ -8,7 +8,87 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
+
+func TestPostgresWrapper_OTelAttributes(t *testing.T) {
+	// Setup test exporter
+	exporter := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(
+		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithSpanProcessor(trace.NewSimpleSpanProcessor(exporter)),
+	)
+	otel.SetTracerProvider(tp)
+
+	mdb, cleanup := NewMockDB(t)
+	defer cleanup()
+
+	// Create wrapper with explicit user and db for testing
+	wrapper := &PostgresWrapper{
+		DB:   mdb.DB,
+		user: "test-user",
+		db:   "test-db",
+	}
+	ctx := context.Background()
+
+	t.Run("Verify Exec Attributes", func(t *testing.T) {
+		exporter.Reset()
+		mdb.Mock.ExpectExec("INSERT").WillReturnResult(mdb.NewResult(1, 1))
+
+		_, _ = wrapper.Exec(ctx, "test-exec", "INSERT INTO t VALUES (1)")
+
+		spans := exporter.GetSpans()
+		if len(spans) == 0 {
+			t.Fatal("Expected span, got none")
+		}
+
+		attrs := make(map[string]string)
+		for _, a := range spans[0].Attributes {
+			attrs[string(a.Key)] = a.Value.AsString()
+		}
+
+		expected := map[string]string{
+			"db.system":    "postgresql",
+			"db.statement": "INSERT INTO t VALUES (1)",
+			"db.user":      "test-user",
+			"db.name":      "test-db",
+		}
+
+		for k, v := range expected {
+			if attrs[k] != v {
+				t.Errorf("Expected attribute %s=%s, got %s", k, v, attrs[k])
+			}
+		}
+	})
+
+	t.Run("Verify Query Attributes", func(t *testing.T) {
+		exporter.Reset()
+		rows := mdb.NewRows([]string{"id"}).AddRow(1)
+		mdb.Mock.ExpectQuery("SELECT").WillReturnRows(rows)
+
+		res, _ := wrapper.Query(ctx, "test-query", "SELECT id FROM t")
+		res.Close()
+
+		spans := exporter.GetSpans()
+		if len(spans) == 0 {
+			t.Fatal("Expected span, got none")
+		}
+
+		attrs := make(map[string]string)
+		for _, a := range spans[0].Attributes {
+			attrs[string(a.Key)] = a.Value.AsString()
+		}
+
+		if attrs["db.statement"] != "SELECT id FROM t" {
+			t.Errorf("Expected db.statement SELECT id FROM t, got %s", attrs["db.statement"])
+		}
+		if attrs["db.user"] != "test-user" {
+			t.Errorf("Expected db.user test-user, got %s", attrs["db.user"])
+		}
+	})
+}
 
 // simpleMockStore satisfies the secrets.SecretStore interface for testing
 type simpleMockStore struct {
@@ -237,7 +317,7 @@ func TestGetPostgresDSN(t *testing.T) {
 				}
 			}()
 
-			dsn, err := GetPostgresDSN(tt.mockStore)
+			dsn, _, _, err := GetPostgresDSN(tt.mockStore)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetPostgresDSN() error = %v, wantErr %v", err, tt.wantErr)
 			}

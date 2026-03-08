@@ -3,6 +3,7 @@ package mongodb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"observability-hub/internal/telemetry"
 	"os"
@@ -31,15 +32,32 @@ type IMongoStore interface {
 // MongoStore provides a standardized, OTel-instrumented wrapper around mongo.Client.
 type MongoStore struct {
 	Client *mongo.Client
+	user   string
 }
 
 // NewMongoStore establishes a connection to MongoDB and returns a purely generic MongoStore wrapper.
 func NewMongoStore(store secrets.SecretStore) (*MongoStore, error) {
-	client, err := ConnectMongo(store)
+	uri, err := GetMongoURI(store)
 	if err != nil {
 		return nil, err
 	}
-	return &MongoStore{Client: client}, nil
+
+	client, err := ConnectMongoWithURI(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic user extraction from URI (e.g., mongodb://user:pass@host)
+	user := "unknown"
+	if strings.HasPrefix(uri, "mongodb://") {
+		parts := strings.SplitN(strings.TrimPrefix(uri, "mongodb://"), "@", 2)
+		if len(parts) > 1 {
+			userPass := strings.SplitN(parts[0], ":", 2)
+			user = userPass[0]
+		}
+	}
+
+	return &MongoStore{Client: client, user: user}, nil
 }
 
 // Close disconnects the MongoDB client.
@@ -55,10 +73,14 @@ func (w *MongoStore) Find(ctx context.Context, opName, database, collection stri
 	ctx, span := tracer.Start(ctx, opName)
 	defer span.End()
 
+	stmt, _ := json.Marshal(filter)
+
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "mongodb"),
 		telemetry.StringAttribute("db.name", database),
 		telemetry.StringAttribute("db.collection", collection),
+		telemetry.StringAttribute("db.statement", string(stmt)),
+		telemetry.StringAttribute("db.user", w.user),
 		telemetry.IntAttribute("db.query.limit", int(limit)),
 	)
 
@@ -94,11 +116,15 @@ func (w *MongoStore) UpdateByID(ctx context.Context, opName, database, collectio
 	ctx, span := tracer.Start(ctx, opName)
 	defer span.End()
 
+	stmt, _ := json.Marshal(update)
+
 	span.SetAttributes(
 		telemetry.StringAttribute("db.system", "mongodb"),
 		telemetry.StringAttribute("db.name", database),
 		telemetry.StringAttribute("db.collection", collection),
 		telemetry.StringAttribute("db.mongodb.id", id),
+		telemetry.StringAttribute("db.statement", string(stmt)),
+		telemetry.StringAttribute("db.user", w.user),
 	)
 
 	objID, err := bson.ObjectIDFromHex(id)
@@ -129,7 +155,11 @@ func ConnectMongo(store secrets.SecretStore) (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ConnectMongoWithURI(uri)
+}
 
+// ConnectMongoWithURI establishes a connection using a raw URI.
+func ConnectMongoWithURI(uri string) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

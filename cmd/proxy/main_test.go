@@ -7,7 +7,14 @@ import (
 	"testing"
 
 	"observability-hub/internal/secrets"
+	"observability-hub/internal/telemetry"
 )
+
+func TestMain(m *testing.M) {
+	os.Setenv("APP_ENV", "test")
+	telemetry.SilenceLogs()
+	os.Exit(m.Run())
+}
 
 type mockSecretStore struct{}
 

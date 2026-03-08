@@ -8,7 +8,14 @@ import (
 	"time"
 
 	"observability-hub/internal/collectors"
+	"observability-hub/internal/telemetry"
 )
+
+func TestMain(m *testing.M) {
+	os.Setenv("APP_ENV", "test")
+	telemetry.SilenceLogs()
+	os.Exit(m.Run())
+}
 
 // MockThanos satisfies the ThanosSource interface.
 type MockThanos struct {
