@@ -12,19 +12,21 @@ import (
 	"observability-hub/internal/telemetry"
 )
 
-// TelemetryProvider manages connections to Thanos and Loki and exposes telemetry tools.
+// TelemetryProvider manages connections to Thanos, Loki, and Tempo and exposes telemetry tools.
 type TelemetryProvider struct {
 	thanosURL  string
 	lokiURL    string
+	tempoURL   string
 	httpClient *http.Client
 }
 
-// NewTelemetryProvider creates a new telemetry provider connected to Thanos and Loki.
-func NewTelemetryProvider(thanosURL, lokiURL string) *TelemetryProvider {
-	telemetry.Info("creating new telemetry provider", "thanos_url", thanosURL, "loki_url", lokiURL)
+// NewTelemetryProvider creates a new telemetry provider connected to Thanos, Loki, and Tempo.
+func NewTelemetryProvider(thanosURL, lokiURL, tempoURL string) *TelemetryProvider {
+	telemetry.Info("creating new telemetry provider", "thanos_url", thanosURL, "loki_url", lokiURL, "tempo_url", tempoURL)
 	return &TelemetryProvider{
 		thanosURL: thanosURL,
 		lokiURL:   lokiURL,
+		tempoURL:  tempoURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -150,14 +152,94 @@ func (tp *TelemetryProvider) QueryLogs(ctx context.Context, query string, limit 
 	return result, nil
 }
 
-// QueryTraces retrieves a trace by ID from Tempo (no-op for now).
-func (tp *TelemetryProvider) QueryTraces(ctx context.Context, traceID string) (interface{}, error) {
-	telemetry.Info("QueryTraces called (no-op)", "trace_id", traceID)
-	return map[string]interface{}{
-		"status":   "not_implemented",
-		"message":  "hello mcp traces - Distributed trace queries coming soon",
-		"trace_id": traceID,
-	}, nil
+// QueryTraces fetches a trace by ID from Tempo, or searches using a TraceQL query.
+//
+// Limits:
+//   - If traceID is set: fetches full trace summarized as compact span list. traceID must be valid hex.
+//   - If traceID is empty: searches via /api/search using TraceQL (e.g. {resource.service.name="proxy"}).
+//   - hours: lookback window for search (default 1, max 168).
+//   - limit: max traces returned in search mode (default 20, max 100).
+func (tp *TelemetryProvider) QueryTraces(ctx context.Context, traceID string, query string, hours int, limit int) (interface{}, error) {
+	if traceID != "" {
+		endpoint := fmt.Sprintf("%s/api/traces/%s", tp.tempoURL, traceID)
+		req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Accept", "application/json")
+
+		telemetry.Info("retrieving trace from Tempo", "trace_id", traceID)
+		resp, err := tp.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query Tempo: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			telemetry.Warn("trace not found in Tempo", "trace_id", traceID)
+			return nil, fmt.Errorf("trace not found: %s", traceID)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Tempo returned status %d", resp.StatusCode)
+		}
+
+		var raw map[string]interface{}
+		if err := parseJSONResponse(resp, &raw); err != nil {
+			return nil, fmt.Errorf("failed to parse response: %w", err)
+		}
+		telemetry.Info("trace retrieved successfully", "trace_id", traceID)
+		return raw, nil
+	}
+
+	// Search mode via TraceQL
+	if hours <= 0 {
+		hours = 1
+	}
+	if hours > 168 {
+		hours = 168
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	now := time.Now()
+	start := now.Add(-time.Duration(hours) * time.Hour)
+
+	params := url.Values{}
+	params.Add("limit", strconv.Itoa(limit))
+	params.Add("start", strconv.FormatInt(start.Unix(), 10))
+	params.Add("end", strconv.FormatInt(now.Unix(), 10))
+	if query != "" {
+		params.Add("q", query)
+	}
+
+	endpoint := fmt.Sprintf("%s/api/search?%s", tp.tempoURL, params.Encode())
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	telemetry.Info("searching traces in Tempo", "query", query, "hours", hours, "limit", limit)
+	resp, err := tp.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search Tempo: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Tempo returned status %d", resp.StatusCode)
+	}
+
+	var result map[string]interface{}
+	if err := parseJSONResponse(resp, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+	telemetry.Info("trace search completed", "query", query, "hours", hours)
+	return result, nil
 }
 
 // Close closes the provider's HTTP client and resources.
