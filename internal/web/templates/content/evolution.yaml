@@ -299,9 +299,9 @@ chapters:
           - Reduced Mean-Time-To-Discovery (MTTD) by implementing semantic log filtering via Loki and distributed trace search via Tempo (TraceQL), allowing agents to correlate unstructured events with system failures.
           - Implemented PII masking to prevent data leakage in logs for sensitive keys (e.g. passwords, tokens).
       - date: "2026-03-08"
-        title: "MCP Level 4: Autonomous Incident Investigation"
+        title: "MCP Level 4: Incident Investigation"
         artifacts:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
-          - Completed the LGTM observability loop by delivering `investigate_incident` — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
+          - Completed the LGTM observability loop by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
