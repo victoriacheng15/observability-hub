@@ -10,6 +10,12 @@ import (
 	"testing"
 )
 
+func TestMain(m *testing.M) {
+	os.Setenv("APP_ENV", "test")
+	SilenceLogs()
+	os.Exit(m.Run())
+}
+
 func TestInit(t *testing.T) {
 	ctx := context.Background()
 

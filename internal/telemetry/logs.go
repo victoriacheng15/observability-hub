@@ -7,12 +7,16 @@ import (
 	"os"
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	otellog "go.opentelemetry.io/otel/log"
 	otellogglobal "go.opentelemetry.io/otel/log/global"
+	nooplog "go.opentelemetry.io/otel/log/noop"
+	noopmetric "go.opentelemetry.io/otel/metric/noop"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
+
 	"google.golang.org/grpc"
 )
 
@@ -117,4 +121,13 @@ func initLogs(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource
 	slog.SetDefault(slog.New(NewPIIHandler(multiHandler)))
 
 	return lp.Shutdown, nil
+}
+
+// SilenceLogs redirects the global slog logger to discard all output
+// and replaces OTel providers with NOP implementations.
+// Useful for keeping test output clean.
+func SilenceLogs() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.NewFile(0, os.DevNull), nil)))
+	otellogglobal.SetLoggerProvider(nooplog.NewLoggerProvider())
+	otel.SetMeterProvider(noopmetric.NewMeterProvider())
 }

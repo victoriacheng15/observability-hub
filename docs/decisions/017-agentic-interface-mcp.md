@@ -1,6 +1,6 @@
 # ADR 017: Agentic Interface via MCP
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-03-05
 - **Author:** Victoria Cheng
 
@@ -42,8 +42,8 @@ To enable low-latency, direct-to-pod communication for this host-based MCP serve
 
 ## Verification
 
-- [ ] **Level 0 (Infrastructure):** Verified Loki, Thanos, and Tempo are accessible via NodePort on `localhost`.
-- [ ] **Level 1 (Metrics Intelligence):** Verified `mcp-telemetry` can perform autonomous service health analysis and performance baselining.
-- [ ] **Level 2 (Semantic Logging):** Verified `mcp-telemetry` can correlate unstructured events with system failures via semantic LogQL filtering.
-- [ ] **Level 3 (Trace Correlation):** Verified `mcp-telemetry` can reason over distributed request paths and parent/child span relationships.
-- [ ] **Level 4 (Autonomous Investigator):** Verified the `investigate_incident` macro-tool can generate a complete, verifiable markdown RCA report.
+- [x] **Level 0 (Infrastructure):** Verified Loki, Thanos, and Tempo are accessible via NodePort on `localhost`.
+- [x] **Level 1 (Metrics Intelligence):** Verified `mcp-telemetry` provides service health analysis and performance baselining tools.
+- [x] **Level 2 (Semantic Logging):** Verified `mcp-telemetry` can correlate unstructured events with system failures via semantic LogQL filtering.
+- [x] **Level 3 (Trace Correlation):** Verified `mcp-telemetry` can reason over distributed request paths and parent/child span relationships.
+- [x] **Level 4 (Autonomous Investigator):** Verified the `investigate_incident` macro-tool can generate a complete, verifiable markdown RCA report.

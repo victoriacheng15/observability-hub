@@ -280,7 +280,7 @@ chapters:
           - Achieved 100% declarative infrastructure-as-code orchestration via OpenTofu, enabling auditable drift detection and consistent state management across the Kubernetes (K3s) observability stack.
 
   - title: "The MCP Era"
-    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), enabling autonomous reasoning over high-fidelity system telemetry."
+    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), enabling high-fidelity correlation of system telemetry."
     timeline:
       - date: "2026-03-05"
         title: "Proposal: The MCP Era"
@@ -288,13 +288,20 @@ chapters:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
-          - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to enable autonomous reasoning and establish a high-fidelity bridge for host-to-cluster agentic reasoning.
+          - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to provide a high-fidelity bridge for host-to-cluster investigation.
       - date: "2026-03-06"
         title: "MCP Level 1: Metrics Intelligence"
         description: |
-          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via the official MCP Go SDK, enabling autonomous performance baselining and anomaly detection against live Thanos data.
+          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via the official MCP Go SDK, enabling streamlined performance baselining and anomaly detection against live Thanos data.
       - date: "2026-03-07"
         title: "MCP Level 2 & 3: Semantic Logging & Distributed Tracing"
         description: |
           - Reduced Mean-Time-To-Discovery (MTTD) by implementing semantic log filtering via Loki and distributed trace search via Tempo (TraceQL), allowing agents to correlate unstructured events with system failures.
           - Implemented PII masking to prevent data leakage in logs for sensitive keys (e.g. passwords, tokens).
+      - date: "2026-03-08"
+        title: "MCP Level 4: Incident Investigation"
+        artifacts:
+          - name: "ADR 017: Agentic Interface via MCP"
+            url: "docs/decisions/017-agentic-interface-mcp.md"
+        description: |
+          - Completed the LGTM observability loop by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.

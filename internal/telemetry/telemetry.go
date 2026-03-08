@@ -43,6 +43,11 @@ const (
 
 // Init initializes OpenTelemetry trace, metric and log providers over OTLP gRPC.
 func Init(ctx context.Context, serviceName string) (func(), error) {
+	if os.Getenv("APP_ENV") == "test" {
+		SilenceLogs()
+		return func() {}, nil
+	}
+
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
 		slog.Warn("OTEL_EXPORTER_OTLP_ENDPOINT not set, telemetry disabled")
