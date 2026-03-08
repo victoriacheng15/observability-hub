@@ -9,7 +9,60 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
+
+func TestMongoStore_OTelAttributes(t *testing.T) {
+	// Setup test exporter
+	exporter := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(
+		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithSpanProcessor(trace.NewSimpleSpanProcessor(exporter)),
+	)
+	otel.SetTracerProvider(tp)
+
+	// Mock client
+	client, _ := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:1"))
+	store := &MongoStore{
+		Client: client,
+		user:   "test-mongo-user",
+	}
+	ctx := context.Background()
+
+	t.Run("Verify Find Attributes", func(t *testing.T) {
+		exporter.Reset()
+		filter := map[string]string{"key": "value"}
+
+		// This will fail because localhost:1 is not mongo, but the attributes should still be set before the fail
+		_ = store.Find(ctx, "test-find", "db", "coll", filter, nil, 5)
+
+		spans := exporter.GetSpans()
+		if len(spans) == 0 {
+			t.Fatal("Expected span, got none")
+		}
+
+		attrs := make(map[string]string)
+		for _, a := range spans[0].Attributes {
+			attrs[string(a.Key)] = a.Value.AsString()
+		}
+
+		expected := map[string]string{
+			"db.system":     "mongodb",
+			"db.name":       "db",
+			"db.collection": "coll",
+			"db.user":       "test-mongo-user",
+			"db.statement":  `{"key":"value"}`,
+		}
+
+		for k, v := range expected {
+			if attrs[k] != v {
+				t.Errorf("Expected attribute %s=%s, got %s", k, v, attrs[k])
+			}
+		}
+	})
+}
 
 // simpleMockStore satisfies the secrets.SecretStore interface for testing
 type simpleMockStore struct {
