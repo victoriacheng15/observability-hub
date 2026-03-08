@@ -64,7 +64,7 @@ func main() {
 		}
 	}()
 
-	telemetry.Info("mcp-telemetry ready", "tools", []string{"query_metrics", "query_logs", "query_traces"})
+	telemetry.Info("mcp-telemetry ready", "tools", []string{"query_metrics", "query_logs", "query_traces", "investigate_incident"})
 
 	sig := <-sigChan
 	telemetry.Info("received signal, shutting down", "signal", sig.String())
