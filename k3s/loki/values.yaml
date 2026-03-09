@@ -60,11 +60,11 @@ singleBinary:
         name: minio-secret
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 200m
+      memory: 512Mi
     limits:
-      cpu: 300m
-      memory: 640Mi
+      cpu: 1000m
+      memory: 2Gi
   podSecurityContext:
     fsGroup: 10001
     runAsGroup: 10001

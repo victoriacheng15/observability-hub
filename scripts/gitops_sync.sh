@@ -6,7 +6,7 @@ SERVICE_NAME="gitops.sync"
 JOB_NAME="bash.automation"
 REPO_NAME=${1:-"observability-hub"} # Default to observability-hub as per original intent
 
-BASE_DIR="/home/server/software"
+BASE_DIR=$(cd "$(dirname "$0")/../.." && pwd)
 
 # OTel-aligned structured logging function
 log() {

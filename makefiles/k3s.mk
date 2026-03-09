@@ -1,6 +1,8 @@
 # K3s Orchestration
 .PHONY: build-collectors k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
+BACKUP_DIR ?= /home/server2/backups/manual
+
 # Maintenance
 kube-lint:
 	@echo "Linting Kubernetes manifests..."
@@ -19,10 +21,20 @@ k3s-prune:
 
 build-collectors:
 	@echo "Building Collectors image..."
-	docker build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
-	docker save -o collectors.tar collectors:v0.1.0
+	$(DOCKER) build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
+	$(DOCKER) save -o collectors.tar localhost/collectors:v0.1.0
 	sudo k3s ctr images import collectors.tar
+	sudo k3s ctr images tag localhost/collectors:v0.1.0 collectors:v0.1.0
+	sudo k3s ctr images tag localhost/collectors:v0.1.0 docker.io/library/collectors:v0.1.0
 	rm collectors.tar
+
+build-postgres:
+	@echo "Building custom Postgres image..."
+	$(DOCKER) build -t postgres-pod:17 -f docker/postgres/Dockerfile .
+	$(DOCKER) save -o postgres-pod.tar localhost/postgres-pod:17
+	sudo k3s ctr images import postgres-pod.tar
+	sudo k3s ctr images tag localhost/postgres-pod:17 docker.io/library/postgres-pod:17
+	rm postgres-pod.tar
 
 k3s-collectors-up:
 	@echo "Regenerating Collectors manifest..."
@@ -56,7 +68,7 @@ k3s-backup-%:
 	$(KC) scale --replicas=0 $$RESOURCE; \
 	echo "Waiting for pods to terminate..."; \
 	$(KC) wait --for=delete pod -l $$( $(KC) get $$RESOURCE -o jsonpath='{.spec.selector.matchLabels}' | jq -r 'to_entries | .[] | .key + "=" + .value' | paste -sd "," - ) --timeout=60s || true; \
-	BACKUP_DIR="/home/server/backups/manual"; \
+	BACKUP_DIR="$(BACKUP_DIR)"; \
 	sudo mkdir -p $$BACKUP_DIR; \
 	TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
 	BACKUP_PATH="$$BACKUP_DIR/$*_"$$TIMESTAMP".tar.gz"; \

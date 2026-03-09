@@ -56,8 +56,8 @@ const (
 	queryCPUUtil  = `100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle", job="kubernetes-service-endpoints"}[5m])))`
 	queryRAMUtil  = `100 * (1 - (node_memory_MemAvailable_bytes{job="kubernetes-service-endpoints"} / node_memory_MemTotal_bytes{job="kubernetes-service-endpoints"}))`
 	queryDiskUsed = `100 * (1 - node_filesystem_avail_bytes{mountpoint="/", job="kubernetes-service-endpoints"} / node_filesystem_size_bytes{mountpoint="/", job="kubernetes-service-endpoints"})`
-	queryNetRX    = `node_network_receive_bytes_total{device="enp5s0", job="kubernetes-service-endpoints"}`
-	queryNetTX    = `node_network_transmit_bytes_total{device="enp5s0", job="kubernetes-service-endpoints"}`
+	queryNetRX    = `node_network_receive_bytes_total{device="eno1", job="kubernetes-service-endpoints"}`
+	queryNetTX    = `node_network_transmit_bytes_total{device="eno1", job="kubernetes-service-endpoints"}`
 	queryTemp     = `node_hwmon_temp_celsius{job="kubernetes-service-endpoints"}`
 )
 

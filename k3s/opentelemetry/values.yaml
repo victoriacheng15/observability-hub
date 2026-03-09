@@ -13,11 +13,11 @@ image:
 
 resources:
   requests:
-    cpu: 20m
-    memory: 100Mi
+    cpu: 50m
+    memory: 200Mi
   limits:
-    cpu: 150m
-    memory: 256Mi
+    cpu: 300m
+    memory: 512Mi
 
 podSecurityContext:
   fsGroup: 10001
@@ -82,9 +82,9 @@ alternateConfig:
         processors: [batch, resource]
         exporters: [loki]
 
-# Expose as NodePort so host-level systemd services (e.g. proxy) can reach the collector
+# Expose as LoadBalancer so host-level systemd services (e.g. proxy) can reach the collector via localhost
 service:
-  type: NodePort
+  type: LoadBalancer
 
 ports:
   otlp:

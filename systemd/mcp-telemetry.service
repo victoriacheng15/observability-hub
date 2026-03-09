@@ -4,10 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
-User=server
-WorkingDirectory=/home/server/software/observability-hub
-EnvironmentFile=/home/server/software/observability-hub/.env
-ExecStart=/home/server/software/observability-hub/bin/mcp_telemetry
+User=server2
+WorkingDirectory=/home/server2/software/observability-hub
+EnvironmentFile=/home/server2/software/observability-hub/.env
+ExecStart=/home/server2/software/observability-hub/bin/mcp_telemetry
 Restart=always
 RestartSec=5
 StandardOutput=journal
