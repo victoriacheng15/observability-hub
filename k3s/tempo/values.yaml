@@ -9,11 +9,11 @@ tempo:
   replicas: 1
   resources:
     requests:
-      cpu: 50m
-      memory: 256Mi
-    limits:
-      cpu: 200m
+      cpu: 100m
       memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
 
   # Enable read-only root filesystem
   securityContext:

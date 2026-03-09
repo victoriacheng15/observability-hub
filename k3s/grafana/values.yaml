@@ -34,7 +34,7 @@ initChownData:
   securityContext:
     runAsNonRoot: false
     runAsUser: 0
-    allowPrivilegeEscalation: false
+    allowPrivilegeEscalation: true
     # Needs to be able to chown the data volume
     readOnlyRootFilesystem: false
     capabilities:
@@ -122,10 +122,10 @@ service:
 resources:
   requests:
     cpu: 50m
-    memory: 128Mi
+    memory: 256Mi
   limits:
     cpu: 200m
-    memory: 384Mi
+    memory: 512Mi
 
 # Security settings and UI tweaks
 grafana.ini:

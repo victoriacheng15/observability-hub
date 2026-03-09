@@ -71,14 +71,18 @@ nix-shell --run "tofu apply"
   Since this is a custom internal service, the image must be built and sideloaded into k3s.
 
 ```bash
-# 1. Build locally
-docker build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
+# 1. Build locally (using podman)
+podman build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
 
 # 2. Export and Import
-docker save -o collectors.tar collectors:v0.1.0
+podman save -o collectors.tar localhost/collectors:v0.1.0
 sudo k3s ctr images import collectors.tar
 
-# 3. Cleanup
+# 3. Tag for K3s local lookup
+sudo k3s ctr images tag localhost/collectors:v0.1.0 collectors:v0.1.0
+sudo k3s ctr images tag localhost/collectors:v0.1.0 docker.io/library/collectors:v0.1.0
+
+# 4. Cleanup
 rm collectors.tar
 ```
 
@@ -175,24 +179,24 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-02-22*
+- *Last Updated: 2026-03-09 (High Performance Profile)*
 
 | Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **collectors** | 5m | 20Mi | 50m | 80Mi | Telemetry Collection |
-| **grafana** | 10m | 150Mi | 100m | 250Mi | Visualization |
-| **loki** | 100m | 256Mi | 300m | 640Mi | Log Storage |
-| **minio** | 100m | 256Mi | 200m | 512Mi | S3 Storage Backend |
-| **opentelemetry** | 20m | 100Mi | 150m | 256Mi | Trace Gateway |
-| **postgres** | 50m | 200Mi | 200m | 400Mi | Relational Data |
-| **prometheus** | 20m | 400Mi | 100m | 600Mi | Metrics Storage |
-| **tempo** | 50m | 256Mi | 200m | 512Mi | Trace Storage |
-| **thanos** | 10m | 50Mi | 50m | 150Mi | Long-term Metrics Access |
+| **grafana** | 50m | 256Mi | 200m | 512Mi | Visualization |
+| **loki** | 200m | 512Mi | 1000m | 2Gi | Log Storage |
+| **minio** | 200m | 512Mi | 500m | 1Gi | S3 Storage Backend |
+| **opentelemetry** | 50m | 200Mi | 300m | 512Mi | Trace Gateway |
+| **postgres** | 100m | 512Mi | 500m | 1Gi | Relational Data |
+| **prometheus** | 100m | 1Gi | 500m | 2Gi | Metrics Storage |
+| **tempo** | 100m | 512Mi | 500m | 1Gi | Trace Storage |
+| **thanos** | 50m | 128Mi | 200m | 512Mi | Long-term Metrics Access |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (365m CPU / 1.61Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (1.35 Cores / 3.32Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~0.86 Cores / 4.6Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~3.75 Cores / 9.6Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 

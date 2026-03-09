@@ -261,8 +261,12 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 			"event", eventType,
 			"merged", merged,
 		)
-		// We use an absolute path to the script for reliability
-		cmd := exec.Command("/home/server/software/observability-hub/scripts/gitops_sync.sh", repo)
+		// Try to get script path from environment, otherwise use relative path
+		scriptPath := os.Getenv("GITOPS_SYNC_SCRIPT")
+		if scriptPath == "" {
+			scriptPath = "scripts/gitops_sync.sh"
+		}
+		cmd := exec.Command(scriptPath, repo)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			syncSpan.RecordError(err)

@@ -3,6 +3,9 @@ NS ?= observability
 KC ?= kubectl -n $(NS)
 HELM ?= helm --namespace $(NS)
 
+# Container Engine (Default to Podman)
+DOCKER ?= podman
+
 # Dynamic Nix Detection
 USE_NIX = $(shell if command -v nix-shell >/dev/null 2>&1 && [ -z "$$IN_NIX_SHELL" ] && [ "$$GITHUB_ACTIONS" != "true" ]; then echo "yes"; else echo "no"; fi)
 
@@ -27,7 +30,7 @@ adr:
 
 # Markdown Linting
 lint:
-	docker run --rm -v "$(PWD):/data" -w /data $(LINT_IMAGE) --fix "**/*.md"
+	$(DOCKER) run --rm -v "$(PWD):/data" -w /data $(LINT_IMAGE) --fix "**/*.md"
 
 # Configuration Linting (HCL & GitHub Actions)
 lint-configs:
