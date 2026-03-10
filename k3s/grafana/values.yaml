@@ -109,7 +109,7 @@ dashboardProviders:
       folder: ''
       type: file
       disableDeletion: false
-      editable: false
+      editable: true
       options:
         path: /var/lib/grafana/dashboards
 
@@ -136,15 +136,10 @@ grafana.ini:
   check_for_updates: false
 
 extraVolumes:
-  - name: grafana-dashboards
-    configMap:
-      name: grafana-dashboards
   - name: tmp
     emptyDir: {}
 
 extraVolumeMounts:
-  - name: grafana-dashboards
-    mountPath: /var/lib/grafana/dashboards
   - name: tmp
     mountPath: /tmp
 
