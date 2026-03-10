@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.13"
     }
+    grafana = {
+      source  = "grafana/grafana"
+      version = "~> 3.25"
+    }
   }
 
   # Step 9: MinIO state backend - uncomment AFTER MinIO pod is confirmed healthy (Step 4)
@@ -36,4 +40,16 @@ provider "helm" {
     config_path    = "~/.kube/config"
     config_context = "default"
   }
+}
+
+data "kubernetes_secret" "grafana_admin" {
+  metadata {
+    name      = "grafana-admin-secret"
+    namespace = var.observability_namespace
+  }
+}
+
+provider "grafana" {
+  url  = "http://localhost:30000"
+  auth = "${data.kubernetes_secret.grafana_admin.data["admin-user"]}:${data.kubernetes_secret.grafana_admin.data["admin-password"]}"
 }

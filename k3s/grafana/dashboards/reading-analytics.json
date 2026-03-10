@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 5,
   "links": [],
   "panels": [
     {
@@ -469,6 +468,6 @@
   "timezone": "browser",
   "title": "Reading Analytics",
   "uid": "adq2m9x",
-  "version": 11,
+  "version": 0,
   "weekStart": ""
 }

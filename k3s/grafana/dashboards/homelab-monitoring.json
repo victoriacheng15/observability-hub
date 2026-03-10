@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
   "links": [],
   "panels": [
     {
@@ -138,7 +137,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  (payload->>'usage')::float AS \"CPU Usage\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\n  AND host = 'server'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->>'usage')::float AS \"CPU Usage\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -156,6 +155,16 @@
               }
             ],
             "limit": 50
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "host"
+            ]
           }
         }
       ],
@@ -250,7 +259,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  CASE\n    WHEN\n      LAG(time) OVER (ORDER BY time) IS NOT NULL\n      AND EXTRACT(EPOCH FROM (time - LAG(time) OVER (ORDER BY time))) > 0\n    THEN\n      (\n        ( (payload->'enp5s0'->>'rx_bytes')::bigint - LAG((payload->'enp5s0'->>'rx_bytes')::bigint) OVER (ORDER BY time) )\n        * 8.0\n      ) / (\n        EXTRACT(EPOCH FROM (time - LAG(time) OVER (ORDER BY time))) * 1000000\n      )\n    ELSE NULL\n  END AS \"Download (Mbps)\",\n  CASE\n    WHEN\n      LAG(time) OVER (ORDER BY time) IS NOT NULL\n      AND EXTRACT(EPOCH FROM (time - LAG(time) OVER (ORDER BY time))) > 0\n    THEN\n      (\n        ( (payload->'enp5s0'->>'tx_bytes')::bigint - LAG((payload->'enp5s0'->>'tx_bytes')::bigint) OVER (ORDER BY time) )\n        * 8.0\n      ) / (\n        EXTRACT(EPOCH FROM (time - LAG(time) OVER (ORDER BY time))) * 1000000\n      )\n    ELSE NULL\n  END AS \"Upload (Mbps)\"\nFROM system_metrics \nWHERE\n  metric_type = 'network'\n  AND host = 'server'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  CASE\n    WHEN\n      LAG(time) OVER (PARTITION BY host ORDER BY time) IS NOT NULL\n      AND EXTRACT(EPOCH FROM (time - LAG(time) OVER (PARTITION BY host ORDER BY time))) > 0\n    THEN\n      (\n        ( COALESCE((payload->'enp5s0'->>'rx_bytes')::bigint, (payload->'eno1'->>'rx_bytes')::bigint) - LAG(COALESCE((payload->'enp5s0'->>'rx_bytes')::bigint, (payload->'eno1'->>'rx_bytes')::bigint)) OVER (PARTITION BY host ORDER BY time) )\n        * 8.0\n      ) / (\n        EXTRACT(EPOCH FROM (time - LAG(time) OVER (PARTITION BY host ORDER BY time))) * 1000000\n      )\n    ELSE NULL\n  END AS \"Download (Mbps)\",\n  CASE\n    WHEN\n      LAG(time) OVER (PARTITION BY host ORDER BY time) IS NOT NULL\n      AND EXTRACT(EPOCH FROM (time - LAG(time) OVER (PARTITION BY host ORDER BY time))) > 0\n    THEN\n      (\n        ( COALESCE((payload->'enp5s0'->>'tx_bytes')::bigint, (payload->'eno1'->>'tx_bytes')::bigint) - LAG(COALESCE((payload->'enp5s0'->>'tx_bytes')::bigint, (payload->'eno1'->>'tx_bytes')::bigint)) OVER (PARTITION BY host ORDER BY time) )\n        * 8.0\n      ) / (\n        EXTRACT(EPOCH FROM (time - LAG(time) OVER (PARTITION BY host ORDER BY time))) * 1000000\n      )\n    ELSE NULL\n  END AS \"Upload (Mbps)\"\nFROM system_metrics \nWHERE\n  metric_type = 'network'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -268,6 +277,16 @@
               }
             ],
             "limit": 50
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "host"
+            ]
           }
         }
       ],
@@ -362,7 +381,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  (payload->>'used_percent')::float AS \"Memory Used %\"\nFROM system_metrics \nWHERE\n  metric_type = 'memory'\n  AND host = 'server'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->>'used_percent')::float AS \"Memory Used %\"\nFROM system_metrics \nWHERE\n  metric_type = 'memory'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -380,6 +399,16 @@
               }
             ],
             "limit": 50
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "host"
+            ]
           }
         }
       ],
@@ -478,7 +507,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  (payload->'/'->>'used_percent')::float AS \"Disk Used %\"\nFROM system_metrics \nWHERE\n  metric_type = 'disk'\n  AND host = 'server'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->'/'->>'used_percent')::float AS \"Disk Used %\"\nFROM system_metrics \nWHERE\n  metric_type = 'disk'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -496,6 +525,16 @@
               }
             ],
             "limit": 50
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "host"
+            ]
           }
         }
       ],
@@ -589,7 +628,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  (payload->'core_temps'->>'core_0')::int AS \"Core 0\",\n  (payload->'core_temps'->>'core_1')::int AS \"Core 1\",\n  (payload->'core_temps'->>'core_2')::int AS \"Core 2\",\n  (payload->'core_temps'->>'core_3')::int AS \"Core 3\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\n  AND host = 'server'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->'core_temps'->>'core_0')::int AS \"Core 0\",\n  (payload->'core_temps'->>'core_1')::int AS \"Core 1\",\n  (payload->'core_temps'->>'core_2')::int AS \"Core 2\",\n  (payload->'core_temps'->>'core_3')::int AS \"Core 3\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -607,6 +646,16 @@
               }
             ],
             "limit": 50
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "host"
+            ]
           }
         }
       ],
@@ -628,6 +677,6 @@
   "timezone": "utc",
   "title": "Homelab Monitoring",
   "uid": "adf2v2l",
-  "version": 19,
+  "version": 0,
   "weekStart": ""
 }
