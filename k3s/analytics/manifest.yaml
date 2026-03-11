@@ -1,35 +1,35 @@
 ---
-# Source: collectors/templates/daemonset.yaml
+# Source: analytics/templates/daemonset.yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: collectors
+  name: analytics
   labels:
-    helm.sh/chart: collectors-0.1.0
-    app.kubernetes.io/name: collectors
-    app.kubernetes.io/instance: collectors
+    helm.sh/chart: analytics-0.1.0
+    app.kubernetes.io/name: analytics
+    app.kubernetes.io/instance: analytics
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: collectors
-      app.kubernetes.io/instance: collectors
+      app.kubernetes.io/name: analytics
+      app.kubernetes.io/instance: analytics
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: collectors
-        app.kubernetes.io/instance: collectors
+        app.kubernetes.io/name: analytics
+        app.kubernetes.io/instance: analytics
     spec:
       securityContext:
         {}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
-        - name: collectors
+        - name: analytics
           securityContext:
             {}
-          image: "collectors:v0.1.0"
+          image: "analytics:v0.1.0"
           imagePullPolicy: IfNotPresent
           env:
             - name: THANOS_URL

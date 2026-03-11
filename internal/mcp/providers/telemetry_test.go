@@ -311,7 +311,7 @@ func TestTelemetryProvider_QueryTraces(t *testing.T) {
 		},
 		{
 			name:  `search with traceql query`,
-			query: `{resource.service.name="collectors"}`,
+			query: `{resource.service.name="analytics"}`,
 			hours: 48,
 			limit: 5,
 			setupServer: func(w http.ResponseWriter, r *http.Request) {
@@ -321,7 +321,7 @@ func TestTelemetryProvider_QueryTraces(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"traces":[{"traceID":"abc123","rootServiceName":"collectors"}]}`))
+				w.Write([]byte(`{"traces":[{"traceID":"abc123","rootServiceName":"analytics"}]}`))
 			},
 			wantErr: false,
 		},

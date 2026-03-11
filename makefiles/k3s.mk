@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: build-collectors build-postgres k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: build-analytics build-postgres k3s-analytics-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 BACKUP_DIR ?= /home/server2/backups/manual
 
@@ -19,14 +19,14 @@ k3s-prune:
 	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Succeeded' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
 	@$(KC) get pods --all-namespaces --field-selector 'status.phase==Failed' -o json | jq -r '.items[] | "--namespace=" + .metadata.namespace + " " + .metadata.name' | xargs -r -L1 $(KC) delete pod
 
-build-collectors:
-	@echo "Building Collectors image..."
-	$(DOCKER) build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
-	$(DOCKER) save -o collectors.tar localhost/collectors:v0.1.0
-	sudo k3s ctr images import collectors.tar
-	sudo k3s ctr images tag localhost/collectors:v0.1.0 collectors:v0.1.0
-	sudo k3s ctr images tag localhost/collectors:v0.1.0 docker.io/library/collectors:v0.1.0
-	rm collectors.tar
+build-analytics:
+	@echo "Building Analytics image..."
+	$(DOCKER) build -t analytics:v0.1.0 -f docker/analytics/Dockerfile .
+	$(DOCKER) save -o analytics.tar localhost/analytics:v0.1.0
+	sudo k3s ctr images import analytics.tar
+	sudo k3s ctr images tag localhost/analytics:v0.1.0 analytics:v0.1.0
+	sudo k3s ctr images tag localhost/analytics:v0.1.0 docker.io/library/analytics:v0.1.0
+	rm analytics.tar
 
 build-postgres:
 	@echo "Building custom Postgres image..."
@@ -36,12 +36,12 @@ build-postgres:
 	sudo k3s ctr images tag localhost/postgres-pod:17 docker.io/library/postgres-pod:17
 	rm postgres-pod.tar
 
-k3s-collectors-up:
-	@echo "Regenerating Collectors manifest..."
-	$(NIX_RUN) "helm template collectors k3s/collectors -f k3s/collectors/values.yaml --namespace $(NS) > k3s/collectors/manifest.yaml"
-	@echo "Deploying Collectors..."
-	@$(KC) apply -f k3s/collectors/manifest.yaml
-	@$(KC) rollout restart daemonset/collectors
+k3s-analytics-up:
+	@echo "Regenerating Analytics manifest..."
+	$(NIX_RUN) "helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace $(NS) > k3s/analytics/manifest.yaml"
+	@echo "Deploying Analytics..."
+	@$(KC) apply -f k3s/analytics/manifest.yaml
+	@$(KC) rollout restart daemonset/analytics
 
 # Observability
 k3s-status:

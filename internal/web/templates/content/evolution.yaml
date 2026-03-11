@@ -24,7 +24,7 @@ chapters:
             url: "docs/decisions/002-cloud-to-local-bridge.md"
         description: |
           - Designed a secure "Store-and-Forward" bridge to ingest Azure Function telemetry without exposing local ports.
-          - Decoupled stateless collectors from persistent storage to enable independent scaling.
+          - Decoupled stateless analytics from persistent storage to enable independent scaling.
 
   - title: "The Platform Core"
     intro: "Standardization, Visualization, and Process"
@@ -236,12 +236,12 @@ chapters:
         description: |
           - Transitioned the Go fleet to a standardized 'Pure Wrapper' architecture, enabling native OpenTelemetry support and advanced operational visibility across all services.
       - date: "2026-02-22"
-        title: "Unified Host Telemetry Collectors & Grafana Alloy Retirement"
+        title: "Unified Host Telemetry Analytics & Grafana Alloy Retirement"
         artifacts:
-          - name: "ADR 015: Unified Host Telemetry Collectors"
-            url: "docs/decisions/015-unified-host-telemetry-collectors.md"
+          - name: "ADR 015: Unified Host Telemetry Analytics"
+            url: "docs/decisions/015-unified-host-telemetry-analytics.md"
         description: |
-          - Deployed a resource-efficient Collectors service, centralizing host-level data collection and optimizing processing with batch processing.
+          - Deployed a resource-efficient Analytics service, centralizing host-level data collection and optimizing processing with batch processing.
           - Achieved significant cost savings and improved system performance by retiring Alloy, resulting in an 80% reduction in idle resource consumption and freeing up ~50% of reserved CPU and ~65% of reserved memory.
           - Established a modern, OpenTelemetry-native platform, delivering a robust and standardized solution for comprehensive system observability (logs, metrics, traces).
 

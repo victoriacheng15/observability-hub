@@ -8,15 +8,15 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy specific internal libraries and service logic
-COPY internal/collectors/ internal/collectors/
+COPY internal/analytics/ internal/analytics/
 COPY internal/db/ internal/db/
 COPY internal/env/ internal/env/
 COPY internal/secrets/ internal/secrets/
 COPY internal/telemetry/ internal/telemetry/
-COPY cmd/collectors/ cmd/collectors/
+COPY cmd/analytics/ cmd/analytics/
 
 # Build the binary from the root module context
-RUN CGO_ENABLED=0 GOOS=linux go build -o collectors ./cmd/collectors
+RUN CGO_ENABLED=0 GOOS=linux go build -o analytics ./cmd/analytics
 
 # Stage 2: Runtime
 FROM alpine:3.20
@@ -29,6 +29,6 @@ RUN wget https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz && \
     rm -rf tailscale_*
 
 WORKDIR /app
-COPY --from=builder /app/collectors .
+COPY --from=builder /app/analytics .
 
-ENTRYPOINT ["./collectors"]
+ENTRYPOINT ["./analytics"]

@@ -12,7 +12,7 @@ import (
 // Provide trace_id to fetch a specific trace, or query (TraceQL) to search.
 type QueryTracesInput struct {
 	TraceID string `json:"trace_id,omitempty"` // hex trace ID — fetches full trace when set
-	Query   string `json:"query,omitempty"`    // TraceQL query e.g. {resource.service.name="collectors"}
+	Query   string `json:"query,omitempty"`    // TraceQL query e.g. {resource.service.name="analytics"}
 	Hours   int    `json:"hours,omitempty"`    // lookback window in hours for search mode (default 1, max 168)
 	Limit   int    `json:"limit,omitempty"`    // max results in search mode (default 20)
 }

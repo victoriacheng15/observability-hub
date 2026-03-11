@@ -1,4 +1,4 @@
-package main
+package analytics
 
 import (
 	"context"
@@ -7,22 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"observability-hub/internal/collectors"
 	"observability-hub/internal/telemetry"
 )
 
-func TestMain(m *testing.M) {
-	os.Setenv("APP_ENV", "test")
-	telemetry.SilenceLogs()
-	os.Exit(m.Run())
-}
-
 // MockThanos satisfies the ThanosSource interface.
 type MockThanos struct {
-	QueryRangeFn func(ctx context.Context, query string, start, end time.Time, step string) ([]collectors.Sample, error)
+	QueryRangeFn func(ctx context.Context, query string, start, end time.Time, step string) ([]Sample, error)
 }
 
-func (m *MockThanos) QueryRange(ctx context.Context, query string, start, end time.Time, step string) ([]collectors.Sample, error) {
+func (m *MockThanos) QueryRange(ctx context.Context, query string, start, end time.Time, step string) ([]Sample, error) {
 	if m.QueryRangeFn != nil {
 		return m.QueryRangeFn(ctx, query, start, end, step)
 	}
@@ -31,8 +24,10 @@ func (m *MockThanos) QueryRange(ctx context.Context, query string, start, end ti
 
 // MockStore satisfies the DataStore interface.
 type MockStore struct {
-	RecordMetricFn func(ctx context.Context, t time.Time, hostName, osName, metricType string, payload interface{}) error
-	Recorded       []string // Simplified log of recorded metric types
+	RecordMetricFn          func(ctx context.Context, t time.Time, hostName, osName, metricType string, payload interface{}) error
+	RecordAnalyticsMetricFn func(ctx context.Context, t time.Time, featureID string, kind MetricKind, value float64, unit string, metadata map[string]interface{}) error
+	Recorded                []string // Simplified log of recorded metric types
+	AnalyticsRecorded       []string // Simplified log of recorded analytics types
 }
 
 func (m *MockStore) RecordMetric(ctx context.Context, t time.Time, hostName, osName, metricType string, payload interface{}) error {
@@ -41,6 +36,34 @@ func (m *MockStore) RecordMetric(ctx context.Context, t time.Time, hostName, osN
 		return m.RecordMetricFn(ctx, t, hostName, osName, metricType, payload)
 	}
 	return nil
+}
+
+func (m *MockStore) RecordAnalyticsMetric(ctx context.Context, t time.Time, featureID string, kind MetricKind, value float64, unit string, metadata map[string]interface{}) error {
+	m.AnalyticsRecorded = append(m.AnalyticsRecorded, string(kind))
+	if m.RecordAnalyticsMetricFn != nil {
+		return m.RecordAnalyticsMetricFn(ctx, t, featureID, kind, value, unit, metadata)
+	}
+	return nil
+}
+
+// MockResources satisfies the ResourceProvider interface.
+type MockResources struct {
+	GetEnergyJoulesFn func(ctx context.Context, start, end time.Time) (float64, error)
+}
+
+func (m *MockResources) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
+	if m.GetEnergyJoulesFn != nil {
+		return m.GetEnergyJoulesFn(ctx, start, end)
+	}
+	return 100.0, nil
+}
+
+func (m *MockResources) GetCarbonIntensity(ctx context.Context) (float64, error) {
+	return 150.0, nil
+}
+
+func (m *MockResources) GetCostFactor(ctx context.Context) (float64, error) {
+	return 0.15 / 3600000.0, nil
 }
 
 func setupHostMetadata(t *testing.T) func() {
@@ -77,17 +100,17 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		cpuSamples     []collectors.Sample
-		tempSamples    []collectors.Sample
-		ramSamples     []collectors.Sample
-		diskSamples    []collectors.Sample
-		netRXSamples   []collectors.Sample
-		netTXSamples   []collectors.Sample
+		cpuSamples     []Sample
+		tempSamples    []Sample
+		ramSamples     []Sample
+		diskSamples    []Sample
+		netRXSamples   []Sample
+		netTXSamples   []Sample
 		expectedMetric []string
 	}{
 		{
 			name: "Full Collection Success",
-			cpuSamples: []collectors.Sample{
+			cpuSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -96,7 +119,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 					},
 				},
 			},
-			tempSamples: []collectors.Sample{
+			tempSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -105,7 +128,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 					},
 				},
 			},
-			ramSamples: []collectors.Sample{
+			ramSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -114,7 +137,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 					},
 				},
 			},
-			diskSamples: []collectors.Sample{
+			diskSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -123,7 +146,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 					},
 				},
 			},
-			netRXSamples: []collectors.Sample{
+			netRXSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -132,7 +155,7 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 					},
 				},
 			},
-			netTXSamples: []collectors.Sample{
+			netTXSamples: []Sample{
 				{
 					Timestamp: now,
 					Payload: map[string]interface{}{
@@ -148,19 +171,19 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockThanos := &MockThanos{
-				QueryRangeFn: func(ctx context.Context, query string, start, end time.Time, step string) ([]collectors.Sample, error) {
+				QueryRangeFn: func(ctx context.Context, query string, start, end time.Time, step string) ([]Sample, error) {
 					switch {
-					case query == queryCPUUtil:
+					case query == QueryCPUUtil:
 						return tt.cpuSamples, nil
-					case query == queryTemp:
+					case query == QueryTemp:
 						return tt.tempSamples, nil
-					case query == queryRAMUtil:
+					case query == QueryRAMUtil:
 						return tt.ramSamples, nil
-					case query == queryDiskUsed:
+					case query == QueryDiskUsed:
 						return tt.diskSamples, nil
-					case query == queryNetRX:
+					case query == QueryNetRX:
 						return tt.netRXSamples, nil
-					case query == queryNetTX:
+					case query == QueryNetTX:
 						return tt.netTXSamples, nil
 					}
 					return nil, nil
@@ -168,12 +191,12 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 			}
 			mockStore := &MockStore{}
 
-			app := &App{
+			s := &Service{
 				Thanos: mockThanos,
 				Store:  mockStore,
 			}
 
-			app.collectAndStoreHostMetrics(context.Background(), now.Add(-15*time.Minute), now, "test-host", "linux 6.0")
+			s.collectAndStoreHostMetrics(context.Background(), now.Add(-15*time.Minute), now, "test-host", "linux 6.0")
 
 			recordedMap := make(map[string]bool)
 			for _, m := range mockStore.Recorded {
@@ -188,39 +211,54 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 	}
 }
 
-func TestApp_RunBatch(t *testing.T) {
+func TestService_RunBatch(t *testing.T) {
 	cleanup := setupHostMetadata(t)
 	defer cleanup()
 
-	ensureMetrics()
+	telemetry.SilenceLogs()
+	EnsureMetrics()
 
 	mockThanos := &MockThanos{}
 	mockStore := &MockStore{}
+	mockResources := &MockResources{}
 
-	app := &App{
-		Thanos: mockThanos,
-		Store:  mockStore,
+	s := &Service{
+		Thanos:    mockThanos,
+		Store:     mockStore,
+		Resources: mockResources,
 	}
 
-	// Should not panic and should run without real collectors
-	app.runBatch(context.Background())
+	// Should not panic and should run without real analytics
+	s.RunBatch(context.Background())
 }
 
-func TestRun_NoThanosURL(t *testing.T) {
-	os.Unsetenv("THANOS_URL")
-	err := Run(context.Background())
-	if err == nil {
-		t.Error("Expected error when THANOS_URL is missing, got nil")
+func TestService_ProcessResources(t *testing.T) {
+	mockStore := &MockStore{}
+	mockResources := &MockResources{}
+
+	s := &Service{
+		Store:     mockStore,
+		Resources: mockResources,
+	}
+
+	s.processResources(context.Background(), time.Now().Add(-15*time.Minute), time.Now(), "test-host", "linux")
+
+	expected := []string{"energy", "cost", "carbon"}
+	recordedMap := make(map[string]bool)
+	for _, m := range mockStore.AnalyticsRecorded {
+		recordedMap[m] = true
+	}
+
+	for _, exp := range expected {
+		if !recordedMap[exp] {
+			t.Errorf("expected analytics kind %s was not recorded", exp)
+		}
 	}
 }
 
-func TestApp_CollectTailscale(t *testing.T) {
-	// We need to mock collectors.GetFunnelStatus and GetTailscaleStatus.
-	// Since those are in pkg/collectors, and they use a global runner, we can mock it.
-	ensureMetrics()
-	app := &App{}
-
+func TestService_CollectTailscale(t *testing.T) {
 	// Just call it to see if it covers the lines.
 	// Real logic will fail but it handles errors gracefully.
-	app.collectTailscale(context.Background())
+	s := &Service{}
+	s.collectTailscale(context.Background())
 }

@@ -1,4 +1,4 @@
-package collectors
+package analytics
 
 import (
 	"context"
@@ -25,7 +25,10 @@ func TestMetricsStore_EnsureSchema(t *testing.T) {
 			name: "Success",
 			setup: func() {
 				mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS system_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
-				mdb.Mock.ExpectExec("SELECT create_hypertable").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.Mock.ExpectExec("CREATE TYPE metric_kind AS ENUM").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS analytics_metrics").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.Mock.ExpectExec("SELECT create_hypertable\\('system_metrics'").WillReturnResult(sqlmock.NewResult(0, 0))
+				mdb.Mock.ExpectExec("SELECT create_hypertable\\('analytics_metrics'").WillReturnResult(sqlmock.NewResult(0, 0))
 			},
 			wantErr: false,
 		},
@@ -86,6 +89,48 @@ func TestMetricsStore_RecordMetric(t *testing.T) {
 			err := store.RecordMetric(context.Background(), now, "host1", "linux", "cpu", tt.payload)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RecordMetric() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestMetricsStore_RecordAnalyticsMetric(t *testing.T) {
+	mdb, cleanup := postgres.NewMockDB(t)
+	defer cleanup()
+
+	store := NewMetricsStore(mdb.Wrapper())
+	now := time.Now()
+
+	tests := []struct {
+		name      string
+		featureID string
+		kind      MetricKind
+		value     float64
+		unit      string
+		setup     func()
+		wantErr   bool
+	}{
+		{
+			name:      "Success",
+			featureID: "gitops-sync",
+			kind:      KindEnergy,
+			value:     123.45,
+			unit:      "joules",
+			setup: func() {
+				mdb.Mock.ExpectExec("INSERT INTO analytics_metrics").
+					WithArgs(now, "gitops-sync", "energy", 123.45, "joules", sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+			err := store.RecordAnalyticsMetric(context.Background(), now, tt.featureID, tt.kind, tt.value, tt.unit, nil)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RecordAnalyticsMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
