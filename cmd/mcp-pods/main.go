@@ -51,7 +51,7 @@ func main() {
 		}
 	}()
 
-	telemetry.Info("mcp-pods ready", "tools", []string{"inspect_pods", "describe_pod", "list_pod_events"})
+	telemetry.Info("mcp-pods ready", "tools", []string{"inspect_pods", "describe_pod", "list_pod_events", "get_pod_logs", "delete_pod"})
 
 	sig := <-sigChan
 	telemetry.Info("received signal, shutting down", "signal", sig.String())
