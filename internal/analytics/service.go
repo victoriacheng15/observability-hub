@@ -57,6 +57,8 @@ type DataStore interface {
 // ResourceProvider defines the interface for fetching raw consumption data.
 type ResourceProvider interface {
 	GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error)
+	GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error)
+	GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error)
 	GetCarbonIntensity(ctx context.Context) (float64, error) // gCO2 per kWh
 	GetCostFactor(ctx context.Context) (float64, error)      // CAD per Joule
 }
@@ -100,8 +102,8 @@ func (s *Service) Start(ctx context.Context) error {
 func EnsureMetrics() {
 	metricsOnce.Do(func() {
 		meter := telemetry.GetMeter(ServiceName)
-		collTotal, _ = telemetry.NewInt64Counter(meter, "analytics.collection.total", "Total collection attempts")
-		collErrors, _ = telemetry.NewInt64Counter(meter, "analytics.collection.errors", "Total collection errors")
+		collTotal, _ = telemetry.NewInt64Counter(meter, "analytics.batch.total", "Total processing batches")
+		collErrors, _ = telemetry.NewInt64Counter(meter, "analytics.batch.errors.total", "Total batch errors")
 
 		_, _ = telemetry.NewInt64ObservableGauge(meter, "analytics.tailscale.active", "Tailscale Funnel active status", func(ctx context.Context, obs telemetry.Int64Observer) error {
 			tailscaleMu.RLock()
@@ -156,32 +158,103 @@ func (s *Service) processResources(ctx context.Context, start, end time.Time, ho
 		return
 	}
 
-	// Fetch raw energy
-	joules, err := s.Resources.GetEnergyJoules(ctx, start, end)
-	if err != nil {
-		telemetry.Error("energy_fetch_failed", "error", err)
-	} else if joules > 0 {
-		metadata := map[string]interface{}{
-			"host": hostName,
-			"os":   osName,
-		}
+	costFactor, _ := s.Resources.GetCostFactor(ctx)
+	carbonIntensity, _ := s.Resources.GetCarbonIntensity(ctx)
 
-		// Record Energy
-		_ = s.Store.RecordAnalyticsMetric(ctx, end, "node-total", KindEnergy, joules, "joules", metadata)
-
-		// Record Cost
-		costFactor, _ := s.Resources.GetCostFactor(ctx)
-		cad := joules * costFactor
-		_ = s.Store.RecordAnalyticsMetric(ctx, end, "node-total", KindCost, cad, "cad", metadata)
-
-		// Record Carbon
-		carbonIntensity, _ := s.Resources.GetCarbonIntensity(ctx)
-		// gCO2 = (Joules / 3,600,000) * gCO2/kWh
-		gCO2 := (joules / 3600000.0) * carbonIntensity
-		_ = s.Store.RecordAnalyticsMetric(ctx, end, "node-total", KindCarbon, gCO2, "g_co2", metadata)
-
-		telemetry.Info("resource_analytics_recorded", "joules", joules, "cad", cad, "g_co2", gCO2, "host", hostName)
+	// 1. Process Total Node Energy (Aggregate)
+	nodeJoules, err := s.Resources.GetEnergyJoules(ctx, start, end)
+	if err == nil && nodeJoules > 0 {
+		s.recordMetricsForFeature(ctx, end, "node-total", nodeJoules, costFactor, carbonIntensity, hostName, osName)
 	}
+
+	// 2. Process K3s Pod Energy (Granular from Kepler)
+	podMetrics, err := s.Resources.GetContainerEnergy(ctx, start, end)
+	totalPodJoules := 0.0
+	if err == nil {
+		for container, joules := range podMetrics {
+			featureID := mapContainerToFeature(container)
+			if joules > 0 {
+				totalPodJoules += joules
+				s.recordMetricsForFeature(ctx, end, featureID, joules, costFactor, carbonIntensity, hostName, osName)
+			}
+		}
+	}
+
+	// 3. Process Host Attribution (For non-pod services like Ingestion, Proxy, MCPs)
+	// We calculate the 'energy gap' (Total Node - K3s Pods) and attribute it to host services by CPU share.
+	hostJoulesGap := nodeJoules - totalPodJoules
+	if hostJoulesGap > 0 {
+		hostServiceCPU, err := s.Resources.GetHostServiceCPU(ctx, start, end)
+		if err == nil {
+			totalHostCPU := 0.0
+			for _, cpu := range hostServiceCPU {
+				totalHostCPU += cpu
+			}
+
+			if totalHostCPU > 0 {
+				for service, cpu := range hostServiceCPU {
+					share := cpu / totalHostCPU
+					attributedJoules := hostJoulesGap * share
+					featureID := mapContainerToFeature(service) // uses same mapping
+					s.recordMetricsForFeature(ctx, end, featureID, attributedJoules, costFactor, carbonIntensity, hostName, osName)
+				}
+			}
+		}
+	}
+}
+
+func (s *Service) recordMetricsForFeature(ctx context.Context, t time.Time, featureID string, joules, costFactor, carbonIntensity float64, hostName, osName string) {
+	metadata := map[string]interface{}{
+		"host": hostName,
+		"os":   osName,
+	}
+
+	// Record Energy
+	_ = s.Store.RecordAnalyticsMetric(ctx, t, featureID, KindEnergy, joules, "joules", metadata)
+
+	// Record Cost
+	cad := joules * costFactor
+	_ = s.Store.RecordAnalyticsMetric(ctx, t, featureID, KindCost, cad, "cad", metadata)
+
+	// Record Carbon
+	// gCO2 = (Joules / 3,600,000) * gCO2/kWh
+	gCO2 := (joules / 3600000.0) * carbonIntensity
+	_ = s.Store.RecordAnalyticsMetric(ctx, t, featureID, KindCarbon, gCO2, "g_co2", metadata)
+
+	telemetry.Info("feature_analytics_recorded", "feature_id", featureID, "joules", joules, "host", hostName)
+}
+func mapContainerToFeature(container string) string {
+	// Simple mapping based on known service names (containers or systemd units)
+	mapping := map[string]string{
+		"ingestion":               "ingestion",
+		"ingestion.service":       "ingestion",
+		"proxy":                   "proxy",
+		"proxy.service":           "proxy",
+		"analytics":               "analytics-engine",
+		"mcp-telemetry":           "agentic-telemetry",
+		"mcp-pods":                "agentic-kubernetes",
+		"postgresql":              "database-core",
+		"postgres":                "database-core",
+		"prometheus-server":       "observability-infra",
+		"node-exporter":           "observability-infra",
+		"query":                   "observability-infra",
+		"compactor":               "observability-infra",
+		"storegateway":            "observability-infra",
+		"thanos-sidecar-manual":   "observability-infra",
+		"grafana":                 "observability-ui",
+		"loki":                    "observability-logs",
+		"nginx":                   "observability-logs", // loki-gateway
+		"tempo":                   "observability-traces",
+		"opentelemetry-collector": "observability-otel",
+		"openbao":                 "security-secrets",
+		"openbao.service":         "security-secrets",
+		"tailscale-gate":          "network-funnel",
+	}
+
+	if feature, ok := mapping[container]; ok {
+		return feature
+	}
+	return container // fallback to raw container name
 }
 
 func getHostMetadata() (string, string, error) {

@@ -79,12 +79,18 @@ func (s *MetricsStore) EnsureSchema(ctx context.Context) error {
 		return fmt.Errorf("analytics_schema_init_failed: %w", err)
 	}
 
-	// 3. Enable hypertables if TimescaleDB is available
+	// 3. Enable hypertables and retention if TimescaleDB is available
 	queryHyperSystem := fmt.Sprintf("SELECT create_hypertable('%s', 'time', if_not_exists => true);", tableSystemMetrics)
 	_, _ = s.Wrapper.Exec(ctx, "db.postgres.create_hypertable_system", queryHyperSystem)
 
+	queryRetentSystem := fmt.Sprintf("SELECT add_retention_policy('%s', INTERVAL '30 days', if_not_exists => true);", tableSystemMetrics)
+	_, _ = s.Wrapper.Exec(ctx, "db.postgres.set_retention_system", queryRetentSystem)
+
 	queryHyperAnalytics := fmt.Sprintf("SELECT create_hypertable('%s', 'time', if_not_exists => true);", tableAnalyticsMetrics)
 	_, _ = s.Wrapper.Exec(ctx, "db.postgres.create_hypertable_analytics", queryHyperAnalytics)
+
+	queryRetentAnalytics := fmt.Sprintf("SELECT add_retention_policy('%s', INTERVAL '30 days', if_not_exists => true);", tableAnalyticsMetrics)
+	_, _ = s.Wrapper.Exec(ctx, "db.postgres.set_retention_analytics", queryRetentAnalytics)
 
 	return nil
 }
