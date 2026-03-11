@@ -4,15 +4,15 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.27"
+      version = "~> 3.0"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.13"
+      version = "~> 3.1"
     }
     grafana = {
       source  = "grafana/grafana"
-      version = "~> 3.25"
+      version = "~> 4.27"
     }
   }
 
@@ -31,18 +31,18 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path    = "~/.kube/config"
+  config_path    = var.kubeconfig_path
   config_context = "default"
 }
 
 provider "helm" {
-  kubernetes {
-    config_path    = "~/.kube/config"
+  kubernetes = {
+    config_path    = var.kubeconfig_path
     config_context = "default"
   }
 }
 
-data "kubernetes_secret" "grafana_admin" {
+data "kubernetes_secret_v1" "grafana_admin" {
   metadata {
     name      = "grafana-admin-secret"
     namespace = var.observability_namespace
@@ -51,5 +51,5 @@ data "kubernetes_secret" "grafana_admin" {
 
 provider "grafana" {
   url  = "http://localhost:30000"
-  auth = "${data.kubernetes_secret.grafana_admin.data["admin-user"]}:${data.kubernetes_secret.grafana_admin.data["admin-password"]}"
+  auth = try("${data.kubernetes_secret_v1.grafana_admin.data["admin-user"]}:${data.kubernetes_secret_v1.grafana_admin.data["admin-password"]}", "admin:admin")
 }
