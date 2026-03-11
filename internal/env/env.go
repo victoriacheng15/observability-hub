@@ -1,8 +1,6 @@
 package env
 
 import (
-	"log/slog"
-
 	"github.com/joho/godotenv"
 )
 
@@ -18,6 +16,4 @@ func Load() {
 	if err := godotenv.Load("../../.env"); err != nil {
 		// Silent fail if missing
 	}
-
-	slog.Debug("env_load_attempt_complete")
 }

@@ -88,7 +88,8 @@ func initLogs(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource
 		return nil, fmt.Errorf("failed to create log exporter: %w", err)
 	}
 
-	consoleExporter, err := stdoutlog.New()
+	// Use stderr for local console output to avoid protocol corruption
+	consoleExporter, err := stdoutlog.New(stdoutlog.WithWriter(os.Stderr))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdout log exporter: %w", err)
 	}
