@@ -59,6 +59,7 @@ type ResourceProvider interface {
 	GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error)
 	GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error)
 	GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error)
+	GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error)
 	GetCarbonIntensity(ctx context.Context) (float64, error) // gCO2 per kWh
 	GetCostFactor(ctx context.Context) (float64, error)      // CAD per Joule
 }
@@ -147,7 +148,10 @@ func (s *Service) RunBatch(ctx context.Context) {
 	// 3. Resource Integration (Phase 3)
 	s.processResources(ctx, start, end, hostName, osName)
 
-	// 4. Fetch Tailscale State (Logs/Metrics only, no DB)
+	// 4. Value Integration (Phase 4: Business Value Ingestion)
+	s.processValueUnits(ctx, start, end, hostName, osName)
+
+	// 5. Fetch Tailscale State (Logs/Metrics only, no DB)
 	s.collectTailscale(ctx)
 
 	telemetry.Info("batch_complete")
@@ -199,6 +203,29 @@ func (s *Service) processResources(ctx context.Context, start, end time.Time, ho
 					s.recordMetricsForFeature(ctx, end, featureID, attributedJoules, costFactor, carbonIntensity, hostName, osName)
 				}
 			}
+		}
+	}
+}
+
+func (s *Service) processValueUnits(ctx context.Context, start, end time.Time, hostName, osName string) {
+	if s.Resources == nil {
+		return
+	}
+
+	valueUnits, err := s.Resources.GetValueUnits(ctx, start, end)
+	if err != nil {
+		telemetry.Error("value_units_fetch_failed", "error", err)
+		return
+	}
+
+	for feature, count := range valueUnits {
+		if count > 0 {
+			metadata := map[string]interface{}{
+				"host": hostName,
+				"os":   osName,
+			}
+			_ = s.Store.RecordAnalyticsMetric(ctx, end, feature, KindValueUnit, count, "count", metadata)
+			telemetry.Info("value_unit_recorded", "feature_id", feature, "count", count)
 		}
 	}
 }

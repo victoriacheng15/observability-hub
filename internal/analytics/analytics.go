@@ -176,6 +176,28 @@ func (p *ThanosResourceProvider) GetHostServiceCPU(ctx context.Context, start, e
 	return serviceCPU, nil
 }
 
+func (p *ThanosResourceProvider) GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	// 1. Define queries for all business value counters
+	queries := map[string]string{
+		"ingestion": "sum(increase(second_brain_sync_processed_total[15m])) + sum(increase(reading_sync_processed_total[15m]))",
+		"proxy":     "sum(increase(proxy_webhook_received_total[15m])) + sum(increase(proxy_synthetic_request_total[15m]))",
+	}
+
+	units := make(map[string]float64)
+	for feature, query := range queries {
+		samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
+		if err != nil {
+			continue
+		}
+		if len(samples) > 0 {
+			last := samples[len(samples)-1]
+			val, _ := strconv.ParseFloat(fmt.Sprintf("%v", last.Payload["value"]), 64)
+			units[feature] = val
+		}
+	}
+	return units, nil
+}
+
 func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
 
 	// Default: ~150g CO2 per kWh (Sample value for a "greenish" grid)

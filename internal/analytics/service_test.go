@@ -53,6 +53,7 @@ type MockResources struct {
 	GetEnergyJoulesFn    func(ctx context.Context, start, end time.Time) (float64, error)
 	GetContainerEnergyFn func(ctx context.Context, start, end time.Time) (map[string]float64, error)
 	GetHostServiceCPUFn  func(ctx context.Context, start, end time.Time) (map[string]float64, error)
+	GetValueUnitsFn      func(ctx context.Context, start, end time.Time) (map[string]float64, error)
 }
 
 func (m *MockResources) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
@@ -78,6 +79,16 @@ func (m *MockResources) GetHostServiceCPU(ctx context.Context, start, end time.T
 	return map[string]float64{
 		"ingestion.service": 0.5,
 		"proxy.service":     0.5,
+	}, nil
+}
+
+func (m *MockResources) GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	if m.GetValueUnitsFn != nil {
+		return m.GetValueUnitsFn(ctx, start, end)
+	}
+	return map[string]float64{
+		"ingestion": 10.0,
+		"proxy":     5.0,
 	}, nil
 }
 
@@ -283,6 +294,33 @@ func TestService_ProcessResources(t *testing.T) {
 		if !featureSet[f] {
 			t.Errorf("expected feature %s was not recorded", f)
 		}
+	}
+}
+
+func TestService_ProcessValueUnits(t *testing.T) {
+	mockStore := &MockStore{}
+	mockResources := &MockResources{}
+
+	s := &Service{
+		Store:     mockStore,
+		Resources: mockResources,
+	}
+
+	s.processValueUnits(context.Background(), time.Now().Add(-15*time.Minute), time.Now(), "test-host", "linux")
+
+	// 2 features (ingestion, proxy) = 2 recordings
+	expectedCount := 2
+	if len(mockStore.AnalyticsRecorded) != expectedCount {
+		t.Errorf("expected %d analytics recordings, got %d", expectedCount, len(mockStore.AnalyticsRecorded))
+	}
+
+	recordedKinds := make(map[string]bool)
+	for _, k := range mockStore.AnalyticsRecorded {
+		recordedKinds[k] = true
+	}
+
+	if !recordedKinds[string(KindValueUnit)] {
+		t.Errorf("expected KindValueUnit to be recorded")
 	}
 }
 
