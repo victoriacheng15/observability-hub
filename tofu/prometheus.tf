@@ -3,9 +3,10 @@ resource "helm_release" "prometheus" {
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus"
   version    = "28.10.1"
-  namespace  = kubernetes_namespace.observability.metadata[0].name
+  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/prometheus/values.yaml")]
 
-  depends_on = [kubernetes_namespace.observability]
+  depends_on = [kubernetes_namespace_v1.observability]
 }
+

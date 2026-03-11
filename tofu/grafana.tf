@@ -3,11 +3,11 @@ resource "helm_release" "grafana" {
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana"
   version    = "10.5.15"
-  namespace  = kubernetes_namespace.observability.metadata[0].name
+  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/grafana/values.yaml")]
 
-  depends_on = [kubernetes_namespace.observability]
+  depends_on = [kubernetes_namespace_v1.observability]
 }
 
 resource "grafana_folder" "observability" {
