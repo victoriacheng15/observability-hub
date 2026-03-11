@@ -37,7 +37,9 @@ loki:
     retention_delete_worker_count: 150
     delete_request_store: s3
   persistence:
-    enabled: false
+    enabled: true
+    storageClass: local-path-retain
+    size: 10Gi
   sidecar:
     rules:
       resources:
@@ -58,6 +60,10 @@ singleBinary:
   extraEnvFrom:
     - secretRef:
         name: minio-secret
+  persistence:
+    enabled: true
+    storageClass: local-path-retain
+    size: 10Gi
   resources:
     requests:
       cpu: 200m

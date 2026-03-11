@@ -137,7 +137,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->>'usage')::float AS \"CPU Usage\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->'core_usage'->>'cpu_0')::float AS \"CPU 0\",\n  (payload->'core_usage'->>'cpu_1')::float AS \"CPU 1\",\n  (payload->'core_usage'->>'cpu_2')::float AS \"CPU 2\",\n  (payload->'core_usage'->>'cpu_3')::float AS \"CPU 3\",\n  (payload->'core_usage'->>'cpu_4')::float AS \"CPU 4\",\n  (payload->'core_usage'->>'cpu_5')::float AS \"CPU 5\",\n  (payload->'core_usage'->>'cpu_6')::float AS \"CPU 6\",\n  (payload->'core_usage'->>'cpu_7')::float AS \"CPU 7\",\n  (payload->'core_usage'->>'cpu_8')::float AS \"CPU 8\",\n  (payload->'core_usage'->>'cpu_9')::float AS \"CPU 9\",\n  (payload->'core_usage'->>'cpu_10')::float AS \"CPU 10\",\n  (payload->'core_usage'->>'cpu_11')::float AS \"CPU 11\",\n  (payload->'core_usage'->>'cpu_12')::float AS \"CPU 12\",\n  (payload->'core_usage'->>'cpu_13')::float AS \"CPU 13\",\n  (payload->'core_usage'->>'cpu_14')::float AS \"CPU 14\",\n  (payload->'core_usage'->>'cpu_15')::float AS \"CPU 15\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -168,7 +168,7 @@
           }
         }
       ],
-      "title": "CPU Usage",
+      "title": "CPU Usage (Threads 0-15)",
       "type": "timeseries"
     },
     {
@@ -628,7 +628,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  (payload->'core_temps'->>'core_0')::int AS \"Core 0\",\n  (payload->'core_temps'->>'core_1')::int AS \"Core 1\",\n  (payload->'core_temps'->>'core_2')::int AS \"Core 2\",\n  (payload->'core_temps'->>'core_3')::int AS \"Core 3\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  host,\n  NULLIF(payload->'core_temps'->>'core_0', '')::float AS \"Core 0\",\n  NULLIF(payload->'core_temps'->>'core_1', '')::float AS \"Core 1\",\n  NULLIF(payload->'core_temps'->>'core_2', '')::float AS \"Core 2\",\n  NULLIF(payload->'core_temps'->>'core_3', '')::float AS \"Core 3\",\n  NULLIF(payload->'core_temps'->>'core_4', '')::float AS \"Core 4\",\n  NULLIF(payload->'core_temps'->>'core_5', '')::float AS \"Core 5\",\n  NULLIF(payload->'core_temps'->>'core_6', '')::float AS \"Core 6\",\n  NULLIF(payload->'core_temps'->>'core_7', '')::float AS \"Core 7\",\n  NULLIF(payload->>'package_temp', '')::float AS \"Package\"\nFROM system_metrics \nWHERE\n  metric_type = 'cpu'\nORDER BY time;",
           "refId": "A",
           "sql": {
             "columns": [

@@ -3,7 +3,7 @@ revisionHistoryLimit: 3
 persistence:
   enabled: true
   size: 10Gi
-  storageClassName: local-path
+  storageClassName: local-path-retain
 
 tempo:
   replicas: 1
@@ -34,6 +34,7 @@ tempo:
 
   extraArgs:
     config.expand-env: "true"
+    mem-ballast-size-mbs: "512"
 
   multitenancy_enabled: false
 

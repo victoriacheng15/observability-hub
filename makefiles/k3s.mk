@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: build-collectors k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: build-collectors build-postgres k3s-collectors-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 BACKUP_DIR ?= /home/server2/backups/manual
 

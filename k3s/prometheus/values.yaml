@@ -96,7 +96,7 @@ server:
   persistentVolume:
     enabled: true
     size: 10Gi
-    storageClass: local-path
+    storageClass: local-path-retain
 
   extraServices:
     - name: prometheus-thanos-grpc

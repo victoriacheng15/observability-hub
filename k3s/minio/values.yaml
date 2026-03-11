@@ -8,7 +8,7 @@ mode: standalone
 persistence:
   enabled: true
   size: 10Gi
-  storageClass: local-path
+  storageClass: local-path-retain
 
 # Match the keys in the manual secret
 existingSecret: "minio-secret"
