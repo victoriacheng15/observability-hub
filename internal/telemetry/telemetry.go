@@ -48,6 +48,11 @@ func Init(ctx context.Context, serviceName string) (func(), error) {
 		return func() {}, nil
 	}
 
+	// Bootstrap logger to stderr to prevent stdout pollution during initialization
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		ReplaceAttr: MaskPII,
+	})))
+
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
 		slog.Warn("OTEL_EXPORTER_OTLP_ENDPOINT not set, telemetry disabled")
