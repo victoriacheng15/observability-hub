@@ -305,3 +305,11 @@ chapters:
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
           - Completed the LGTM observability loop by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
+      - date: "2026-03-11"
+        title: "Domain-Isolated MCP Architecture & Infrastructure Intelligence"
+        artifacts:
+          - name: "ADR 018: Domain-Isolated MCP Architecture"
+            url: "docs/decisions/018-domain-isolated-mcp-architecture.md"
+        description: |
+          - Architected a domain-isolated MCP framework to enforce the Principle of Least Privilege, reducing the security blast radius by strictly decoupling infrastructure-level RBAC from the telemetry pipeline.
+          - Engineered a high-fidelity "Infrastructure Intelligence" service (mcp-pods) that enables AI agents to correlate Kubernetes orchestration events with system-wide telemetry, accelerating the discovery of cluster-level failures.
