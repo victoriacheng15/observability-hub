@@ -56,8 +56,7 @@ storegateway:
 query:
   enabled: true
   dnsDiscovery:
-    sidecarsService: "prometheus-thanos-grpc"
-    sidecarsNamespace: "observability"
+    enabled: false
   service:
     type: NodePort
     nodePorts:

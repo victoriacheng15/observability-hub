@@ -9,7 +9,7 @@ resource "helm_release" "thanos" {
     file("${path.module}/../k3s/thanos/values.yaml"),
     yamlencode({
       query = {
-        extraArgs = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
+        extraFlags = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
       }
     })
   ]
