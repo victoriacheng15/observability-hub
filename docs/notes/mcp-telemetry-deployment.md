@@ -13,6 +13,7 @@ make mcp-telemetry-build
 ```
 
 This command:
+
 1. Compiles `cmd/mcp-telemetry` → `bin/mcp_telemetry`
 
 ### Run Manually
@@ -89,11 +90,13 @@ curl http://localhost:30200/api/search
 All logs from mcp-telemetry are exported via **OTLP gRPC** to Loki and Tempo. Operational output is also mirrored to `stderr`.
 
 **Via Loki Dashboard:**
+
 ```logql
 {service="mcp.telemetry"}
 ```
 
 **Via Tempo Traces:**
+
 1. Open Tempo in Grafana
 2. Search by service: `mcp.telemetry`
 3. View logs attached to trace spans

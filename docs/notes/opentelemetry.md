@@ -128,15 +128,15 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `sync_started`, `database_check_complete`, `sync_skipped`, `ingesting_issue`, `fetch_body_failed`, `atom_insert_failed`, `failed_to_record_brain_sync_history`, `sync_complete`
 
-### 3. Collectors Service (Host Telemetry)
+### 3. Analytics Service (Host Telemetry)
 
-**Service Name:** `collectors` | **Tracer/Meter:** `collectors`
+**Service Name:** `analytics` | **Tracer/Meter:** `analytics`
 
 **Metrics:**
 
-- `collectors.collection.total`: Counter
-- `collectors.collection.errors`: Counter
-- `collectors.tailscale.active`: Gauge
+- `analytics.collection.total`: Counter
+- `analytics.collection.errors`: Counter
+- `analytics.tailscale.active`: Gauge
 
 **Traces:**
 

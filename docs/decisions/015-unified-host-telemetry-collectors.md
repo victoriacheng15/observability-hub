@@ -1,4 +1,6 @@
-# ADR 015: Unified Host Telemetry Collectors
+# ADR 015: Unified Host Telemetry Analytics
+
+> **Note:** This service was originally named "Collectors" and was rebranded to **Analytics Engine** (or "Analytics Service") in March 2026 to better reflect its role in resource-to-value correlation and efficiency analysis.
 
 - **Status:** Accepted
 - **Date:** 2026-02-21
@@ -16,7 +18,7 @@ This fragmentation results in a high "reservation tax" where ~60MiB of RAM is gu
 
 ## Decision Outcome
 
-Consolidate all host-level observability responsibilities into a single, re-architected **Host Telemetry Collectors Service (`collectors`)** deployed as a Kubernetes DaemonSet.
+Consolidate all host-level observability responsibilities into a single, re-architected **Host Telemetry Analytics Service (`analytics`)** deployed as a Kubernetes DaemonSet.
 
 ### Key Architectural Shifts
 
@@ -28,7 +30,7 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 ### Rationale
 
 - **Efficiency of Batch Processing:** Research confirms that moving from a continuous 1-minute polling cycle to a 15-minute batch interval significantly reduces the average CPU duty cycle. The service transitions from a constant baseline draw to a "wake-perform-sleep" model, making it virtually invisible to the CPU scheduler for 99% of its operational life.
-- **Optimization of Reserved Resources:** Empirical observation via `kubectl top` reveals a significant reduction in both idle and reserved resource allocation. The specialized Go service for Collectors now consumes ~2m CPU / 10Mi RAM when idle, with requests set to 10m CPU / 40Mi RAM, effectively returning significant guaranteed CPU and memory resources back to the cluster nodes.
+- **Optimization of Reserved Resources:** Empirical observation via `kubectl top` reveals a significant reduction in both idle and reserved resource allocation. The specialized Go service for Analytics now consumes ~2m CPU / 10Mi RAM when idle, with requests set to 10m CPU / 40Mi RAM, effectively returning significant guaranteed CPU and memory resources back to the cluster nodes.
 
   | Component              | Idle CPU / RAM | Reserved CPU / RAM |
   | :--------------------- | :------------- | :----------------- |
@@ -44,7 +46,7 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 
 ### Positive
 
-- **Significant Resource Savings**: Frees up approximately 8m CPU and 74Mi RAM in reserved resources per node, based on the difference between Alloy's prior requests (20m CPU / 114Mi RAM) and Collectors' new requests (10m CPU / 40Mi RAM), with even larger savings in actual idle usage.
+- **Significant Resource Savings**: Frees up approximately 8m CPU and 74Mi RAM in reserved resources per node, based on the difference between Alloy's prior requests (20m CPU / 114Mi RAM) and Analytics' new requests (10m CPU / 40Mi RAM), with even larger savings in actual idle usage.
 - **Operational Simplicity**: Replaces three legacy components (Alloy, old `system-metrics`, `systemd` units) with one unified Go binary.
 - **FinOps Readiness**: Provides a curated, efficient historical data source in PostgreSQL for electricity cost analysis.
 - **Architectural Alignment**: Standardizes on Go and the "library-first" pattern.
@@ -56,7 +58,7 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 
 ## Verification
 
-- [x] **Resource Usage:** Monitor `collectors` pod via `kubectl top` and ensure it operates within the new 40Mi/80Mi RAM limits.
+- [x] **Resource Usage:** Monitor `analytics` pod via `kubectl top` and ensure it operates within the new 40Mi/80Mi RAM limits.
 - [x] **Data Parity:** Confirm `system_metrics` table in PostgreSQL receives 1-minute interval data for all four metric types plus hardware temperature.
-- [x] **Tailscale Flow:** Verify `tailscale_*` logs appear in Grafana (via Loki) and `collectors.tailscale.active` metrics appear in Grafana (via Prometheus/OTel).
+- [x] **Tailscale Flow:** Verify `tailscale_*` logs appear in Grafana (via Loki) and `analytics.tailscale.active` metrics appear in Grafana (via Prometheus/OTel).
 - [x] **Decommissioning:** Confirm `alloy` and legacy `system-metrics` units are stopped and removed.

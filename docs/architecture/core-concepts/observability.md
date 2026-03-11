@@ -16,7 +16,7 @@ flowchart TB
             GoApps["Go Services"]
             MCP_Tele["MCP Telemetry (Health Brain)"]
             MCP_Pods["MCP Pods (Infra Brain)"]
-            Collectors["Collectors (Host Metrics & Tailscale)"]
+            Analytics["Analytics (Host Metrics & Tailscale)"]
             Gate[Tailscale Gate]
         end
 
@@ -38,13 +38,13 @@ flowchart TB
     K8S -- "Cluster State" --> MCP_Pods
 
     %% Telemetry & Storage Connections
-    Observability -- "Host Metrics" --> Collectors
-    Gate -- "Status" --> Collectors
-    Collectors -- "Host Metrics Data" --> PG
+    Observability -- "Host Metrics" --> Analytics
+    Gate -- "Status" --> Analytics
+    Analytics -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP_Tele & MCP_Pods & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OTEL
     
     OTEL --> Observability
     
@@ -83,7 +83,7 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 - **Collection Strategy**:
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
   - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
-  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. Dedicated **Collectors** then retrieve this host metrics data from **Prometheus**, forward it via the **OpenTelemetry Collector**, which processes and exports it to **PostgreSQL** for long-term analytical reporting.
+  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. Dedicated **Analytics** then retrieve this host metrics data from **Prometheus**, forward it via the **OpenTelemetry Collector**, which processes and exports it to **PostgreSQL** for long-term analytical reporting.
 - **Persistence**:
   - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.
   - **Long-term Retention**: The **Thanos** sidecar seamlessly offloads TSDB blocks to MinIO S3 (`prometheus-blocks`) for infinite metrics retention and historical analysis.

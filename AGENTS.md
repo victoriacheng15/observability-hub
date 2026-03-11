@@ -16,7 +16,7 @@ Agents must distinguish between the two primary orchestration tiers to avoid "ci
 - **`cmd/`**: Minimal entry points for services. Focuses on configuration and orchestration.
   - **`cmd/web/`**: Static site generator entry point.
   - **`cmd/proxy/`**: API Gateway and GitOps webhook listener entry point.
-  - **`cmd/collectors/`**: Host telemetry collection daemon entry point.
+  - **`cmd/analytics/`**: Host telemetry collection daemon entry point.
   - **`cmd/ingestion/`**: Daily data sync and second brain integration entry point.
 - **`internal/`**: Private Implementation Layer. Enforces Go's internal package visibility rules.
 - **`k3s/`**: Kubernetes manifests and Helm values for the data platform.
@@ -38,7 +38,7 @@ The project uses a unified automation layer. **Always prefer `make` commands** a
 | **Quality** | `make lint` | Lints markdown and configuration files. |
 | **Go Dev** | `make go-test` | Runs full test suite across the monorepo. |
 | **Security** | `make go-vuln-scan` | Executes `govulncheck` for dependency auditing. |
-| **K3s Ops** | `make build-collectors` | Builds and imports the collectors Docker image into K3s. |
+| **K3s Ops** | `make build-analytics` | Builds and imports the analytics Docker image into K3s. |
 | **Host Ops** | `make proxy-build` | Builds proxy server to `bin/` and restarts the service. |
 
 ## 3. Engineering Standards
