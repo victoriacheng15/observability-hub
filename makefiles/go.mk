@@ -55,8 +55,7 @@ ingestion-build:
 
 mcp-telemetry-build:
 	@echo "Updating mcp-telemetry..." && \
-	cd cmd/mcp-telemetry && go build -o ../../bin/mcp_telemetry . && \
-	sudo systemctl restart mcp-telemetry.service
+	cd cmd/mcp-telemetry && go build -o ../../bin/mcp_telemetry .
 
 mcp-pods-build:
 	@echo "Updating mcp-pods..." && \

@@ -103,8 +103,8 @@ func initLogs(ctx context.Context, conn *grpc.ClientConn, res *resource.Resource
 	// OTel Handler for remote ingestion
 	otelHandler := otelslog.NewHandler(ScopeName, otelslog.WithLoggerProvider(lp))
 
-	// JSON Handler for local stdout with PII masking
-	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	// JSON Handler for local stderr with PII masking
+	jsonHandler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		ReplaceAttr: MaskPII,
 	})
 

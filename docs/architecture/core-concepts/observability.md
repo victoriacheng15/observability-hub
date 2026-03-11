@@ -8,12 +8,19 @@ The Observability Hub implements a high-fidelity logging, tracing, and metrics p
 flowchart TB
     subgraph ObservabilityFlow ["Observability Flow"]
         direction TB
-        External["External Sources"]
+        subgraph Logic ["Data Ingestion & Agentic Interface"]
+            subgraph ExternalSources ["External Sources"]
+                External["Telemetry Sources"]
+            end
 
-        Gate[Tailscale Gate]
-        GoApps["Go Services"]
-        Collectors["Collectors (Host Metrics & Tailscale)"]
+            GoApps["Go Services"]
+            MCP_Tele["MCP Telemetry (Health Brain)"]
+            MCP_Pods["MCP Pods (Infra Brain)"]
+            Collectors["Collectors (Host Metrics & Tailscale)"]
+            Gate[Tailscale Gate]
+        end
 
+        K8S["Kubernetes API (Cluster State)"]
         OTEL[OpenTelemetry Collector]
 
         Observability["Loki, Tempo, Prometheus (Thanos)"]
@@ -25,13 +32,19 @@ flowchart TB
 
     %% Data Pipeline Connections
     External --> GoApps
+    
+    %% Domain-Isolated MCP Paths
+    Observability -- "Query Data" --> MCP_Tele
+    K8S -- "Cluster State" --> MCP_Pods
+
+    %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Collectors
     Gate -- "Status" --> Collectors
     Collectors -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP_Tele & MCP_Pods & Collectors -- "Logs, Metrics, Traces" --> OTEL
     
     OTEL --> Observability
     
