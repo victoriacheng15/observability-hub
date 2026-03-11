@@ -1,4 +1,4 @@
-package main
+package mcp
 
 import (
 	"context"
@@ -11,7 +11,8 @@ import (
 	"observability-hub/internal/telemetry"
 )
 
-func registerTools(server *mcp.Server, provider *providers.TelemetryProvider) {
+// RegisterTools registers all telemetry tools to the MCP server.
+func RegisterTools(server *mcp.Server, provider *providers.TelemetryProvider) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "query_metrics",
 		Description: "Execute PromQL queries against Thanos/Prometheus for metrics analysis",

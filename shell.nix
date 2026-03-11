@@ -2,14 +2,9 @@
 
 pkgs.mkShell {
   packages = with pkgs; [
-    go_1_26
-    openbao
-    kubernetes-helm
-    k9s
     kube-linter
     hclfmt
     action-validator
-    opentofu
   ];
 }
     

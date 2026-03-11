@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"bytes"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,10 +33,11 @@ func TestWithLogging(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Redirect log output to a buffer
+			// Redirect slog output to a buffer
 			var buf bytes.Buffer
-			log.SetOutput(&buf)
-			defer log.SetOutput(os.Stderr) // Reset after test
+			h := slog.NewTextHandler(&buf, nil)
+			slog.SetDefault(slog.New(h))
+			defer slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil))) // Reset after test
 
 			// Simple handler that just returns 200 OK
 			innerHandler := func(w http.ResponseWriter, r *http.Request) {
