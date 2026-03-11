@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,7 +28,7 @@ func main() {
 	// 1. Initialize Telemetry
 	shutdown, err := telemetry.Init(ctx, analytics.ServiceName)
 	if err != nil {
-		fmt.Printf("Warning: OTel init failed: %v\n", err)
+		telemetry.Warn("otel_init_failed", "error", err)
 	}
 	defer shutdown()
 
@@ -39,6 +38,7 @@ func main() {
 		telemetry.Error("secret_provider_init_failed", "error", err)
 		os.Exit(1)
 	}
+	defer secretStore.Close()
 
 	wrapper, err := postgres.ConnectPostgres("postgres", secretStore)
 	if err != nil {
