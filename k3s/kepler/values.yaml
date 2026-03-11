@@ -1,0 +1,47 @@
+# Kepler Helm Values: Resource-to-Value Baseline
+# Documentation: https://github.com/sustainable-computing-io/kepler-helm-chart
+
+# Image configuration
+image:
+  repository: quay.io/sustainable_computing_io/kepler
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# DaemonSet configuration
+daemonset:
+  hostPID: true
+  securityContext:
+    privileged: true
+
+# RBAC Configuration - Required for Kubelet Pod Informer in K3s
+rbac:
+  extraRules:
+    - apiGroups: [""]
+      resources: ["nodes/proxy", "nodes/metrics"]
+      verbs: ["get", "list", "watch"]
+
+# Monitoring
+serviceMonitor:
+  enabled: false # We use static scrape config in Prometheus values for simplicity
+
+prometheusRule:
+  enabled: false
+
+# Required for Kepler to access host BPF and performance counters
+canMountLibModules: true
+
+# Resource constraints - Aligned with official recommendations
+resources:
+  limits:
+    cpu: 100m
+    memory: 400Mi
+  requests:
+    cpu: 100m
+    memory: 200Mi
+
+# Node scheduling
+tolerations:
+  - operator: Exists
+
+nodeSelector:
+  kubernetes.io/os: linux
