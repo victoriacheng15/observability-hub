@@ -8,7 +8,7 @@ admin:
 persistence:
   enabled: true
   size: 10Gi
-  storageClass: local-path
+  storageClass: local-path-retain
 
 podSecurityContext:
   fsGroup: 472
@@ -100,18 +100,7 @@ datasources:
         secureJsonData:
           password: ${POSTGRES_PASSWORD}
 
-dashboardProviders:
-  dashboardproviders.yaml:
-    apiVersion: 1
-    providers:
-    - name: 'default'
-      orgId: 1
-      folder: ''
-      type: file
-      disableDeletion: false
-      editable: true
-      options:
-        path: /var/lib/grafana/dashboards
+dashboardProviders: {}
 
 service:
   type: NodePort

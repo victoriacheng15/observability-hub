@@ -50,7 +50,7 @@ storegateway:
   persistence:
     enabled: true
     size: 2Gi
-    storageClass: local-path
+    storageClass: local-path-retain
 
 # Configure Thanos Query to locate the Prometheus sidecar
 query:
@@ -100,7 +100,7 @@ compactor:
   persistence:
     enabled: true
     size: 2Gi
-    storageClass: local-path
+    storageClass: local-path-retain
 
 receive:
   enabled: false

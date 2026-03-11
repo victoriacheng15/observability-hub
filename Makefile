@@ -37,6 +37,8 @@ help:
 	@echo "  make k3s-status          - Show K3s namespace status"
 	@echo "  make k3s-df              - Check cluster image disk usage"
 	@echo "  make k3s-prune           - Cleanup unused images and ghost pods"
+	@echo "  make build-collectors    - Build and sideload collectors image"
+	@echo "  make build-postgres      - Build and sideload custom postgres image"
 	@echo "  make k3s-collectors-up   - Deploy/Restart Collectors"
 	@echo "  make k3s-logs-<pod>      - Tail logs for a specific pod (e.g., make k3s-logs-loki-0)"
 	@echo "  make k3s-backup-<name>   - Backup a resource (e.g., make k3s-backup-postgres)"
