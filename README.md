@@ -21,6 +21,7 @@ This project highlights significant accomplishments in building a modern observa
 * **Hybrid Cloud Architecture (Store-and-Forward Bridge):** Designed and implemented a secure bridge for ingesting external telemetry without exposing local ports, ensuring reliable data flow from diverse sources.
 * **Reproducible Local Development:** Ensures consistent and reproducible developer environments via `shell.nix` and `docker-compose`.
 * **Formalized Decision-Making & Incident Response:** Established an Architectural Decision Record (ADR) process and an Incident Response/RCA framework for structured decision-making and operational excellence.
+* **Domain-Isolated Agentic Interface (MCP):** Hardened the platform's security posture by adopting a domain-isolated architecture for AI agents, strictly decoupling infrastructure investigations (`mcp-pods`) from the telemetry pipeline (`mcp-telemetry`) to enforce the Principle of Least Privilege.
 * **Unified Host Telemetry Collectors:** Deployed a resource-efficient `collectors` service, centralizing host-level data collection and optimizing processing.
 
 ---
@@ -64,7 +65,7 @@ The diagram below illustrates the high-level flow of telemetry data from collect
 flowchart TB
     subgraph ObservabilityHub ["Observability Hub"]
         direction TB
-        subgraph Logic ["Data Ingestion"]
+        subgraph Logic ["Data Ingestion & Agentic Interface"]
             subgraph External ["External Sources"]
                 GH(GitHub Webhooks/Journals)
                 Mongo(MongoDB Atlas)
@@ -76,10 +77,12 @@ flowchart TB
             end
 
             GoApps["Go Services (Proxy, Ingestion)"]
-            MCP["MCP Telemetry"]
+            MCP_Tele["MCP Telemetry (Health Brain)"]
+            MCP_Pods["MCP Pods (Infra Brain)"]
             Collectors["Collectors (Host Metrics & Tailscale)"]
         end
 
+        K8S["Kubernetes API (Cluster State)"]
         OTEL[OpenTelemetry Collector]
 
         Observability["Loki, Tempo, and Prometheus (Thanos)"]
@@ -97,14 +100,19 @@ flowchart TB
     %% Data Pipeline Connections
     GH --> GoApps
     Mongo --> GoApps
+    
+    %% Domain-Isolated MCP Paths
+    Observability -- "Query Data" --> MCP_Tele
+    K8S -- "Cluster State" --> MCP_Pods
+
+    %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Collectors
-    Observability -- "Query Data" --> MCP
     Tailscale -- "Status" --> Collectors
     Collectors -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP_Tele & MCP_Pods & Collectors -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
     Observability -- "Offload" --> S3
 

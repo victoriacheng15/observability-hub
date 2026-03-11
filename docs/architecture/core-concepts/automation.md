@@ -16,7 +16,6 @@ The system consists of several main service families, each with a `.service` uni
 | :--- | :--- | :--- | :--- |
 | **`tailscale-gate`** | `simple` | Continuous | **Security**: Monitors Proxy health and toggles Tailscale Funnel access. |
 | **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
-| **`mcp-telemetry`** | `simple` | Continuous | **Agent Interface**: Exposes telemetry tools for autonomous incident response. |
 | **`ingestion`** | `oneshot` | Daily (00:00) | **Data Ingestion**: Unified engine for Reading Analytics and Second Brain sync. |
 
 ## Operational Excellence
