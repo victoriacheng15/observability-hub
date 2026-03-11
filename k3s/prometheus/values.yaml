@@ -134,6 +134,15 @@ extraScrapeConfigs: |
         regex: "otelcol_process_.*|up|scrape_.*"
         action: keep
 
+  - job_name: 'kepler'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['kepler.observability:28282']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "kepler_(node|container)_cpu_joules_total|up|scrape_.*"
+        action: keep
+
 # Scrape job configuration for single-node homelab
 scrapeConfigs:
   kubernetes-service-endpoints:

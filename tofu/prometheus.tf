@@ -10,6 +10,18 @@ resource "helm_release" "prometheus" {
   depends_on = [kubernetes_namespace_v1.observability]
 }
 
+resource "helm_release" "kepler" {
+  name       = "kepler"
+  repository = "oci://quay.io/sustainable_computing_io/charts"
+  chart      = "kepler"
+  version    = "0.11.2"
+  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+
+  values = [file("${path.module}/../k3s/kepler/values.yaml")]
+
+  depends_on = [kubernetes_namespace_v1.observability]
+}
+
 resource "kubernetes_service_v1" "prometheus_thanos_grpc" {
   metadata {
     name      = "prometheus-thanos-grpc"
@@ -37,4 +49,3 @@ resource "kubernetes_service_v1" "prometheus_thanos_grpc" {
     cluster_ip = "None" # Headless service for SRV discovery
   }
 }
-
