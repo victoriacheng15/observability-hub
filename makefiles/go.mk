@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build all-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build mcp-pods-build all-build
 
 format:
 	@echo "Formatting Go code..." && \
@@ -58,8 +58,13 @@ mcp-telemetry-build:
 	cd cmd/mcp-telemetry && go build -o ../../bin/mcp_telemetry . && \
 	sudo systemctl restart mcp-telemetry.service
 
+mcp-pods-build:
+	@echo "Updating mcp-pods..." && \
+	cd cmd/mcp-pods && go build -o ../../bin/mcp_pods .
+
 all-build:
 	@echo "Building all services..." && \
 	make proxy-build && \
 	make ingestion-build && \
-	make mcp-telemetry-build
+	make mcp-telemetry-build && \
+	make mcp-pods-build

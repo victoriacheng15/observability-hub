@@ -14,7 +14,7 @@ import (
 	"observability-hub/internal/telemetry"
 )
 
-const serviceName = "mcp.telemetry"
+const serviceName = "mcp.pods"
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -28,32 +28,18 @@ func main() {
 		defer shutdown()
 	}
 
-	thanosURL := os.Getenv("THANOS_URL")
-	lokiURL := os.Getenv("LOKI_URL")
-	tempoURL := os.Getenv("TEMPO_URL")
-
-	if thanosURL == "" {
-		telemetry.Error("THANOS_URL not set")
+	provider, err := providers.NewPodsProvider()
+	if err != nil {
+		telemetry.Error("failed to create pods provider", "error", err)
 		os.Exit(1)
 	}
-	if lokiURL == "" {
-		telemetry.Error("LOKI_URL not set")
-		os.Exit(1)
-	}
-	if tempoURL == "" {
-		telemetry.Error("TEMPO_URL not set")
-		os.Exit(1)
-	}
-
-	provider := providers.NewTelemetryProvider(thanosURL, lokiURL, tempoURL)
-	telemetry.Info("MCP Telemetry server initialized", "thanos_url", thanosURL, "loki_url", lokiURL, "tempo_url", tempoURL)
 
 	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "mcp-telemetry",
+		Name:    "mcp-pods",
 		Version: "1.0.0",
 	}, nil)
 
-	internalmcp.RegisterTelemetryTools(server, provider)
+	internalmcp.RegisterPodsTools(server, provider)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -65,10 +51,9 @@ func main() {
 		}
 	}()
 
-	telemetry.Info("mcp-telemetry ready", "tools", []string{"query_metrics", "query_logs", "query_traces", "investigate_incident"})
+	telemetry.Info("mcp-pods ready", "tools", []string{"inspect_pods", "describe_pod", "list_pod_events"})
 
 	sig := <-sigChan
 	telemetry.Info("received signal, shutting down", "signal", sig.String())
 	cancel()
-	provider.Close()
 }
