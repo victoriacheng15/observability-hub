@@ -1,4 +1,4 @@
-package collectors
+package analytics
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -98,4 +99,45 @@ func (c *ThanosClient) QueryRange(ctx context.Context, query string, start, end 
 	}
 
 	return samples, nil
+}
+
+// ThanosResourceProvider implements ResourceProvider using Thanos.
+type ThanosResourceProvider struct {
+	Client *ThanosClient
+}
+
+func NewThanosResourceProvider(client *ThanosClient) *ThanosResourceProvider {
+	return &ThanosResourceProvider{Client: client}
+}
+
+func (p *ThanosResourceProvider) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
+	// Query for node energy increase over the period
+	query := fmt.Sprintf("sum(increase(kepler_node_cpu_joules_total[%s]))", "15m")
+	samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(samples) == 0 {
+		return 0, nil
+	}
+
+	// Sum up the values from all samples in the range (though sum() already does most work)
+	// We'll take the last value as it's the most complete increase for the period
+	last := samples[len(samples)-1]
+	val, _ := strconv.ParseFloat(fmt.Sprintf("%v", last.Payload["value"]), 64)
+	return val, nil
+}
+
+func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
+	// Default: ~150g CO2 per kWh (Sample value for a "greenish" grid)
+	// In a real implementation, this could call an external API.
+	return 150.0, nil
+}
+
+func (p *ThanosResourceProvider) GetCostFactor(ctx context.Context) (float64, error) {
+	// Default: $0.15 CAD per kWh (Sample price)
+	// 1 kWh = 3_600_000 Joules
+	// Cost per Joule = 0.15 / 3_600_000
+	return 0.15 / 3600000.0, nil
 }

@@ -12,7 +12,7 @@ import (
 
 // InvestigateIncidentInput represents the input for the investigate_incident tool.
 type InvestigateIncidentInput struct {
-	Service string `json:"service"`         // service name to investigate e.g. "proxy", "collectors"
+	Service string `json:"service"`         // service name to investigate e.g. "proxy", "analytics"
 	Hours   int    `json:"hours,omitempty"` // lookback window in hours (default 1, max 168)
 	Since   string `json:"since,omitempty"` // ISO 8601 start time e.g. "2026-03-06T17:00:00Z" — overrides hours
 }

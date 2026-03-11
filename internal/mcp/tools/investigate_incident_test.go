@@ -71,7 +71,7 @@ func TestInvestigateIncidentHandler_Execute(t *testing.T) {
 		},
 		{
 			name:        "both logs and traces with errors",
-			input:       InvestigateIncidentInput{Service: "collectors", Hours: 6},
+			input:       InvestigateIncidentInput{Service: "analytics", Hours: 6},
 			mockMetrics: noopMetrics,
 			mockLogs:    logsWithErrors,
 			mockTraces:  tracesWithErrors,

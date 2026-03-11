@@ -34,7 +34,7 @@ func TestQueryTracesHandler_Execute(t *testing.T) {
 		},
 		{
 			name:    "search with traceql query",
-			input:   QueryTracesInput{Query: `{resource.service.name="collectors"}`, Limit: 10},
+			input:   QueryTracesInput{Query: `{resource.service.name="analytics"}`, Limit: 10},
 			wantErr: false,
 		},
 		{

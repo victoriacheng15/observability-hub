@@ -1,13 +1,13 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "collectors.fullname" . }}
+  name: {{ include "analytics.fullname" . }}
   labels:
-    {{- include "collectors.labels" . | nindent 4 }}
+    {{- include "analytics.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      {{- include "collectors.selectorLabels" . | nindent 6 }}
+      {{- include "analytics.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -15,7 +15,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "collectors.selectorLabels" . | nindent 8 }}
+        {{- include "analytics.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
