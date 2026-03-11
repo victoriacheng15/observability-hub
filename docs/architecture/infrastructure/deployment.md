@@ -10,7 +10,7 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **Collectors** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. (Managed via Makefile/Helm). |
+| **Analytics** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. (Managed via Makefile/Helm). |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
 | **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
@@ -40,14 +40,14 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 sequenceDiagram
     participant App as Go Services
     participant Script as Bash Scripts
-    participant Collectors_Agent as Collectors
+    participant Analytics_Agent as Analytics
     participant OTel_Collector as OpenTelemetry Collector
     participant Observability as Observability (Loki, Prometheus, Tempo)
     participant Grafana as Grafana
 
     App->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     Script->>OTel_Collector: Logs, Metrics, Traces (OTLP)
-    Collectors_Agent->>OTel_Collector: Metrics, Traces (OTLP)
+    Analytics_Agent->>OTel_Collector: Metrics, Traces (OTLP)
 
     OTel_Collector->>Observability: Push Logs, Metrics, Traces
     Observability->>Grafana: Query Logs, Metrics, Traces

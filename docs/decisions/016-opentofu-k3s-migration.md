@@ -22,7 +22,7 @@ Adopt OpenTofu to declaratively manage all standard Helm-based Kubernetes servic
 Each service is defined as a `helm_release` resource referencing the existing
 `k3s/<service>/values.yaml`. Existing live releases are migrated via
 `tofu import` for zero-downtime adoption. MinIO serves as the S3-compatible
-state backend. Collectors is explicitly excluded due to its custom local image
+state backend. Analytics is explicitly excluded due to its custom local image
 build and sideload workflow.
 
 ## Consequences

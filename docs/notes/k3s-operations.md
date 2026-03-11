@@ -54,17 +54,17 @@ nix-shell --run "tofu apply"
 
 ---
 
-### Collectors (Unified Host Telemetry)
+### Analytics (Unified Host Telemetry)
 
 - **Status**: **Manually Managed** (Excluded from Tofu due to custom local image requirement).
-- **Chart**: `k3s/collectors` (Local Chart)
-- **Values**: `k3s/collectors/values.yaml`
+- **Chart**: `k3s/analytics` (Local Chart)
+- **Values**: `k3s/analytics/values.yaml`
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template collectors k3s/collectors -f k3s/collectors/values.yaml --namespace observability > k3s/collectors/manifest.yaml"
-  kubectl apply -f k3s/collectors/manifest.yaml
-  kubectl rollout restart daemonset collectors -n observability
+  nix-shell --run "helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace observability > k3s/analytics/manifest.yaml"
+  kubectl apply -f k3s/analytics/manifest.yaml
+  kubectl rollout restart daemonset analytics -n observability
   ```
 
 - **Local Image Sideloading**:
@@ -72,18 +72,18 @@ nix-shell --run "tofu apply"
 
 ```bash
 # 1. Build locally (using podman)
-podman build -t collectors:v0.1.0 -f docker/collectors/Dockerfile .
+podman build -t analytics:v0.1.0 -f docker/analytics/Dockerfile .
 
 # 2. Export and Import
-podman save -o collectors.tar localhost/collectors:v0.1.0
-sudo k3s ctr images import collectors.tar
+podman save -o analytics.tar localhost/analytics:v0.1.0
+sudo k3s ctr images import analytics.tar
 
 # 3. Tag for K3s local lookup
-sudo k3s ctr images tag localhost/collectors:v0.1.0 collectors:v0.1.0
-sudo k3s ctr images tag localhost/collectors:v0.1.0 docker.io/library/collectors:v0.1.0
+sudo k3s ctr images tag localhost/analytics:v0.1.0 analytics:v0.1.0
+sudo k3s ctr images tag localhost/analytics:v0.1.0 docker.io/library/analytics:v0.1.0
 
 # 4. Cleanup
-rm collectors.tar
+rm analytics.tar
 ```
 
 ### Grafana (Visualization)
@@ -183,7 +183,7 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 | Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **collectors** | 5m | 20Mi | 50m | 80Mi | Telemetry Collection |
+| **analytics** | 5m | 20Mi | 50m | 80Mi | Telemetry Collection |
 | **grafana** | 50m | 256Mi | 200m | 512Mi | Visualization |
 | **loki** | 200m | 512Mi | 1000m | 2Gi | Log Storage |
 | **minio** | 200m | 512Mi | 500m | 1Gi | S3 Storage Backend |

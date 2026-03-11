@@ -9,6 +9,7 @@
 Following the adoption of the Model Context Protocol (ADR 017), the initial implementation focused exclusively on telemetry data (Thanos, Loki, Tempo). However, as the "Agentic Expansion" phase of the roadmap (Phase 2) begins, there is a requirement to expose infrastructure-level state—specifically Kubernetes Pods and Events—to the AI control plane.
 
 Combining infrastructure tools (Kubernetes API) with telemetry tools (LGTM stack) into a single MCP server creates several architectural risks:
+
 1. **Security Over-Privilege:** A monolithic server would require both network access to telemetry NodePorts and high-level RBAC permissions for the Kubernetes API, increasing the blast radius of a process compromise.
 2. **Dependency Bloat:** The server would need to import both `client-go` and various telemetry clients, leading to larger binaries and slower startup times.
 3. **Operational Fragility:** A crash or timeout in the Kubernetes client could disrupt the availability of the telemetry tools, breaking the agent's entire reasoning loop.

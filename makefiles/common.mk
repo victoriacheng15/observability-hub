@@ -30,7 +30,7 @@ adr:
 
 # Markdown Linting
 lint:
-	$(DOCKER) run --rm -v "$(PWD):/data" -w /data $(LINT_IMAGE) --fix "**/*.md"
+	$(DOCKER) run --rm -v "$(PWD):/data:Z" -w /data $(LINT_IMAGE) --fix "**/*.md"
 
 # Configuration Linting (HCL & GitHub Actions)
 lint-configs:

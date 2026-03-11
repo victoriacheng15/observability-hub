@@ -22,7 +22,7 @@ This project highlights significant accomplishments in building a modern observa
 * **Reproducible Local Development:** Ensures consistent and reproducible developer environments via `shell.nix` and `docker-compose`.
 * **Formalized Decision-Making & Incident Response:** Established an Architectural Decision Record (ADR) process and an Incident Response/RCA framework for structured decision-making and operational excellence.
 * **Domain-Isolated Agentic Interface (MCP):** Hardened the platform's security posture by adopting a domain-isolated architecture for AI agents, strictly decoupling infrastructure investigations (`mcp-pods`) from the telemetry pipeline (`mcp-telemetry`) to enforce the Principle of Least Privilege.
-* **Unified Host Telemetry Collectors:** Deployed a resource-efficient `collectors` service, centralizing host-level data collection and optimizing processing.
+* **Unified Host Telemetry Analytics:** Deployed a resource-efficient `analytics` service, centralizing host-level data collection and optimizing processing.
 
 ---
 
@@ -79,7 +79,7 @@ flowchart TB
             GoApps["Go Services (Proxy, Ingestion)"]
             MCP_Tele["MCP Telemetry (Health Brain)"]
             MCP_Pods["MCP Pods (Infra Brain)"]
-            Collectors["Collectors (Host Metrics & Tailscale)"]
+            Analytics["Analytics (Host Metrics & Tailscale)"]
         end
 
         K8S["Kubernetes API (Cluster State)"]
@@ -106,13 +106,13 @@ flowchart TB
     K8S -- "Cluster State" --> MCP_Pods
 
     %% Telemetry & Storage Connections
-    Observability -- "Host Metrics" --> Collectors
-    Tailscale -- "Status" --> Collectors
-    Collectors -- "Host Metrics Data" --> PG
+    Observability -- "Host Metrics" --> Analytics
+    Tailscale -- "Status" --> Analytics
+    Analytics -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP_Tele & MCP_Pods & Collectors -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
     Observability -- "Offload" --> S3
 
@@ -174,15 +174,15 @@ tofu apply
 
 This will provision PostgreSQL, MinIO, Loki, Tempo, Prometheus, Thanos, Grafana, and the OpenTelemetry Collector in the `observability` namespace.
 
-For the **Collectors** service (which uses a custom local image), use the Makefile target:
+For the **Analytics** service (which uses a custom local image), use the Makefile target:
 
 ```bash
-make k3s-collectors-up
+make k3s-analytics-up
 ```
 
 #### B. Native Host Services
 
-Build and initialize the automation and telemetry collectors on the host:
+Build and initialize the automation and telemetry analytics on the host:
 
 ```bash
 # Build Go binaries
