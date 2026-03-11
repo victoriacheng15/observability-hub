@@ -143,16 +143,16 @@ scrapeConfigs:
     relabel_configs:
       - source_labels: [__meta_kubernetes_service_name]
         action: keep
-        regex: "prometheus-prometheus-node-exporter"
+        regex: "prometheus-prometheus-node-exporter|prometheus-kube-state-metrics"
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|up|scrape_.*"
+        regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|kepler_node_.*|up|scrape_.*"
         action: keep
 
   kubernetes-nodes-cadvisor:
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "container_cpu_(usage_seconds_total|cfs_throttled_seconds_total|cfs_periods_total|cfs_throttled_periods_total)|container_memory_(working_set_bytes|rss|cache|usage_bytes)|container_network_(receive|transmit)_bytes_total|container_spec_(cpu_quota|cpu_period|memory_limit_bytes)|container_start_time_seconds|up|scrape_.*"
+        regex: "container_cpu_(usage_seconds_total|cfs_throttled_seconds_total|cfs_periods_total|cfs_throttled_periods_total)|container_memory_(working_set_bytes|rss|cache|usage_bytes)|container_network_(receive|transmit)_bytes_total|container_spec_(cpu_quota|cpu_period|memory_limit_bytes)|container_start_time_seconds|kepler_container_.*|up|scrape_.*"
         action: keep
 
   prometheus:
