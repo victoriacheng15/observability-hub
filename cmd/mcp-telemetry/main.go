@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"observability-hub/internal/env"
+	internalmcp "observability-hub/internal/mcp"
 	"observability-hub/internal/mcp/providers"
 	"observability-hub/internal/telemetry"
 )
@@ -52,7 +53,7 @@ func main() {
 		Version: "1.0.0",
 	}, nil)
 
-	registerTools(server, provider)
+	internalmcp.RegisterTools(server, provider)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
