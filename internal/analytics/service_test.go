@@ -28,6 +28,7 @@ type MockStore struct {
 	RecordAnalyticsMetricFn func(ctx context.Context, t time.Time, featureID string, kind MetricKind, value float64, unit string, metadata map[string]interface{}) error
 	Recorded                []string // Simplified log of recorded metric types
 	AnalyticsRecorded       []string // Simplified log of recorded analytics types
+	FeatureIDs              []string // Log of recorded feature IDs
 }
 
 func (m *MockStore) RecordMetric(ctx context.Context, t time.Time, hostName, osName, metricType string, payload interface{}) error {
@@ -40,6 +41,7 @@ func (m *MockStore) RecordMetric(ctx context.Context, t time.Time, hostName, osN
 
 func (m *MockStore) RecordAnalyticsMetric(ctx context.Context, t time.Time, featureID string, kind MetricKind, value float64, unit string, metadata map[string]interface{}) error {
 	m.AnalyticsRecorded = append(m.AnalyticsRecorded, string(kind))
+	m.FeatureIDs = append(m.FeatureIDs, featureID)
 	if m.RecordAnalyticsMetricFn != nil {
 		return m.RecordAnalyticsMetricFn(ctx, t, featureID, kind, value, unit, metadata)
 	}
@@ -48,7 +50,9 @@ func (m *MockStore) RecordAnalyticsMetric(ctx context.Context, t time.Time, feat
 
 // MockResources satisfies the ResourceProvider interface.
 type MockResources struct {
-	GetEnergyJoulesFn func(ctx context.Context, start, end time.Time) (float64, error)
+	GetEnergyJoulesFn    func(ctx context.Context, start, end time.Time) (float64, error)
+	GetContainerEnergyFn func(ctx context.Context, start, end time.Time) (map[string]float64, error)
+	GetHostServiceCPUFn  func(ctx context.Context, start, end time.Time) (map[string]float64, error)
 }
 
 func (m *MockResources) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
@@ -56,6 +60,25 @@ func (m *MockResources) GetEnergyJoules(ctx context.Context, start, end time.Tim
 		return m.GetEnergyJoulesFn(ctx, start, end)
 	}
 	return 100.0, nil
+}
+
+func (m *MockResources) GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	if m.GetContainerEnergyFn != nil {
+		return m.GetContainerEnergyFn(ctx, start, end)
+	}
+	return map[string]float64{
+		"postgres": 20.0,
+	}, nil
+}
+
+func (m *MockResources) GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	if m.GetHostServiceCPUFn != nil {
+		return m.GetHostServiceCPUFn(ctx, start, end)
+	}
+	return map[string]float64{
+		"ingestion.service": 0.5,
+		"proxy.service":     0.5,
+	}, nil
 }
 
 func (m *MockResources) GetCarbonIntensity(ctx context.Context) (float64, error) {
@@ -243,15 +266,22 @@ func TestService_ProcessResources(t *testing.T) {
 
 	s.processResources(context.Background(), time.Now().Add(-15*time.Minute), time.Now(), "test-host", "linux")
 
-	expected := []string{"energy", "cost", "carbon"}
-	recordedMap := make(map[string]bool)
-	for _, m := range mockStore.AnalyticsRecorded {
-		recordedMap[m] = true
+	// Total node (3) + pod (3) + 2 attributed services (6) = 12 recordings
+	expectedCount := 12
+	if len(mockStore.AnalyticsRecorded) != expectedCount {
+		t.Errorf("expected %d analytics recordings, got %d", expectedCount, len(mockStore.AnalyticsRecorded))
 	}
 
-	for _, exp := range expected {
-		if !recordedMap[exp] {
-			t.Errorf("expected analytics kind %s was not recorded", exp)
+	featureSet := make(map[string]bool)
+	for _, id := range mockStore.FeatureIDs {
+		featureSet[id] = true
+	}
+
+	// 'postgres' mapped from podMetrics, 'ingestion' and 'proxy' mapped from hostServiceCPU (via .service units)
+	expectedFeatures := []string{"node-total", "database-core", "ingestion", "proxy"}
+	for _, f := range expectedFeatures {
+		if !featureSet[f] {
+			t.Errorf("expected feature %s was not recorded", f)
 		}
 	}
 }

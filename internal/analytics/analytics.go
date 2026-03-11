@@ -129,7 +129,55 @@ func (p *ThanosResourceProvider) GetEnergyJoules(ctx context.Context, start, end
 	return val, nil
 }
 
+func (p *ThanosResourceProvider) GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	// Query energy increase per container
+	query := fmt.Sprintf("sum(increase(kepler_container_cpu_joules_total[%s])) by (container_name)", "15m")
+	samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
+	if err != nil {
+		return nil, err
+	}
+
+	features := make(map[string]float64)
+	for _, s := range samples {
+		labels, ok := s.Payload["labels"].(map[string]string)
+		if !ok {
+			continue
+		}
+		container := labels["container_name"]
+		if container == "" || container == "POD" {
+			continue
+		}
+
+		val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
+		features[container] = val
+	}
+	return features, nil
+}
+
+func (p *ThanosResourceProvider) GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+	// Query CPU usage for target systemd services
+	// Pattern: node_systemd_unit_cpu_usage_seconds_total{name=~"proxy.service|ingestion.service|mcp-.*"}
+	query := fmt.Sprintf("sum(rate(node_systemd_unit_cpu_usage_seconds_total{name=~\"proxy.service|ingestion.service|mcp-.*\"}[%s])) by (name)", "15m")
+	samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
+	if err != nil {
+		return nil, err
+	}
+
+	serviceCPU := make(map[string]float64)
+	for _, s := range samples {
+		labels, ok := s.Payload["labels"].(map[string]string)
+		if !ok {
+			continue
+		}
+		service := labels["name"]
+		val, _ := strconv.ParseFloat(fmt.Sprintf("%v", s.Payload["value"]), 64)
+		serviceCPU[service] = val
+	}
+	return serviceCPU, nil
+}
+
 func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
+
 	// Default: ~150g CO2 per kWh (Sample value for a "greenish" grid)
 	// In a real implementation, this could call an external API.
 	return 150.0, nil
