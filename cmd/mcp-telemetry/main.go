@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -53,15 +55,20 @@ func main() {
 
 	internalmcp.RegisterTelemetryTools(server, provider)
 
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		t := &mcp.StdioTransport{}
+		if err := server.Run(ctx, t); err != nil {
+			telemetry.Error("MCP server execution failed", "error", err)
+		}
+	}()
+
 	telemetry.Info("mcp-telemetry ready", "tools", []string{"query_metrics", "query_logs", "query_traces", "investigate_incident"})
 
-	// Run the server on stdio transport. This is a blocking call.
-	// We run it directly in the main thread for standalone operation.
-	t := &mcp.StdioTransport{}
-	if err := server.Run(ctx, t); err != nil {
-		telemetry.Error("MCP server execution failed", "error", err)
-	}
-
-	telemetry.Info("shutting down mcp-telemetry")
+	sig := <-sigChan
+	telemetry.Info("received signal, shutting down", "signal", sig.String())
+	cancel()
 	provider.Close()
 }
