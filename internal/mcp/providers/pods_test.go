@@ -161,4 +161,42 @@ func TestPodsProvider(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("DeletePod", func(t *testing.T) {
+		fakePod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "delete-me",
+				Namespace: "default",
+			},
+		}
+		clientset := fake.NewSimpleClientset(fakePod)
+		provider := &PodsProvider{clientset: clientset}
+
+		err := provider.DeletePod(context.Background(), "default", "delete-me", nil)
+		if err != nil {
+			t.Errorf("DeletePod() unexpected error: %v", err)
+		}
+
+		err = provider.DeletePod(context.Background(), "default", "ghost-pod", nil)
+		if err == nil {
+			t.Error("DeletePod() expected error for non-existent pod, got nil")
+		}
+	})
+
+	t.Run("GetPodLogs", func(t *testing.T) {
+		fakePod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "default",
+			},
+		}
+		clientset := fake.NewSimpleClientset(fakePod)
+		provider := &PodsProvider{clientset: clientset}
+
+		// Note: fake clientset's GetLogs doesn't return actual logs, but we can verify it doesn't error
+		_, err := provider.GetPodLogs(context.Background(), "default", "test-pod", "", 10, false)
+		if err != nil {
+			t.Errorf("GetPodLogs() unexpected error: %v", err)
+		}
+	})
 }

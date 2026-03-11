@@ -18,9 +18,10 @@ Combining infrastructure tools (Kubernetes API) with telemetry tools (LGTM stack
 
 Adopt a **Domain-Isolated MCP Architecture** by splitting agentic capabilities into specialized, standalone binaries:
 
-- **Specialized Servers:** Implement a new dedicated service, **`mcp-pods`**, to handle all infrastructure-related investigations. Future servers (e.g., `mcp-domain`) will follow this pattern.
+- **Specialized Servers:** Implement a new dedicated service, **`mcp-pods`**, to handle all infrastructure-related operations and investigations. This includes diagnostic log retrieval (`get_pod_logs`) and basic remediation (`delete_pod`) alongside resource inspection.
 - **Shared Registry Pattern:** Use a modular registry in `internal/mcp/registry.go` to share protocol logic (JSON-RPC formatting, error handling) while allowing each binary to register only the toolsets it requires.
 - **Standalone Binary Pattern:** Deploy these servers as pure binaries communicating over `stdio`, avoiding host-tier service managers like systemd to improve portability and alignment with future containerized orchestration.
+- **Lifecycle Standardization:** Enforce a unified signal-handling pattern (`os/signal`) across all MCP binaries to ensure reliable telemetry flushing and resource cleanup (e.g., closing provider connections) during server termination.
 
 ## Consequences
 
@@ -39,5 +40,6 @@ Adopt a **Domain-Isolated MCP Architecture** by splitting agentic capabilities i
 
 - [x] **Modular Registry:** Refactored `internal/mcp/registry.go` to support `RegisterTelemetryTools` and `RegisterPodsTools` independently.
 - [x] **Service Isolation:** Verified `mcp-pods` binary successfully executes and connects to the K3s API using `client-go` with pluralized naming conventions.
-- [x] **Tool Fidelity:** Verified `inspect_pods`, `describe_pod`, and `list_pod_events` return high-signal, machine-readable data from the live cluster.
+- [x] **Operational Expansion:** Implemented and verified `get_pod_logs` and `delete_pod` for active troubleshooting and remediation.
+- [x] **Lifecycle Standardization:** Standardized all MCP servers (pods, telemetry) on signal-based graceful shutdown patterns to ensure reliable cleanup.
 - [x] **Systemic Stability:** Confirmed that `mcp-telemetry` remains fully functional and isolated from the infrastructure-level logic.

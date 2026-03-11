@@ -99,3 +99,35 @@ func (p *PodsProvider) ListEvents(ctx context.Context, namespace, name string) (
 
 	return filtered, nil
 }
+
+// GetPodLogs retrieves logs from the specified pod/container.
+func (p *PodsProvider) GetPodLogs(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error) {
+	opts := &corev1.PodLogOptions{
+		Container: container,
+		Previous:  previous,
+	}
+	if tailLines > 0 {
+		opts.TailLines = &tailLines
+	}
+
+	req := p.clientset.CoreV1().Pods(namespace).GetLogs(name, opts)
+	logs, err := req.DoRaw(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get logs for pod %s/%s: %w", name, namespace, err)
+	}
+
+	return string(logs), nil
+}
+
+// DeletePod deletes the specified pod.
+func (p *PodsProvider) DeletePod(ctx context.Context, namespace, name string, gracePeriod *int64) error {
+	opts := metav1.DeleteOptions{
+		GracePeriodSeconds: gracePeriod,
+	}
+	err := p.clientset.CoreV1().Pods(namespace).Delete(ctx, name, opts)
+	if err != nil {
+		return fmt.Errorf("failed to delete pod %s/%s: %w", name, namespace, err)
+	}
+
+	return nil
+}

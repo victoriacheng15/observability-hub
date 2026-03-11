@@ -75,3 +75,49 @@ func NewListPodEventsHandler(listEventsFn func(ctx context.Context, namespace, n
 func (h *ListPodEventsHandler) Execute(ctx context.Context, input PodsInput) (interface{}, error) {
 	return h.listEventsFn(ctx, input.Namespace, input.Name)
 }
+
+// PodLogsInput is the input for getting pod logs.
+type PodLogsInput struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Container string `json:"container,omitempty"`
+	TailLines int64  `json:"tail_lines,omitempty"`
+	Previous  bool   `json:"previous,omitempty"`
+}
+
+// GetPodLogsHandler handles retrieving logs for a pod.
+type GetPodLogsHandler struct {
+	getLogsFn func(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error)
+}
+
+func NewGetPodLogsHandler(getLogsFn func(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error)) *GetPodLogsHandler {
+	return &GetPodLogsHandler{getLogsFn: getLogsFn}
+}
+
+func (h *GetPodLogsHandler) Execute(ctx context.Context, input PodLogsInput) (interface{}, error) {
+	return h.getLogsFn(ctx, input.Namespace, input.Name, input.Container, input.TailLines, input.Previous)
+}
+
+// DeletePodInput is the input for deleting a pod.
+type DeletePodInput struct {
+	Namespace    string `json:"namespace"`
+	Name         string `json:"name"`
+	GraceSeconds *int64 `json:"grace_seconds,omitempty"`
+}
+
+// DeletePodHandler handles deleting a pod.
+type DeletePodHandler struct {
+	deleteFn func(ctx context.Context, namespace, name string, gracePeriod *int64) error
+}
+
+func NewDeletePodHandler(deleteFn func(ctx context.Context, namespace, name string, gracePeriod *int64) error) *DeletePodHandler {
+	return &DeletePodHandler{deleteFn: deleteFn}
+}
+
+func (h *DeletePodHandler) Execute(ctx context.Context, input DeletePodInput) (interface{}, error) {
+	err := h.deleteFn(ctx, input.Namespace, input.Name, input.GraceSeconds)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"status": "deleted", "pod": input.Name, "namespace": input.Namespace}, nil
+}
