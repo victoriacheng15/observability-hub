@@ -21,21 +21,6 @@
   "links": [],
   "panels": [
     {
-      "gridPos": {
-        "h": 3,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "content": "### 🌡️ Hardware Thermal vs. Power Efficiency\nMonitoring the relationship between physical temperature and power draw to identify the hardware's thermal 'sweet spot'. <small>*Note: Analysis correlates CPU package temperature with Kepler-reported node power.*</small>",
-        "mode": "markdown"
-      },
-      "title": "Header",
-      "type": "text"
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus-provisioned"
@@ -70,7 +55,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 3
+        "y": 0
       },
       "id": 2,
       "options": {
@@ -131,7 +116,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 3
+        "y": 0
       },
       "id": 3,
       "options": {
@@ -191,7 +176,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 3
+        "y": 0
       },
       "id": 4,
       "options": {
@@ -216,7 +201,7 @@
           },
           "editorMode": "code",
           "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / max(node_hwmon_temp_celsius{sensor=\"temp1\"})",
-          "legendFormat": "Watts/°C",
+          "legendFormat": "Watts/\u00b0C",
           "range": true,
           "refId": "A"
         }
@@ -297,7 +282,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 4
       },
       "id": 5,
       "options": {
@@ -397,7 +382,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 16
       },
       "id": 6,
       "options": {
