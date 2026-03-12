@@ -290,34 +290,34 @@ chapters:
         description: |
           - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to provide a high-fidelity bridge for host-to-cluster investigation.
       - date: "2026-03-06"
-        title: "MCP Level 1: Metrics Intelligence"
+        title: "mcp-telemetry: Metrics Intelligence (Level 1)"
         description: |
-          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via the official MCP Go SDK, enabling streamlined performance baselining and anomaly detection against live Thanos data.
+          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via 'mcp-telemetry', enabling streamlined performance baselining and anomaly detection against live Thanos data.
       - date: "2026-03-07"
-        title: "MCP Level 2 & 3: Semantic Logging & Distributed Tracing"
+        title: "mcp-telemetry: Semantic Logging & Distributed Tracing (Level 2 & 3)"
         description: |
-          - Reduced Mean-Time-To-Discovery (MTTD) by implementing semantic log filtering via Loki and distributed trace search via Tempo (TraceQL), allowing agents to correlate unstructured events with system failures.
+          - Reduced Mean-Time-To-Discovery (MTTD) via 'mcp-telemetry' by implementing semantic log filtering via Loki and distributed trace search via Tempo (TraceQL), allowing agents to correlate unstructured events with system failures.
           - Implemented PII masking to prevent data leakage in logs for sensitive keys (e.g. passwords, tokens).
       - date: "2026-03-08"
-        title: "MCP Level 4: Incident Investigation"
+        title: "mcp-telemetry: Incident Investigation (Level 4)"
         artifacts:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
-          - Completed the LGTM observability loop by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
+          - Completed the LGTM observability loop in 'mcp-telemetry' by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
       - date: "2026-03-11"
-        title: "Domain-Isolated MCP Architecture & Infrastructure Intelligence"
+        title: "mcp-pods: Domain-Isolated Infrastructure Intelligence"
         artifacts:
           - name: "ADR 018: Domain-Isolated MCP Architecture"
             url: "docs/decisions/018-domain-isolated-mcp-architecture.md"
         description: |
           - Architected a domain-isolated MCP framework to enforce the Principle of Least Privilege, reducing the security blast radius by strictly decoupling infrastructure-level RBAC from the telemetry pipeline.
-          - Engineered a high-fidelity "Infrastructure Intelligence" service (mcp-pods) that enables AI agents to correlate Kubernetes orchestration events with system-wide telemetry, accelerating the discovery of cluster-level failures.
+          - Engineered a high-fidelity 'Infrastructure Intelligence' service (mcp-pods) that enables AI agents to correlate Kubernetes orchestration events with system-wide telemetry, accelerating the discovery of cluster-level failures.
       - date: "2026-03-12"
-        title: "Hybrid Host-Cluster Intelligence: mcp-hub"
+        title: "mcp-hub: Hybrid Host-Cluster Intelligence"
         artifacts:
           - name: "ADR 019: Hybrid Host-MCP Intelligence"
             url: "docs/decisions/019-hybrid-host-mcp-intelligence.md"
         description: |
-          - Enabled comprehensive platform accountability by implementing 'mcp-hub,' a dedicated intelligence bridge that eliminates visibility gaps between Kubernetes orchestration and host-resident pillar services (Ingestion, Proxy, OpenBao).
-          - Reduced Mean-Time-To-Discovery (MTTD) for host-level failures by engineering namespaced tools ('hub_') for surgical resource introspection and direct systemd journal retrieval, enabling agents to correlate physical resource pressure with cluster-level instability.
+          - Eliminated visibility gaps between Kubernetes orchestration and host-resident services via 'mcp-hub' to ensure unified platform accountability.
+          - Accelerated host-level failure detection via namespaced tools (`hub_`) for surgical resource introspection and cross-layer correlation.
