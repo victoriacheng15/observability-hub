@@ -21,21 +21,6 @@
   "links": [],
   "panels": [
     {
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 4
-      },
-      "id": 1,
-      "options": {
-        "content": "### \ud83c\udf3f Sustainability & Efficiency Hub\nThis comprehensive dashboard provides real-time visibility into the environmental and economic impact of the platform, tracking energy consumption, carbon footprint, and orchestration efficiency.\n\n**Key Metrics:**\n- **Efficiency:** Ratio of useful Pod power to total Node power.\n- **Carbon:** Based on an intensity of **150g CO2/kWh** (0.15 factor).\n- **Cost:** Based on an average electricity cost of **0.15 CAD/kWh**.\n- **Offset:** Yearly tree offset based on **21kg CO2 per tree/year**.",
-        "mode": "markdown"
-      },
-      "title": "Header",
-      "type": "text"
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus-provisioned"
@@ -68,7 +53,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 0,
         "w": 4,
         "h": 4
       },
@@ -128,7 +113,7 @@
       },
       "gridPos": {
         "x": 4,
-        "y": 4,
+        "y": 0,
         "w": 5,
         "h": 4
       },
@@ -190,7 +175,7 @@
       },
       "gridPos": {
         "x": 9,
-        "y": 4,
+        "y": 0,
         "w": 5,
         "h": 4
       },
@@ -251,7 +236,7 @@
       },
       "gridPos": {
         "x": 14,
-        "y": 4,
+        "y": 0,
         "w": 5,
         "h": 4
       },
@@ -312,7 +297,7 @@
       },
       "gridPos": {
         "x": 19,
-        "y": 4,
+        "y": 0,
         "w": 5,
         "h": 4
       },
@@ -400,7 +385,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 8,
         "w": 12,
         "h": 10
       },
@@ -499,7 +484,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 12,
+        "y": 8,
         "w": 12,
         "h": 10
       },
@@ -598,7 +583,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 22,
+        "y": 18,
         "w": 12,
         "h": 10
       },
@@ -697,7 +682,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 22,
+        "y": 18,
         "w": 12,
         "h": 10
       },
@@ -759,7 +744,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -820,7 +805,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 8,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -882,7 +867,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 8,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -943,7 +928,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 8,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -1002,7 +987,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 28,
         "w": 8,
         "h": 8
       },
@@ -1067,7 +1052,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 32,
+        "y": 28,
         "w": 8,
         "h": 8
       },
@@ -1132,7 +1117,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 32,
+        "y": 28,
         "w": 8,
         "h": 8
       },
