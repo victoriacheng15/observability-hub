@@ -82,11 +82,29 @@ func NewService(thanos ThanosSource, store DataStore, resources ResourceProvider
 func (s *Service) Start(ctx context.Context) error {
 	telemetry.Info("service_started", "interval", Interval.String())
 
-	// 3. Main Loop
+	// Run immediate first batch
+	s.RunBatch(ctx)
+
+	// Calculate time until next interval boundary
+	now := time.Now().UTC()
+	next := now.Truncate(Interval).Add(Interval)
+	sleepDuration := next.Sub(now)
+
+	telemetry.Info("waiting_for_time_boundary", "sleep", sleepDuration.String(), "next_run", next.Format(time.RFC3339))
+
+	// Wait for the boundary or shutdown
+	select {
+	case <-time.After(sleepDuration):
+	case <-ctx.Done():
+		telemetry.Info("service_shutting_down")
+		return nil
+	}
+
+	// Now we are aligned, start the regular ticker
 	ticker := time.NewTicker(Interval)
 	defer ticker.Stop()
 
-	// Run immediate first batch
+	// Run the first aligned batch immediately
 	s.RunBatch(ctx)
 
 	for {
@@ -122,7 +140,7 @@ func (s *Service) RunBatch(ctx context.Context) {
 
 	telemetry.AddInt64Counter(ctx, collTotal, 1)
 
-	end := time.Now().UTC().Truncate(time.Minute)
+	end := time.Now().UTC().Truncate(Interval)
 	start := end.Add(-Interval)
 
 	// 1. Get Host Metadata directly from mounted host files

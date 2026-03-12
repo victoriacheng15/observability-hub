@@ -38,7 +38,7 @@ build-postgres:
 
 k3s-analytics-up:
 	@echo "Regenerating Analytics manifest..."
-	$(NIX_RUN) "helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace $(NS) > k3s/analytics/manifest.yaml"
+	helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace $(NS) > k3s/analytics/manifest.yaml
 	@echo "Deploying Analytics..."
 	@$(KC) apply -f k3s/analytics/manifest.yaml
 	@$(KC) rollout restart daemonset/analytics
