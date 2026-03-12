@@ -161,7 +161,7 @@ scrapeConfigs:
   kubernetes-nodes-cadvisor:
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "container_cpu_(usage_seconds_total|cfs_throttled_seconds_total|cfs_periods_total|cfs_throttled_periods_total)|container_memory_(working_set_bytes|rss|cache|usage_bytes)|container_network_(receive|transmit)_bytes_total|container_spec_(cpu_quota|cpu_period|memory_limit_bytes)|container_start_time_seconds|kepler_container_.*|up|scrape_.*"
+        regex: "container_cpu_(usage_seconds_total|cfs_throttled_seconds_total|cfs_periods_total|cfs_throttled_periods_total)|container_memory_(working_set_bytes|rss|cache|usage_bytes)|container_network_(receive|transmit)_bytes_total|container_fs_(usage_bytes|reads_bytes_total|writes_bytes_total)|container_spec_(cpu_quota|cpu_period|memory_limit_bytes)|container_start_time_seconds|kepler_container_.*|up|scrape_.*"
         action: keep
 
   prometheus:

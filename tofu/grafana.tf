@@ -14,14 +14,10 @@ resource "grafana_folder" "observability" {
   title = "Observability"
 }
 
-resource "grafana_dashboard" "reading_analytics" {
-  folder      = grafana_folder.observability.id
-  config_json = file("${path.module}/../k3s/grafana/dashboards/reading-analytics.json")
-  overwrite   = true
-}
+resource "grafana_dashboard" "dashboards" {
+  for_each = fileset("${path.module}/../k3s/grafana/dashboards", "*.json")
 
-resource "grafana_dashboard" "unit_economics" {
   folder      = grafana_folder.observability.id
-  config_json = file("${path.module}/../k3s/grafana/dashboards/unit-economics.json")
+  config_json = file("${path.module}/../k3s/grafana/dashboards/${each.value}")
   overwrite   = true
 }
