@@ -153,13 +153,16 @@ func (p *HubProvider) InspectPlatform(ctx context.Context) (map[string]interface
 	}
 
 	services, _ := p.ListHostServices(ctx)
-	runningCount := 0
+	healthyCount := 0
 	for _, s := range services {
-		if s.Active == "active" {
-			runningCount++
+		// Count as healthy if:
+		// 1. Service is 'active' (running)
+		// 2. Service is 'inactive' but the substate is 'dead' (successfully completed oneshot)
+		if s.Active == "active" || (s.Active == "inactive" && s.Sub == "dead") {
+			healthyCount++
 		}
 	}
-	summary["host_services_running"] = fmt.Sprintf("%d/%d", runningCount, len(p.targetServices))
+	summary["host_services_healthy"] = fmt.Sprintf("%d/%d", healthyCount, len(p.targetServices))
 
 	return summary, nil
 }

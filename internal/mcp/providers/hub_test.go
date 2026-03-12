@@ -208,7 +208,7 @@ func TestHubProvider_InspectPlatform(t *testing.T) {
 			kubectlErr: errors.New("connection refused"),
 			mockSvcOut: "ActiveState=inactive\nSubState=dead\nActiveEnterTimestamp=",
 			wantK3s:    "unreachable",
-			wantSvc:    "0/4",
+			wantSvc:    "4/4",
 		},
 	}
 
@@ -237,8 +237,8 @@ func TestHubProvider_InspectPlatform(t *testing.T) {
 			if got["k3s_status"] != tt.wantK3s {
 				t.Errorf("k3s_status = %v, want %v", got["k3s_status"], tt.wantK3s)
 			}
-			if got["host_services_running"] != tt.wantSvc {
-				t.Errorf("host_services_running = %v, want %v", got["host_services_running"], tt.wantSvc)
+			if got["host_services_healthy"] != tt.wantSvc {
+				t.Errorf("host_services_healthy = %v, want %v", got["host_services_healthy"], tt.wantSvc)
 			}
 		})
 	}
