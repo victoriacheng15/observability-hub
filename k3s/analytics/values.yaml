@@ -13,6 +13,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 podAnnotations: {}
+podLabels:
+  app.kubernetes.io/feature: analytics-engine
 
 podSecurityContext: {}
   # fsGroup: 2000

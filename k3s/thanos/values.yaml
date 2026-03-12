@@ -6,6 +6,9 @@ global:
   security:
     allowInsecureImages: true  # Allow non-bitnami image
 
+commonLabels:
+  app.kubernetes.io/feature: observability-infra
+
 # Use same image as hand-written manifest (stable, proven)
 image:
   registry: quay.io

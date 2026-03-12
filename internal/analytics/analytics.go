@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
+
+	"observability-hub/internal/telemetry"
 )
 
 // MetricBatch represents a collection of metric samples keyed by type (cpu, ram, disk, network, temp).
@@ -107,6 +110,17 @@ type ThanosResourceProvider struct {
 }
 
 func NewThanosResourceProvider(client *ThanosClient) *ThanosResourceProvider {
+	// Log initial factors on startup
+	carbon := os.Getenv("CARBON_INTENSITY_G_KWH")
+	if carbon == "" {
+		carbon = "150.0 (default)"
+	}
+	cost := os.Getenv("ENERGY_COST_CAD_KWH")
+	if cost == "" {
+		cost = "0.15 (default)"
+	}
+	telemetry.Info("analytics_factors_loaded", "carbon_intensity", carbon, "energy_cost", cost)
+
 	return &ThanosResourceProvider{Client: client}
 }
 
@@ -178,6 +192,7 @@ func (p *ThanosResourceProvider) GetHostServiceCPU(ctx context.Context, start, e
 
 func (p *ThanosResourceProvider) GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error) {
 	// 1. Define queries for all business value counters
+	// In the future, this could be loaded from a config file.
 	queries := map[string]string{
 		"ingestion": "sum(increase(second_brain_sync_processed_total[15m])) + sum(increase(reading_sync_processed_total[15m]))",
 		"proxy":     "sum(increase(proxy_webhook_received_total[15m])) + sum(increase(proxy_synthetic_request_total[15m]))",
@@ -199,15 +214,29 @@ func (p *ThanosResourceProvider) GetValueUnits(ctx context.Context, start, end t
 }
 
 func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
-
-	// Default: ~150g CO2 per kWh (Sample value for a "greenish" grid)
-	// In a real implementation, this could call an external API.
-	return 150.0, nil
+	// Use environment variable if present, otherwise default to 150.0
+	valStr := os.Getenv("CARBON_INTENSITY_G_KWH")
+	if valStr == "" {
+		return 150.0, nil
+	}
+	val, err := strconv.ParseFloat(valStr, 64)
+	if err != nil {
+		return 150.0, nil
+	}
+	return val, nil
 }
 
 func (p *ThanosResourceProvider) GetCostFactor(ctx context.Context) (float64, error) {
-	// Default: $0.15 CAD per kWh (Sample price)
+	// Use environment variable if present, otherwise default to 0.15 CAD/kWh
+	valStr := os.Getenv("ENERGY_COST_CAD_KWH")
+	pricePerKWh := 0.15
+	if valStr != "" {
+		if val, err := strconv.ParseFloat(valStr, 64); err == nil {
+			pricePerKWh = val
+		}
+	}
+
 	// 1 kWh = 3_600_000 Joules
-	// Cost per Joule = 0.15 / 3_600_000
-	return 0.15 / 3600000.0, nil
+	// Cost per Joule = pricePerKWh / 3_600_000
+	return pricePerKWh / 3600000.0, nil
 }

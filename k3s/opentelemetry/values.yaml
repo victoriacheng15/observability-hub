@@ -1,5 +1,8 @@
 fullnameOverride: opentelemetry
 
+podLabels:
+  app.kubernetes.io/feature: observability-otel
+
 revisionHistoryLimit: 3
 
 mode: deployment
