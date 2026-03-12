@@ -1,0 +1,679 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "content": "### 🗑️ Orchestration Tax: Efficiency & Waste Monitor\nThis dashboard quantifies the energy and financial overhead of running the Kubernetes orchestration layer vs. actual application workload. <small>*Waste = (Total Node Power) - (Sum of all Pod Power). Calculated using the 0.15 CAD/kWh baseline.*</small>",
+        "mode": "markdown"
+      },
+      "title": "Header",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 3
+      },
+      "id": 2,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m])) / sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))) * 100",
+          "legendFormat": "Efficiency Score",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Cluster Efficiency Score",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 3
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))",
+          "legendFormat": "Total Draw",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Total Cluster Power",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 3
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Waste Power",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Orchestration Waste",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 7
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) / 1000 * 0.15 * 24",
+          "legendFormat": "CAD/Day",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Daily Waste",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 7
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) / 1000 * 0.15 * 24 * 30",
+          "legendFormat": "CAD/Month",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Monthly Waste",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 7
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) / 1000 * 0.15 * 24 * 365",
+          "legendFormat": "CAD/Year",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Yearly Waste",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 7
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24 * 365",
+          "legendFormat": "Total Budget",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Yearly Total",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Useful Power (Apps)",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Wasted Power (Orchestration)",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Power Utilization: Useful vs. Wasted (Stacked)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 7,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "system-overhead",
+          "refId": "B"
+        }
+      ],
+      "title": "Total Energy Distribution (including Overhead)",
+      "type": "piechart"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 39,
+  "tags": [
+    "finops",
+    "waste",
+    "efficiency",
+    "kepler"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Waste Monitor: Orchestration Tax",
+  "uid": "waste-monitor",
+  "version": 0,
+  "weekStart": ""
+}
