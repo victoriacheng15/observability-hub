@@ -22,18 +22,146 @@
   "panels": [
     {
       "gridPos": {
-        "h": 3,
-        "w": 24,
         "x": 0,
-        "y": 0
+        "y": 0,
+        "w": 24,
+        "h": 4
       },
       "id": 1,
       "options": {
-        "content": "### 🌲 Sustainability Hub: Carbon Footprint & Offset\nReal-time tracking of the platform's environmental impact. <small>*Note: Carbon projections are based on an intensity of 150g CO2/kWh and a standard offset rate of 21kg CO2 per tree/year.*</small>",
+        "content": "### \ud83c\udf3f Sustainability & Efficiency Hub\nThis comprehensive dashboard provides real-time visibility into the environmental and economic impact of the platform, tracking energy consumption, carbon footprint, and orchestration efficiency.\n\n**Key Metrics:**\n- **Efficiency:** Ratio of useful Pod power to total Node power.\n- **Carbon:** Based on an intensity of **150g CO2/kWh** (0.15 factor).\n- **Cost:** Based on an average electricity cost of **0.15 CAD/kWh**.\n- **Offset:** Yearly tree offset based on **21kg CO2 per tree/year**.",
         "mode": "markdown"
       },
       "title": "Header",
       "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "id": 2,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m])) / sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))) * 100",
+          "legendFormat": "Efficiency Score",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Efficiency Score",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 4,
+        "w": 5,
+        "h": 4
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))",
+          "legendFormat": "Total Power",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Total Power",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -61,12 +189,12 @@
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 3
+        "x": 9,
+        "y": 4,
+        "w": 5,
+        "h": 4
       },
-      "id": 2,
+      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -89,12 +217,12 @@
           },
           "editorMode": "code",
           "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15",
-          "legendFormat": "gCO2/Hour",
+          "legendFormat": "gCO2/h",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Current Carbon Output",
+      "title": "Total Carbon",
       "type": "stat"
     },
     {
@@ -105,30 +233,29 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "blue",
                 "value": null
               }
             ]
           },
-          "unit": "masskg",
+          "unit": "CAD",
           "decimals": 2
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 3
+        "x": 14,
+        "y": 4,
+        "w": 5,
+        "h": 4
       },
-      "id": 3,
+      "id": 5,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -150,13 +277,13 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15 * 24 * 365) / 1000",
-          "legendFormat": "kgCO2/Year",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24",
+          "legendFormat": "CAD/Day",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Projected Yearly Carbon",
+      "title": "Daily Economic Cost",
       "type": "stat"
     },
     {
@@ -184,12 +311,12 @@
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 3
+        "x": 19,
+        "y": 4,
+        "w": 5,
+        "h": 4
       },
-      "id": 4,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -217,7 +344,7 @@
           "refId": "A"
         }
       ],
-      "title": "Trees to Offset Footprint",
+      "title": "Trees to Offset",
       "type": "stat"
     },
     {
@@ -228,43 +355,71 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "masskg",
-          "decimals": 2
+          "unit": "watt"
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 3
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 10
       },
       "id": 7,
       "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
-            "lastNotNull"
+            "mean",
+            "lastNotNull",
+            "max"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "text": {},
-        "textMode": "auto"
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
@@ -273,14 +428,23 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) * 0.15 * 24 * 365) / 1000",
-          "legendFormat": "kgCO2/Year",
-          "range": true,
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))",
+          "legendFormat": "Host Energy",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Total Pods Energy",
+          "refId": "B"
         }
       ],
-      "title": "Yearly 'Waste' Carbon Debt",
-      "type": "stat"
+      "title": "Infrastructure Power Breakdown",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -334,12 +498,12 @@
         }
       },
       "gridPos": {
-        "h": 12,
+        "x": 12,
+        "y": 12,
         "w": 12,
-        "x": 0,
-        "y": 7
+        "h": 10
       },
-      "id": 5,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [
@@ -363,14 +527,457 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace) * 0.15",
-          "legendFormat": "{{namespace}}",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15",
+          "legendFormat": "Host Carbon",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m])) * 0.15",
+          "legendFormat": "Total Pods Carbon",
+          "refId": "B"
+        }
+      ],
+      "title": "Infrastructure Carbon Breakdown",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 10
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Useful Power (Apps)",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))",
+          "legendFormat": "Wasted Power (Orchestration)",
+          "refId": "B"
+        }
+      ],
+      "title": "Power Utilization: Useful vs. Wasted (Stacked)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 10
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Pods Power Consumption",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24 * 30",
+          "legendFormat": "CAD/Month",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Carbon Footprint by Namespace (gCO2/h)",
-      "type": "timeseries"
+      "title": "Monthly Cost",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "CAD",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24 * 365",
+          "legendFormat": "CAD/Year",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Yearly Cost",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "masskg",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15 * 24 * 365) / 1000",
+          "legendFormat": "kgCO2/Year",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Yearly Carbon Projection",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "masskg",
+          "decimals": 2
+        }
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 8,
+        "w": 6,
+        "h": 4
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) * 0.15 * 24 * 365) / 1000",
+          "legendFormat": "kgCO2/Year",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Yearly 'Waste' Carbon Debt",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -390,16 +997,16 @@
             }
           },
           "mappings": [],
-          "unit": "massg"
+          "unit": "watt"
         }
       },
       "gridPos": {
-        "h": 12,
-        "w": 12,
-        "x": 12,
-        "y": 7
+        "x": 0,
+        "y": 32,
+        "w": 8,
+        "h": 8
       },
-      "id": 6,
+      "id": 15,
       "options": {
         "displayLabels": [
           "percent"
@@ -429,13 +1036,142 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (pod) * 0.15",
-          "legendFormat": "{{pod}}",
-          "range": true,
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace)",
+          "legendFormat": "{{namespace}}",
           "refId": "A"
         }
       ],
-      "title": "Carbon Distribution by Pod",
+      "title": "Power by Namespace",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "massg"
+        }
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 32,
+        "w": 8,
+        "h": 8
+      },
+      "id": 16,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace) * 0.15",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Carbon by Namespace",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "watt"
+        }
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 32,
+        "w": 8,
+        "h": 8
+      },
+      "id": 17,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Power by Pod",
       "type": "piechart"
     }
   ],
@@ -443,9 +1179,10 @@
   "schemaVersion": 39,
   "tags": [
     "sustainability",
+    "energy",
+    "efficiency",
     "carbon",
-    "green",
-    "kepler"
+    "finops"
   ],
   "templating": {
     "list": []
@@ -456,8 +1193,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Sustainability Hub: Carbon Footprint",
+  "title": "Sustainability & Efficiency Hub",
   "uid": "sustainability-hub",
-  "version": 0,
+  "version": 1,
   "weekStart": ""
 }
