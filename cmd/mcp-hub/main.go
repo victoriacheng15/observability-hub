@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	serviceName = "mcp-hub"
+	serviceName = "mcp.hub"
 	version     = "0.1.0"
 )
 
