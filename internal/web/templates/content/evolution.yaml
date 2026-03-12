@@ -313,3 +313,11 @@ chapters:
         description: |
           - Architected a domain-isolated MCP framework to enforce the Principle of Least Privilege, reducing the security blast radius by strictly decoupling infrastructure-level RBAC from the telemetry pipeline.
           - Engineered a high-fidelity "Infrastructure Intelligence" service (mcp-pods) that enables AI agents to correlate Kubernetes orchestration events with system-wide telemetry, accelerating the discovery of cluster-level failures.
+      - date: "2026-03-12"
+        title: "Hybrid Host-Cluster Intelligence: mcp-hub"
+        artifacts:
+          - name: "ADR 019: Hybrid Host-MCP Intelligence"
+            url: "docs/decisions/019-hybrid-host-mcp-intelligence.md"
+        description: |
+          - Enabled comprehensive platform accountability by implementing 'mcp-hub,' a dedicated intelligence bridge that eliminates visibility gaps between Kubernetes orchestration and host-resident pillar services (Ingestion, Proxy, OpenBao).
+          - Reduced Mean-Time-To-Discovery (MTTD) for host-level failures by engineering namespaced tools ('hub_') for surgical resource introspection and direct systemd journal retrieval, enabling agents to correlate physical resource pressure with cluster-level instability.
