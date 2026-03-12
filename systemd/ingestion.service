@@ -8,7 +8,7 @@ Type=oneshot
 User=server2
 WorkingDirectory=/home/server2/software/observability-hub
 EnvironmentFile=/home/server2/software/observability-hub/.env
-ExecStart=/home/server2/software/observability-hub/bin/ingestion
+ExecStart=/usr/local/bin/ingestion
 StandardOutput=journal
 StandardError=journal
 
