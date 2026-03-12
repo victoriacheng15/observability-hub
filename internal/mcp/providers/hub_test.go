@@ -140,11 +140,11 @@ func TestHubProvider_QueryServiceLogs(t *testing.T) {
 
 func TestHubProvider_InspectHost(t *testing.T) {
 	tests := []struct {
-		name       string
-		uptimeOut  string
-		freeOut    string
-		dfOut      string
-		expected   *HostResource
+		name      string
+		uptimeOut string
+		freeOut   string
+		dfOut     string
+		expected  *HostResource
 	}{
 		{
 			name:      "Successful Inspection",
@@ -226,7 +226,7 @@ func TestHubProvider_InspectPlatform(t *testing.T) {
 				},
 			}
 			p := &HubProvider{
-				runner: mock,
+				runner:         mock,
 				targetServices: []string{"s1", "s2", "s3", "s4"},
 			}
 

@@ -135,3 +135,73 @@ func TestListPodEventsHandler_Execute(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPodLogsHandler_Execute(t *testing.T) {
+	tests := []struct {
+		name      string
+		getLogsFn func(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error)
+		wantErr   bool
+	}{
+		{
+			name: "successful logs get",
+			getLogsFn: func(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error) {
+				return "logs", nil
+			},
+			wantErr: false,
+		},
+		{
+			name: "api error",
+			getLogsFn: func(ctx context.Context, namespace, name, container string, tailLines int64, previous bool) (string, error) {
+				return "", errors.New("api error")
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewGetPodLogsHandler(tt.getLogsFn)
+			got, err := h.Execute(context.Background(), PodLogsInput{Namespace: "default", Name: "test-pod"})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got.(string) != "logs" {
+				t.Errorf("Execute() got = %v, want %v", got, "logs")
+			}
+		})
+	}
+}
+
+func TestDeletePodHandler_Execute(t *testing.T) {
+	tests := []struct {
+		name     string
+		deleteFn func(ctx context.Context, namespace, name string, gracePeriod *int64) error
+		wantErr  bool
+	}{
+		{
+			name: "successful delete",
+			deleteFn: func(ctx context.Context, namespace, name string, gracePeriod *int64) error {
+				return nil
+			},
+			wantErr: false,
+		},
+		{
+			name: "api error",
+			deleteFn: func(ctx context.Context, namespace, name string, gracePeriod *int64) error {
+				return errors.New("api error")
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewDeletePodHandler(tt.deleteFn)
+			_, err := h.Execute(context.Background(), DeletePodInput{Namespace: "default", Name: "test-pod"})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

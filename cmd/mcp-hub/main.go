@@ -44,7 +44,7 @@ func main() {
 
 	// 5. Run Server (Stdio transport)
 	telemetry.Info("mcp-hub ready", "tools", []string{"hub_inspect_platform", "hub_inspect_host", "hub_list_host_services", "hub_query_service_logs"})
-	
+
 	transport := &mcp.StdioTransport{}
 	if err := server.Run(ctx, transport); err != nil {
 		telemetry.Error("mcp-hub execution failed", "error", err)

@@ -113,7 +113,17 @@ func RegisterPodsTools(server *mcp.Server, provider *providers.PodsProvider) {
 		Description: "List all lifecycle events associated with a specific pod",
 	}, handleListPodEvents(provider))
 
-	telemetry.Info("registered pods tools", "count", 3)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "get_pod_logs",
+		Description: "Retrieve logs from a specific pod/container",
+	}, handleGetPodLogs(provider))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "delete_pod",
+		Description: "Delete a specific pod (useful for restarting stuck pods)",
+	}, handleDeletePod(provider))
+
+	telemetry.Info("registered pods tools", "count", 5)
 }
 
 func handleInspectPods(provider *providers.PodsProvider) mcp.ToolHandlerFor[tools.PodsInput, any] {
@@ -147,6 +157,33 @@ func handleDescribePod(provider *providers.PodsProvider) mcp.ToolHandlerFor[tool
 func handleListPodEvents(provider *providers.PodsProvider) mcp.ToolHandlerFor[tools.PodsInput, any] {
 	handler := tools.NewListPodEventsHandler(provider.ListEvents)
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input tools.PodsInput) (*mcp.CallToolResult, any, error) {
+		result, err := handler.Execute(ctx, input)
+		if err != nil {
+			return nil, nil, err
+		}
+		text, _ := json.Marshal(result)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: string(text)}},
+		}, nil, nil
+	}
+}
+
+func handleGetPodLogs(provider *providers.PodsProvider) mcp.ToolHandlerFor[tools.PodLogsInput, any] {
+	handler := tools.NewGetPodLogsHandler(provider.GetPodLogs)
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input tools.PodLogsInput) (*mcp.CallToolResult, any, error) {
+		result, err := handler.Execute(ctx, input)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: result.(string)}},
+		}, nil, nil
+	}
+}
+
+func handleDeletePod(provider *providers.PodsProvider) mcp.ToolHandlerFor[tools.DeletePodInput, any] {
+	handler := tools.NewDeletePodHandler(provider.DeletePod)
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input tools.DeletePodInput) (*mcp.CallToolResult, any, error) {
 		result, err := handler.Execute(ctx, input)
 		if err != nil {
 			return nil, nil, err
@@ -234,9 +271,8 @@ func handleQueryServiceLogs(provider *providers.HubProvider) mcp.ToolHandlerFor[
 		if err != nil {
 			return nil, nil, err
 		}
-		text, _ := json.Marshal(result)
 		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: string(text)}},
+			Content: []mcp.Content{&mcp.TextContent{Text: result.(string)}},
 		}, nil, nil
 	}
 }
