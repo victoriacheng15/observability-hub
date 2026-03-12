@@ -16,12 +16,10 @@ terraform {
     }
   }
 
-  # Step 9: MinIO state backend - uncomment AFTER MinIO pod is confirmed healthy (Step 4)
-  # This stores OpenTofu's own .tfstate file inside MinIO, separate from the MinIO pod itself.
   # backend "s3" {
   #   bucket                      = "tofu-state"
   #   key                         = "observability-hub/terraform.tfstate"
-  #   region                      = "minio"          # dummy value - required by S3 SDK but ignored
+  #   region                      = "minio"
   #   endpoint                    = "http://<minio-node-ip>:9000"
   #   skip_credentials_validation = true
   #   skip_metadata_api_check     = true
@@ -29,6 +27,8 @@ terraform {
   #   force_path_style            = true
   # }
 }
+
+# --- Providers ---
 
 provider "kubernetes" {
   config_path    = var.kubeconfig_path
@@ -52,4 +52,31 @@ data "kubernetes_secret_v1" "grafana_admin" {
 provider "grafana" {
   url  = "http://localhost:30000"
   auth = try("${data.kubernetes_secret_v1.grafana_admin.data["admin-user"]}:${data.kubernetes_secret_v1.grafana_admin.data["admin-password"]}", "admin:admin")
+}
+
+# --- Variables ---
+
+variable "kubeconfig_path" {
+  description = "Path to the kubeconfig file."
+  type        = string
+  default     = "~/.kube/config"
+}
+
+variable "observability_namespace" {
+  description = "Namespace for all observability services."
+  type        = string
+  default     = "observability"
+}
+
+# --- Namespace ---
+
+resource "kubernetes_namespace_v1" "observability" {
+  metadata {
+    name = var.observability_namespace
+  }
+}
+
+moved {
+  from = kubernetes_namespace.observability
+  to   = kubernetes_namespace_v1.observability
 }
