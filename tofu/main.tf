@@ -16,16 +16,13 @@ terraform {
     }
   }
 
-  # backend "s3" {
-  #   bucket                      = "tofu-state"
-  #   key                         = "observability-hub/terraform.tfstate"
-  #   region                      = "minio"
-  #   endpoint                    = "http://<minio-node-ip>:9000"
-  #   skip_credentials_validation = true
-  #   skip_metadata_api_check     = true
-  #   skip_region_validation      = true
-  #   force_path_style            = true
-  # }
+  backend "azurerm" {
+    resource_group_name  = "personal-rg"
+    storage_account_name = "observabilityhub"
+    container_name       = "terraform-state"
+    key                  = "observability-hub.tofu.terraform.tfstate"
+    use_azuread_auth     = true
+  }
 }
 
 # --- Providers ---
