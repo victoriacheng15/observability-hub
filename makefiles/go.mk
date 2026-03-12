@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build mcp-pods-build all-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build mcp-pods-build mcp-hub-build all-build
 
 format:
 	@echo "Formatting Go code..." && \
@@ -61,9 +61,14 @@ mcp-pods-build:
 	@echo "Updating mcp-pods..." && \
 	cd cmd/mcp-pods && go build -o ../../bin/mcp_pods .
 
+mcp-hub-build:
+	@echo "Updating mcp-hub..." && \
+	cd cmd/mcp-hub && go build -o ../../bin/mcp_hub .
+
 all-build:
 	@echo "Building all services..." && \
 	make proxy-build && \
 	make ingestion-build && \
 	make mcp-telemetry-build && \
-	make mcp-pods-build
+	make mcp-pods-build && \
+	make mcp-hub-build

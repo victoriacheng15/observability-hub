@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🔵 Accepted |
 | **018** | [Domain-Isolated MCP Architecture](./018-domain-isolated-mcp-architecture.md) | 🔵 Accepted |
 | **017** | [Agentic Interface via MCP](./017-agentic-interface-mcp.md) | 🔵 Accepted |
 | **016** | [OpenTofu for K3s Service Management](./016-opentofu-k3s-migration.md) | 🔵 Accepted |
