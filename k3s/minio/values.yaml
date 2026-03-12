@@ -3,6 +3,9 @@ image:
   tag: RELEASE.2025-02-07T23-21-09Z
   pullPolicy: IfNotPresent
 
+podLabels:
+  app.kubernetes.io/feature: storage-core
+
 mode: standalone
 
 persistence:

@@ -1,4 +1,6 @@
 revisionHistoryLimit: 3
+podLabels:
+  app.kubernetes.io/feature: observability-ui
 
 admin:
   existingSecret: "grafana-admin-secret"

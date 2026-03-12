@@ -6,6 +6,8 @@ persistence:
   storageClassName: local-path-retain
 
 tempo:
+  podLabels:
+    app.kubernetes.io/feature: observability-traces
   replicas: 1
   resources:
     requests:

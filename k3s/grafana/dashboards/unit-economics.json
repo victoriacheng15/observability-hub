@@ -73,7 +73,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT SUM(value) as value FROM analytics_metrics WHERE kind = 'cost' AND feature_id = 'node-total' AND $__timeFilter(time);",
+          "rawSql": "SELECT SUM(value * $energy_cost_kwh / 3600000.0) as value FROM analytics_metrics WHERE kind = 'energy' AND feature_id = 'node-total' AND $__timeFilter(time);",
           "refId": "A"
         }
       ],
@@ -133,7 +133,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT SUM(value) as value FROM analytics_metrics WHERE kind = 'carbon' AND feature_id = 'node-total' AND $__timeFilter(time);",
+          "rawSql": "SELECT SUM(value * $carbon_intensity_kwh / 3600000.0) as value FROM analytics_metrics WHERE kind = 'energy' AND feature_id = 'node-total' AND $__timeFilter(time);",
           "refId": "A"
         }
       ],
@@ -463,7 +463,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  time AS \"time\",\n  feature_id,\n  value\nFROM analytics_metrics\nWHERE\n  kind = 'carbon'\n  AND feature_id != 'node-total'\n  AND $__timeFilter(time)\nORDER BY 1;",
+          "rawSql": "SELECT\n  time AS \"time\",\n  feature_id,\n  value * $carbon_intensity_kwh / 3600000.0 as value\nFROM analytics_metrics\nWHERE\n  kind = 'energy'\n  AND feature_id != 'node-total'\n  AND $__timeFilter(time)\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -478,7 +478,48 @@
     "unit-economics"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "0.15",
+          "value": "0.15"
+        },
+        "hide": 0,
+        "label": "Energy Cost (CAD/kWh)",
+        "name": "energy_cost_kwh",
+        "options": [
+          {
+            "selected": true,
+            "text": "0.15",
+            "value": "0.15"
+          }
+        ],
+        "query": "0.15",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "150",
+          "value": "150"
+        },
+        "hide": 0,
+        "label": "Carbon Intensity (g/kWh)",
+        "name": "carbon_intensity_kwh",
+        "options": [
+          {
+            "selected": true,
+            "text": "150",
+            "value": "150"
+          }
+        ],
+        "query": "150",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-24h",

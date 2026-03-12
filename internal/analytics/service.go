@@ -268,6 +268,7 @@ func (s *Service) recordMetricsForFeature(ctx context.Context, t time.Time, feat
 
 	telemetry.Info("feature_analytics_recorded", "feature_id", featureID, "joules", joules, "host", hostName)
 }
+
 func mapContainerToFeature(container string) string {
 	// Simple mapping based on known service names (containers or systemd units)
 	mapping := map[string]string{
@@ -278,6 +279,7 @@ func mapContainerToFeature(container string) string {
 		"analytics":               "analytics-engine",
 		"mcp-telemetry":           "agentic-telemetry",
 		"mcp-pods":                "agentic-kubernetes",
+		"mcp-hub":                 "agentic-hub",
 		"postgresql":              "database-core",
 		"postgres":                "database-core",
 		"prometheus-server":       "observability-infra",

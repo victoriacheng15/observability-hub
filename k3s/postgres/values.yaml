@@ -18,6 +18,8 @@ auth:
     adminPasswordKey: "postgres-password"
 
 primary:
+  podLabels:
+    app.kubernetes.io/feature: database-core
   pdb:
     create: true
     maxUnavailable: 1

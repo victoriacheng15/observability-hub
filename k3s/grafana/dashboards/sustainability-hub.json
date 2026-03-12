@@ -201,7 +201,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * ($carbon_intensity_kwh / 1000)",
           "legendFormat": "gCO2/h",
           "range": true,
           "refId": "A"
@@ -262,7 +262,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * $energy_cost_kwh * 24",
           "legendFormat": "CAD/Day",
           "range": true,
           "refId": "A"
@@ -323,7 +323,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15 * 24 * 365) / 1000) / 21",
+          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * ($carbon_intensity_kwh / 1000) * 24 * 365) / 1000) / 21",
           "legendFormat": "Trees",
           "range": true,
           "refId": "A"
@@ -512,7 +512,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * ($carbon_intensity_kwh / 1000)",
           "legendFormat": "Host Carbon",
           "refId": "A"
         },
@@ -522,7 +522,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m])) * 0.15",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m])) * ($carbon_intensity_kwh / 1000)",
           "legendFormat": "Total Pods Carbon",
           "refId": "B"
         }
@@ -770,7 +770,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24 * 30",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * $energy_cost_kwh * 24 * 30",
           "legendFormat": "CAD/Month",
           "range": true,
           "refId": "A"
@@ -831,7 +831,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * 0.15 * 24 * 365",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 1000 * $energy_cost_kwh * 24 * 365",
           "legendFormat": "CAD/Year",
           "range": true,
           "refId": "A"
@@ -893,7 +893,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * 0.15 * 24 * 365) / 1000",
+          "expr": "(sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) * ($carbon_intensity_kwh / 1000) * 24 * 365) / 1000",
           "legendFormat": "kgCO2/Year",
           "range": true,
           "refId": "A"
@@ -955,7 +955,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) * 0.15 * 24 * 365) / 1000",
+          "expr": "((sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) - sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]))) * ($carbon_intensity_kwh / 1000) * 24 * 365) / 1000",
           "legendFormat": "kgCO2/Year",
           "range": true,
           "refId": "A"
@@ -1086,7 +1086,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace) * 0.15",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace) * ($carbon_intensity_kwh / 1000)",
           "legendFormat": "{{namespace}}",
           "refId": "A"
         }
@@ -1170,7 +1170,48 @@
     "finops"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "0.15",
+          "value": "0.15"
+        },
+        "hide": 0,
+        "label": "Energy Cost (CAD/kWh)",
+        "name": "energy_cost_kwh",
+        "options": [
+          {
+            "selected": true,
+            "text": "0.15",
+            "value": "0.15"
+          }
+        ],
+        "query": "0.15",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "150",
+          "value": "150"
+        },
+        "hide": 0,
+        "label": "Carbon Intensity (g/kWh)",
+        "name": "carbon_intensity_kwh",
+        "options": [
+          {
+            "selected": true,
+            "text": "150",
+            "value": "150"
+          }
+        ],
+        "query": "150",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
