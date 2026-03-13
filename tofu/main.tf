@@ -67,11 +67,23 @@ variable "observability_namespace" {
   default     = "observability"
 }
 
+variable "databases_namespace" {
+  description = "Namespace for all database and persistence services."
+  type        = string
+  default     = "databases"
+}
+
 # --- Namespace ---
 
 resource "kubernetes_namespace_v1" "observability" {
   metadata {
     name = var.observability_namespace
+  }
+}
+
+resource "kubernetes_namespace_v1" "databases" {
+  metadata {
+    name = var.databases_namespace
   }
 }
 
