@@ -1,5 +1,27 @@
 # --- Storage ---
 
+data "azurerm_storage_account" "hub" {
+  name                = "observabilityhub"
+  resource_group_name = "personal-rg"
+}
+
+resource "azurerm_storage_container" "terraform_state" {
+  name                  = "terraform-state"
+  storage_account_id    = data.azurerm_storage_account.hub.id
+  container_access_type = "private"
+
+  # Prevent accidental deletion via Tofu
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "azurerm_storage_container" "pg_backup" {
+  name                  = "pg-backup"
+  storage_account_id    = data.azurerm_storage_account.hub.id
+  container_access_type = "private"
+}
+
 resource "kubernetes_storage_class_v1" "local_path_retain" {
   metadata {
     name = "local-path-retain"
