@@ -2,7 +2,7 @@
 
 A resilient, self-hosted platform meticulously engineered to showcase advanced Site Reliability Engineering (SRE) and Platform Engineering principles. It delivers full-stack observability (Logs, Metrics, Traces), GitOps-driven infrastructure management, and standardized telemetry ingestion for complex cloud-native environments.
 
-Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system metrics, application events, and logs into a single queryable layer leveraging OpenTelemetry, PostgreSQL (TimescaleDB), Grafana Loki, Prometheus, and Grafana. It's designed for operational excellence, demonstrating how to build a robust, observable, and maintainable system from the ground up.
+Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system metrics, application events, and logs into a single queryable layer leveraging OpenTelemetry, High-Availability (HA) PostgreSQL via CloudNativePG (CNPG), Grafana Loki, Prometheus, and Grafana. It's designed for operational excellence, demonstrating how to build a robust, observable, and maintainable system from the ground up.
 
 [Explore Live Telemetry & System Evolution](https://victoriacheng15.github.io/observability-hub/)
 
@@ -10,19 +10,23 @@ Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system
 
 ## 🚀 Key Achievements & Capabilities
 
-This project highlights significant accomplishments in building a modern observability and platform engineering solution:
+### ☸️ Cloud-Native & Platform Engineering
+* **Kubernetes Migration & HA Operations:** Core observability and data components (Loki, Grafana, Tempo, Prometheus, CNPG) run natively in Kubernetes, leveraging **CloudNativePG** for automated failover and **Azure Blob Storage** for durable backups.
+* **GitOps Reconciliation Engine:** Implemented a secure, templated engine for automated state enforcement via HMAC-secured webhooks, enabling high-fidelity synchronization across environments.
+* **Centralized Secrets Management:** Integrated **OpenBao** for secure, dynamic credential retrieval, eliminating insecure static configurations across all service layers.
 
-* **Unified Go Monorepo:** Consolidated fragmented modules into a single root module, eliminating 17 `replace` directives and standardizing dependency management across all services.
-* **Encapsulated Architecture:** Transitioned to an `internal/` and `cmd/` layout, enforcing Go's package visibility rules and adopting the "Thin Main" pattern for better testability and system integrity.
-* **Full OpenTelemetry (LMT) Implementation:** Achieved end-to-end observability with a unified OTel Collector, Tempo (Traces), Prometheus (Metrics), Loki (Logs), and Go SDK for instrumentation.
-* **GitOps Reconciliation Engine:** Implemented a secure, templated GitOps reconciliation engine for automated state enforcement via webhooks, scaled to support multi-tenant synchronization.
-* **Kubernetes Migration & Cloud-Native Operations:** All core observability stack components (Loki, Grafana, Tempo, Prometheus, Postgres) are running natively in Kubernetes with persistent storage.
-* **Centralized Secrets Management:** Integrated OpenBao for secure, dynamic credential retrieval across all services, replacing insecure static configurations.
-* **Hybrid Cloud Architecture (Store-and-Forward Bridge):** Designed and implemented a secure bridge for ingesting external telemetry without exposing local ports, ensuring reliable data flow from diverse sources.
-* **Reproducible Local Development:** Ensures consistent and reproducible developer environments via `shell.nix` and `docker-compose`.
-* **Formalized Decision-Making & Incident Response:** Established an Architectural Decision Record (ADR) process and an Incident Response/RCA framework for structured decision-making and operational excellence.
-* **Domain-Isolated Agentic Interface (MCP):** Hardened the platform's security posture by adopting a domain-isolated architecture for AI agents, strictly decoupling infrastructure investigations (`mcp-pods`) from the telemetry pipeline (`mcp-telemetry`) to enforce the Principle of Least Privilege.
-* **Unified Host Telemetry Analytics:** Deployed a resource-efficient `analytics` service, centralizing host-level data collection and optimizing processing.
+### 🏗️ Software Architecture & Development
+* **Unified Go Monorepo:** Consolidated fragmented modules into a single root module, eliminating 17 `replace` directives and standardizing dependency management across the entire stack.
+* **Encapsulated Design Pattern:** Adopts an `internal/` and `cmd/` layout to enforce strict package visibility and the "Thin Main" pattern for enhanced system integrity and testability.
+* **Reproducible Engineering Environment:** Ensures consistent developer environments via **Nix (`shell.nix`)** and Docker, minimizing environment friction and ensuring build reproducibility.
+
+### 🔭 Observability & Agentic Intelligence
+* **Full OpenTelemetry (LMT) Stack:** Achieved end-to-end visibility (Logs, Metrics, Traces) with a unified OTel Collector, Tempo, Prometheus, Loki, and custom Go SDK instrumentation.
+* **Domain-Isolated MCP Interface:** A hardened "Agentic Interface" for AI agents, strictly decoupling infrastructure investigations (`mcp-pods`) from telemetry pipelines (`mcp-telemetry`) to enforce Least Privilege.
+* **Hybrid Host-to-Cluster Bridge:** Designed a secure store-and-forward bridge for ingesting external telemetry and host analytics into the Kubernetes data tier without exposing local ports.
+
+### 📋 Operational Governance
+* **Formalized Decision Framework:** Established Architectural Decision Records (ADRs) and an Incident Response/RCA framework to ensure structured, traceable growth and operational excellence.
 
 ---
 
@@ -40,20 +44,21 @@ The platform leverages a robust set of modern technologies for its core function
 
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 
-![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
-![Kubernetes (K3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
-![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
-![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
-
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-%23000000.svg?style=for-the-badge&logo=opentelemetry&logoColor=white)
 ![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
-![PostgreSQL](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
+![Kubernetes (K3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
+![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
+![Azure Blob Storage](https://img.shields.io/badge/Azure_Blob_Storage-%230072C6.svg?style=for-the-badge&logo=microsoftazure&logoColor=white)
+
+![PostgreSQL (CNPG)](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
 ![MinIO (S3)](https://img.shields.io/badge/MinIO-be172d?style=for-the-badge&logo=minio&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 
@@ -87,8 +92,9 @@ flowchart TB
 
         Observability["Loki, Tempo, and Prometheus (Thanos)"]
         subgraph Storage ["Data Engines"]
-            PG[(PostgreSQL)]
+            PG[(HA Postgres - CNPG)]
             S3[(MinIO - S3)]
+            Azure[(Azure Blob Storage)]
         end
         
 
@@ -114,7 +120,11 @@ flowchart TB
     %% Telemetry Pipeline (OTLP)
     GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
+    
+    %% Resilience & Backup
     Observability -- "Offload" --> S3
+    PG -- "Streaming Backup" --> Azure
+    S3 -- "Replication" --> Azure
 
     %% Visualization Connections
     Observability & PG --> Grafana

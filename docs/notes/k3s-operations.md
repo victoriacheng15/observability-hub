@@ -16,31 +16,30 @@ Verify what is currently running and what is available in the repositories.
 
 ```bash
 # 1.1 View CURRENTly installed versions
-nix-shell --run "helm list -n observability"
+helm list -n observability
 # CHART column: name-version (e.g., grafana-10.5.15)
 # APP VERSION column: software version (e.g., 12.3.1)
 
 # 1.2 Update Helm repository cache
-nix-shell --run "helm repo update"
+helm repo update
 
 # 1.3 View LATEST available versions
-nix-shell --run "
-  helm search repo grafana-community/grafana && \
-  helm search repo grafana/loki && \
-  helm search repo open-telemetry/opentelemetry-collector && \
-  helm search repo minio/minio && \
-  helm search repo bitnami/postgresql && \
-  helm search repo prometheus-community/prometheus && \
-  helm search repo grafana-community/tempo && \
-  helm search repo bitnami/thanos
-"
+helm search repo grafana-community/grafana && \
+helm search repo grafana/loki && \
+helm search repo open-telemetry/opentelemetry-collector && \
+helm search repo minio/minio && \
+helm search repo cloudnative-pg/cloudnative-pg && \
+helm search repo prometheus-community/prometheus && \
+helm search repo grafana-community/tempo && \
+helm search repo bitnami/thanos
+
 ```
 
 #### Step 2: Update Configuration
 
 If an update is available, manually update the corresponding file:
 
-- **Tofu**: Edit the `version` field in `tofu/<component>.tf` (e.g., `version = "11.3.0"`).
+- **Tofu**: Edit versions in `tofu/infrastructure.tf` or `tofu/observability.tf`.
 - **Values**: If necessary, update configurations in `k3s/<component>/values.yaml`.
 
 #### Step 3: Plan & Apply Changes
@@ -48,8 +47,8 @@ If an update is available, manually update the corresponding file:
 Apply the new configuration to the cluster.
 
 ```bash
-nix-shell --run "tofu plan"
-nix-shell --run "tofu apply"
+tofu plan
+tofu apply
 ```
 
 ---
@@ -62,7 +61,7 @@ nix-shell --run "tofu apply"
 - **Update Command**:
 
   ```bash
-  nix-shell --run "helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace observability > k3s/analytics/manifest.yaml"
+  helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace observability > k3s/analytics/manifest.yaml
   kubectl apply -f k3s/analytics/manifest.yaml
   kubectl rollout restart daemonset analytics -n observability
   ```
@@ -89,13 +88,13 @@ rm analytics.tar
 ### Grafana (Visualization)
 
 - **Chart**: `grafana-community/grafana`
-- **Tofu Configuration**: `tofu/grafana.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/grafana/values.yaml`
 
 ### Loki (Log Store)
 
 - **Chart**: `grafana/loki`
-- **Tofu Configuration**: `tofu/loki.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/loki/values.yaml`
 - **Notes**:
   - S3 credentials are injected from `minio-loki-secret` via environment variables
@@ -106,54 +105,55 @@ rm analytics.tar
 ### OpenTelemetry (Collector)
 
 - **Chart**: `open-telemetry/opentelemetry-collector`
-- **Tofu Configuration**: `tofu/opentelemetry.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/opentelemetry/values.yaml`
 
 ### MinIO (S3 Storage Backend)
 
 - **Chart**: `minio/minio`
-- **Tofu Configuration**: `tofu/minio.tf`
+- **Tofu Configuration**: `tofu/infrastructure.tf`
 - **Values**: `k3s/minio/values.yaml`
 
-### PostgreSQL (Relational Data)
+### HA PostgreSQL (CloudNativePG)
 
-- **Chart**: `oci://registry-1.docker.io/bitnamicharts/postgresql`
-- **Tofu Configuration**: `tofu/postgres.tf`
-- **Values**: `k3s/postgres/values.yaml`
+- **Chart**: `cloudnative-pg/cloudnative-pg`
+- **Tofu Configuration**: `tofu/infrastructure.tf`
+- **Backup Destination**: Azure Blob Storage (`pg-backup` container)
 - **Local Image Sideloading**:
-  Since we use a custom PostgreSQL image with extensions, it must be manually imported into the k3s node.
+  Since we use a custom PostgreSQL image with extensions (TimescaleDB, PostGIS), it must be manually imported into the k3s node.
 
 ```bash
 # 1. Build locally
-docker build -t postgres-pod:17 -f docker/postgres/Dockerfile .
+podman build -t postgres-cnpg:17 -f docker/postgres-cnpg/Dockerfile .
 
 # 2. Export and Import
-docker save -o postgres-pod.tar postgres-pod:17
-sudo k3s ctr images import postgres-pod.tar
+podman save -o postgres-cnpg.tar localhost/postgres-cnpg:17
+sudo k3s ctr images import postgres-cnpg.tar
 
 # 3. Tag for consistency
-sudo k3s ctr images tag docker.io/library/postgres-pod:17 postgres-pod:17
+sudo k3s ctr images tag localhost/postgres-cnpg:17 postgres-cnpg:17
+sudo k3s ctr images tag localhost/postgres-cnpg:17 docker.io/library/postgres-cnpg:17
 
 # 4. Cleanup
-rm postgres-pod.tar
+rm postgres-cnpg.tar
 ```
 
 ### Prometheus (Metrics Store)
 
 - **Chart**: `prometheus-community/prometheus`
-- **Tofu Configuration**: `tofu/prometheus.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/prometheus/values.yaml`
 
 ### Grafana Tempo (Trace Store)
 
 - **Chart**: `grafana-community/tempo`
-- **Tofu Configuration**: `tofu/tempo.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/tempo/values.yaml`
 
 ### Thanos Store Gateway (Long-term Metrics Storage)
 
 - **Chart**: `bitnami/thanos`
-- **Tofu Configuration**: `tofu/thanos.tf`
+- **Tofu Configuration**: `tofu/observability.tf`
 - **Values**: `k3s/thanos/values.yaml`
 - **Notes**:
   - Uses official quay.io/thanos/thanos:v0.32.2 image (not bitnami variant)

@@ -2,10 +2,10 @@
 
 ## What You Should Run (Recommended Setup)
 
-To initialize the database, you must first connect to the Postgres pod as the **superuser** (`postgres`). Run the following command from your host terminal:
+To initialize the database, you must first connect to the primary Postgres pod as the **superuser** (`postgres`). Run the following command from your host terminal:
 
 ```bash
-kubectl exec -it postgres-postgresql-0 -n observability -- psql -U postgres
+kubectl exec -it postgres-hub-1 -n databases -- psql -U postgres
 ```
 
 ### 1. Application Owner (`server`)

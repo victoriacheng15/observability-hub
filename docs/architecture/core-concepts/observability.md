@@ -25,8 +25,9 @@ flowchart TB
 
         Observability["Loki, Tempo, Prometheus (Thanos)"]
         subgraph Storage ["Data Engines"]
-            PG[(PostgreSQL)]
+            PG[(HA Postgres - CNPG)]
             S3[(MinIO - S3)]
+            Azure[(Azure Blob Storage)]
         end
     end
 
@@ -48,7 +49,10 @@ flowchart TB
     
     OTEL --> Observability
     
+    %% Resilience & Backup
     Observability -- "Offload" --> S3
+    PG -- "Streaming Backup" --> Azure
+    S3 -- "Replication" --> Azure
 ```
 
 ## 🪵 Logs
@@ -101,7 +105,8 @@ Distributed tracing is powered by OpenTelemetry for correlation and performance 
 
 ## 🗄️ Shared Data Stores
 
-- **PostgreSQL**: Stores analytical metrics and specialized time-series data using local persistent volumes.
+- **PostgreSQL (CloudNativePG)**: Stores analytical metrics and specialized time-series data (TimescaleDB). Orchestrated by CNPG for high availability, with automated failover and streaming backups to Azure Blob Storage.
 - **MinIO S3**: Provides unified object storage for Loki logs, Tempo traces, and Prometheus/Thanos metrics blocks.
+- **Azure Blob Storage**: Serves as the durable off-site backup for PostgreSQL transactional data (WALs/Basebackups) and the global repository for Terraform state.
 
-Access is secured via internal Kubernetes networking (`minio.observability.svc.cluster.local:9000`) and managed via specialized secrets (`minio-thanos-secret`, etc.).
+Access is secured via internal Kubernetes networking (`minio.observability.svc.cluster.local:9000`) and managed via specialized secrets (`minio-thanos-secret`, `azure-creds`, etc.).
