@@ -50,7 +50,7 @@ hostNetwork: true
 
 extraEnv:
   - name: DB_HOST
-    value: "postgres-postgresql.observability.svc.cluster.local"
+    value: "postgres-rw.observability.svc.cluster.local"
   - name: DB_PORT
     value: "5432"
   - name: DB_USER

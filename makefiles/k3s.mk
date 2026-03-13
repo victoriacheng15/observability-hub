@@ -29,12 +29,11 @@ build-analytics:
 	rm analytics.tar
 
 build-postgres:
-	@echo "Building custom Postgres image..."
-	$(DOCKER) build -t postgres-pod:17 -f docker/postgres/Dockerfile .
-	$(DOCKER) save -o postgres-pod.tar localhost/postgres-pod:17
-	sudo k3s ctr images import postgres-pod.tar
-	sudo k3s ctr images tag localhost/postgres-pod:17 docker.io/library/postgres-pod:17
-	rm postgres-pod.tar
+	@echo "Building custom CloudNativePG image..."
+	$(DOCKER) build -t postgres-cnpg:17 -f docker/postgres-cnpg/Dockerfile .
+	$(DOCKER) save -o postgres-cnpg.tar localhost/postgres-cnpg:17
+	sudo k3s ctr images import postgres-cnpg.tar
+	rm postgres-cnpg.tar
 
 k3s-analytics-up:
 	@echo "Regenerating Analytics manifest..."
