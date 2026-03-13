@@ -14,18 +14,20 @@ terraform {
       source  = "grafana/grafana"
       version = "~> 4.27"
     }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
   }
 
-  backend "azurerm" {
-    resource_group_name  = "personal-rg"
-    storage_account_name = "observabilityhub"
-    container_name       = "terraform-state"
-    key                  = "observability-hub.tofu.terraform.tfstate"
-    use_azuread_auth     = true
-  }
+  backend "azurerm" {}
 }
 
 # --- Providers ---
+
+provider "azurerm" {
+  features {}
+}
 
 provider "kubernetes" {
   config_path    = var.kubeconfig_path
