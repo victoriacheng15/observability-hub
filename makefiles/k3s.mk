@@ -33,6 +33,8 @@ build-postgres:
 	$(DOCKER) build -t postgres-cnpg:17 -f docker/postgres-cnpg/Dockerfile .
 	$(DOCKER) save -o postgres-cnpg.tar localhost/postgres-cnpg:17
 	sudo k3s ctr images import postgres-cnpg.tar
+	sudo k3s ctr images tag localhost/postgres-cnpg:17 postgres-cnpg:17
+	sudo k3s ctr images tag localhost/postgres-cnpg:17 docker.io/library/postgres-cnpg:17
 	rm postgres-cnpg.tar
 
 k3s-analytics-up:

@@ -11,7 +11,8 @@ To provide a standardized, intent-based interface for autonomous operations. Ins
 | Service Name | Path | Purpose | Key Tools |
 | :--- | :--- | :--- | :--- |
 | **`mcp-telemetry`** | `cmd/mcp-telemetry/` | **Health Brain**: Bridges the LGTM stack for autonomous observability. | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
-| **`mcp-pods`** | `cmd/mcp-pods/` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events` |
+| **`mcp-pods`** | `cmd/mcp-pods/` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
+| **`mcp-hub`** | `cmd/mcp-hub/` | **System Brain**: Direct host-level intelligence for systemd and hardware state. | `hub_inspect_platform`, `hub_inspect_host`, `hub_list_host_services`, `hub_query_service_logs` |
 
 ## ⚙️ Shared Architectural Patterns
 
@@ -25,8 +26,8 @@ All MCP servers in the platform adhere to a consistent, domain-isolated architec
 
 ## 🔭 Logic & Data Flow
 
-1. **Initialization**: The server initializes the OTel SDK and establishes connections to its specific domain (e.g., Loki/Thanos via NodePort for telemetry, or the K3s API for pods).
-2. **Registration**: Tools are registered with the MCP SDK, defining clear JSON schemas for inputs (e.g., PromQL strings or Namespace/Pod names).
+1. **Initialization**: The server initializes the OTel SDK and establishes connections to its specific domain (e.g., Loki/Thanos via NodePort for telemetry, the K3s API for pods, or the local D-Bus/Systemd for the hub).
+2. **Registration**: Tools are registered with the MCP SDK, defining clear JSON schemas for inputs (e.g., PromQL strings, Pod names, or Service unit names).
 3. **Execution**: When an agent invokes a tool, the server executes the corresponding provider logic, captures the results, and returns them as structured text or JSON content.
 4. **Tracing**: Every tool invocation generates a trace span, correlating the agent's intent with the underlying system operations.
 
@@ -37,4 +38,5 @@ All MCP servers in the platform adhere to a consistent, domain-isolated architec
 | **Agent Inbound** | MCP (Stdio) | Local Process | Reasoning loop interface |
 | **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access |
 | **Cluster Outbound**| HTTPS | `K3s API` | Infrastructure state access |
+| **Host Outbound** | D-Bus/Systemd| Local Socket | System management access |
 | **Self-Observability** | OTLP (gRPC) | `localhost:30317` | Telemetry pipeline |

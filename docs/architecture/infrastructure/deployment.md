@@ -15,7 +15,7 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
 | **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
 | **OpenTelemetry Collector** | Telemetry Hub | Deployment for receiving and processing traces, metrics, and logs. |
-| **PostgreSQL** | Primary Storage | StatefulSet with TimescaleDB + PostGIS for metrics and analytical data. |
+| **HA PostgreSQL (CNPG)** | Primary Storage | StatefulSet orchestrated by CloudNativePG for High-Availability. Automated failover and streaming backups to Azure Blob Storage. |
 | **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
 | **Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence via MinIO. |
 | **Thanos** | Long-term Metrics | StatefulSet for querying historical metrics stored in MinIO. |
