@@ -37,7 +37,7 @@ spec:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "opentelemetry.observability.svc.cluster.local:4317"
             - name: DB_HOST
-              value: postgres-rw.observability.svc.cluster.local
+              value: postgres-hub-rw.databases.svc.cluster.local
             - name: DB_PORT
               value: "5432"
             - name: DB_USER

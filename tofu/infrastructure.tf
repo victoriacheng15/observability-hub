@@ -62,11 +62,11 @@ resource "helm_release" "minio" {
   repository = "https://charts.min.io/"
   chart      = "minio"
   version    = "5.4.0"
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = kubernetes_namespace_v1.databases.metadata[0].name
 
   values = [file("${path.module}/../k3s/minio/values.yaml")]
 
-  depends_on = [kubernetes_namespace_v1.observability]
+  depends_on = [kubernetes_namespace_v1.databases]
 }
 
 # --- CloudNativePG Operator (Control Plane) ---
@@ -79,7 +79,6 @@ resource "helm_release" "cnpg_operator" {
   namespace  = "cnpg-system"
   create_namespace = true
 }
-
 # --- CloudNativePG Cluster (Data Plane) ---
 
 resource "kubernetes_manifest" "postgres_cluster" {
@@ -87,8 +86,8 @@ resource "kubernetes_manifest" "postgres_cluster" {
     apiVersion = "postgresql.cnpg.io/v1"
     kind       = "Cluster"
     metadata = {
-      name      = "postgres"
-      namespace = kubernetes_namespace_v1.observability.metadata[0].name
+      name      = "postgres-hub"
+      namespace = kubernetes_namespace_v1.databases.metadata[0].name
     }
     spec = {
       instances       = 3
@@ -113,6 +112,7 @@ resource "kubernetes_manifest" "postgres_cluster" {
           "app.kubernetes.io/feature" = "database-core"
         }
       }
+
 
       # Standard 2026 PostgreSQL parameters
       postgresql = {
@@ -168,7 +168,7 @@ resource "kubernetes_manifest" "postgres_cluster" {
     }
   }
 
-  depends_on = [helm_release.cnpg_operator, azurerm_storage_container.pg_backup]
+  depends_on = [helm_release.cnpg_operator, azurerm_storage_container.pg_backup, kubernetes_namespace_v1.databases]
 }
 
 # --- Postgres: Automated Backup Schedule ---
@@ -179,13 +179,13 @@ resource "kubernetes_manifest" "postgres_backup_schedule" {
     kind       = "ScheduledBackup"
     metadata = {
       name      = "postgres-daily-backup"
-      namespace = kubernetes_namespace_v1.observability.metadata[0].name
+      namespace = kubernetes_namespace_v1.databases.metadata[0].name
     }
     spec = {
       schedule = "0 0 2 * * *" # Daily at 2 AM
       backupOwnerReference = "self"
       cluster = {
-        name = "postgres"
+        name = "postgres-hub"
       }
     }
   }
@@ -198,11 +198,11 @@ resource "kubernetes_manifest" "postgres_backup_schedule" {
 resource "kubernetes_service_v1" "postgres_nodeport" {
   metadata {
     name      = "postgres-host-access"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = kubernetes_namespace_v1.databases.metadata[0].name
   }
   spec {
     selector = {
-      "cnpg.io/cluster" = "postgres"
+      "cnpg.io/cluster" = "postgres-hub"
       "role"            = "primary"
     }
     port {

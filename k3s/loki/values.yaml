@@ -11,7 +11,7 @@ loki:
       ruler: loki-ruler
       admin: loki-admin
     s3:
-      endpoint: minio.observability.svc.cluster.local:9000
+      endpoint: minio.databases.svc.cluster.local:9000
       secretAccessKey: ${rootPassword}
       accessKeyId: ${rootUser}
       s3ForcePathStyle: true

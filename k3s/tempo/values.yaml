@@ -92,7 +92,7 @@ config: |
       backend: s3
       s3:
         bucket: tempo-traces
-        endpoint: minio.observability.svc.cluster.local:9000
+        endpoint: minio.databases.svc.cluster.local:9000
         access_key: ${rootUser}
         secret_key: ${rootPassword}
         insecure: true

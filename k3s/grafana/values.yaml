@@ -92,7 +92,7 @@ datasources:
       - name: PostgreSQL
         type: postgres
         uid: postgresql-provisioned
-        url: postgres-rw.observability:5432
+        url: postgres-hub-rw.databases:5432
         database: homelab
         user: server
         jsonData:
