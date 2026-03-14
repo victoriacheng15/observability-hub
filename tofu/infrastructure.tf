@@ -1,8 +1,8 @@
 # --- Storage ---
 
 data "azurerm_storage_account" "hub" {
-  name                = "observabilityhub"
-  resource_group_name = "personal-rg"
+  name                = var.azurerm_storage_account_name
+  resource_group_name = var.azurerm_resource_group_name
 }
 
 resource "azurerm_storage_container" "terraform_state" {
@@ -53,15 +53,13 @@ resource "kubernetes_storage_class_v1" "local_path_retain" {
   volume_binding_mode = "WaitForFirstConsumer"
 }
 
-# --- Database (Postgres) ---
-
 # --- Object Storage (MinIO) ---
 
 resource "helm_release" "minio" {
   name       = "minio"
   repository = "https://charts.min.io/"
   chart      = "minio"
-  version    = "5.4.0"
+  version    = var.minio_chart_version
   namespace  = kubernetes_namespace_v1.databases.metadata[0].name
 
   values = [file("${path.module}/../k3s/minio/values.yaml")]
@@ -72,13 +70,37 @@ resource "helm_release" "minio" {
 # --- CloudNativePG Operator (Control Plane) ---
 
 resource "helm_release" "cnpg_operator" {
-  name       = "cloudnative-pg"
-  repository = "https://cloudnative-pg.github.io/charts"
-  chart      = "cloudnative-pg"
-  version    = "0.23.0" # Standard 2026 stable release
-  namespace  = "cnpg-system"
+  name             = "cloudnative-pg"
+  repository       = "https://cloudnative-pg.github.io/charts"
+  chart            = "cloudnative-pg"
+  version          = var.cnpg_operator_chart_version
+  namespace        = "cnpg-system"
   create_namespace = true
 }
+
+# --- Database Management (pgAdmin) ---
+
+data "kubernetes_secret_v1" "pgadmin_secret" {
+  metadata {
+    name      = "pgadmin-secret"
+    namespace = kubernetes_namespace_v1.databases.metadata[0].name
+  }
+}
+
+resource "helm_release" "pgadmin" {
+  name       = "pgadmin"
+  repository = "https://helm.runix.net"
+  chart      = "pgadmin4"
+  version    = var.pgadmin_chart_version
+  namespace  = kubernetes_namespace_v1.databases.metadata[0].name
+
+  values = [
+    file("${path.module}/../k3s/pgadmin/values.yaml")
+  ]
+
+  depends_on = [kubernetes_namespace_v1.databases]
+}
+
 # --- CloudNativePG Cluster (Data Plane) ---
 
 resource "kubernetes_manifest" "postgres_cluster" {
@@ -91,14 +113,14 @@ resource "kubernetes_manifest" "postgres_cluster" {
     }
     spec = {
       instances       = 3
-      imageName       = "localhost/postgres-cnpg:17"
+      imageName       = var.postgres_image
       imagePullPolicy = "IfNotPresent"
 
       # Permanent database and user identity
       bootstrap = {
         initdb = {
-          database = "homelab"
-          owner    = "server"
+          database = var.postgres_database
+          owner    = var.postgres_owner
           secret = {
             name = "postgres-secret"
           }
@@ -158,7 +180,7 @@ resource "kubernetes_manifest" "postgres_cluster" {
       }
 
       storage = {
-        size         = "10Gi"
+        size         = var.postgres_storage_size
         storageClass = kubernetes_storage_class_v1.local_path_retain.metadata[0].name
       }
 
@@ -182,7 +204,7 @@ resource "kubernetes_manifest" "postgres_backup_schedule" {
       namespace = kubernetes_namespace_v1.databases.metadata[0].name
     }
     spec = {
-      schedule = "0 0 2 * * *" # Daily at 2 AM
+      schedule             = var.postgres_backup_schedule
       backupOwnerReference = "self"
       cluster = {
         name = "postgres-hub"
@@ -208,7 +230,7 @@ resource "kubernetes_service_v1" "postgres_nodeport" {
     port {
       port        = 5432
       target_port = 5432
-      node_port   = 30432
+      node_port   = var.postgres_node_port
     }
     type = "NodePort"
   }

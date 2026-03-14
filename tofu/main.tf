@@ -53,26 +53,6 @@ provider "grafana" {
   auth = try("${data.kubernetes_secret_v1.grafana_admin.data["admin-user"]}:${data.kubernetes_secret_v1.grafana_admin.data["admin-password"]}", "admin:admin")
 }
 
-# --- Variables ---
-
-variable "kubeconfig_path" {
-  description = "Path to the kubeconfig file."
-  type        = string
-  default     = "~/.kube/config"
-}
-
-variable "observability_namespace" {
-  description = "Namespace for all observability services."
-  type        = string
-  default     = "observability"
-}
-
-variable "databases_namespace" {
-  description = "Namespace for all database and persistence services."
-  type        = string
-  default     = "databases"
-}
-
 # --- Namespace ---
 
 resource "kubernetes_namespace_v1" "observability" {
