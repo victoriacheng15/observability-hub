@@ -4,37 +4,27 @@ A resilient, self-hosted platform meticulously engineered to showcase advanced S
 
 Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system metrics, application events, and logs into a single queryable layer leveraging OpenTelemetry, High-Availability (HA) PostgreSQL via CloudNativePG (CNPG), Grafana Loki, Prometheus, and Grafana. It's designed for operational excellence, demonstrating how to build a robust, observable, and maintainable system from the ground up.
 
-[Explore Live Telemetry & System Evolution](https://victoriacheng15.github.io/observability-hub/)
+🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)
+
+📚 [Documentation Hub: Architecture, ADRs & Operations](./docs/README.md)
 
 ---
 
-## 🚀 Key Achievements & Capabilities
+## 📚 Project Evolution
 
-### ☸️ Cloud-Native & Platform Engineering
-* **Kubernetes Migration & HA Operations:** Core observability and data components (Loki, Grafana, Tempo, Prometheus, CNPG) run natively in Kubernetes, leveraging **CloudNativePG** for automated failover and **Azure Blob Storage** for durable backups.
-* **GitOps Reconciliation Engine:** Implemented a secure, templated engine for automated state enforcement via HMAC-secured webhooks, enabling high-fidelity synchronization across environments.
-* **Centralized Secrets Management:** Integrated **OpenBao** for secure, dynamic credential retrieval, eliminating insecure static configurations across all service layers.
+This platform evolved through intentional phases. See the full journey with ADRs:
 
-### 🏗️ Software Architecture & Development
-* **Unified Go Monorepo:** Consolidated fragmented modules into a single root module, eliminating 17 `replace` directives and standardizing dependency management across the entire stack.
-* **Encapsulated Design Pattern:** Adopts an `internal/` and `cmd/` layout to enforce strict package visibility and the "Thin Main" pattern for enhanced system integrity and testability.
-* **Reproducible Engineering Environment:** Ensures consistent developer environments via **Nix (`shell.nix`)** and Docker, minimizing environment friction and ensuring build reproducibility.
+[View Complete Evolution Log](https://victoriacheng15.github.io/observability-hub/evolution.html)
 
-### 🔭 Observability & Agentic Intelligence
-* **Full OpenTelemetry (LMT) Stack:** Achieved end-to-end visibility (Logs, Metrics, Traces) with a unified OTel Collector, Tempo, Prometheus, Loki, and custom Go SDK instrumentation.
-* **Domain-Isolated MCP Interface:** A hardened "Agentic Interface" for AI agents, strictly decoupling infrastructure investigations (`mcp-pods`) from telemetry pipelines (`mcp-telemetry`) to enforce Least Privilege.
-* **Hybrid Host-to-Cluster Bridge:** Designed a secure store-and-forward bridge for ingesting external telemetry and host analytics into the Kubernetes data tier without exposing local ports.
+### Key Milestones
 
-### 📋 Operational Governance
-* **Formalized Decision Framework:** Established Architectural Decision Records (ADRs) and an Incident Response/RCA framework to ensure structured, traceable growth and operational excellence.
+- **Ch 1-3: Foundations** – Docker lab, Shared Go libraries, and Host-level visibility.
+- **Ch 4-6: Kubernetes Pivot** – Cluster migration, Event-driven GitOps, and Vault (OpenBao) security.
+- **Ch 7-9: SRE & Maturity** – Full OpenTelemetry (LMT) stack, Library-first modularity, and OpenTofu/Terraform IaC.
+- **Ch 10: MCP Era** – AI-native operations via domain-isolated Model Context Protocol servers.
+- **Ch 11: Resource Efficiency & Sustainability** – Kepler-driven energy monitoring and visual efficiency insights (FinOps/GreenOps).
 
----
-
-## 📚 Further Documentation
-
-For deeper insights into the project's structure and operational guides:
-
-* **[Documentation Hub](./docs/README.md)**: Central entry point for Architecture, Decisions (ADRs), and Operational Notes.
+Each chapter links to Architecture Decision Records (ADRs) showing the *why* behind each change.
 
 ---
 
@@ -51,10 +41,9 @@ The platform leverages a robust set of modern technologies for its core function
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
 ![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
-![Kubernetes (K3s)](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![OpenBao](https://img.shields.io/badge/OpenBao-6d7174?style=for-the-badge&logo=openbao&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
 ![Azure Blob Storage](https://img.shields.io/badge/Azure_Blob_Storage-%230072C6.svg?style=for-the-badge&logo=microsoftazure&logoColor=white)
 
@@ -124,7 +113,6 @@ flowchart TB
     %% Resilience & Backup
     Observability -- "Offload" --> S3
     PG -- "Streaming Backup" --> Azure
-    S3 -- "Replication" --> Azure
 
     %% Visualization Connections
     Observability & PG --> Grafana
@@ -132,18 +120,36 @@ flowchart TB
 
 ---
 
-## 🏗️ Engineering Principles
+## 🚀 Key Achievements & Capabilities
 
-Foundational principles guide every aspect of the platform's development and operation:
+### ☸️ Platform Engineering & Infrastructure
 
-* **Signals over Noise:** Standardizing telemetry signals to provide immediate clarity on service behavior across the entire stack.
-* **Logic over Plumbing:** Decoupling infrastructure boilerplate from service logic using shared Go wrappers to focus on domain value.
-* **Config as the Truth:** Using GitOps to ensure version control remains the ultimate source of truth, with automated state reconciliation.
-* **Pragmatic Orchestration:** Leveraging Kubernetes for persistence and native Systemd for host automation to maximize reliability with minimal overhead.
+- **High-Availability Data Tier:** Deployed Loki, Tempo, and Thanos on **Kubernetes** with **CloudNativePG** for automated PostgreSQL failover and **Azure Blob Storage** for off-cluster backups.
+- **Infrastructure as Code:** Migrated Helm workflows to **OpenTofu** for declarative state management and automated drift detection across the stack.
+- **Secrets Orchestration:** Integrated **OpenBao** to replace static environment variables with dynamic, on-demand credential retrieval.
+
+### 🏗️ Software Architecture & Design
+
+- **Dependency Consolidation:** Unified fragmented Go modules into a single monorepo, removing 17 `replace` directives and standardizing the build toolchain with **Nix**.
+- **Architectural Isolation:** Implemented "Thin Main" patterns and strict `internal/` package scoping to decouple domain logic from infrastructure plumbing.
+- **GitOps Engine:** Built a custom HMAC-secured webhook listener to trigger automated repository state reconciliation across the cluster.
+
+### 🔭 Observability & Agentic Intelligence
+
+- **Full-Stack Telemetry:** Standardized on **OpenTelemetry (Logs, Metrics, Traces)** for unified signal correlation across host and Kubernetes services.
+- **Agentic Interface (MCP):** Implemented **Model Context Protocol** servers to expose system state to AI agents, using domain isolation to enforce least privilege.
+- **Store-and-Forward Bridge:** Built a secure telemetry relay to ingest host-level data into Kubernetes without exposing internal cluster ports.
+
+### 📋 Operational Governance
+
+- **Decision Framework:** Adopted Architectural Decision Records (ADRs) and Incident RCA templates to document system evolution and manage technical debt.
 
 ---
 
-## 🚀 Getting Started (Local Development)
+## 🚀 Getting Started
+
+<details>
+<summary><b>Local Development Guide</b></summary>
 
 This guide will help you set up and run the `observability-hub` locally using **Kubernetes (K3s)**.
 
@@ -151,11 +157,11 @@ This guide will help you set up and run the `observability-hub` locally using **
 
 Ensure you have the following installed on your system:
 
-* [Go](https://go.dev/doc/install)
-* [K3s](https://k3s.io/) (Lightweight Kubernetes)
-* [Helm](https://helm.sh/)
-* `make` (GNU Make)
-* [Nix](https://nixos.org/download.html) (for reproducible toolchains)
+- [Go](https://go.dev/doc/install)
+- [K3s](https://k3s.io/) (Lightweight Kubernetes)
+- [Helm](https://helm.sh/)
+- `make` (GNU Make)
+- [Nix](https://nixos.org/download.html) (for reproducible toolchains)
 
 ### 1. Configuration
 
@@ -207,9 +213,11 @@ make install-services
 
 Once the stack is running, you can verify the end-to-end telemetry flow:
 
-* **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
-* **Service Logs:** Check logs for host components via Grafana Loki.
+- **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
+- **Service Logs:** Check logs for host components via Grafana Loki.
 
 ### 4. Managing the Cluster
 
 To stop or remove resources, use the standard `kubectl delete` commands targeting the `observability` namespace.
+
+</details>

@@ -2,7 +2,7 @@ page_title: "System Logs & Milestones"
 intro_text: "A chronological record of architectural pivots, technical wins, and lessons learned while scaling a single-node laboratory. This is the paper trail of a platform in motion."
 chapters:
   - title: "The Genesis"
-    intro: "Infrastructure Foundations & Telemetry Prototypes"
+    intro: "Laying the bedrock of the platform by establishing automated local infrastructure and developing the initial Go telemetry engine to bridge hybrid cloud boundaries."
     timeline:
       - date: "2025-11-20"
         title: "Reliable Local Lab"
@@ -27,7 +27,7 @@ chapters:
           - Decoupled stateless analytics from persistent storage to enable independent scaling.
 
   - title: "The Platform Core"
-    intro: "Standardization, Visualization, and Process"
+    intro: "Standardizing the platform architecture through shared Go libraries and GitOps automation, while launching an interactive portal to visualize real-time system performance."
     timeline:
       - date: "2026-01-01"
         title: "Project Portal Launch"
@@ -321,3 +321,17 @@ chapters:
         description: |
           - Eliminated visibility gaps between Kubernetes orchestration and host-resident services via 'mcp-hub' to ensure unified platform accountability.
           - Accelerated host-level failure detection via namespaced tools (`hub_`) for surgical resource introspection and cross-layer correlation.
+
+  - title: "Resource Efficiency & Sustainability"
+    intro: "Integrating Kepler for energy monitoring and visual efficiency insights to establish a FinOps/GreenOps baseline."
+    timeline:
+      - date: "2026-03-11"
+        title: "Kepler Integration & Energy Dashboards"
+        artifacts:
+          - name: "Dashboard: Sustainability & Efficiency"
+            url: "docs/images/sustainability.png"
+          - name: "Dashboard: Pod Resources"
+            url: "docs/images/pod-resources.png"
+        description: |
+          - Established a FinOps efficiency baseline across the cluster by deploying Kepler for granular energy monitoring.
+          - Enabled actionable sustainability insights through dedicated energy dashboards, correlating workload performance with power consumption.
