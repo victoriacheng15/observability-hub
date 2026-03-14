@@ -4,7 +4,7 @@ resource "helm_release" "prometheus" {
   name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus"
-  version    = "28.10.1"
+  version    = var.prometheus_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/prometheus/values.yaml")]
@@ -16,7 +16,7 @@ resource "helm_release" "kepler" {
   name       = "kepler"
   repository = "oci://quay.io/sustainable_computing_io/charts"
   chart      = "kepler"
-  version    = "0.11.2"
+  version    = var.kepler_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/kepler/values.yaml")]
@@ -58,7 +58,7 @@ resource "helm_release" "thanos" {
   name       = "thanos"
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "thanos"
-  version    = "17.3.1"
+  version    = var.thanos_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
@@ -79,7 +79,7 @@ resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
-  version    = "6.53.0"
+  version    = var.loki_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/loki/values.yaml")]
@@ -93,7 +93,7 @@ resource "helm_release" "tempo" {
   name       = "tempo"
   repository = "https://grafana-community.github.io/helm-charts"
   chart      = "tempo"
-  version    = "1.26.1"
+  version    = var.tempo_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/tempo/values.yaml")]
@@ -107,7 +107,7 @@ resource "helm_release" "opentelemetry_collector" {
   name       = "opentelemetry-collector"
   repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
   chart      = "opentelemetry-collector"
-  version    = "0.146.0"
+  version    = var.otel_collector_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/opentelemetry/values.yaml")]
@@ -121,7 +121,7 @@ resource "helm_release" "grafana" {
   name       = "grafana"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana"
-  version    = "10.5.15"
+  version    = var.grafana_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [file("${path.module}/../k3s/grafana/values.yaml")]
