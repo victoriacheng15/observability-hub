@@ -78,27 +78,201 @@ resource "helm_release" "cnpg_operator" {
   create_namespace = true
 }
 
-# --- Database Management (pgAdmin) ---
+# --- Database Management (pgAdmin Native) ---
 
-data "kubernetes_secret_v1" "pgadmin_secret" {
+resource "kubernetes_persistent_volume_claim_v1" "pgadmin" {
   metadata {
-    name      = "pgadmin-secret"
+    name      = "pgadmin-pgadmin4"
     namespace = kubernetes_namespace_v1.databases.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "pgadmin4"
+    }
+  }
+
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = "local-path-retain"
+    resources {
+      requests = {
+        storage = "1Gi"
+      }
+    }
+  }
+
+  wait_until_bound = false
+}
+
+resource "kubernetes_config_map_v1" "pgadmin_servers" {
+  metadata {
+    name      = "pgadmin-pgadmin4-server-definitions"
+    namespace = kubernetes_namespace_v1.databases.metadata[0].name
+  }
+
+  data = {
+    "servers.json" = jsonencode({
+      Servers = {
+        "postgres-hub" = {
+          Group         = "Observability Hub"
+          Host          = "postgres-hub-rw.databases.svc.cluster.local"
+          MaintenanceDB = "homelab"
+          Name          = "Postgres Hub"
+          Port          = 5432
+          SSLMode       = "prefer"
+          Username      = "server"
+        }
+      }
+    })
   }
 }
 
-resource "helm_release" "pgadmin" {
-  name       = "pgadmin"
-  repository = "https://helm.runix.net"
-  chart      = "pgadmin4"
-  version    = var.pgadmin_chart_version
-  namespace  = kubernetes_namespace_v1.databases.metadata[0].name
+resource "kubernetes_service_v1" "pgadmin" {
+  metadata {
+    name      = "pgadmin-pgadmin4"
+    namespace = kubernetes_namespace_v1.databases.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "pgadmin4"
+    }
+  }
 
-  values = [
-    file("${path.module}/../k3s/pgadmin/values.yaml")
-  ]
+  spec {
+    selector = {
+      "app.kubernetes.io/name"     = "pgadmin4"
+      "app.kubernetes.io/instance" = "pgadmin"
+    }
 
-  depends_on = [kubernetes_namespace_v1.databases]
+    port {
+      name        = "http"
+      port        = 80
+      target_port = 80
+      node_port   = 30080
+    }
+
+    type = "NodePort"
+  }
+}
+
+resource "kubernetes_deployment_v1" "pgadmin" {
+  metadata {
+    name      = "pgadmin-pgadmin4"
+    namespace = kubernetes_namespace_v1.databases.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "pgadmin4"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name"     = "pgadmin4"
+        "app.kubernetes.io/instance" = "pgadmin"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          "app.kubernetes.io/name"     = "pgadmin4"
+          "app.kubernetes.io/instance" = "pgadmin"
+          "app.kubernetes.io/feature"  = "database-management"
+        }
+      }
+
+      spec {
+        automount_service_account_token = false
+
+        container {
+          name              = "pgadmin4"
+          image             = "docker.io/dpage/pgadmin4:9.11"
+          image_pull_policy = "IfNotPresent"
+
+          port {
+            name           = "http"
+            container_port = 80
+          }
+
+          env {
+            name  = "PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION"
+            value = "False"
+          }
+          env {
+            name  = "PGADMIN_DEFAULT_EMAIL"
+            value = "admin@observability-hub.home"
+          }
+          env {
+            name = "PGADMIN_DEFAULT_PASSWORD"
+            value_from {
+              secret_key_ref {
+                name = "pgadmin-secret"
+                key  = "password"
+              }
+            }
+          }
+          env {
+            name  = "PGADMIN_SERVER_JSON_FILE"
+            value = "/pgadmin4/servers.json"
+          }
+
+          volume_mount {
+            name       = "pgadmin-data"
+            mount_path = "/var/lib/pgadmin"
+          }
+          volume_mount {
+            name       = "definitions"
+            mount_path = "/pgadmin4/servers.json"
+            sub_path   = "servers.json"
+          }
+
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+          }
+
+          liveness_probe {
+            http_get {
+              path = "/misc/ping"
+              port = "http"
+            }
+            failure_threshold = 3
+            period_seconds    = 20
+            timeout_seconds   = 5
+          }
+        }
+
+        volume {
+          name = "pgadmin-data"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim_v1.pgadmin.metadata[0].name
+          }
+        }
+        volume {
+          name = "definitions"
+          config_map {
+            name = kubernetes_config_map_v1.pgadmin_servers.metadata[0].name
+            items {
+              key  = "servers.json"
+              path = "servers.json"
+            }
+          }
+        }
+
+        security_context {
+          fs_group     = 5050
+          run_as_group = 5050
+          run_as_user  = 5050
+        }
+      }
+    }
+  }
+
+  depends_on = [kubernetes_namespace_v1.databases, kubernetes_persistent_volume_claim_v1.pgadmin]
 }
 
 # --- CloudNativePG Cluster (Data Plane) ---

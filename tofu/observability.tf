@@ -1,4 +1,4 @@
-# --- Metrics (Prometheus & Kepler) ---
+# --- Metrics (Prometheus) ---
 
 resource "helm_release" "prometheus" {
   name       = "prometheus"
@@ -12,14 +12,216 @@ resource "helm_release" "prometheus" {
   depends_on = [kubernetes_namespace_v1.observability]
 }
 
-resource "helm_release" "kepler" {
-  name       = "kepler"
-  repository = "oci://quay.io/sustainable_computing_io/charts"
-  chart      = "kepler"
-  version    = var.kepler_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+# --- Energy Auditing (Kepler Native) ---
 
-  values = [file("${path.module}/../k3s/kepler/values.yaml")]
+resource "kubernetes_service_account_v1" "kepler" {
+  metadata {
+    name      = "kepler"
+    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+  }
+}
+
+resource "kubernetes_cluster_role_v1" "kepler" {
+  metadata {
+    name = "kepler"
+    labels = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["pods", "nodes", "nodes/proxy", "nodes/metrics"]
+    verbs      = ["get", "list", "watch"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding_v1" "kepler" {
+  metadata {
+    name = "kepler"
+    labels = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role_v1.kepler.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.kepler.metadata[0].name
+    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+  }
+}
+
+resource "kubernetes_config_map_v1" "kepler" {
+  metadata {
+    name      = "kepler"
+    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+  }
+
+  data = {
+    "config.yaml" = yamlencode({
+      exporter = {
+        prometheus = {
+          enabled = true
+        }
+      }
+      host = {
+        procfs = "/host/proc"
+        sysfs  = "/host/sys"
+      }
+      log = {
+        level = "debug"
+      }
+      monitor = {
+        interval = "5s"
+      }
+      web = {
+        listenAddresses = [":28282"]
+      }
+    })
+  }
+}
+
+resource "kubernetes_service_v1" "kepler" {
+  metadata {
+    name      = "kepler"
+    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+  }
+
+  spec {
+    selector = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+
+    port {
+      name        = "http"
+      port        = 28282
+      target_port = 28282
+    }
+
+    type = "ClusterIP"
+  }
+}
+
+resource "kubernetes_daemon_set_v1" "kepler" {
+  metadata {
+    name      = "kepler"
+    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name" = "kepler"
+    }
+  }
+
+  spec {
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "kepler"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          "app.kubernetes.io/name" = "kepler"
+        }
+      }
+
+      spec {
+        service_account_name = kubernetes_service_account_v1.kepler.metadata[0].name
+        host_pid             = true
+
+        node_selector = {
+          "kubernetes.io/os" = "linux"
+        }
+
+        toleration {
+          operator = "Exists"
+        }
+
+        container {
+          name              = "kepler"
+          image             = "quay.io/sustainable_computing_io/kepler:latest"
+          image_pull_policy = "IfNotPresent"
+
+          security_context {
+            privileged = true
+          }
+
+          command = ["/usr/bin/kepler"]
+          args    = ["--config.file=/etc/kepler/config.yaml", "--kube.enable", "--kube.node-name=$(NODE_NAME)"]
+
+          port {
+            name           = "http"
+            container_port = 28282
+            protocol       = "TCP"
+          }
+
+          env {
+            name = "NODE_NAME"
+            value_from {
+              field_ref {
+                field_path = "spec.nodeName"
+              }
+            }
+          }
+
+          volume_mount {
+            name       = "sysfs"
+            mount_path = "/host/sys"
+            read_only  = true
+          }
+          volume_mount {
+            name       = "procfs"
+            mount_path = "/host/proc"
+            read_only  = true
+          }
+          volume_mount {
+            name       = "cfm"
+            mount_path = "/etc/kepler"
+          }
+
+          liveness_probe {
+            http_get {
+              path = "/metrics"
+              port = "http"
+            }
+            initial_delay_seconds = 10
+            period_seconds        = 60
+          }
+        }
+
+        volume {
+          name = "sysfs"
+          host_path {
+            path = "/sys"
+          }
+        }
+        volume {
+          name = "procfs"
+          host_path {
+            path = "/proc"
+          }
+        }
+        volume {
+          name = "cfm"
+          config_map {
+            name = kubernetes_config_map_v1.kepler.metadata[0].name
+          }
+        }
+      }
+    }
+  }
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
@@ -172,8 +374,8 @@ resource "kubernetes_daemon_set_v1" "analytics" {
         dns_policy   = "ClusterFirstWithHostNet"
 
         container {
-          name  = "analytics"
-          image = "analytics:v0.1.0"
+          name              = "analytics"
+          image             = "analytics:v0.1.0"
           image_pull_policy = "IfNotPresent"
 
           # Observability Endpoints (FQDN)
@@ -215,12 +417,12 @@ resource "kubernetes_daemon_set_v1" "analytics" {
 
           resources {
             requests = {
-              cpu    = "5m"
-              memory = "20Mi"
+              cpu    = "100m"
+              memory = "200Mi"
             }
             limits = {
-              cpu    = "50m"
-              memory = "80Mi"
+              cpu    = "100m"
+              memory = "400Mi"
             }
           }
 
