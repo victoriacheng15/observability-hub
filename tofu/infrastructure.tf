@@ -62,7 +62,59 @@ resource "helm_release" "minio" {
   version    = var.minio_chart_version
   namespace  = kubernetes_namespace_v1.databases.metadata[0].name
 
-  values = [file("${path.module}/../k3s/minio/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/minio/values.yaml"),
+    yamlencode({
+      persistence = {
+        storageClass = local.standards.persistence.storage_class
+        size         = local.standards.persistence.size
+      }
+      resources = local.standards.resources.large
+      securityContext = {
+        enabled      = true
+        runAsNonRoot = local.standards.security.pod.run_as_non_root
+        fsGroup      = local.standards.security.pod.fs_group
+        runAsUser    = local.standards.security.pod.run_as_user
+        runAsGroup   = local.standards.security.pod.run_as_group
+      }
+      containerSecurityContext = {
+        readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+        allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+        capabilities = {
+          drop = local.standards.security.container.capabilities_drop
+        }
+      }
+      postJob = {
+        securityContext = {
+          enabled      = true
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          fsGroup      = local.standards.security.pod.fs_group
+          runAsUser    = local.standards.security.pod.run_as_user
+          runAsGroup   = local.standards.security.pod.run_as_group
+        }
+      }
+      makeBucketJob = {
+        securityContext = {
+          enabled      = true
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          runAsUser    = local.standards.security.pod.run_as_user
+        }
+        containerSecurityContext = {
+          readOnlyRootFilesystem = local.standards.exceptions.minio.make_bucket_job_read_only_root_fs
+        }
+      }
+      makeUserJob = {
+        securityContext = {
+          enabled      = true
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          runAsUser    = local.standards.security.pod.run_as_user
+        }
+        containerSecurityContext = {
+          readOnlyRootFilesystem = local.standards.exceptions.minio.make_user_job_read_only_root_fs
+        }
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.databases]
 }

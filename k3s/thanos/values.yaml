@@ -26,34 +26,8 @@ existingObjstoreSecretItems:
 storegateway:
   enabled: true
   replicaCount: 1
-  
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 200m
-      memory: 512Mi
-  
-  podSecurityContext:
-    enabled: true
-    fsGroup: 1000
-    runAsUser: 1000
-    runAsGroup: 1000
-    runAsNonRoot: true
-  
-  containerSecurityContext:
-    enabled: true
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-  
   persistence:
     enabled: true
-    size: 2Gi
-    storageClass: local-path-retain
 
 # Configure Thanos Query to locate the Prometheus sidecar
 query:
@@ -76,34 +50,8 @@ compactor:
   retentionResolutionRaw: 180d
   retentionResolution5m: 180d
   retentionResolution1h: 180d
-  
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 200m
-      memory: 512Mi
-
-  podSecurityContext:
-    enabled: true
-    fsGroup: 1000
-    runAsUser: 1000
-    runAsGroup: 1000
-    runAsNonRoot: true
-
-  containerSecurityContext:
-    enabled: true
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-
   persistence:
     enabled: true
-    size: 2Gi
-    storageClass: local-path-retain
 
 receive:
   enabled: false

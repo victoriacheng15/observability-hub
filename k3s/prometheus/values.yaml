@@ -1,5 +1,4 @@
 server:
-  revisionHistoryLimit: 3
   global:
     external_labels:
       cluster: homelab
@@ -8,13 +7,6 @@ server:
     storage.tsdb.retention.time: 168h # Standard 1-week local retention
     storage.tsdb.min-block-duration: 2h
     storage.tsdb.max-block-duration: 2h
-  resources:
-    requests:
-      cpu: 100m
-      memory: 1Gi
-    limits:
-      cpu: 500m
-      memory: 2Gi
   thanos:
     sidecar:
       enabled: false
@@ -44,59 +36,9 @@ server:
           mountPath: /etc/thanos
           readOnly: true
   
-  # Hardening server
-  containerSecurityContext:
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    runAsNonRoot: true
-    runAsUser: 65534 # nobody
-    runAsGroup: 65534
-    capabilities:
-      drop:
-        - ALL
-  
-  # sidecarConfigReloader for newer charts
-  sidecarConfigReloader:
-    resources:
-      limits:
-        cpu: 50m
-        memory: 64Mi
-      requests:
-        cpu: 10m
-        memory: 32Mi
-    containerSecurityContext:
-      readOnlyRootFilesystem: true
-      allowPrivilegeEscalation: false
-      runAsNonRoot: true
-      runAsUser: 65534
-      capabilities:
-        drop:
-          - ALL
-
-  # configmapReload for this specific chart version (v28.x)
-  configmapReload:
-    prometheus:
-      resources:
-        limits:
-          cpu: 50m
-          memory: 64Mi
-        requests:
-          cpu: 10m
-          memory: 32Mi
-      containerSecurityContext:
-        readOnlyRootFilesystem: true
-        allowPrivilegeEscalation: false
-        runAsNonRoot: true
-        runAsUser: 65534
-        capabilities:
-          drop:
-            - ALL
-
   retention: null # Disable default chart retention to avoid argument duplication
   persistentVolume:
     enabled: true
-    size: 10Gi
-    storageClass: local-path-retain
 
   extraServices:
     - name: prometheus-thanos-grpc
@@ -171,23 +113,10 @@ scrapeConfigs:
         action: keep
 
 kube-state-metrics:
-  revisionHistoryLimit: 3
-  resources:
-    limits:
-      cpu: 100m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 64Mi
+  enabled: true
 
 prometheus-node-exporter:
-  resources:
-    limits:
-      cpu: 100m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 64Mi
+  enabled: true
 
 # Disable unnecessary components to save resources
 alertmanager:

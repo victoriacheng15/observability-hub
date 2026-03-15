@@ -201,7 +201,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))))",
           "legendFormat": "Current Power",
           "range": true,
           "refId": "A"
@@ -264,7 +264,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) / 1000 * $energy_cost_kwh * 24",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24",
           "legendFormat": "CAD/Day",
           "range": true,
           "refId": "A"
@@ -327,7 +327,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) / 1000 * $energy_cost_kwh * 24 * 30",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 30",
           "legendFormat": "CAD/Month",
           "range": true,
           "refId": "A"
@@ -390,7 +390,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) / 1000 * $energy_cost_kwh * 24 * 365",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 365",
           "legendFormat": "CAD/Year",
           "range": true,
           "refId": "A"

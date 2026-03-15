@@ -1,4 +1,3 @@
-revisionHistoryLimit: 3
 podLabels:
   app.kubernetes.io/feature: observability-ui
 
@@ -9,41 +8,9 @@ admin:
 
 persistence:
   enabled: true
-  size: 10Gi
-  storageClass: local-path-retain
-
-podSecurityContext:
-  fsGroup: 472
-  runAsGroup: 472
-  runAsUser: 472
-
-containerSecurityContext:
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
 
 initChownData:
   enabled: true
-  resources:
-    limits:
-      cpu: 100m
-      memory: 250Mi
-    requests:
-      cpu: 10m
-      memory: 150Mi
-  securityContext:
-    runAsNonRoot: false
-    runAsUser: 0
-    allowPrivilegeEscalation: true
-    # Needs to be able to chown the data volume
-    readOnlyRootFilesystem: false
-    capabilities:
-      add:
-        - CHOWN
-      drop:
-        - ALL
 
 datasources:
   datasources.yaml:
@@ -109,14 +76,6 @@ service:
   port: 80
   targetPort: 3000
   nodePort: 30000
-
-resources:
-  requests:
-    cpu: 50m
-    memory: 256Mi
-  limits:
-    cpu: 200m
-    memory: 512Mi
 
 # Security settings and UI tweaks
 grafana.ini:
