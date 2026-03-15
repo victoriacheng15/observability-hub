@@ -1,5 +1,5 @@
 # K3s Orchestration
-.PHONY: build-analytics build-postgres k3s-analytics-up k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
+.PHONY: build-analytics build-postgres k3s-status k3s-df k3s-prune k3s-logs-% k3s-backup-% kube-lint
 
 BACKUP_DIR ?= /home/server2/backups/manual
 
@@ -36,13 +36,6 @@ build-postgres:
 	sudo k3s ctr images tag localhost/postgres-cnpg:17 postgres-cnpg:17
 	sudo k3s ctr images tag localhost/postgres-cnpg:17 docker.io/library/postgres-cnpg:17
 	rm postgres-cnpg.tar
-
-k3s-analytics-up:
-	@echo "Regenerating Analytics manifest..."
-	helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace $(NS) > k3s/analytics/manifest.yaml
-	@echo "Deploying Analytics..."
-	@$(KC) apply -f k3s/analytics/manifest.yaml
-	@$(KC) rollout restart daemonset/analytics
 
 # Observability
 k3s-status:

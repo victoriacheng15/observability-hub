@@ -140,3 +140,131 @@ resource "grafana_dashboard" "dashboards" {
   config_json = file("${path.module}/../k3s/grafana/dashboards/${each.value}")
   overwrite   = true
 }
+
+# --- Analytics (Resource-to-Value Engine) ---
+
+resource "kubernetes_daemon_set_v1" "analytics" {
+  metadata {
+    name      = "analytics"
+    namespace = kubernetes_namespace_v1.hub.metadata[0].name
+    labels = {
+      "app.kubernetes.io/name"    = "analytics"
+      "app.kubernetes.io/feature" = "analytics-engine"
+    }
+  }
+
+  spec {
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = "analytics"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          "app.kubernetes.io/name" = "analytics"
+        }
+      }
+
+      spec {
+        host_network = true
+        dns_policy   = "ClusterFirstWithHostNet"
+
+        container {
+          name  = "analytics"
+          image = "analytics:v0.1.0"
+          image_pull_policy = "IfNotPresent"
+
+          # Observability Endpoints (FQDN)
+          env {
+            name  = "THANOS_URL"
+            value = "http://thanos-query.observability.svc.cluster.local:9090"
+          }
+          env {
+            name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+            value = "opentelemetry.observability.svc.cluster.local:4317"
+          }
+
+          # Database Credentials
+          env {
+            name  = "DB_HOST"
+            value = "postgres-hub-rw.databases.svc.cluster.local"
+          }
+          env {
+            name  = "DB_PORT"
+            value = "5432"
+          }
+          env {
+            name  = "DB_USER"
+            value = "server"
+          }
+          env {
+            name  = "DB_NAME"
+            value = "homelab"
+          }
+          env {
+            name = "SERVER_DB_PASSWORD"
+            value_from {
+              secret_key_ref {
+                name = "postgres-secret"
+                key  = "server-db-password"
+              }
+            }
+          }
+
+          resources {
+            requests = {
+              cpu    = "5m"
+              memory = "20Mi"
+            }
+            limits = {
+              cpu    = "50m"
+              memory = "80Mi"
+            }
+          }
+
+          volume_mount {
+            name       = "tailscale-sock"
+            mount_path = "/var/run/tailscale/tailscaled.sock"
+            read_only  = true
+          }
+          volume_mount {
+            name       = "host-hostname"
+            mount_path = "/etc/host_hostname"
+            read_only  = true
+          }
+          volume_mount {
+            name       = "host-os-release"
+            mount_path = "/etc/host_os-release"
+            read_only  = true
+          }
+        }
+
+        volume {
+          name = "tailscale-sock"
+          host_path {
+            path = "/var/run/tailscale/tailscaled.sock"
+            type = "Socket"
+          }
+        }
+        volume {
+          name = "host-hostname"
+          host_path {
+            path = "/etc/hostname"
+            type = "File"
+          }
+        }
+        volume {
+          name = "host-os-release"
+          host_path {
+            path = "/etc/os-release"
+            type = "File"
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [kubernetes_namespace_v1.hub]
+}

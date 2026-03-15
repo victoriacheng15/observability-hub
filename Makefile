@@ -42,6 +42,5 @@ help:
 	@echo "  make k3s-prune           - Cleanup unused images and ghost pods"
 	@echo "  make build-analytics     - Build and sideload analytics image"
 	@echo "  make build-postgres      - Build and sideload custom postgres image"
-	@echo "  make k3s-analytics-up    - Deploy/Restart Analytics"
 	@echo "  make k3s-logs-<pod>      - Tail logs for a specific pod (e.g., make k3s-logs-loki-0)"
 	@echo "  make k3s-backup-<name>   - Backup a resource (e.g., make k3s-backup-postgres)"
