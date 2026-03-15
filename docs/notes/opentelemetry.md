@@ -43,90 +43,74 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 ### 1. Proxy Service
 
-**Service Name:** `proxy` | **Tracer/Meter:** `proxy.synthetic`
+**Service Name:** `proxy` | **Tracers:** `proxy.synthetic`, `proxy.webhook`, `proxy/home`
 
 **Metrics:**
 
-- `proxy.synthetic.request.total`: Counter
+- `proxy.synthetic.request.total`: Counter (labeled by `app.traffic_mode`)
 - `proxy.synthetic.request.errors.total`: Counter
 - `proxy.synthetic.request.duration.ms`: Histogram
+- `proxy.webhook.received.total`: Counter (labeled by `github.event`)
+- `proxy.webhook.errors.total`: Counter
+- `proxy.webhook.sync.duration.ms`: Histogram
 
 **Traces:**
 
 - `HTTP <method> <path>`: Root Span (via `otelhttp`)
 - `handler.synthetic_trace`: Process Span
-- **Attributes:** `app.synthetic_id`, `app.traffic_mode`, `app.business.region`, `app.business.timezone`, `app.business.device`, `app.business.network_type`, `app.latency_target_ms`, `error`, `error.message`
-- **Events:** `request.payload.received`, `request.payload.decode_failed`, `processing.simulated_delay`
+- `handler.webhook`: Webhook entry point
+- `webhook.gitops`: Async GitOps reconciliation execution
+- **Attributes:** `app.synthetic_id`, `app.traffic_mode`, `app.business.region`, `app.business.timezone`, `app.business.device`, `app.business.network_type`, `app.latency_target_ms`, `github.event`, `github.repo`, `github.ref`, `github.action`, `github.merged`, `net.peer.ip`
+- **Events:** `request.payload.received`, `processing.simulated_delay`, `outbound.response_received`
 
 **Logs:**
 
-- `otel_telemetry_enabled`, `🚀 The GO proxy listening on port`, `request_processed`, `synthetic_trace_payload_received`, `synthetic_trace_payload_decode_failed`, `synthetic_trace_response_encode_failed`, `synthetic_trace_processed`
+- `request_processed` (Standard Access Log), `webhook_received`, `webhook_sync_triggered`, `webhook_sync_success`, `synthetic_trace_payload_received`, `synthetic_trace_processed`
 
 ### 2. Ingestion Service
 
-**Service Name:** `ingestion` | **Tracer:** `ingestion.engine`
+**Service Name:** `ingestion` | **Tracers:** `reading.sync`, `second.brain`, `ingestion.engine`
 
-**Root Spans:**
+**Root Spans (Engine):**
 
 - `task.reading`: Root for Reading Sync
 - `task.brain`: Root for Brain Sync
 
-#### 2.1 Reading Task
-
-**Tracer/Meter:** `reading.sync`
+#### 2.1 Reading Task (`reading.sync`)
 
 **Metrics:**
 
-- `reading.sync.total`: Counter (Sync Runs)
-- `reading.sync.processed.total`: Counter (Documents, Global Scope)
-- `reading.sync.errors.total`: Counter (Errors during sync)
-- `reading.sync.duration.ms`: Histogram (Sync latency)
+- `reading.sync.total`: Counter
+- `reading.sync.processed.total`: Counter (Total articles processed)
+- `reading.sync.errors.total`: Counter
+- `reading.sync.duration.ms`: Histogram
 - `reading.sync.lag.seconds`: Gauge (Time since last success)
 
 **Traces:**
 
 - `job.reading_sync`: Process Span
-- `db.postgres.ensure_reading_analytics`: Child Span
-- `db.postgres.ensure_reading_sync_history`: Child Span
-- `db.postgres.record_sync_history`: Child Span
-- `db.postgres.insert_reading_analytics`: Child Span
 - `db.mongodb.fetch_ingested_articles`: Child Span
 - `db.mongodb.mark_article_processed`: Child Span
 - **Attributes:** `task.name`, `db.documents.count`
 
-**Logs:**
-
-- `sync_started`, `failed_to_record_sync_history`, `postgres_insert_failed`, `mongo_mark_processed_failed`, `sync_complete`, `mongo_close_failed`
-
-#### 2.2 Brain Task
-
-**Tracer/Meter:** `second.brain`
+#### 2.2 Brain Task (`second.brain`)
 
 **Metrics:**
 
-- `second.brain.sync.total`: Counter (Sync Runs)
-- `second.brain.sync.processed.total`: Counter (Thoughts, Global Scope)
-- `second.brain.sync.errors.total`: Counter (Errors during sync)
-- `second.brain.sync.duration.ms`: Histogram (Sync latency)
-- `second.brain.sync.lag.seconds`: Gauge (Time since last success)
-- `second.brain.token.count.total`: Counter (Tokens, Global Scope)
+- `second.brain.sync.total`: Counter
+- `second.brain.sync.processed.total`: Counter (Total thoughts processed)
+- `second.brain.sync.errors.total`: Counter
+- `second.brain.sync.duration.ms`: Histogram
+- `second.brain.sync.lag.seconds`: Gauge
+- `second.brain.token.count.total`: Counter (Token count for LLM context)
 
 **Traces:**
 
 - `job.second_brain_sync`: Process Span
-- `github.fetch`: Child Span
-- `ingest.delta`: Child Span
-- `parse.markdown.duration`: Child Span
-- `db.postgres.ensure_second_brain`: Child Span
-- `db.postgres.ensure_brain_sync_history`: Child Span
-- `db.postgres.record_brain_sync_history`: Child Span
-- `db.postgres.get_latest_entry_date`: Child Span
-- `db.postgres.insert_thought`: Child Span
+- `github.fetch`: GitHub CLI interaction
+- `ingest.delta`: Single issue processing
+- `parse.markdown.duration`: Atomization logic
 - **Attributes:** `github.issue_number`, `issue.title`, `atoms.count`
-
-**Logs:**
-
-- `sync_started`, `database_check_complete`, `sync_skipped`, `ingesting_issue`, `fetch_body_failed`, `atom_insert_failed`, `failed_to_record_brain_sync_history`, `sync_complete`
 
 ### 3. Analytics Service (Host Telemetry)
 
@@ -134,63 +118,48 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 **Metrics:**
 
-- `analytics.collection.total`: Counter
-- `analytics.collection.errors`: Counter
-- `analytics.tailscale.active`: Gauge
+- `analytics.batch.total`: Counter (Labeled by `host`, `os`)
+- `analytics.batch.errors.total`: Counter
+- `analytics.tailscale.active`: Observable Gauge (1 = Active, 0 = Inactive)
 
 **Traces:**
 
 - `job.collect_batch`: Root Span
-- `db.postgres.ensure_system_metrics`: Child Span
-- `db.postgres.create_hypertable`: Child Span
-- `db.postgres.record_metric`: Child Span
-- **Attributes:** `host`, `os`, `start`, `end`
+- **Attributes:** `host`, `os`, `start`, `end` (RFC3339)
 
 **Logs:**
 
-- `service_started`, `batch_started`, `batch_complete`, `tailscale_funnel_status`, `tailscale_node_status`, `host_metadata_detection_failed`, `funnel_status_failed`, `tailscale_status_failed`, `service_shutting_down`
+- `service_started`, `batch_started`, `feature_analytics_recorded`, `value_unit_recorded`, `tailscale_funnel_status`, `batch_complete`
 
----
+### 4. Database Wrappers (Internal Library)
 
-## 5. Operational Commands
+**Tracers:** `db/postgres`, `db/mongodb`
 
-### Verifying Signal Flow
+**Common Attributes:**
 
-**1. Inspect Collector Logs (k3s):**
+- `db.system`: `postgresql` or `mongodb`
+- `db.statement`: The SQL query or BSON filter (redacted/marshaled)
+- `db.user`: Current database user
+- `db.name`: Database name
 
-```bash
-kubectl logs -l app.kubernetes.io/name=opentelemetry-collector -n observability
-```
+**Postgres Specific:**
 
-**2. Test Local Connectivity:**
+- `db.pool.wait_time`: 64-bit int of pool wait duration
 
-```bash
-# Ensure the OTLP gRPC NodePort is reachable (30317)
-nc -zv localhost 30317
-```
+**MongoDB Specific:**
 
-**3. Check Health Extension:**
+- `db.collection`: Target collection
+- `db.query.limit`: Operation limit
+- `db.mongodb.id`: Hex string of the target document ID
 
-```bash
-# The collector exposes a health check on port 13133
-curl http://localhost:13133/
-```
+### 5. MCP Agents
 
-### Adding a New Signal
+**Service Names:** `mcp-telemetry`, `mcp-pods`, `mcp-hub`
 
-Always use the `telemetry` package to ensure automatic resource tagging (`host.name`, `service.name`).
+**Logging Pattern:**
+Agents primarily emit logs for tool execution visibility:
 
-```go
-import "telemetry"
-
-// 1. Logs
-telemetry.Info("process_started", "item_id", id)
-
-// 2. Metrics (Counter)
-counter, _ := telemetry.NewInt64Counter(meter, "my.service.total", "Description")
-telemetry.AddInt64Counter(ctx, counter, 1)
-
-// 3. Traces
-ctx, span := tracer.Start(ctx, "job.my_task")
-defer span.End()
-```
+- `registered telemetry tools`, `registered pods tools`, `registered hub tools`
+- `executing PromQL query`, `executing LogQL query`, `retrieving trace from Tempo`
+- `investigating incident` (Macro-tool orchestration)
+- `using local kubeconfig` vs `using in-cluster config`

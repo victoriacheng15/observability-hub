@@ -32,14 +32,13 @@ helm search repo cloudnative-pg/cloudnative-pg && \
 helm search repo prometheus-community/prometheus && \
 helm search repo grafana-community/tempo && \
 helm search repo bitnami/thanos
-
 ```
 
 #### Step 2: Update Configuration
 
 If an update is available, manually update the corresponding file:
 
-- **Tofu**: Edit versions in `tofu/infrastructure.tf` or `tofu/observability.tf`.
+- **Tofu**: Edit versions in `tofu/storage.tf`, `tofu/databases.tf`, `tofu/metrics.tf`, `tofu/telemetry.tf`, or `tofu/hub.tf`.
 - **Values**: If necessary, update configurations in `k3s/<component>/values.yaml`.
 
 #### Step 3: Plan & Apply Changes
@@ -55,19 +54,12 @@ tofu apply
 
 ### Analytics (Unified Host Telemetry)
 
-- **Status**: **Manually Managed** (Excluded from Tofu due to custom local image requirement).
-- **Chart**: `k3s/analytics` (Local Chart)
-- **Values**: `k3s/analytics/values.yaml`
-- **Update Command**:
-
-  ```bash
-  helm template analytics k3s/analytics -f k3s/analytics/values.yaml --namespace observability > k3s/analytics/manifest.yaml
-  kubectl apply -f k3s/analytics/manifest.yaml
-  kubectl rollout restart daemonset analytics -n observability
-  ```
+- **Tofu Configuration**: `tofu/hub.tf`
+- **Notes**:
+  - Managed as a native `kubernetes_daemon_set_v1` resource.
+  - Requires local image building and sideloading (see below).
 
 - **Local Image Sideloading**:
-  Since this is a custom internal service, the image must be built and sideloaded into k3s.
 
 ```bash
 # 1. Build locally (using podman)
@@ -88,13 +80,13 @@ rm analytics.tar
 ### Grafana (Visualization)
 
 - **Chart**: `grafana-community/grafana`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/hub.tf`
 - **Values**: `k3s/grafana/values.yaml`
 
 ### Loki (Log Store)
 
 - **Chart**: `grafana/loki`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/loki/values.yaml`
 - **Notes**:
   - S3 credentials are injected from `minio-loki-secret` via environment variables
@@ -105,22 +97,21 @@ rm analytics.tar
 ### OpenTelemetry (Collector)
 
 - **Chart**: `open-telemetry/opentelemetry-collector`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/opentelemetry/values.yaml`
 
 ### MinIO (S3 Storage Backend)
 
 - **Chart**: `minio/minio`
-- **Tofu Configuration**: `tofu/infrastructure.tf`
+- **Tofu Configuration**: `tofu/databases.tf`
 - **Values**: `k3s/minio/values.yaml`
 
 ### HA PostgreSQL (CloudNativePG)
 
 - **Chart**: `cloudnative-pg/cloudnative-pg`
-- **Tofu Configuration**: `tofu/infrastructure.tf`
+- **Tofu Configuration**: `tofu/databases.tf`
 - **Backup Destination**: Azure Blob Storage (`pg-backup` container)
 - **Local Image Sideloading**:
-  Since we use a custom PostgreSQL image with extensions (TimescaleDB, PostGIS), it must be manually imported into the k3s node.
 
 ```bash
 # 1. Build locally
@@ -141,19 +132,19 @@ rm postgres-cnpg.tar
 ### Prometheus (Metrics Store)
 
 - **Chart**: `prometheus-community/prometheus`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/metrics.tf`
 - **Values**: `k3s/prometheus/values.yaml`
 
 ### Grafana Tempo (Trace Store)
 
 - **Chart**: `grafana-community/tempo`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/tempo/values.yaml`
 
 ### Thanos Store Gateway (Long-term Metrics Storage)
 
 - **Chart**: `bitnami/thanos`
-- **Tofu Configuration**: `tofu/observability.tf`
+- **Tofu Configuration**: `tofu/metrics.tf`
 - **Values**: `k3s/thanos/values.yaml`
 - **Notes**:
   - Uses official quay.io/thanos/thanos:v0.32.2 image (not bitnami variant)
@@ -179,24 +170,24 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-03-09 (High Performance Profile)*
+- *Last Updated: 2026-03-15 (Standardized via _standards.yaml)*
 
-| Component | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **analytics** | 5m | 20Mi | 50m | 80Mi | Telemetry Collection |
-| **grafana** | 50m | 256Mi | 200m | 512Mi | Visualization |
-| **loki** | 200m | 512Mi | 1000m | 2Gi | Log Storage |
-| **minio** | 200m | 512Mi | 500m | 1Gi | S3 Storage Backend |
-| **opentelemetry** | 50m | 200Mi | 300m | 512Mi | Trace Gateway |
-| **postgres** | 100m | 512Mi | 500m | 1Gi | Relational Data |
-| **prometheus** | 100m | 1Gi | 500m | 2Gi | Metrics Storage |
-| **tempo** | 100m | 512Mi | 500m | 1Gi | Trace Storage |
-| **thanos** | 50m | 128Mi | 200m | 512Mi | Long-term Metrics Access |
+| Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **analytics** | Custom | 100m | 200Mi | 100m | 400Mi | Telemetry Collection |
+| **grafana** | Medium | 50m | 256Mi | 200m | 512Mi | Visualization |
+| **loki** | Large | 200m | 512Mi | 1000m | 2Gi | Log Storage |
+| **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
+| **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace Gateway |
+| **postgres** | Custom | 100m | 512Mi | 500m | 1Gi | Relational Data |
+| **prometheus** | Large | 200m | 512Mi | 1000m | 2Gi | Metrics Storage |
+| **tempo** | Large | 200m | 512Mi | 1000m | 2Gi | Trace Storage |
+| **thanos** | Medium | 50m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~0.86 Cores / 4.6Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~3.75 Cores / 9.6Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~1.16 Cores / 3.75Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~5.25 Cores / 11.25Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
