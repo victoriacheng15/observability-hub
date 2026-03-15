@@ -1,3 +1,9 @@
+# --- Shared Standards ---
+
+locals {
+  standards = yamldecode(file("${path.module}/../k3s/_standards.yaml")).homelab
+}
+
 # --- Metrics (Prometheus) ---
 
 resource "helm_release" "prometheus" {
@@ -7,7 +13,60 @@ resource "helm_release" "prometheus" {
   version    = var.prometheus_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
-  values = [file("${path.module}/../k3s/prometheus/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/prometheus/values.yaml"),
+    yamlencode({
+      server = {
+        revisionHistoryLimit = local.standards.deployment.revision_history_limit
+        persistentVolume = {
+          storageClass = local.standards.persistence.storage_class
+          size         = local.standards.persistence.size
+        }
+        resources = local.standards.resources.large
+        containerSecurityContext = {
+          readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+          allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+          runAsNonRoot             = local.standards.security.container.run_as_non_root
+          runAsUser                = 65534
+          runAsGroup               = 65534
+          capabilities = {
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+        sidecarConfigReloader = {
+          containerSecurityContext = {
+            readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+            allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+            runAsNonRoot             = local.standards.security.container.run_as_non_root
+            runAsUser                = 65534
+            capabilities = {
+              drop = local.standards.security.container.capabilities_drop
+            }
+          }
+        }
+        configmapReload = {
+          prometheus = {
+            containerSecurityContext = {
+              readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+              allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+              runAsNonRoot             = local.standards.security.container.run_as_non_root
+              runAsUser                = 65534
+              capabilities = {
+                drop = local.standards.security.container.capabilities_drop
+              }
+            }
+          }
+        }
+      }
+      kube-state-metrics = {
+        revisionHistoryLimit = local.standards.deployment.revision_history_limit
+        resources            = local.standards.resources.small
+      }
+      prometheus-node-exporter = {
+        resources = local.standards.resources.small
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
@@ -269,6 +328,50 @@ resource "helm_release" "thanos" {
       query = {
         extraFlags = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
       }
+      storegateway = {
+        persistence = {
+          storageClass = local.standards.persistence.storage_class
+          size         = "2Gi" # Preserve existing override
+        }
+        resources = local.standards.resources.medium
+        podSecurityContext = {
+          enabled      = true
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          fsGroup      = local.standards.security.pod.fs_group
+          runAsUser    = local.standards.security.pod.run_as_user
+          runAsGroup   = local.standards.security.pod.run_as_group
+        }
+        containerSecurityContext = {
+          enabled                  = true
+          readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+          allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+          capabilities = {
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+      }
+      compactor = {
+        persistence = {
+          storageClass = local.standards.persistence.storage_class
+          size         = "2Gi" # Preserve existing override
+        }
+        resources = local.standards.resources.medium
+        podSecurityContext = {
+          enabled      = true
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          fsGroup      = local.standards.security.pod.fs_group
+          runAsUser    = local.standards.security.pod.run_as_user
+          runAsGroup   = local.standards.security.pod.run_as_group
+        }
+        containerSecurityContext = {
+          enabled                  = true
+          readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+          allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+          capabilities = {
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+      }
     })
   ]
 
@@ -284,7 +387,51 @@ resource "helm_release" "loki" {
   version    = var.loki_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
-  values = [file("${path.module}/../k3s/loki/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/loki/values.yaml"),
+    yamlencode({
+      loki = {
+        persistence = {
+          storageClass = local.standards.persistence.storage_class
+          size         = local.standards.persistence.size
+        }
+      }
+      singleBinary = {
+        persistence = {
+          storageClass = local.standards.persistence.storage_class
+          size         = local.standards.persistence.size
+        }
+        resources = local.standards.resources.large
+        podSecurityContext = {
+          runAsNonRoot = local.standards.security.pod.run_as_non_root
+          fsGroup      = local.standards.security.pod.fs_group
+          runAsUser    = local.standards.security.pod.run_as_user
+          runAsGroup   = local.standards.security.pod.run_as_group
+        }
+        containerSecurityContext = {
+          readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+          allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+          capabilities = {
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+      }
+      gateway = {
+        deploymentStrategy = {
+          type = "Recreate"
+        }
+        affinity  = null
+        resources = local.standards.resources.small
+        containerSecurityContext = {
+          readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+          allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+          capabilities = {
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
@@ -298,7 +445,22 @@ resource "helm_release" "tempo" {
   version    = var.tempo_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
-  values = [file("${path.module}/../k3s/tempo/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/tempo/values.yaml"),
+    yamlencode({
+      revisionHistoryLimit = local.standards.deployment.revision_history_limit
+      persistence = {
+        storageClassName = local.standards.persistence.storage_class
+        size             = local.standards.persistence.size
+      }
+      tempo = {
+        resources = local.standards.resources.large
+        securityContext = {
+          readOnlyRootFilesystem = local.standards.security.container.read_only_root_fs
+        }
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
@@ -312,7 +474,26 @@ resource "helm_release" "opentelemetry_collector" {
   version    = var.otel_collector_chart_version
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
-  values = [file("${path.module}/../k3s/opentelemetry/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/opentelemetry/values.yaml"),
+    yamlencode({
+      revisionHistoryLimit = local.standards.deployment.revision_history_limit
+      resources            = local.standards.resources.medium
+      podSecurityContext = {
+        runAsNonRoot = local.standards.security.pod.run_as_non_root
+        fsGroup      = local.standards.security.pod.fs_group
+        runAsUser    = local.standards.security.pod.run_as_user
+        runAsGroup   = local.standards.security.pod.run_as_group
+      }
+      securityContext = {
+        readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+        allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+        capabilities = {
+          drop = local.standards.security.container.capabilities_drop
+        }
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
@@ -326,7 +507,45 @@ resource "helm_release" "grafana" {
   version    = var.grafana_chart_version
   namespace  = kubernetes_namespace_v1.hub.metadata[0].name
 
-  values = [file("${path.module}/../k3s/grafana/values.yaml")]
+  values = [
+    file("${path.module}/../k3s/grafana/values.yaml"),
+    yamlencode({
+      revisionHistoryLimit = local.standards.deployment.revision_history_limit
+      persistence = {
+        storageClass = local.standards.persistence.storage_class
+        size         = local.standards.persistence.size
+      }
+      podSecurityContext = {
+        runAsNonRoot = false
+        runAsUser    = 0
+        runAsGroup   = 0
+        fsGroup      = 472
+      }
+      containerSecurityContext = {
+        readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
+        allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
+        runAsNonRoot             = true
+        runAsUser                = 472
+        runAsGroup               = 472
+        capabilities = {
+          drop = local.standards.security.container.capabilities_drop
+        }
+      }
+      initChownData = {
+        securityContext = {
+          readOnlyRootFilesystem   = local.standards.exceptions.grafana.init_chown.container_read_only_root_fs
+          allowPrivilegeEscalation = local.standards.exceptions.grafana.init_chown.allow_privilege_escalation
+          runAsNonRoot             = false
+          runAsUser                = 0
+          capabilities = {
+            add  = local.standards.exceptions.grafana.init_chown.add_capabilities
+            drop = local.standards.security.container.capabilities_drop
+          }
+        }
+      }
+      resources = local.standards.resources.medium
+    })
+  ]
 
   depends_on = [kubernetes_namespace_v1.hub]
 }

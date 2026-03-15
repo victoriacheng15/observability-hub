@@ -1,0 +1,53 @@
+homelab:
+  deployment:
+    revision_history_limit: 3
+    image_pull_policy: "IfNotPresent"
+  labels:
+    feature: "observability"
+  persistence:
+    storage_class: "local-path-retain"
+    size: "10Gi"
+  security:
+    pod:
+      run_as_non_root: true
+      fs_group: 1000
+      run_as_user: 1000
+      run_as_group: 1000
+    container:
+      read_only_root_fs: true
+      allow_privilege_escalation: false
+      run_as_non_root: true
+      run_as_user: 1000
+      run_as_group: 1000
+      capabilities_drop: ["ALL"]
+  resources:
+    small:
+      requests:
+        cpu: "10m"
+        memory: "64Mi"
+      limits:
+        cpu: "50m"
+        memory: "128Mi"
+    medium:
+      requests:
+        cpu: "50m"
+        memory: "256Mi"
+      limits:
+        cpu: "200m"
+        memory: "512Mi"
+    large:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+  exceptions:
+    grafana:
+      init_chown:
+        container_read_only_root_fs: false
+        allow_privilege_escalation: true
+        add_capabilities: ["CHOWN"]
+    minio:
+      make_bucket_job_read_only_root_fs: false
+      make_user_job_read_only_root_fs: false

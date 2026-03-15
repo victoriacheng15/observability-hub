@@ -1,25 +1,10 @@
-revisionHistoryLimit: 3
-
 persistence:
   enabled: true
-  size: 10Gi
-  storageClassName: local-path-retain
 
 tempo:
   podLabels:
     app.kubernetes.io/feature: observability-traces
   replicas: 1
-  resources:
-    requests:
-      cpu: 100m
-      memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
-
-  # Enable read-only root filesystem
-  securityContext:
-    readOnlyRootFilesystem: true
 
   # Injected directly into the tempo container
   extraEnv:

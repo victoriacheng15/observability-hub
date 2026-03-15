@@ -3,8 +3,6 @@ fullnameOverride: opentelemetry
 podLabels:
   app.kubernetes.io/feature: observability-otel
 
-revisionHistoryLimit: 3
-
 mode: deployment
 
 replicaCount: 1
@@ -13,27 +11,6 @@ image:
   repository: otel/opentelemetry-collector-contrib
   tag: 0.94.0 # Using a recent stable version
   pullPolicy: IfNotPresent
-
-resources:
-  requests:
-    cpu: 50m
-    memory: 200Mi
-  limits:
-    cpu: 300m
-    memory: 512Mi
-
-podSecurityContext:
-  fsGroup: 10001
-  runAsGroup: 10001
-  runAsUser: 10001
-  runAsNonRoot: true
-
-securityContext:
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
 
 # Use alternateConfig to fully control the collector's configuration and avoid default merges
 alternateConfig:

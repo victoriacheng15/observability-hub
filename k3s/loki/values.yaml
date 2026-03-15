@@ -40,8 +40,6 @@ loki:
     delete_request_store: s3
   persistence:
     enabled: true
-    storageClass: local-path-retain
-    size: 10Gi
   sidecar:
     rules:
       resources:
@@ -64,25 +62,6 @@ singleBinary:
         name: minio-secret
   persistence:
     enabled: true
-    storageClass: local-path-retain
-    size: 10Gi
-  resources:
-    requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      cpu: 1000m
-      memory: 2Gi
-  podSecurityContext:
-    fsGroup: 10001
-    runAsGroup: 10001
-    runAsUser: 10001
-  containerSecurityContext:
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
 
 gateway:
   enabled: true
@@ -90,19 +69,6 @@ gateway:
   service:
     type: NodePort
     nodePort: 30100
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 100m
-      memory: 128Mi
-  containerSecurityContext:
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
 
 # Explicitly disable scalable components in SingleBinary mode
 backend:

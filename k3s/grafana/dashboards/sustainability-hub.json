@@ -710,7 +710,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (pod)",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) (max by (pod_id, pod) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) by (pod)",
           "legendFormat": "{{pod}}",
           "refId": "A"
         }
@@ -1021,7 +1021,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace)",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) by (namespace)",
           "legendFormat": "{{namespace}}",
           "refId": "A"
         }
@@ -1086,7 +1086,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (namespace) * ($carbon_intensity_kwh / 1000)",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) by (namespace) * ($carbon_intensity_kwh / 1000)",
           "legendFormat": "{{namespace}}",
           "refId": "A"
         }
@@ -1151,7 +1151,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")) by (pod)",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(pod) (max by (pod_id, pod) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) by (pod)",
           "legendFormat": "{{pod}}",
           "refId": "A"
         }
