@@ -20,6 +20,12 @@ variable "databases_namespace" {
   default     = "databases"
 }
 
+variable "hub_namespace" {
+  description = "Namespace for analytical and hub-facing services."
+  type        = string
+  default     = "hub"
+}
+
 # --- Azure Storage ---
 
 variable "azurerm_storage_account_name" {

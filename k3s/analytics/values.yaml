@@ -28,7 +28,7 @@ securityContext: {}
   # runAsUser: 1000
 
 config:
-  thanosUrl: "http://thanos-query.observability:9090"
+  thanosUrl: "http://thanos-query.observability.svc.cluster.local:9090"
   otelEndpoint: "opentelemetry.observability.svc.cluster.local:4317"
 
 resources:
