@@ -53,6 +53,12 @@ provider "grafana" {
   auth = try("${data.kubernetes_secret_v1.grafana_admin.data["admin-user"]}:${data.kubernetes_secret_v1.grafana_admin.data["admin-password"]}", "admin:admin")
 }
 
+# --- Shared Standards ---
+
+locals {
+  standards = yamldecode(file("${path.module}/../k3s/_standards.yaml")).homelab
+}
+
 # --- Namespace ---
 
 resource "kubernetes_namespace_v1" "observability" {
