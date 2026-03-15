@@ -57,7 +57,7 @@ config: |
     reporting_enabled: true
   compactor:
     compaction:
-      block_retention: 96h
+      block_retention: 168h
   distributor:
     receivers:
       jaeger:

@@ -57,15 +57,15 @@ alternateConfig:
           value: service
   exporters:
     otlp:
-      endpoint: tempo.observability:4317
+      endpoint: tempo.observability.svc.cluster.local:4317
       tls:
         insecure: true
     logging:
       loglevel: debug
     loki:
-      endpoint: http://loki.observability:3100/loki/api/v1/push
+      endpoint: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
     prometheusremotewrite:
-      endpoint: http://prometheus-server.observability:80/api/v1/write
+      endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
   service:
     telemetry:
       metrics:

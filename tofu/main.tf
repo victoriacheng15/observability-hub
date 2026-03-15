@@ -67,6 +67,12 @@ resource "kubernetes_namespace_v1" "databases" {
   }
 }
 
+resource "kubernetes_namespace_v1" "hub" {
+  metadata {
+    name = var.hub_namespace
+  }
+}
+
 moved {
   from = kubernetes_namespace.observability
   to   = kubernetes_namespace_v1.observability

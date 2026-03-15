@@ -52,13 +52,13 @@ datasources:
       - name: Loki
         type: loki
         uid: loki-provisioned
-        url: http://loki-gateway.observability:80
+        url: http://loki-gateway.observability.svc.cluster.local:80
         access: proxy
         isDefault: true
       - name: Tempo
         type: tempo
         uid: tempo-provisioned
-        url: http://tempo.observability:3200
+        url: http://tempo.observability.svc.cluster.local:3200
         access: proxy
         jsonData:
           httpMethod: GET
@@ -84,7 +84,7 @@ datasources:
       - name: Prometheus
         type: prometheus
         uid: prometheus-provisioned
-        url: http://prometheus-server.observability:80
+        url: http://prometheus-server.observability.svc.cluster.local:80
         access: proxy
         jsonData:
           httpMethod: POST
@@ -92,7 +92,7 @@ datasources:
       - name: PostgreSQL
         type: postgres
         uid: postgresql-provisioned
-        url: postgres-hub-rw.databases:5432
+        url: postgres-hub-rw.databases.svc.cluster.local:5432
         database: homelab
         user: server
         jsonData:
