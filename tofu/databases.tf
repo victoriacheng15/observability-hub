@@ -287,6 +287,9 @@ resource "kubernetes_manifest" "postgres_cluster" {
       imageName       = var.postgres_image
       imagePullPolicy = "IfNotPresent"
 
+      # Resource management
+      resources = local.standards.resources.standard
+
       # Permanent database and user identity
       bootstrap = {
         initdb = {

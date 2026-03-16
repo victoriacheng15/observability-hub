@@ -170,24 +170,26 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-03-15 (Standardized via _standards.yaml)*
+- *Last Updated: 2026-03-16 (Standardized via _standards.yaml)*
 
 | Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **analytics** | Custom | 100m | 200Mi | 100m | 400Mi | Telemetry Collection |
+| **analytics** | Small | 10m | 64Mi | 50m | 128Mi | Telemetry Collection |
 | **grafana** | Medium | 50m | 256Mi | 200m | 512Mi | Visualization |
-| **loki** | Large | 200m | 512Mi | 1000m | 2Gi | Log Storage |
+| **loki** | Standard | 100m | 512Mi | 500m | 1Gi | Log Storage |
 | **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
+| **n8n** | Standard | 100m | 512Mi | 500m | 1Gi | Workflow Automation |
 | **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace Gateway |
-| **postgres** | Custom | 100m | 512Mi | 500m | 1Gi | Relational Data |
+| **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Data |
 | **prometheus** | Large | 200m | 512Mi | 1000m | 2Gi | Metrics Storage |
-| **tempo** | Large | 200m | 512Mi | 1000m | 2Gi | Trace Storage |
+| **tempo** | Standard | 100m | 512Mi | 500m | 1Gi | Trace Storage |
 | **thanos** | Medium | 50m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~1.16 Cores / 3.75Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~5.25 Cores / 11.25Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~0.96 Cores / 3.87Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~4.70 Cores / 10.12Gi RAM)**: The sum of all *Limits* (burst ceiling).
+
 
 ---
 

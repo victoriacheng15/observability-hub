@@ -35,6 +35,13 @@ homelab:
       limits:
         cpu: "200m"
         memory: "512Mi"
+    standard:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
     large:
       requests:
         cpu: "200m"
