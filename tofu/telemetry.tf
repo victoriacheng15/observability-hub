@@ -21,7 +21,7 @@ resource "helm_release" "loki" {
           storageClass = local.standards.persistence.storage_class
           size         = local.standards.persistence.size
         }
-        resources = local.standards.resources.large
+        resources = local.standards.resources.standard
         podSecurityContext = {
           runAsNonRoot = local.standards.security.pod.run_as_non_root
           fsGroup      = local.standards.security.pod.fs_group
@@ -41,7 +41,7 @@ resource "helm_release" "loki" {
           type = "Recreate"
         }
         affinity  = null
-        resources = local.standards.resources.small
+        resources = local.standards.resources.medium
         containerSecurityContext = {
           readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
           allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
@@ -74,7 +74,7 @@ resource "helm_release" "tempo" {
         size             = local.standards.persistence.size
       }
       tempo = {
-        resources = local.standards.resources.large
+        resources = local.standards.resources.standard
         securityContext = {
           readOnlyRootFilesystem = local.standards.security.container.read_only_root_fs
         }

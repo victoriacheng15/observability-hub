@@ -139,3 +139,9 @@ variable "grafana_chart_version" {
   type        = string
   default     = "10.5.15"
 }
+
+variable "n8n_chart_version" {
+  description = "Helm chart version for n8n."
+  type        = string
+  default     = "1.16.31"
+}
