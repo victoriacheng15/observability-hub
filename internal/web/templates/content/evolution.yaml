@@ -322,8 +322,8 @@ chapters:
           - Eliminated visibility gaps between Kubernetes orchestration and host-resident services via 'mcp-hub' to ensure unified platform accountability.
           - Accelerated host-level failure detection via namespaced tools (`hub_`) for surgical resource introspection and cross-layer correlation.
 
-  - title: "Resource Efficiency & Sustainability"
-    intro: "Integrating Kepler for energy monitoring and visual efficiency insights to establish a FinOps/GreenOps baseline."
+  - title: "eBPF-Native Efficiency & Networking"
+    intro: "Pivoting to the kernel for sidecar-less observability. Leveraging eBPF to bridge the gap between energy consumption (Kepler) and protocol visibility (Cilium/MQTT) to establish a high-fidelity FinOps baseline."
     timeline:
       - date: "2026-03-11"
         title: "Kepler Integration & Energy Dashboards"
@@ -335,3 +335,14 @@ chapters:
         description: |
           - Established a FinOps efficiency baseline across the cluster by deploying Kepler for granular energy monitoring.
           - Enabled actionable sustainability insights through dedicated energy dashboards, correlating workload performance with power consumption.
+      - date: "2026-03-18"
+        title: "eBPF-Native Networking & MQTT Visibility"
+        artifacts:
+          - name: "ADR 020: Cilium eBPF Foundation"
+            url: "docs/decisions/020-cilium-ebpf-foundation.md"
+          - name: "RCA 003: SSH Lockout Incident"
+            url: "docs/incidents/003-ssh-lockout-cilium-ipam-collision.md"
+        description: |
+          - Migrated the cluster to Cilium CNI with kube-proxy replacement, achieving an eBPF-native datapath for optimized routing and security.
+          - Implemented L7 MQTT visibility for the EMQX broker, enabling granular topic-level energy attribution without application instrumentation.
+          - Resolved a critical SSH lockout incident during CNI transition, formalizing a robust recovery and IPAM management protocol.
