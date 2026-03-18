@@ -469,13 +469,138 @@
       ],
       "title": "Carbon Footprint by Feature (gCO2)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Est. Infrastructure Cost (CAD)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "CAD"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(hubble_flows_processed_total[5m]))",
+          "legendFormat": "Cluster Network Flows",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / 3600000 * $energy_cost_kwh",
+          "legendFormat": "Est. Infrastructure Cost (CAD)",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Network Activity vs. Energy Cost",
+      "type": "timeseries"
     }
   ],
   "schemaVersion": 39,
   "tags": [
     "finops",
-    "sustainability",
-    "unit-economics"
+    "economics"
   ],
   "templating": {
     "list": [

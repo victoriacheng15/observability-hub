@@ -87,6 +87,28 @@ extraScrapeConfigs: |
 
 # Scrape job configuration for single-node homelab
 scrapeConfigs:
+  kubernetes-pods:
+    job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "cilium_.*|hubble_.*|up|scrape_.*"
+        action: keep
+
   kubernetes-service-endpoints:
     job_name: kubernetes-service-endpoints
     kubernetes_sd_configs:
@@ -94,10 +116,10 @@ scrapeConfigs:
     relabel_configs:
       - source_labels: [__meta_kubernetes_service_name]
         action: keep
-        regex: "prometheus-prometheus-node-exporter|prometheus-kube-state-metrics"
+        regex: "prometheus-prometheus-node-exporter|prometheus-kube-state-metrics|hubble-metrics"
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|kepler_node_.*|up|scrape_.*"
+        regex: "node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|Buffers|Cached)_bytes|node_filesystem_(size|avail|free)_bytes|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_network_(receive|transmit)_bytes_total|node_hwmon_temp_celsius|node_boot_time_seconds|node_uname_info|kube_pod_status_phase|kube_pod_container_resource_requests|kube_pod_container_resource_limits|kube_pod_container_status_running|kube_pod_info|kube_deployment_status_replicas|kube_deployment_status_replicas_available|kube_deployment_spec_replicas|kube_node_status_allocatable|kube_node_status_capacity|kube_statefulset_status_replicas_ready|kube_statefulset_replicas|kube_daemonset_status_number_ready|kube_daemonset_status_desired_number_scheduled|kube_namespace_status_phase|kepler_node_.*|cilium_.*|hubble_.*|up|scrape_.*"
         action: keep
 
   kubernetes-nodes-cadvisor:
