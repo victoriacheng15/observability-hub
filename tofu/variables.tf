@@ -146,6 +146,12 @@ variable "n8n_chart_version" {
   default     = "1.16.31"
 }
 
+variable "ollama_storage_size" {
+  description = "Storage size for Ollama models."
+  type        = string
+  default     = "50Gi"
+}
+
 variable "emqx_chart_version" {
   description = "Helm chart version for EMQX."
   type        = string
@@ -156,4 +162,10 @@ variable "cilium_chart_version" {
   description = "Helm chart version for Cilium."
   type        = string
   default     = "1.16.1"
+}
+
+variable "amdgpu_plugin_chart_version" {
+  description = "Helm chart version for AMD GPU Device Plugin."
+  type        = string
+  default     = "0.21.0"
 }

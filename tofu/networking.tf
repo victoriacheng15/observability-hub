@@ -106,6 +106,24 @@ resource "helm_release" "cilium" {
     })
   ]
 }
+# --- Hardware Abstraction: AMD GPU Device Plugin ---
+
+resource "helm_release" "amdgpu_device_plugin" {
+  name       = "amdgpu-device-plugin"
+  repository = "https://rocm.github.io/k8s-device-plugin"
+  chart      = "amd-gpu"
+  version    = var.amdgpu_plugin_chart_version
+  namespace  = "kube-system"
+
+  values = [
+    yamlencode({
+      # Standard Resource Limits & Standards
+      resources            = local.standards.resources.small
+      revisionHistoryLimit = local.standards.deployment.revision_history_limit
+    })
+  ]
+}
+
 # --- MQTT Broker (EMQX) ---
 
 resource "helm_release" "emqx" {
