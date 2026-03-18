@@ -145,3 +145,15 @@ variable "n8n_chart_version" {
   type        = string
   default     = "1.16.31"
 }
+
+variable "emqx_chart_version" {
+  description = "Helm chart version for EMQX."
+  type        = string
+  default     = "5.8.9"
+}
+
+variable "cilium_chart_version" {
+  description = "Helm chart version for Cilium."
+  type        = string
+  default     = "1.16.1"
+}
