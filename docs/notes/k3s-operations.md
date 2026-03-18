@@ -190,7 +190,6 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 - **Mini Total (~0.96 Cores / 3.87Gi RAM)**: The sum of all *Requests* (guaranteed resources).
 - **Max Total (~4.70 Cores / 10.12Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
-
 ---
 
 ## 💾 Data Migration (Docker to k3s)
