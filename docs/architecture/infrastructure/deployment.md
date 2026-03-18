@@ -11,6 +11,7 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **Analytics** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. (Managed via Makefile/Helm). |
+| **Cilium & Hubble** | eBPF Networking | CNI with eBPF-native datapath for L7 visibility (MQTT) and network-level observability. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
 | **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
@@ -41,6 +42,7 @@ sequenceDiagram
     participant App as Go Services
     participant Script as Bash Scripts
     participant Analytics_Agent as Analytics
+    participant Cilium as Cilium/Hubble (eBPF)
     participant OTel_Collector as OpenTelemetry Collector
     participant Observability as Observability (Loki, Prometheus, Tempo)
     participant Grafana as Grafana
@@ -48,6 +50,7 @@ sequenceDiagram
     App->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     Script->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     Analytics_Agent->>OTel_Collector: Metrics, Traces (OTLP)
+    Cilium->>Observability: Network Flows & L7 Metrics
 
     OTel_Collector->>Observability: Push Logs, Metrics, Traces
     Observability->>Grafana: Query Logs, Metrics, Traces
@@ -72,4 +75,5 @@ sequenceDiagram
   - `30432`: PostgreSQL (Kubernetes NodePort)
   - `30317`: OpenTelemetry (OTLP gRPC NodePort)
   - `30318`: OpenTelemetry (OTLP HTTP NodePort)
+  - `30067`: Hubble UI (Kubernetes NodePort)
   - `8085`: Proxy Service (Publicly available via Tailscale Funnel)

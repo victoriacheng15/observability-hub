@@ -22,7 +22,7 @@ This platform evolved through intentional phases. See the full journey with ADRs
 - **Ch 4-6: Kubernetes Pivot** – Cluster migration, Event-driven GitOps, and Vault (OpenBao) security.
 - **Ch 7-9: SRE & Maturity** – Full OpenTelemetry (LMT) stack, Library-first modularity, and OpenTofu/Terraform IaC.
 - **Ch 10: MCP Era** – AI-native operations via domain-isolated Model Context Protocol servers.
-- **Ch 11: Resource Efficiency & Sustainability** – Kepler-driven energy monitoring and visual efficiency insights (FinOps/GreenOps).
+- **Ch 11: eBPF-Native Efficiency & Networking** – Kepler energy monitoring and Cilium eBPF-native networking for high-fidelity L7 visibility.
 
 Each chapter links to Architecture Decision Records (ADRs) showing the *why* behind each change.
 
@@ -35,6 +35,7 @@ The platform leverages a robust set of modern technologies for its core function
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-%23000000.svg?style=for-the-badge&logo=opentelemetry&logoColor=white)
+![Cilium](https://img.shields.io/badge/Cilium-60BAE3.svg?style=for-the-badge&logo=Cilium&logoColor=white)
 ![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
