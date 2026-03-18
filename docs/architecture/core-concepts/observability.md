@@ -20,10 +20,18 @@ flowchart TB
             Gate[Tailscale Gate]
         end
 
-        K8S["Kubernetes API (Cluster State)"]
-        OTEL[OpenTelemetry Collector]
-
-        Observability["Loki, Tempo, Prometheus (Thanos)"]
+        subgraph Kube["KubKubernetes API"]
+          K3S["Kubernetes Cluster State"]
+        end
+        subgraph OtelCollector["OpenTelemtry"]
+          OTEL[OpenTelemetry Collector]
+        end
+        subgraph Kernal["Cillium"]
+          Cilium["Cilium / Hubble (eBPF)"]
+        end
+        subgraph Observability["Observability"]
+          LGTM["Loki, Tempo, Prometheus (Thanos)"]
+        end
         subgraph Storage ["Data Engines"]
             PG[(HA Postgres - CNPG)]
             S3[(MinIO - S3)]
@@ -36,7 +44,7 @@ flowchart TB
     
     %% Domain-Isolated MCP Paths
     Observability -- "Query Data" --> MCP_Tele
-    K8S -- "Cluster State" --> MCP_Pods
+    K3S -- "Cluster State" --> MCP_Pods
 
     %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Analytics
@@ -45,9 +53,10 @@ flowchart TB
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OtelCollector
+    Cilium -- "Network Flows & L7 Metrics" --> Observability
     
-    OTEL --> Observability
+    OtelCollector --> Observability
     
     %% Resilience & Backup
     Observability -- "Offload" --> S3
@@ -88,6 +97,7 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
   - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
   - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. Dedicated **Analytics** then retrieve this host metrics data from **Prometheus**, forward it via the **OpenTelemetry Collector**, which processes and exports it to **PostgreSQL** for long-term analytical reporting.
+  - **Network Metrics (eBPF)**: Cilium and Hubble export eBPF-level network metrics (e.g., packet drops, connection latency, and L7 protocol stats) directly to Prometheus via dedicated exporters.
 - **Persistence**:
   - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.
   - **Long-term Retention**: The **Thanos** sidecar seamlessly offloads TSDB blocks to MinIO S3 (`prometheus-blocks`) for infinite metrics retention and historical analysis.
@@ -102,6 +112,14 @@ Distributed tracing is powered by OpenTelemetry for correlation and performance 
   - **Processing**: Tempo analyzes raw spans to generate derived **Service Graphs** and **Span Metrics**, which are pushed to Prometheus via `remote_write` for operational correlation.
 - **Persistence**:
   - **Tempo**: Stores traces with long-term persistence in MinIO S3 buckets (`tempo-traces`).
+
+## 📡 Network Observability (eBPF)
+
+The platform leverages **Cilium** and **Hubble** for deep, kernel-level network visibility.
+
+- **L7 Visibility (MQTT)**: Cilium's eBPF-native datapath enables sidecar-less inspection of application-level protocols. This allows the platform to attribute network traffic to specific MQTT topics without requiring modifications to the application code.
+- **Flow Analysis**: Hubble provides a real-time service map and detailed flow logs, enabling engineers to visualize and troubleshoot network connectivity and performance between pods and host services.
+- **Metrics Correlation**: Network-level signals (like connection latency or throughput) are correlated with application-level traces and hardware-level energy metrics (Kepler) to provide a complete view of system efficiency.
 
 ## 🗄️ Shared Data Stores
 

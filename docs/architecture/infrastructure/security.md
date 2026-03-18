@@ -20,7 +20,8 @@ All incoming requests to `/api/webhook/gitops` must be authenticated using **HMA
 
 ## 🧪 Hybrid Isolation
 
-- **Kubernetes Isolation**: The data tier (PostgreSQL, Loki, Grafana) runs inside the **`observability` namespace** within k3s. They are isolated from the host and other namespaces via Kubernetes NetworkPolicies and are not accessible from the public internet.
+- **eBPF-Native Isolation**: The platform leverages **Cilium** for kernel-level network isolation. By replacing legacy iptables with an eBPF-native datapath, the system enforces security policies with $O(1)$ efficiency, ensuring that the performance of the observability pipeline is not degraded by the number of active rules.
+- **Domain-Based Policies**: Network security is enforced via **CiliumNetworkPolicies**, which allow for granular, L7-aware isolation. This ensures that only authorized services (like the Proxy) can communicate with internal data engines, while unauthorized lateral movement is blocked at the kernel level.
 - **Service Boundaries**: The Proxy (running as a native systemd service) acts as the primary "bridge" between the public funnel and the internal cluster data tier.
 - **Environment Variables**: Sensitive credentials (passwords, URIs) are managed via **Kubernetes Secrets** or retrieved from OpenBao, ensuring they never appear in plain text in process lists.
 
