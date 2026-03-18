@@ -28,7 +28,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -40,28 +40,25 @@
               },
               {
                 "color": "orange",
-                "value": 60
+                "value": 0.7
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 0.9
               }
             ]
           },
-          "unit": "celsius"
+          "unit": "percentunit"
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
+        "h": 8,
+        "w": 8,
         "x": 0,
         "y": 0
       },
       "id": 2,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -70,7 +67,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name"
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
       },
       "targets": [
         {
@@ -79,14 +78,14 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "max(node_hwmon_temp_celsius{chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"})",
-          "legendFormat": "CPU Temp",
+          "expr": "max(cilium_bpf_map_pressure)",
+          "legendFormat": "Max BPF Map Pressure",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "CPU Temperature",
-      "type": "stat"
+      "title": "Critical: Max BPF Map Pressure",
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -96,7 +95,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-GrYlRd"
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -107,83 +106,18 @@
                 "value": null
               },
               {
-                "color": "orange",
-                "value": 60
-              },
-              {
                 "color": "red",
-                "value": 80
+                "value": 1
               }
             ]
           },
-          "unit": "celsius"
+          "unit": "none"
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 10,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-provisioned"
-          },
-          "editorMode": "code",
-          "expr": "max(node_hwmon_temp_celsius{chip=\"0000:00:08_1_0000:c4:00_0\", sensor=\"temp1\"})",
-          "legendFormat": "iGPU Temp",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "iGPU Temperature",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "orange"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "orange",
-                "value": null
-              }
-            ]
-          },
-          "unit": "watt"
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
+        "h": 8,
+        "w": 8,
+        "x": 8,
         "y": 0
       },
       "id": 3,
@@ -208,13 +142,13 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))",
-          "legendFormat": "Total Draw",
+          "expr": "sum(cilium_unreachable_nodes)",
+          "legendFormat": "Unreachable Nodes",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total Node Power",
+      "title": "Unreachable Nodes",
       "type": "stat"
     },
     {
@@ -232,18 +166,22 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
               }
             ]
           },
-          "unit": "watt"
+          "unit": "short"
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
+        "h": 8,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 4,
@@ -268,13 +206,13 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m])) / max(node_hwmon_temp_celsius{chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"})",
-          "legendFormat": "Watts/\u00b0C",
+          "expr": "sum(rate(hubble_lost_events_total[5m]))",
+          "legendFormat": "Lost Events",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Thermal Overhead (Watts per Degree)",
+      "title": "Hubble Event Loss (Rate)",
       "type": "stat"
     },
     {
@@ -325,32 +263,14 @@
             }
           },
           "mappings": [],
-          "unit": "watt"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/.*Temp/"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "celsius"
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          }
-        ]
+          "unit": "s"
+        }
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
+        "h": 10,
+        "w": 12,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "id": 5,
       "options": {
@@ -375,8 +295,8 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kepler_node_cpu_joules_total{zone=\"package\"}[5m]))",
-          "legendFormat": "Power Draw (Watts)",
+          "expr": "histogram_quantile(0.99, sum(rate(cilium_endpoint_regeneration_time_stats_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P99 Regeneration",
           "range": true,
           "refId": "A"
         },
@@ -386,24 +306,13 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "max(node_hwmon_temp_celsius{chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"})",
-          "legendFormat": "CPU Temp",
+          "expr": "histogram_quantile(0.50, sum(rate(cilium_endpoint_regeneration_time_stats_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P50 Regeneration",
           "range": true,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-provisioned"
-          },
-          "editorMode": "code",
-          "expr": "max(node_hwmon_temp_celsius{chip=\"0000:00:08_1_0000:c4:00_0\", sensor=\"temp1\"})",
-          "legendFormat": "iGPU Temp",
-          "range": true,
-          "refId": "C"
         }
       ],
-      "title": "Thermal vs. Power Draw Correlation",
+      "title": "Endpoint Policy Regeneration Latency",
       "type": "timeseries"
     },
     {
@@ -454,14 +363,14 @@
             }
           },
           "mappings": [],
-          "unit": "watt"
+          "unit": "s"
         }
       },
       "gridPos": {
         "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 16
+        "w": 12,
+        "x": 12,
+        "y": 8
       },
       "id": 6,
       "options": {
@@ -486,21 +395,111 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "node_hwmon_temp_celsius{chip=~\"nvme.*|thermal.*\"}",
-          "legendFormat": "{{chip}} - {{sensor}}",
+          "expr": "histogram_quantile(0.99, sum(rate(cilium_agent_api_process_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P99 API Latency",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Sub-System Thermal Trends (Storage & SoC)",
+      "title": "Cilium Agent API Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "cilium_bpf_map_pressure",
+          "legendFormat": "{{map_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "eBPF Map Pressure (per Map)",
       "type": "timeseries"
     }
   ],
   "preload": false,
+  "refresh": "30s",
   "schemaVersion": 39,
   "tags": [
-    "hardware",
-    "efficiency"
+    "network",
+    "health"
   ],
   "templating": {
     "list": []
@@ -511,8 +510,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Hardware Thermal vs. Power Efficiency",
-  "uid": "thermal-efficiency",
-  "version": 0,
+  "title": "Cilium & Hubble Health",
+  "uid": "cilium-hubble-health",
+  "version": 1,
   "weekStart": ""
 }

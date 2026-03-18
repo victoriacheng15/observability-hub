@@ -670,21 +670,37 @@
               }
             ]
           },
-          "unit": "binBps"
+          "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Packet Drops"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
+        "h": 10,
+        "w": 12,
         "x": 0,
         "y": 20
       },
-      "id": 8,
+      "id": 13,
       "options": {
         "legend": {
           "calcs": [
-            "mean",
+            "sum",
             "max"
           ],
           "displayMode": "table",
@@ -703,8 +719,8 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"observability\"}[5m])) by (pod)",
-          "legendFormat": "IN: {{pod}}",
+          "expr": "sum(rate(cilium_forward_count_total[5m]))",
+          "legendFormat": "Forwarded Packets",
           "range": true,
           "refId": "A"
         },
@@ -714,13 +730,111 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(container_network_transmit_bytes_total{namespace=\"observability\"}[5m])) by (pod) * -1",
-          "legendFormat": "OUT: {{pod}}",
+          "expr": "sum(rate(cilium_drop_count_total[5m]))",
+          "legendFormat": "Packet Drops",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Pod Network Traffic",
+      "title": "Network Health: Cluster Packet Flow",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(hubble_drop_total[5m])) by (reason)",
+          "legendFormat": "{{reason}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Network Security: Drops by Reason (Hubble)",
       "type": "timeseries"
     }
   ],
@@ -728,8 +842,7 @@
   "schemaVersion": 39,
   "tags": [
     "infrastructure",
-    "prometheus",
-    "k3s"
+    "kubernetes"
   ],
   "templating": {
     "list": [
