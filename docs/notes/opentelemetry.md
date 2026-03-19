@@ -154,10 +154,20 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 ### 5. MCP Agents
 
-**Service Names:** `mcp-telemetry`, `mcp-pods`, `mcp-hub`
+**Service Names:** `mcp.telemetry`, `mcp.pods`, `mcp.hub` | **Tracer/Meter:** `mcp`
+
+**Metrics:**
+
+- `mcp_tool_calls_total`: Counter (labeled by `tool`, `service`, `status`)
+- `mcp_tool_duration_ms`: Histogram (labeled by `tool`, `service`)
+
+**Traces:**
+
+- `mcp.tool.<name>`: Root Span for each tool execution (e.g., `mcp.tool.inspect_pods`)
+- **Attributes:** `mcp.tool`, `mcp.service`
 
 **Logging Pattern:**
-Agents primarily emit logs for tool execution visibility:
+Agents emit logs for tool registration and execution visibility:
 
 - `registered telemetry tools`, `registered pods tools`, `registered hub tools`
 - `executing PromQL query`, `executing LogQL query`, `retrieving trace from Tempo`

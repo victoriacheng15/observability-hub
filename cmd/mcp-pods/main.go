@@ -39,7 +39,7 @@ func main() {
 		Version: "1.0.0",
 	}, nil)
 
-	internalmcp.RegisterPodsTools(server, provider)
+	internalmcp.RegisterPodsTools(server, provider, serviceName)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

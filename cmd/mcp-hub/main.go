@@ -40,7 +40,7 @@ func main() {
 	}, nil)
 
 	// 4. Register Hub Tools
-	internalmcp.RegisterHubTools(server, hubProvider)
+	internalmcp.RegisterHubTools(server, hubProvider, serviceName)
 
 	// 5. Run Server (Stdio transport)
 	telemetry.Info("mcp-hub ready", "tools", []string{"hub_inspect_platform", "hub_inspect_host", "hub_list_host_services", "hub_query_service_logs"})

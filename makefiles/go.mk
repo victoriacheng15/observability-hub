@@ -9,11 +9,11 @@ format:
 
 test:
 	@echo "Running Go tests..." && \
-	go test $(GO_PACKAGES) -v
+	go test ./internal/... -v
 
 test-cov:
 	@echo "Running tests with coverage..." && \
-	go test -coverprofile=coverage.out $(GO_PACKAGES) && \
+	go test -coverprofile=coverage.out ./internal/... && \
 	go tool cover -func=coverage.out && rm coverage.out
 
 update:
