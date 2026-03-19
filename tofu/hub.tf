@@ -423,10 +423,15 @@ resource "kubernetes_deployment_v1" "ollama" {
           }
 
           resources {
-            requests = local.standards.resources.large.requests
-            limits = merge(local.standards.resources.large.limits, {
+            requests = {
+              cpu    = "2000m"
+              memory = "4Gi"
+            }
+            limits = {
+              cpu          = "4000m"
+              memory       = "8Gi"
               "amd.com/gpu" = 1 # Request the iGPU
-            })
+            }
           }
 
           security_context {
