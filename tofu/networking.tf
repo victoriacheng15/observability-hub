@@ -120,6 +120,25 @@ resource "helm_release" "amdgpu_device_plugin" {
       # Standard Resource Limits & Standards
       resources            = local.standards.resources.small
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
+      labeller = {
+        enabled = true
+      }
+      tolerations = [
+        {
+          key      = "CriticalAddonsOnly"
+          operator = "Exists"
+        },
+        {
+          key      = "node-role.kubernetes.io/control-plane"
+          operator = "Exists"
+          effect   = "NoSchedule"
+        },
+        {
+          key      = "node-role.kubernetes.io/master"
+          operator = "Exists"
+          effect   = "NoSchedule"
+        }
+      ]
     })
   ]
 }
