@@ -321,6 +321,10 @@ chapters:
         description: |
           - Eliminated visibility gaps between Kubernetes orchestration and host-resident services via 'mcp-hub' to ensure unified platform accountability.
           - Accelerated host-level failure detection via namespaced tools (`hub_`) for surgical resource introspection and cross-layer correlation.
+      - date: "2026-03-19"
+        title: "mcp_obs_hub: Unified Agentic Gateway"
+        description: |
+          - Consolidated fragmented MCP services (telemetry, pods, hub) into a single 'mcp_obs_hub' fat binary to minimize management overhead.
 
   - title: "eBPF-Native Efficiency & Networking"
     intro: "Pivoting to the kernel for sidecar-less observability. Leveraging eBPF to bridge the gap between energy consumption (Kepler) and protocol visibility (Cilium/MQTT) to establish a high-fidelity FinOps baseline."

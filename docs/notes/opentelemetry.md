@@ -152,9 +152,9 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 - `db.query.limit`: Operation limit
 - `db.mongodb.id`: Hex string of the target document ID
 
-### 5. MCP Agents
+### 5. MCP Agents (Unified Gateway)
 
-**Service Names:** `mcp.telemetry`, `mcp.pods`, `mcp.hub` | **Tracer/Meter:** `mcp`
+**Service Name:** `mcp` (Binary: `mcp_obs_hub`) | **Tracer/Meter:** `mcp`
 
 **Metrics:**
 
@@ -164,12 +164,14 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 **Traces:**
 
 - `mcp.tool.<name>`: Root Span for each tool execution (e.g., `mcp.tool.inspect_pods`)
-- **Attributes:** `mcp.tool`, `mcp.service`
+- **Attributes:** 
+  - `mcp.tool`: The specific tool name.
+  - `mcp.service`: The domain discriminator (`mcp.telemetry`, `mcp.pods`, or `mcp.hub`).
 
 **Logging Pattern:**
-Agents emit logs for tool registration and execution visibility:
+The unified agent emits logs for sequential provider initialization and execution visibility:
 
-- `registered telemetry tools`, `registered pods tools`, `registered hub tools`
+- `registered hub tools (mcp.hub)`, `registered pods tools (mcp.pods)`, `registered telemetry tools (mcp.telemetry)`
 - `executing PromQL query`, `executing LogQL query`, `retrieving trace from Tempo`
 - `investigating incident` (Macro-tool orchestration)
-- `using local kubeconfig` vs `using in-cluster config`
+- `using local kubeconfig` (Diagnostic logs for the Pods provider)
