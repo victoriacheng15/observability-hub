@@ -164,7 +164,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 **Traces:**
 
 - `mcp.tool.<name>`: Root Span for each tool execution (e.g., `mcp.tool.inspect_pods`)
-- **Attributes:** 
+- **Attributes:**
   - `mcp.tool`: The specific tool name.
   - `mcp.service`: The domain discriminator (`mcp.telemetry`, `mcp.pods`, or `mcp.hub`).
 

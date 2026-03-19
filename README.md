@@ -21,7 +21,7 @@ This platform evolved through intentional phases. See the full journey with ADRs
 - **Ch 1-3: Foundations** – Docker lab, Shared Go libraries, and Host-level visibility.
 - **Ch 4-6: Kubernetes Pivot** – Cluster migration, Event-driven GitOps, and Vault (OpenBao) security.
 - **Ch 7-9: SRE & Maturity** – Full OpenTelemetry (LMT) stack, Library-first modularity, and OpenTofu/Terraform IaC.
-- **Ch 10: MCP Era** – AI-native operations via domain-isolated Model Context Protocol servers.
+- **Ch 10: MCP Era** – AI-native operations via a unified, domain-isolated Model Context Protocol gateway.
 - **Ch 11: eBPF-Native Efficiency & Networking** – Kepler energy monitoring and Cilium eBPF-native networking for high-fidelity L7 visibility.
 
 Each chapter links to Architecture Decision Records (ADRs) showing the *why* behind each change.
@@ -72,12 +72,11 @@ flowchart TB
             end
 
             GoApps["Go Services (Proxy, Ingestion)"]
-            MCP_Tele["MCP Telemetry (Health Brain)"]
-            MCP_Pods["MCP Pods (Infra Brain)"]
+            MCP["MCP Gateway - Telemetry, Pods, Hub"]
             Analytics["Analytics (Host Metrics & Tailscale)"]
         end
 
-        K8S["Kubernetes API (Cluster State)"]
+        K3S["Kubernetes API (Cluster State)"]
         OTEL[OpenTelemetry Collector]
 
         Observability["Loki, Tempo, and Prometheus (Thanos)"]
@@ -97,9 +96,9 @@ flowchart TB
     GH --> GoApps
     Mongo --> GoApps
     
-    %% Domain-Isolated MCP Paths
-    Observability -- "Query Data" --> MCP_Tele
-    K8S -- "Cluster State" --> MCP_Pods
+    %% Unified MCP Paths
+    Observability -- "Query Data" --> MCP
+    K3S -- "Cluster State" --> MCP
 
     %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Analytics
@@ -108,7 +107,7 @@ flowchart TB
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
     
     %% Resilience & Backup
@@ -138,7 +137,7 @@ flowchart TB
 ### 🔭 Observability & Agentic Intelligence
 
 - **Full-Stack Telemetry:** Standardized on **OpenTelemetry (Logs, Metrics, Traces)** for unified signal correlation across host and Kubernetes services.
-- **Agentic Interface (MCP):** Implemented **Model Context Protocol** servers to expose system state to AI agents, using domain isolation to enforce least privilege.
+- **Agentic Interface (MCP):** Implemented a unified **Model Context Protocol** gateway to expose system state to AI agents, using domain isolation to enforce platform security.
 - **Store-and-Forward Bridge:** Built a secure telemetry relay to ingest host-level data into Kubernetes without exposing internal cluster ports.
 
 ### 📋 Operational Governance
@@ -205,6 +204,7 @@ Build and initialize the automation and telemetry analytics on the host:
 # Build Go binaries
 make proxy-build
 make ingestion-build
+make mcp-build
 
 # Install and start Systemd services (requires sudo)
 make install-services
