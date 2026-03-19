@@ -1,0 +1,368 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "panels": [],
+      "title": "Global Service Health",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(last_over_time(proxy_synthetic_request_total[10m])) or vector(0)",
+          "legendFormat": "Proxy Active",
+          "refId": "A"
+        }
+      ],
+      "title": "Proxy Status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(last_over_time(reading_sync_total[24h])) or vector(0)",
+          "legendFormat": "Ingestion Active (24h)",
+          "refId": "A"
+        }
+      ],
+      "title": "Ingestion Status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(kube_pod_container_status_running{namespace=\"hub\", container=\"analytics\"}) or vector(0)",
+          "legendFormat": "Analytics Pods",
+          "refId": "A"
+        }
+      ],
+      "title": "Analytics Status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(last_over_time(mcp_tool_calls_total[1h])) or vector(0)",
+          "legendFormat": "MCP Active (1h)",
+          "refId": "A"
+        }
+      ],
+      "title": "MCP Status",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 14,
+      "panels": [],
+      "title": "System-Wide Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisLabel": "Req/s",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "area",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "sum(rate(proxy_synthetic_request_total[1h]))", "legendFormat": "Proxy Synthetic", "refId": "A" },
+        { "expr": "sum(rate(proxy_webhook_received_total[1h]))", "legendFormat": "Proxy Webhooks", "refId": "B" },
+        { "expr": "sum(rate(mcp_tool_calls_total[1h]))", "legendFormat": "MCP Tool Calls", "refId": "C" },
+        { "expr": "sum(increase(reading_sync_total[24h]))", "legendFormat": "Ingestion Reading (24h)", "refId": "D" },
+        { "expr": "sum(increase(second_brain_sync_total[24h]))", "legendFormat": "Ingestion Brain (24h)", "refId": "E" }
+      ],
+      "title": "System Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisLabel": "Latency (ms)",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "area",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(proxy_synthetic_request_duration_ms_bucket[1h])) by (le))", "legendFormat": "Proxy Synthetic P95", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(proxy_webhook_sync_duration_ms_bucket[1h])) by (le))", "legendFormat": "Proxy Webhook P95", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(mcp_tool_duration_ms_bucket[1h])) by (le))", "legendFormat": "MCP Tool P95", "refId": "C" },
+        { "expr": "histogram_quantile(0.95, sum(rate(reading_sync_duration_ms_bucket[24h])) by (le))", "legendFormat": "Ingestion Reading P95 (24h)", "refId": "D" },
+        { "expr": "histogram_quantile(0.95, sum(rate(second_brain_sync_duration_ms_bucket[24h])) by (le))", "legendFormat": "Ingestion Brain P95 (24h)", "refId": "E" },
+        { "expr": "histogram_quantile(0.95, sum(rate(analytics_batch_duration_ms_bucket[1h])) by (le))", "legendFormat": "Analytics Batch P95 (1h)", "refId": "F" }
+      ],
+      "title": "Latency P95",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 18,
+      "panels": [],
+      "title": "Service Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "reqps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*P95" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "id": 30,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "sum(rate(proxy_synthetic_request_total[1h]))", "legendFormat": "Synthetic Throughput", "refId": "A" },
+        { "expr": "sum(rate(proxy_webhook_received_total[1h]))", "legendFormat": "Webhook Throughput", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(proxy_synthetic_request_duration_ms_bucket[1h])) by (le))", "legendFormat": "Synthetic P95", "refId": "C" },
+        { "expr": "histogram_quantile(0.95, sum(rate(proxy_webhook_sync_duration_ms_bucket[1h])) by (le))", "legendFormat": "Webhook P95", "refId": "D" }
+      ],
+      "title": "Proxy Deep Dive (1h Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "reqps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*P95" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 31,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "sum(rate(mcp_tool_calls_total[1h]))", "legendFormat": "Tool Throughput", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(mcp_tool_duration_ms_bucket[1h])) by (le))", "legendFormat": "Tool P95", "refId": "B" }
+      ],
+      "title": "MCP Deep Dive (1h Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*P95" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "id": 32,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "sum(increase(reading_sync_total[24h]))", "legendFormat": "Reading Runs", "refId": "A" },
+        { "expr": "sum(increase(second_brain_sync_total[24h]))", "legendFormat": "Brain Runs", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(reading_sync_duration_ms_bucket[24h])) by (le))", "legendFormat": "Reading P95", "refId": "C" },
+        { "expr": "histogram_quantile(0.95, sum(rate(second_brain_sync_duration_ms_bucket[24h])) by (le))", "legendFormat": "Brain P95", "refId": "D" }
+      ],
+      "title": "Ingestion Deep Dive (24h Window)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-provisioned" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*P95" }, "properties": [{ "id": "unit", "value": "ms" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "id": 33,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "sum(increase(analytics_batch_total[1h]))", "legendFormat": "Batches (1h)", "refId": "A" },
+        { "expr": "sum(increase(analytics_batch_errors_total[1h]))", "legendFormat": "Errors (1h)", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(analytics_batch_duration_ms_bucket[1h])) by (le))", "legendFormat": "Batch P95", "refId": "C" }
+      ],
+      "title": "Analytics Deep Dive (1h Window)",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "1m",
+  "schemaVersion": 42,
+  "tags": ["hub", "services", "health"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Unified Services Hub",
+  "uid": "unified-services-hub",
+  "version": 2
+}
+

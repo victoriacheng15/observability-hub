@@ -19,9 +19,10 @@ const (
 )
 
 var (
-	metricsOnce sync.Once
-	collTotal   telemetry.Int64Counter
-	collErrors  telemetry.Int64Counter
+	metricsOnce  sync.Once
+	collTotal    telemetry.Int64Counter
+	collErrors   telemetry.Int64Counter
+	collDuration telemetry.Int64Histogram
 
 	tailscaleMu     sync.RWMutex
 	tailscaleActive int64
@@ -123,6 +124,7 @@ func EnsureMetrics() {
 		meter := telemetry.GetMeter(ServiceName)
 		collTotal, _ = telemetry.NewInt64Counter(meter, "analytics.batch.total", "Total processing batches")
 		collErrors, _ = telemetry.NewInt64Counter(meter, "analytics.batch.errors.total", "Total batch errors")
+		collDuration, _ = telemetry.NewInt64Histogram(meter, "analytics.batch.duration.ms", "Batch processing duration in milliseconds", "ms")
 
 		_, _ = telemetry.NewInt64ObservableGauge(meter, "analytics.tailscale.active", "Tailscale Funnel active status", func(ctx context.Context, obs telemetry.Int64Observer) error {
 			tailscaleMu.RLock()
@@ -134,14 +136,20 @@ func EnsureMetrics() {
 }
 
 func (s *Service) RunBatch(ctx context.Context) {
+	start := time.Now()
 	tracer := telemetry.GetTracer(ServiceName)
 	ctx, span := tracer.Start(ctx, "job.collect_batch")
 	defer span.End()
 
 	telemetry.AddInt64Counter(ctx, collTotal, 1)
+	defer func() {
+		if collDuration != nil {
+			telemetry.RecordInt64Histogram(ctx, collDuration, time.Since(start).Milliseconds())
+		}
+	}()
 
 	end := time.Now().UTC().Truncate(Interval)
-	start := end.Add(-Interval)
+	startBoundary := end.Add(-Interval)
 
 	// 1. Get Host Metadata directly from mounted host files
 	hostName, osName, err := getHostMetadata()
@@ -151,23 +159,23 @@ func (s *Service) RunBatch(ctx context.Context) {
 		return
 	}
 
-	telemetry.Info("batch_started", "start", start.Format(time.RFC3339), "end", end.Format(time.RFC3339), "host", hostName, "os", osName)
+	telemetry.Info("batch_started", "start", startBoundary.Format(time.RFC3339), "end", end.Format(time.RFC3339), "host", hostName, "os", osName)
 
 	span.SetAttributes(
 		telemetry.StringAttribute("host", hostName),
 		telemetry.StringAttribute("os", osName),
-		telemetry.StringAttribute("start", start.Format(time.RFC3339)),
+		telemetry.StringAttribute("start", startBoundary.Format(time.RFC3339)),
 		telemetry.StringAttribute("end", end.Format(time.RFC3339)),
 	)
 
 	// 2. Fetch and Persist Legacy Host Metrics
-	s.collectAndStoreHostMetrics(ctx, start, end, hostName, osName)
+	s.collectAndStoreHostMetrics(ctx, startBoundary, end, hostName, osName)
 
 	// 3. Resource Integration (Phase 3)
-	s.processResources(ctx, start, end, hostName, osName)
+	s.processResources(ctx, startBoundary, end, hostName, osName)
 
 	// 4. Value Integration (Phase 4: Business Value Ingestion)
-	s.processValueUnits(ctx, start, end, hostName, osName)
+	s.processValueUnits(ctx, startBoundary, end, hostName, osName)
 
 	// 5. Fetch Tailscale State (Logs/Metrics only, no DB)
 	s.collectTailscale(ctx)
