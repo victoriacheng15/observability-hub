@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp-telemetry-build mcp-pods-build mcp-hub-build service-build mcp-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp_obs_hub_build service-build mcp-build
 
 format:
 	@echo "Formatting Go code..." && \
@@ -55,31 +55,13 @@ ingestion-build:
 	sudo systemctl restart ingestion.service && \
 	rm ./bin/ingestion
 
-mcp-telemetry-build:
-	@echo "Updating mcp-telemetry..." && \
-	go build -o ./bin/mcp_telemetry ./cmd/mcp-telemetry && \
-	sudo install -m 755 ./bin/mcp_telemetry /usr/local/bin/mcp_telemetry && \
-	rm ./bin/mcp_telemetry
-
-mcp-pods-build:
-	@echo "Updating mcp-pods..." && \
-	go build -o ./bin/mcp_pods ./cmd/mcp-pods && \
-	sudo install -m 755 ./bin/mcp_pods /usr/local/bin/mcp_pods && \
-	rm ./bin/mcp_pods
-
-mcp-hub-build:
-	@echo "Updating mcp-hub..." && \
-	go build -o ./bin/mcp_hub ./cmd/mcp-hub && \
-	sudo install -m 755 ./bin/mcp_hub /usr/local/bin/mcp_hub && \
-	rm ./bin/mcp_hub
+mcp-build:
+	@echo "Updating mcp_obs_hub..." && \
+	go build -o ./bin/mcp_obs_hub ./cmd/mcp-obs-hub && \
+	sudo install -m 755 ./bin/mcp_obs_hub /usr/local/bin/mcp_obs_hub && \
+	rm ./bin/mcp_obs_hub
 
 service-build:
 	@echo "Building all services..." && \
 	make proxy-build && \
 	make ingestion-build
-
-mcp-build:
-	@echo "Building all MCP Servers..." && \
-	make mcp-telemetry-build && \
-	make mcp-pods-build && \
-	make mcp-hub-build
