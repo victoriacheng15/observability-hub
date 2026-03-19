@@ -1,42 +1,44 @@
-# MCP Servers Architecture
+# MCP Gateway Architecture
 
-The Observability Hub implements a suite of **Model Context Protocol (MCP)** servers to bridge the gap between AI agents and the platform's specialized domains. These servers act as "Agentic Interfaces," allowing LLM-based tools (GitHub Copilot, Gemini CLI) to autonomously interact with system data and automation.
+The Observability Hub implements a unified **Model Context Protocol (MCP)** gateway to bridge the gap between AI agents and the platform's specialized domains. This "Agentic Interface" allows LLM-based tools (Gemini CLI, GitHub Copilot) to autonomously interact with system telemetry, Kubernetes infrastructure, and host-level automation through a single authoritative entry point.
 
 ## 🎯 Objective
 
-To provide a standardized, intent-based interface for autonomous operations. Instead of requiring human engineers to manually correlate data across multiple UIs, MCP servers expose high-level "Tools" that agents can use to perform analysis, trigger reconciliation, and investigate incidents.
+To provide a standardized, intent-based interface for autonomous operations. Instead of requiring human engineers to manually correlate data across multiple UIs, the MCP gateway exposes high-level "Tools" that agents can use to perform multi-domain analysis, trigger reconciliation, and investigate incidents via a unified reasoning loop.
 
-## 🧩 Component Inventory
+## 🧩 Unified Domain Inventory
 
-| Service Name | Path | Purpose | Key Tools |
+The gateway consolidates capabilities into a single binary (`mcp_obs_hub`) while maintaining logical isolation via specialized providers:
+
+| Domain | Provider | Purpose | Key Tools |
 | :--- | :--- | :--- | :--- |
-| **`mcp-telemetry`** | `cmd/mcp-telemetry/` | **Health Brain**: Bridges the LGTM stack for autonomous observability. | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
-| **`mcp-pods`** | `cmd/mcp-pods/` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
-| **`mcp-hub`** | `cmd/mcp-hub/` | **System Brain**: Direct host-level intelligence for systemd and hardware state. | `hub_inspect_platform`, `hub_inspect_host`, `hub_list_host_services`, `hub_query_service_logs` |
+| **Telemetry** | `mcp.telemetry` | **Health Brain**: Bridges the LGTM stack for autonomous observability. | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
+| **Kubernetes**| `mcp.pods` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
+| **Host/Hub** | `mcp.hub` | **System Brain**: Direct host-level intelligence for systemd and hardware state. | `hub_inspect_platform`, `hub_inspect_host`, `hub_list_host_services`, `hub_query_service_logs` |
 
-## ⚙️ Shared Architectural Patterns
+## ⚙️ Architectural Standards
 
-All MCP servers in the platform adhere to a consistent, domain-isolated architectural standard (ADR 018):
+The MCP gateway adheres to a consistent, consolidated architectural standard:
 
 - **Protocol**: Model Context Protocol (MCP) over Stdio for seamless integration with local agent runtimes.
-- **Domain Isolation**: Capabilities are split into specialized, standalone binaries to enforce the Principle of Least Privilege and reduce the security blast radius.
-- **Unified Telemetry**: Each server is instrumented with the platform's Go SDK, emitting logs, metrics, and traces via OTLP to the central OpenTelemetry Collector.
-- **Backend Providers**: Logic is decoupled into `internal/mcp/providers`, allowing the same provider logic (e.g., Kubernetes API access) to be shared across multiple interfaces while maintaining strict import boundaries.
-- **Deployment Pattern**: Deployed as pure binaries communicating over `stdio`, avoiding host-tier service managers like systemd where possible to improve portability and alignment with future containerized orchestration.
+- **Fat Binary Architecture**: Multi-domain logic is collapsed into a single high-performance binary to minimize management overhead and streamline the build/deploy pipeline.
+- **Soft-Fail Initialization**: Providers initialize sequentially; the gateway remains operational even if specific backends (e.g., a specific database or cluster API) are temporarily unreachable.
+- **Unified Instrumentation**: The gateway is instrumented with the platform's Go SDK, emitting logs, metrics, and traces via OTLP to the central OpenTelemetry Collector using the `mcp.service` attribute as a domain discriminator.
+- **Decoupled Logic**: Tool handlers are decoupled into `internal/mcp/tools`, while domain access is abstracted into `internal/mcp/providers`, ensuring clean architectural boundaries.
 
 ## 🔭 Logic & Data Flow
 
-1. **Initialization**: The server initializes the OTel SDK and establishes connections to its specific domain (e.g., Loki/Thanos via NodePort for telemetry, the K3s API for pods, or the local D-Bus/Systemd for the hub).
-2. **Registration**: Tools are registered with the MCP SDK, defining clear JSON schemas for inputs (e.g., PromQL strings, Pod names, or Service unit names).
-3. **Execution**: When an agent invokes a tool, the server executes the corresponding provider logic, captures the results, and returns them as structured text or JSON content.
-4. **Tracing**: Every tool invocation generates a trace span, correlating the agent's intent with the underlying system operations.
+1. **Initialization**: The gateway initializes the OTel SDK and sequentially registers the Hub, Pods, and Telemetry providers.
+2. **Registration**: 13 specialized tools are registered with the MCP SDK, defining strict JSON schemas for intent-based inputs.
+3. **Execution**: When an agent invokes a tool, the gateway routes the request to the appropriate provider, captures results, and returns structured content.
+4. **Tracing**: Every tool invocation generates a trace span, correlating the agent's intent with the underlying system operations (e.g., `mcp.tool.query_metrics`).
 
 ## 🔌 Integration Mapping
 
 | Interface | Protocol | Connectivity | Role |
 | :--- | :--- | :--- | :--- |
-| **Agent Inbound** | MCP (Stdio) | Local Process | Reasoning loop interface |
-| **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access |
+| **Agent Inbound** | MCP (Stdio) | Local Process | Unified reasoning interface |
+| **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access (Thanos/Loki/Tempo) |
 | **Cluster Outbound**| HTTPS | `K3s API` | Infrastructure state access |
 | **Host Outbound** | D-Bus/Systemd| Local Socket | System management access |
-| **Self-Observability** | OTLP (gRPC) | `localhost:30317` | Telemetry pipeline |
+| **Self-Observability** | OTLP (gRPC) | `localhost:30317` | Telemetry pipeline (OTLP) |

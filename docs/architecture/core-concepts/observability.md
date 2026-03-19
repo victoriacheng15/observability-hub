@@ -14,19 +14,18 @@ flowchart TB
             end
 
             GoApps["Go Services"]
-            MCP_Tele["MCP Telemetry (Health Brain)"]
-            MCP_Pods["MCP Pods (Infra Brain)"]
+            MCP["MCP Gateway (Unified Brain)"]
             Analytics["Analytics (Host Metrics & Tailscale)"]
             Gate[Tailscale Gate]
         end
 
-        subgraph Kube["KubKubernetes API"]
+        subgraph Kube["Kubernetes API"]
           K3S["Kubernetes Cluster State"]
         end
-        subgraph OtelCollector["OpenTelemtry"]
+        subgraph OtelCollector["OpenTelemetry"]
           OTEL[OpenTelemetry Collector]
         end
-        subgraph Kernal["Cillium"]
+        subgraph Kernal["Cilium"]
           Cilium["Cilium / Hubble (eBPF)"]
         end
         subgraph Observability["Observability"]
@@ -42,9 +41,9 @@ flowchart TB
     %% Data Pipeline Connections
     External --> GoApps
     
-    %% Domain-Isolated MCP Paths
-    Observability -- "Query Data" --> MCP_Tele
-    K3S -- "Cluster State" --> MCP_Pods
+    %% Unified MCP Paths
+    Observability -- "Query Data" --> MCP
+    K3S -- "Cluster State" --> MCP
 
     %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Analytics
@@ -53,7 +52,7 @@ flowchart TB
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP_Tele & MCP_Pods & Analytics -- "Logs, Metrics, Traces" --> OtelCollector
+    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OtelCollector
     Cilium -- "Network Flows & L7 Metrics" --> Observability
     
     OtelCollector --> Observability

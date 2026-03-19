@@ -280,7 +280,7 @@ chapters:
           - Achieved 100% declarative infrastructure-as-code orchestration via OpenTofu, enabling auditable drift detection and consistent state management across the Kubernetes (K3s) observability stack.
 
   - title: "The MCP Era"
-    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), enabling high-fidelity correlation of system telemetry."
+    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), initially through domain-isolated servers and later consolidated into a unified 'mcp_obs_hub' gateway for streamlined operations."
     timeline:
       - date: "2026-03-05"
         title: "Proposal: The MCP Era"

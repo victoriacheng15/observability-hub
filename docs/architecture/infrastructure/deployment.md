@@ -40,7 +40,7 @@ Managed via **OpenTofu (IaC)** in `tofu/`.
 ```mermaid
 sequenceDiagram
     participant App as Go Services
-    participant Script as Bash Scripts
+    participant MCP as MCP Gateway
     participant Analytics_Agent as Analytics
     participant Cilium as Cilium/Hubble (eBPF)
     participant OTel_Collector as OpenTelemetry Collector
@@ -48,7 +48,7 @@ sequenceDiagram
     participant Grafana as Grafana
 
     App->>OTel_Collector: Logs, Metrics, Traces (OTLP)
-    Script->>OTel_Collector: Logs, Metrics, Traces (OTLP)
+    MCP->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     Analytics_Agent->>OTel_Collector: Metrics, Traces (OTLP)
     Cilium->>Observability: Network Flows & L7 Metrics
 
