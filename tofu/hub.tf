@@ -141,8 +141,8 @@ resource "kubernetes_daemon_set_v1" "analytics" {
 
           volume_mount {
             name       = "tailscale-sock"
-            mount_path = "/var/run/tailscale/tailscaled.sock"
-            read_only  = true
+            mount_path = "/var/run/tailscale"
+            read_only  = false
           }
           volume_mount {
             name       = "host-hostname"
@@ -159,8 +159,8 @@ resource "kubernetes_daemon_set_v1" "analytics" {
         volume {
           name = "tailscale-sock"
           host_path {
-            path = "/var/run/tailscale/tailscaled.sock"
-            type = "Socket"
+            path = "/run/tailscale"
+            type = "Directory"
           }
         }
         volume {
