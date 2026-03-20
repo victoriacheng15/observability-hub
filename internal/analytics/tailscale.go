@@ -19,7 +19,7 @@ type RealCommandRunner struct{}
 
 func (r *RealCommandRunner) Run(ctx context.Context, name string, arg ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, name, arg...)
-	return cmd.CombinedOutput()
+	return cmd.Output()
 }
 
 // Global runner that can be swapped in tests.
