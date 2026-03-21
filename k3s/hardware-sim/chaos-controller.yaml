@@ -47,9 +47,11 @@ spec:
         app: chaos-controller
     spec:
       serviceAccountName: chaos-controller
+      imagePullSecrets:
+        - name: ghcr-auth
       containers:
       - name: chaos-controller
-        image: chaos-controller:v0.1.0
+        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-962258d
         imagePullPolicy: IfNotPresent
         env:
         - name: MQTT_BROKER
