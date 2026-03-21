@@ -83,6 +83,12 @@ resource "kubernetes_namespace_v1" "hub" {
   }
 }
 
+resource "kubernetes_namespace_v1" "argocd" {
+  metadata {
+    name = var.argocd_namespace
+  }
+}
+
 moved {
   from = kubernetes_namespace.observability
   to   = kubernetes_namespace_v1.observability
