@@ -26,6 +26,18 @@ variable "hub_namespace" {
   default     = "hub"
 }
 
+variable "argocd_namespace" {
+  description = "Namespace for ArgoCD GitOps controller."
+  type        = string
+  default     = "argocd"
+}
+
+variable "argocd_chart_version" {
+  description = "Helm chart version for ArgoCD."
+  type        = string
+  default     = "7.7.12"
+}
+
 # --- Azure Storage ---
 
 variable "azurerm_storage_account_name" {
