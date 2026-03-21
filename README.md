@@ -23,8 +23,7 @@ This platform evolved through intentional phases. See the full journey with ADRs
 - **Ch 7-9: SRE & Maturity** – Full OpenTelemetry (LMT) stack, Library-first modularity, and OpenTofu/Terraform IaC.
 - **Ch 10: MCP Era** – AI-native operations via a unified, domain-isolated Model Context Protocol gateway.
 - **Ch 11: eBPF-Native Efficiency & Networking** – Kepler energy monitoring and Cilium eBPF-native networking for high-fidelity L7 visibility.
-
-Each chapter links to Architecture Decision Records (ADRs) showing the *why* behind each change.
+- **Ch 12: GitOps & Operational Maturity** – Centralized orchestration via ArgoCD and a layered infrastructure architecture.
 
 ---
 
@@ -41,6 +40,7 @@ The platform leverages a robust set of modern technologies for its core function
 ![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 
+![ArgoCD](https://img.shields.io/badge/Argo-EF7B4D.svg?style=for-the-badge&logo=Argo&logoColor=white)
 ![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
@@ -76,6 +76,11 @@ flowchart TB
             Analytics["Analytics (Host Metrics & Tailscale)"]
         end
 
+        subgraph Control ["Orchestration"]
+            GitOps[ArgoCD GitOps]
+            Tofu[OpenTofu IaC]
+        end
+
         K3S["Kubernetes API (Cluster State)"]
         OTEL[OpenTelemetry Collector]
 
@@ -91,6 +96,10 @@ flowchart TB
             Grafana[Grafana Dashboards]
         end
     end
+
+    %% GitOps Loop
+    GH -- "Triggers Sync" --> GitOps
+    GitOps -- "Reconciles State" --> K3S
 
     %% Data Pipeline Connections
     GH --> GoApps
@@ -124,20 +133,21 @@ flowchart TB
 
 ### ☸️ Platform Engineering & Infrastructure
 
-- **High-Availability Data Tier:** Deployed Loki, Tempo, and Thanos on **Kubernetes** with **CloudNativePG** for automated PostgreSQL failover and **Azure Blob Storage** for off-cluster backups.
-- **Infrastructure as Code:** Migrated Helm workflows to **OpenTofu** for declarative state management and automated drift detection across the stack.
-- **Secrets Orchestration:** Integrated **OpenBao** to replace static environment variables with dynamic, on-demand credential retrieval.
+- **High-Availability Data Tier:** Deployed Loki, Tempo, and Thanos on Kubernetes with CloudNativePG for automated PostgreSQL failover and Azure Blob Storage for off-cluster backups.
+- **GitOps Orchestration:** Centralized cluster lifecycle management via ArgoCD, using an `App-of-Apps` pattern to maintain declarative state and automated self-healing.
+- **Layered IaC:** Implemented a domain-isolated OpenTofu architecture (00-09) to decouple foundation, networking, and application tiers for high-fidelity maintainability.
+- **Secrets Orchestration:** Integrated OpenBao to replace static environment variables with dynamic, on-demand credential retrieval.
 
 ### 🏗️ Software Architecture & Design
 
-- **Dependency Consolidation:** Unified fragmented Go modules into a single monorepo, removing 17 `replace` directives and standardizing the build toolchain with **Nix**.
-- **Architectural Isolation:** Implemented "Thin Main" patterns and strict `internal/` package scoping to decouple domain logic from infrastructure plumbing.
+- **Dependency Consolidation:** Unified fragmented Go modules into a single monorepo, removing 17 `replace` directives.
+- **Architectural Isolation:** Implemented `Thin Main` patterns and strict `internal/` package scoping to decouple domain logic from infrastructure plumbing.
 - **GitOps Engine:** Built a custom HMAC-secured webhook listener to trigger automated repository state reconciliation across the cluster.
 
 ### 🔭 Observability & Agentic Intelligence
 
-- **Full-Stack Telemetry:** Standardized on **OpenTelemetry (Logs, Metrics, Traces)** for unified signal correlation across host and Kubernetes services.
-- **Agentic Interface (MCP):** Implemented a unified **Model Context Protocol** gateway to expose system state to AI agents, using domain isolation to enforce platform security.
+- **Full-Stack Telemetry:** Standardized on OpenTelemetry (Logs, Metrics, Traces) for unified signal correlation across host and Kubernetes services.
+- **Agentic Interface (MCP):** Implemented a unified Model Context Protocol gateway to expose system state to AI agents, using domain isolation to enforce platform security.
 - **Store-and-Forward Bridge:** Built a secure telemetry relay to ingest host-level data into Kubernetes without exposing internal cluster ports.
 
 ### 📋 Operational Governance
@@ -151,7 +161,7 @@ flowchart TB
 <details>
 <summary><b>Local Development Guide</b></summary>
 
-This guide will help you set up and run the `observability-hub` locally using **Kubernetes (K3s)**.
+This guide will help you set up and run the `observability-hub` locally using Kubernetes (K3s).
 
 ### Prerequisites
 

@@ -33,6 +33,7 @@ The GitOps agent (`gitops_sync.sh`) uses **Fast-Forward Only (`--ff-only`)** mer
 
 To maintain a "Secure by Default" posture, the repository employs automated CI/CD guardrails:
 
+- **GitOps Desired State**: **ArgoCD** continuously enforces the desired state defined in Git, automatically reverting any unauthorized manual modifications to Kubernetes resources.
 - **Infrastructure Linting**: Every change to the `k3s/` directory is automatically scanned by `kube-linter` to identify misconfigurations and security violations in Kubernetes manifests.
 - **Vulnerability Scanning**: The Go codebase and its dependencies are continuously audited using `govulncheck` (triggered on pushes and weekly schedules) to proactively identify and remediate known vulnerabilities.
 - **Policy Enforcement**: Markdown and HCL configurations are linted to ensure consistent adherence to operational and security standards across all documentation and policies.

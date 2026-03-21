@@ -6,11 +6,12 @@ The infrastructure layer follows a **hybrid model**: core data services (Storage
 
 ### ☸️ Data Infrastructure (Kubernetes)
 
-Managed via **OpenTofu (IaC)** in `tofu/`.
+Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 
 | Component | Role | Details |
 | :--- | :--- | :--- |
-| **Analytics** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. (Managed via Makefile/Helm). |
+| **ArgoCD** | GitOps Orchestrator | Controller for declarative cluster state management and automated self-healing. |
+| **Analytics** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. |
 | **Cilium & Hubble** | eBPF Networking | CNI with eBPF-native datapath for L7 visibility (MQTT) and network-level observability. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
@@ -58,11 +59,11 @@ sequenceDiagram
 
 ## Deployment Strategy
 
-- **Orchestration**: **OpenTofu** for Kubernetes data infrastructure.
+- **Orchestration (Bootstrap)**: **OpenTofu** manages foundational CNI, namespaces, and the ArgoCD control plane.
+- **Orchestration (Workloads)**: **ArgoCD** manages all Kubernetes manifests within the `k3s/` directory tree using an "App-of-Apps" pattern.
 - **Native Services**: Systemd units for high-performance and host-level tasks.
-- **Automation**: `Makefile` for lifecycle management (build, restart, install) and `tofu` for infrastructure state.
-- **Persistence**: Kubernetes **PersistentVolumeClaims (PVCs)** for data durability.
-- **Event-Driven Sync**: GitHub Webhooks trigger the local `gitops_sync.sh` via the Proxy.
+- **Automation**: `Makefile` for local lifecycle management; GitHub Webhooks trigger both ArgoCD reconciliation and local host synchronization (`gitops_sync.sh`).
+- **Persistence**: Kubernetes **PersistentVolumeClaims (PVCs)** using the `local-path-retain` StorageClass for data durability.
 
 ## Configuration & Security
 
@@ -71,6 +72,7 @@ sequenceDiagram
 - **Isolation**: Workloads communicate on an internal Kubernetes cluster network.
 - **Funnel Integration**: The **Tailscale Gate** manages `tailscale funnel` to expose only port `8085` (Proxy) to the public internet securely via port `8443`.
 - **Exposed Ports**:
+  - `30088`: ArgoCD (Kubernetes NodePort)
   - `30000`: Grafana (Kubernetes NodePort)
   - `30432`: PostgreSQL (Kubernetes NodePort)
   - `30317`: OpenTelemetry (OTLP gRPC NodePort)

@@ -350,3 +350,14 @@ chapters:
           - Migrated the cluster to Cilium CNI with kube-proxy replacement, achieving an eBPF-native datapath for optimized routing and security.
           - Implemented L7 MQTT visibility for the EMQX broker, enabling granular topic-level energy attribution without application instrumentation.
           - Resolved a critical SSH lockout incident during CNI transition, formalizing a robust recovery and IPAM management protocol.
+
+  - title: "GitOps & Operational Maturity"
+    intro: "Hardening the platform's foundation through declarative orchestration and layered infrastructure management."
+    timeline:
+      - date: "2026-03-21"
+        title: "ArgoCD Implementation"
+        description: |
+          - Transitioned the cluster to a declarative GitOps model using 'ArgoCD', moving from imperative scripts to a continuous reconciliation loop.
+          - Implemented the 'App-of-Apps' pattern to manage the entire platform lifecycle from a single source of truth, enabling automated self-healing.
+
+
