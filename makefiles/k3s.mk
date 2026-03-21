@@ -28,6 +28,29 @@ build-analytics:
 	sudo k3s ctr images tag localhost/analytics:v0.1.0 docker.io/library/analytics:v0.1.0
 	rm analytics.tar
 
+build-sensor:
+	@echo "Building Sensor image..."
+	$(DOCKER) build -t sensor:v0.1.0 -f docker/sensor/Dockerfile .
+	$(DOCKER) save -o sensor.tar localhost/sensor:v0.1.0
+	sudo k3s ctr images import sensor.tar
+	sudo k3s ctr images tag localhost/sensor:v0.1.0 sensor:v0.1.0
+	sudo k3s ctr images tag localhost/sensor:v0.1.0 docker.io/library/sensor:v0.1.0
+	rm sensor.tar
+
+build-chaos-controller:
+	@echo "Building Chaos Controller image..."
+	$(DOCKER) build -t chaos-controller:v0.1.0 -f docker/chaos-controller/Dockerfile .
+	$(DOCKER) save -o chaos-controller.tar localhost/chaos-controller:v0.1.0
+	sudo k3s ctr images import chaos-controller.tar
+	sudo k3s ctr images tag localhost/chaos-controller:v0.1.0 chaos-controller:v0.1.0
+	sudo k3s ctr images tag localhost/chaos-controller:v0.1.0 docker.io/library/chaos-controller:v0.1.0
+	rm chaos-controller.tar
+
+deploy-simulation:
+	@echo "Deploying Hardware Simulation Fleet..."
+	@kubectl apply -f k3s/hardware-sim/sensor-fleet.yaml
+	@kubectl apply -f k3s/hardware-sim/chaos-controller.yaml
+
 build-postgres:
 	@echo "Building custom CloudNativePG image..."
 	$(DOCKER) build -t postgres-cnpg:17 -f docker/postgres-cnpg/Dockerfile .

@@ -1,0 +1,24 @@
+# Stage 1: Build
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /app
+
+# Copy root module files and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy chaos-controller source
+COPY cmd/chaos-controller/ cmd/chaos-controller/
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o chaos-controller ./cmd/chaos-controller
+
+# Stage 2: Runtime
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+COPY --from=builder /app/chaos-controller .
+
+ENTRYPOINT ["./chaos-controller"]

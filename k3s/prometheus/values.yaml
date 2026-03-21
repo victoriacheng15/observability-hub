@@ -67,6 +67,19 @@ server:
 
 # Scrape configuration for OpenTelemetry Collector
 extraScrapeConfigs: |
+  - job_name: 'emqx'
+    scrape_interval: 10s
+    metrics_path: '/api/v5/prometheus/stats'
+    static_configs:
+      - targets: ['emqx.observability:18083']
+    basic_auth:
+      username: 'admin'
+      password: 'public'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "emqx_.*|up|scrape_.*"
+        action: keep
+
   - job_name: 'otel-collector'
     scrape_interval: 10s
     static_configs:

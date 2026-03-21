@@ -89,6 +89,12 @@ resource "kubernetes_namespace_v1" "argocd" {
   }
 }
 
+resource "kubernetes_namespace_v1" "hardware_sim" {
+  metadata {
+    name = var.hardware_sim_namespace
+  }
+}
+
 moved {
   from = kubernetes_namespace.observability
   to   = kubernetes_namespace_v1.observability

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-fleet
+  namespace: hardware-sim
+  labels:
+    app: sensor-fleet
+    feature: simulation
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sensor-fleet
+  template:
+    metadata:
+      labels:
+        app: sensor-fleet
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - sensor-fleet
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: sensor
+        image: sensor:v0.1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MQTT_BROKER
+          value: "tcp://emqx.observability.svc.cluster.local:1883"
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "128Mi"
+          limits:
+            cpu: "100m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: thermal
+          mountPath: /sys/class/thermal
+          readOnly: true
+      volumes:
+      - name: thermal
+        hostPath:
+          path: /sys/class/thermal
+          type: Directory

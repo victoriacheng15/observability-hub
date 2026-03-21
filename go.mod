@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
@@ -46,6 +47,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

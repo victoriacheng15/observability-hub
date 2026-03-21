@@ -13,7 +13,7 @@ resource "helm_release" "emqx" {
       replicaCount = 1
 
       emqxConfig = {
-        "listeners.tcp.default.bind" = "1883"
+        "listeners.tcp.default.bind" = "0.0.0.0:1883"
       }
 
       # Standard Resource Limits & Standards
