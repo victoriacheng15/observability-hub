@@ -359,5 +359,12 @@ chapters:
         description: |
           - Transitioned the cluster to a declarative GitOps model using 'ArgoCD', moving from imperative scripts to a continuous reconciliation loop.
           - Implemented the 'App-of-Apps' pattern to manage the entire platform lifecycle from a single source of truth, enabling automated self-healing.
+      - date: "2026-03-21"
+        title: "Automated Fleet Promotion"
+        artifacts:
+          - name: "Screenshot: ArgoCD Fleet Update"
+            url: "docs/images/argocd-chaos-sensors.png"
+        description: |
+          - Validated the GitOps promotion loop by resolving image pull failures caused by SHA-length mismatches, enabling ArgoCD to automatically reconcile private GHCR images and orchestrate a traceable rollout across the simulation fleet.
 
 
