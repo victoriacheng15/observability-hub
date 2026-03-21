@@ -32,6 +32,12 @@ variable "argocd_namespace" {
   default     = "argocd"
 }
 
+variable "hardware_sim_namespace" {
+  description = "Namespace for hardware simulation and chaos experiments."
+  type        = string
+  default     = "hardware-sim"
+}
+
 variable "argocd_chart_version" {
   description = "Helm chart version for ArgoCD."
   type        = string
