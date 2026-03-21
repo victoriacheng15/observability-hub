@@ -51,7 +51,7 @@ spec:
         - name: ghcr-auth
       containers:
       - name: chaos-controller
-        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-962258d
+        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-7d8708b
         imagePullPolicy: IfNotPresent
         env:
         - name: MQTT_BROKER
