@@ -7,8 +7,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy chaos-controller source
+# Copy source code
 COPY cmd/chaos-controller/ cmd/chaos-controller/
+COPY internal/hardware-sim/ internal/hardware-sim/
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o chaos-controller ./cmd/chaos-controller

@@ -7,8 +7,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy sensor source
+# Copy source code
 COPY cmd/sensor/ cmd/sensor/
+COPY internal/hardware-sim/ internal/hardware-sim/
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o sensor ./cmd/sensor
