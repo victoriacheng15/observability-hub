@@ -13,9 +13,9 @@ To establish a high-fidelity "Resource-to-Value" framework that enables unit eco
   - **Thanos**: Retrieves Kepler energy metrics and host utilization data.
   - **Tailscale**: Gathers network status and Funnel connectivity data.
 - **Destinations**:
-  - **PostgreSQL (TimescaleDB)**: Persists structured resource analytics to the `analytics_metrics` table for relational correlation.
+  - **PostgreSQL**: Persists structured resource analytics to the `analytics_metrics` table for relational correlation.
   - **OpenTelemetry Collector**: Forwards service-level traces and internal operational metrics.
-- **Deployment**: Managed as a Helm chart within `k3s/analytics/`.
+- **Deployment**: Fully managed via **OpenTofu** as a native Kubernetes `DaemonSet` resource, utilizing a side-loaded container image for host-level telemetry access.
 
 ## ⚙️ Logic Flow
 

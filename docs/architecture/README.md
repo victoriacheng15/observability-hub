@@ -10,7 +10,7 @@ This directory contains the detailed architectural blueprints for the Observabil
 
 Fundamental patterns and cross-cutting concerns that define how the system operates.
 
-- **[Automation & GitOps](./core-concepts/automation.md)**: Webhook-driven reconciliation and self-healing patterns.
+- **[Automation & GitOps](./core-concepts/automation.md)**: Declarative reconciliation via ArgoCD and event-driven self-healing patterns.
 - **[Observability](./core-concepts/observability.md)**: Standards for JSON logging and OpenTelemetry pipelines.
 
 ### 🏗️ [Infrastructure](./infrastructure/)
