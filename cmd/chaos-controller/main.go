@@ -2,18 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"observability-hub/internal/hardware-sim"
 )
 
 func main() {
@@ -27,26 +21,10 @@ func main() {
 		namespace = "hardware-sim"
 	}
 
-	// 1. Initialize Kubernetes Client
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatalf("Failed to get in-cluster config: %v", err)
+	controller := &hardwaresim.ChaosController{
+		MqttBroker: mqttBroker,
+		Namespace:  namespace,
 	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("Failed to create kubernetes client: %v", err)
-	}
-
-	// 2. Initialize MQTT Client
-	opts := mqtt.NewClientOptions().AddBroker(mqttBroker)
-	opts.SetClientID("chaos-controller")
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("Failed to connect to MQTT: %v", token.Error())
-	}
-	defer client.Disconnect(250)
-
-	log.Printf("Chaos Controller started. Targeting namespace: %s", namespace)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -58,51 +36,7 @@ func main() {
 		cancel()
 	}()
 
-	// Dynamic chaos loop
-	for {
-		// Randomize interval between 15s and 45s (Average 30s)
-		interval := time.Duration(15+rand.Intn(31)) * time.Second
-		timer := time.NewTimer(interval)
-
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-			injectChaos(ctx, clientset, client, namespace)
-		}
-	}
-}
-
-func injectChaos(ctx context.Context, k8s *kubernetes.Clientset, mqttClient mqtt.Client, namespace string) {
-	pods, err := k8s.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app=sensor-fleet",
-	})
-	if err != nil {
-		log.Printf("Error listing pods: %v", err)
-		return
-	}
-
-	if len(pods.Items) == 0 {
-		log.Println("No sensor pods found to target.")
-		return
-	}
-
-	// Target a random pod
-	targetPod := pods.Items[rand.Intn(len(pods.Items))]
-
-	// Randomize Spike Parameters
-	durationSec := 10 + rand.Intn(21) // 10s to 30s
-	intensity := []string{"low", "medium", "high"}[rand.Intn(3)]
-
-	log.Printf("Injecting Chaos into %s: Intensity=%s, Duration=%ds", targetPod.Name, intensity, durationSec)
-
-	topic := fmt.Sprintf("sensors/%s/chaos", targetPod.Name)
-	payload := fmt.Sprintf(`{"command": "spike", "duration": "%ds", "intensity": "%s"}`, durationSec, intensity)
-
-	token := mqttClient.Publish(topic, 1, false, payload)
-	token.Wait()
-	if token.Error() != nil {
-		log.Printf("Error publishing chaos command to %s: %v", targetPod.Name, token.Error())
+	if err := controller.Run(ctx); err != nil {
+		log.Fatalf("Chaos Controller failed: %v", err)
 	}
 }
