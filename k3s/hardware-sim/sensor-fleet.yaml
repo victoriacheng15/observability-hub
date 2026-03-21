@@ -32,7 +32,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: sensor
-        image: ghcr.io/victoriacheng15/observability-hub/sensor:sha-962258d
+        image: ghcr.io/victoriacheng15/observability-hub/sensor:sha-7d8708b
         imagePullPolicy: IfNotPresent
         env:
         - name: MQTT_BROKER
