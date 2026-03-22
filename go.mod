@@ -7,7 +7,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.11.2
+	github.com/lib/pq v1.12.0
 	github.com/modelcontextprotocol/go-sdk v1.4.1
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.17.0
@@ -23,11 +23,11 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.18.0
 	go.opentelemetry.io/otel/sdk/metric v1.42.0
 	go.opentelemetry.io/otel/trace v1.42.0
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.35.2
-	k8s.io/apimachinery v0.35.2
-	k8s.io/client-go v0.35.2
+	k8s.io/api v0.35.3
+	k8s.io/apimachinery v0.35.3
+	k8s.io/client-go v0.35.3
 )
 
 require (
