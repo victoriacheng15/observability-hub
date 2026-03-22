@@ -28,17 +28,3 @@ resource "helm_release" "emqx" {
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
-
-# --- L7 MQTT Visibility Policy ---
-
-resource "null_resource" "mqtt_visibility" {
-  triggers = {
-    manifest_sha1 = sha1(file("${path.module}/../k3s/opentelemetry/mqtt-visibility.yaml"))
-  }
-
-  provisioner "local-exec" {
-    command = "kubectl apply -f ${path.module}/../k3s/opentelemetry/mqtt-visibility.yaml"
-  }
-
-  depends_on = [helm_release.emqx]
-}

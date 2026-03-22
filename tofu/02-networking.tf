@@ -19,7 +19,7 @@ resource "helm_release" "cilium" {
       ipv4NativeRoutingCIDR = "10.42.0.0/16" # K3s Default Pod CIDR
 
       # Explicit interface targeting to prevent management of wrong devices
-      devices = ["eno1"]
+      devices = ["eno1", "tailscale0", "lo"]
 
       # --- Bootstrap Stability ---
       # Required when kube-proxy is replaced to ensure agent connectivity
