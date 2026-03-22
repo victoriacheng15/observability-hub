@@ -6,7 +6,15 @@ on:
     tags: ["v*.*.*"]
     paths:
       - "cmd/**"
+      - "!cmd/ingestion/**"
+      - "!cmd/mcp-obs-hub/**"
+      - "!cmd/proxy/**"
+      - "!cmd/web/**"
       - "internal/**"
+      - "!internal/ingestion/**"
+      - "!internal/mcp/**"
+      - "!internal/proxy/**"
+      - "!internal/web/**"
       - "docker/**"
       - "go.mod"
       - "go.sum"
@@ -56,3 +64,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
