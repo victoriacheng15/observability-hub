@@ -490,3 +490,13 @@ resource "helm_release" "opentelemetry_collector" {
 
   depends_on = [kubernetes_namespace_v1.observability]
 }
+
+# --- Network Security Policies (Cilium) ---
+
+resource "kubernetes_manifest" "observability_stack_global_core" {
+  manifest = yamldecode(file("${path.module}/../k3s/opentelemetry/observability-stack-policy.yaml"))
+}
+
+resource "kubernetes_manifest" "observability_l7_global_visibility" {
+  manifest = yamldecode(file("${path.module}/../k3s/opentelemetry/observability-l7-visibility.yaml"))
+}
