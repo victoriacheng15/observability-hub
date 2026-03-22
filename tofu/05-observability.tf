@@ -495,8 +495,16 @@ resource "helm_release" "opentelemetry_collector" {
 
 resource "kubernetes_manifest" "observability_stack_global_core" {
   manifest = yamldecode(file("${path.module}/../k3s/opentelemetry/observability-stack-policy.yaml"))
+
+  field_manager {
+    force_conflicts = true
+  }
 }
 
 resource "kubernetes_manifest" "observability_l7_global_visibility" {
   manifest = yamldecode(file("${path.module}/../k3s/opentelemetry/observability-l7-visibility.yaml"))
+
+  field_manager {
+    force_conflicts = true
+  }
 }

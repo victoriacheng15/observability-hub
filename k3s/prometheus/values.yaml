@@ -98,6 +98,26 @@ extraScrapeConfigs: |
         regex: "kepler_(node|container)_cpu_joules_total|up|scrape_.*"
         action: keep
 
+  - job_name: 'hubble'
+    scrape_interval: 10s
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: ['kube-system']
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: "hubble-metrics"
+      - source_labels: [__address__]
+        action: replace
+        regex: ([^:]+)(?::\d+)?
+        replacement: $1:9965
+        target_label: __address__
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "hubble_.*|up|scrape_.*"
+        action: keep
+
 # Scrape job configuration for single-node homelab
 scrapeConfigs:
   kubernetes-pods:

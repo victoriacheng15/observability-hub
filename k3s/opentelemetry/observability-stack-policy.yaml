@@ -3,7 +3,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-stack-global-core"
 spec:
-  description: "Exhaustive global policy for observability. Adds Kubelet Port 10250 for Kepler stability."
+  description: "Exhaustive global policy for observability. Reverted MQTT to pure L4 for stability."
   endpointSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
@@ -37,6 +37,7 @@ spec:
           - port: "18083"
           - port: "8888"
           - port: "9100"
+          - port: "1883" # MQTT Standard Port (L4 Only)
             protocol: TCP
     # 2. Allow Health Probes (from Host)
     - fromEntities:
@@ -56,6 +57,7 @@ spec:
           - port: "18083"
           - port: "8888"
           - port: "9100"
+          - port: "1883"
             protocol: TCP
   egress:
     # 1. Allow stack to reach each other (anywhere in cluster)
@@ -77,6 +79,7 @@ spec:
           - port: "8888"
           - port: "28282"
           - port: "9100"
+          - port: "1883"
             protocol: TCP
     # 2. Allow DNS lookups
     - toEndpoints:
@@ -99,7 +102,7 @@ spec:
       - 10.43.0.1/32
       toPorts:
         - ports:
-          - port: "443"   # API Server
-          - port: "6443"  # K3s API
-          - port: "10250" # Kubelet (REQUIRED FOR KEPLER)
+          - port: "443"
+          - port: "6443"
+          - port: "10250"
             protocol: TCP
