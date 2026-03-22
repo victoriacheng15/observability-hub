@@ -66,7 +66,7 @@ func (t *BrainTask) Sync(ctx context.Context, repo string, brainStore *BrainStor
 	// Task-specific metrics
 	syncTotal, _ := telemetry.NewInt64Counter(meter, "second.brain.sync.total", "Total sync runs")
 	errorsCounter, _ := telemetry.NewInt64Counter(meter, "second.brain.sync.errors.total", "Total sync errors")
-	durationHist, _ := telemetry.NewInt64Histogram(meter, "second.brain.sync.duration.ms", "Sync duration in milliseconds", "ms")
+	durationHist, _ := telemetry.NewInt64Histogram(meter, "second.brain.sync.duration", "Sync duration in milliseconds", "ms")
 
 	lastSuccessTime := time.Now()
 	_, _ = telemetry.NewInt64ObservableGauge(meter, "second.brain.sync.lag.seconds", "Time since last successful sync", func(ctx context.Context, obs telemetry.Int64Observer) error {

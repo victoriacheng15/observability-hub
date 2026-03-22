@@ -70,12 +70,12 @@ func ensureWebhookMetrics() {
 
 		webhookSyncDurationMsec, err = telemetry.NewInt64Histogram(
 			webhookMeter,
-			"proxy.webhook.sync.duration.ms",
+			"proxy.webhook.sync.duration",
 			"Webhook request duration in milliseconds",
 			"ms",
 		)
 		if err != nil {
-			telemetry.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.sync.duration.ms", "error", err)
+			telemetry.Warn("webhook_metric_init_failed", "metric", "proxy.webhook.sync.duration", "error", err)
 			return
 		}
 

@@ -124,7 +124,7 @@ func EnsureMetrics() {
 		meter := telemetry.GetMeter(ServiceName)
 		collTotal, _ = telemetry.NewInt64Counter(meter, "analytics.batch.total", "Total processing batches")
 		collErrors, _ = telemetry.NewInt64Counter(meter, "analytics.batch.errors.total", "Total batch errors")
-		collDuration, _ = telemetry.NewInt64Histogram(meter, "analytics.batch.duration.ms", "Batch processing duration in milliseconds", "ms")
+		collDuration, _ = telemetry.NewInt64Histogram(meter, "analytics.batch.duration", "Batch processing duration in milliseconds", "ms")
 
 		_, _ = telemetry.NewInt64ObservableGauge(meter, "analytics.tailscale.active", "Tailscale Funnel active status", func(ctx context.Context, obs telemetry.Int64Observer) error {
 			tailscaleMu.RLock()
