@@ -1,0 +1,105 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: "observability-stack-global-core"
+spec:
+  description: "Exhaustive global policy for observability. Adds Kubelet Port 10250 for Kepler stability."
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - opentelemetry-collector
+          - loki
+          - tempo
+          - prometheus
+          - thanos
+          - kepler
+          - kube-state-metrics
+          - emqx
+          - prometheus-node-exporter
+  ingress:
+    # 1. Allow internal communication (from anywhere in the cluster to the stack)
+    - fromEntities:
+      - cluster
+      toPorts:
+        - ports:
+          - port: "3100"
+          - port: "4317"
+          - port: "4318"
+          - port: "9090"
+          - port: "3200"
+          - port: "28282"
+          - port: "10901"
+          - port: "10902"
+          - port: "8080"
+          - port: "8081"
+          - port: "18083"
+          - port: "8888"
+          - port: "9100"
+            protocol: TCP
+    # 2. Allow Health Probes (from Host)
+    - fromEntities:
+      - host
+      - remote-node
+      toPorts:
+        - ports:
+          - port: "3100"
+          - port: "4317"
+          - port: "4318"
+          - port: "9090"
+          - port: "3200"
+          - port: "28282"
+          - port: "13133"
+          - port: "8080"
+          - port: "8081"
+          - port: "18083"
+          - port: "8888"
+          - port: "9100"
+            protocol: TCP
+  egress:
+    # 1. Allow stack to reach each other (anywhere in cluster)
+    - toEntities:
+      - cluster
+      toPorts:
+        - ports:
+          - port: "3100"
+          - port: "4317"
+          - port: "4318"
+          - port: "9090"
+          - port: "3200"
+          - port: "10901"
+          - port: "10902"
+          - port: "9000"
+          - port: "8080"
+          - port: "8081"
+          - port: "18083"
+          - port: "8888"
+          - port: "28282"
+          - port: "9100"
+            protocol: TCP
+    # 2. Allow DNS lookups
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+          - port: "53"
+            protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+    # 3. Allow egress to Host/API Server & Kubelet
+    - toEntities:
+      - host
+      - remote-node
+      - kube-apiserver
+    - toCIDR:
+      - 10.43.0.1/32
+      toPorts:
+        - ports:
+          - port: "443"   # API Server
+          - port: "6443"  # K3s API
+          - port: "10250" # Kubelet (REQUIRED FOR KEPLER)
+            protocol: TCP

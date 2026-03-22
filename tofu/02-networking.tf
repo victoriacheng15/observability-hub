@@ -42,11 +42,11 @@ resource "helm_release" "cilium" {
         }
       }
 
-      # --- L7 Visibility (MQTT) ---
-      l7Proxy        = false
-      enableL7Config = false
+      # --- L7 Visibility (MQTT/HTTP) ---
+      l7Proxy        = true
+      enableL7Config = true
       mqtt = {
-        enabled = false
+        enabled = true
       }
 
       # --- Hubble (Observability) ---
