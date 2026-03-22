@@ -66,7 +66,7 @@ func (t *ReadingTask) Sync(ctx context.Context, pgStore *ReadingStore, mStore Mo
 	// Task-specific metrics
 	syncTotal, _ := telemetry.NewInt64Counter(meter, "reading.sync.total", "Total sync runs")
 	errorsCounter, _ := telemetry.NewInt64Counter(meter, "reading.sync.errors.total", "Total sync errors")
-	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration.ms", "Sync duration in milliseconds", "ms")
+	durationHist, _ := telemetry.NewInt64Histogram(meter, "reading.sync.duration", "Sync duration in milliseconds", "ms")
 
 	lastSuccessTime := time.Now()
 	_, _ = telemetry.NewInt64ObservableGauge(meter, "reading.sync.lag.seconds", "Time since last successful sync", func(ctx context.Context, obs telemetry.Int64Observer) error {

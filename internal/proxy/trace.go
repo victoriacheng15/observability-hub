@@ -47,12 +47,12 @@ func ensureSyntheticMetrics() {
 
 		syntheticRequestDurationMsec, err = telemetry.NewInt64Histogram(
 			syntheticMeter,
-			"proxy.synthetic.request.duration.ms",
+			"proxy.synthetic.request.duration",
 			"Synthetic trace request duration in milliseconds",
 			"ms",
 		)
 		if err != nil {
-			telemetry.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration.ms", "error", err)
+			telemetry.Warn("synthetic_metric_init_failed", "metric", "proxy.synthetic.request.duration", "error", err)
 			return
 		}
 

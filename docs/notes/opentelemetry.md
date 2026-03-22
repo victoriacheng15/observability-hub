@@ -49,10 +49,10 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `proxy.synthetic.request.total`: Counter (labeled by `app.traffic_mode`)
 - `proxy.synthetic.request.errors.total`: Counter
-- `proxy.synthetic.request.duration.ms`: Histogram
+- `proxy.synthetic.request.duration`: Histogram
 - `proxy.webhook.received.total`: Counter (labeled by `github.event`)
 - `proxy.webhook.errors.total`: Counter
-- `proxy.webhook.sync.duration.ms`: Histogram
+- `proxy.webhook.sync.duration`: Histogram
 
 **Traces:**
 
@@ -83,7 +83,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 - `reading.sync.total`: Counter
 - `reading.sync.processed.total`: Counter (Total articles processed)
 - `reading.sync.errors.total`: Counter
-- `reading.sync.duration.ms`: Histogram
+- `reading.sync.duration`: Histogram
 - `reading.sync.lag.seconds`: Gauge (Time since last success)
 
 **Traces:**
@@ -100,7 +100,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 - `second.brain.sync.total`: Counter
 - `second.brain.sync.processed.total`: Counter (Total thoughts processed)
 - `second.brain.sync.errors.total`: Counter
-- `second.brain.sync.duration.ms`: Histogram
+- `second.brain.sync.duration`: Histogram
 - `second.brain.sync.lag.seconds`: Gauge
 - `second.brain.token.count.total`: Counter (Token count for LLM context)
 
@@ -120,6 +120,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `analytics.batch.total`: Counter (Labeled by `host`, `os`)
 - `analytics.batch.errors.total`: Counter
+- `analytics.batch.duration`: Histogram
 - `analytics.tailscale.active`: Observable Gauge (1 = Active, 0 = Inactive)
 
 **Traces:**
@@ -159,7 +160,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 **Metrics:**
 
 - `mcp_tool_calls_total`: Counter (labeled by `tool`, `service`, `status`)
-- `mcp_tool_duration_ms`: Histogram (labeled by `tool`, `service`)
+- `mcp_tool_duration`: Histogram (labeled by `tool`, `service`)
 
 **Traces:**
 

@@ -24,9 +24,9 @@ func initTelemetry() {
 		if err != nil {
 			telemetry.Error("failed to create mcp_tool_calls_total metric", "error", err)
 		}
-		toolDuration, err = telemetry.NewInt64Histogram(meter, "mcp_tool_duration_ms", "Duration of MCP tool calls in milliseconds", "ms")
+		toolDuration, err = telemetry.NewInt64Histogram(meter, "mcp_tool_duration", "Duration of MCP tool calls in milliseconds", "ms")
 		if err != nil {
-			telemetry.Error("failed to create mcp_tool_duration_ms metric", "error", err)
+			telemetry.Error("failed to create mcp_tool_duration metric", "error", err)
 		}
 	})
 }
