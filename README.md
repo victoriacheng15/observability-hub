@@ -6,7 +6,7 @@ Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system
 
 🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)
 
-📚 [Documentation Hub: Architecture, ADRs & Operations](./docs/README.md)
+📚 [Documentation Hub: Architecture, ADRs, Operations & Visual Gallery](./docs/README.md)
 
 ---
 
