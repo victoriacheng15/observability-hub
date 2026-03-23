@@ -117,7 +117,8 @@ Distributed tracing is powered by OpenTelemetry for correlation and performance 
 The platform leverages **Cilium** and **Hubble** for deep, kernel-level network visibility.
 
 - **L7 Visibility (MQTT)**: Cilium's eBPF-native datapath enables sidecar-less inspection of application-level protocols. This allows the platform to attribute network traffic to specific MQTT topics without requiring modifications to the application code.
-- **Flow Analysis**: Hubble provides a real-time service map and detailed flow logs, enabling engineers to visualize and troubleshoot network connectivity and performance between pods and host services.
+- **Autonomous Flow Analysis**: Beyond the Hubble UI, the platform exposes raw flow data directly to AI agents via the MCP `observe_network_flows` tool. This enables instantaneous, packet-level auditing of `FORWARDED`, `DROPPED`, and `DENIED` traffic across the entire cluster.
+- **Service Mapping**: Hubble provides a real-time service map and detailed flow logs, enabling engineers to visualize and troubleshoot network connectivity and performance between pods and host services.
 - **Metrics Correlation**: Network-level signals (like connection latency or throughput) are correlated with application-level traces and hardware-level energy metrics (Kepler) to provide a complete view of system efficiency.
 
 ## 🗄️ Shared Data Stores
