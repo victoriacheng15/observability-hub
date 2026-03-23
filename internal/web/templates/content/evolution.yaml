@@ -333,9 +333,9 @@ chapters:
         title: "Kepler Integration & Energy Dashboards"
         artifacts:
           - name: "Dashboard: Sustainability & Efficiency"
-            url: "docs/images/sustainability.png"
-          - name: "Dashboard: Pod Resources"
-            url: "docs/images/pod-resources.png"
+            url: "docs/visual/sustainability.png"
+          - name: "Dashboard: Infrastructure Health"
+            url: "docs/visual/infra-health.png"
         description: |
           - Established a FinOps efficiency baseline across the cluster by deploying Kepler for granular energy monitoring.
           - Enabled actionable sustainability insights through dedicated energy dashboards, correlating workload performance with power consumption.
@@ -363,7 +363,7 @@ chapters:
         title: "Automated Fleet Promotion"
         artifacts:
           - name: "Screenshot: ArgoCD Fleet Update"
-            url: "docs/images/argocd-chaos-sensors.png"
+            url: "docs/visual/argocd-chaos-sensors.png"
         description: |
           - Validated the GitOps promotion loop by resolving image pull failures caused by SHA-length mismatches, enabling ArgoCD to automatically reconcile private GHCR images and orchestrate a traceable rollout across the simulation fleet.
 
