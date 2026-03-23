@@ -11,7 +11,7 @@ This skill leverages eBPF-powered introspection from Cilium and Hubble to provid
 
 | Tool | Purpose | Input Schema |
 | :--- | :--- | :--- |
-| `observe_network_flows` | Query real-time network flows from Hubble Relay | `{ "namespace": "string", "pod": "string", "last": number }` |
+| `observe_network_flows` | Query real-time network flows from Hubble Relay | `{ "namespace": "string", "pod": "string", "reserved": "string", "last": number }` |
 | `query_metrics` | (via Telemetry) Execute PromQL for Hubble/Cilium metrics | `{ "query": "string" }` |
 
 ## 📋 Standard Workflows
@@ -20,7 +20,7 @@ This skill leverages eBPF-powered introspection from Cilium and Hubble to provid
 
 Unlike the Hubble UI, the `observe_network_flows` tool allows for wider queries:
 
-1. **Host Networking**: Check flows between a pod and the host by looking for the `host` entity in Hubble.
+1. **Host Networking**: Check flows specifically interacting with the host stack by setting `reserved: "host"`.
 2. **Cross-namespace**: Query flows without a namespace filter to see inter-service communication across the entire hub.
 
 ### 2. Identifying Network Drops
@@ -38,7 +38,7 @@ If a service is failing to connect:
 ## 💡 Operational Tips
 
 - **Hubble Relay**: These tools connect to Hubble Relay, meaning they see flows across ALL nodes and namespaces.
-- **Filtering**: You can filter by `namespace` or `pod` to reduce noise, but leaving them empty provides a cluster-wide view.
+- **Filtering**: You can filter by `namespace`, `pod`, or `reserved` (e.g., "host", "world") to reduce noise.
 - **L7 Visibility**: Remember that L7 (HTTP/gRPC) visibility requires a `CiliumNetworkPolicy` to be active on the target port.
 
 ---

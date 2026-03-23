@@ -276,3 +276,28 @@ func handleQueryServiceLogs(provider *providers.HubProvider, serviceName string)
 		}, nil, nil
 	})
 }
+
+// --- Network Tools ---
+
+// RegisterNetworkTools registers all networking-related tools (Hubble) to the MCP server.
+func RegisterNetworkTools(server *mcp.Server, provider *providers.HubProvider, serviceName string) {
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "observe_network_flows",
+		Description: "Query real-time network flows from Hubble Relay (See skills/network/SKILL.md for guidance)",
+	}, handleObserveNetworkFlows(provider, serviceName))
+
+	telemetry.Info("registered network tools", "count", 1)
+}
+
+func handleObserveNetworkFlows(provider *providers.HubProvider, serviceName string) mcp.ToolHandlerFor[tools.ObserveNetworkFlowsInput, any] {
+	handler := tools.NewObserveNetworkFlowsHandler(provider.QueryHubbleFlows)
+	return InstrumentHandler("observe_network_flows", serviceName, func(ctx context.Context, _ *mcp.CallToolRequest, input tools.ObserveNetworkFlowsInput) (*mcp.CallToolResult, any, error) {
+		result, err := handler.Execute(ctx, input)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: result.(string)}},
+		}, nil, nil
+	})
+}
