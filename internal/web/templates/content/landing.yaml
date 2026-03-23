@@ -3,9 +3,9 @@ header:
   site_url: "https://victoriacheng15.github.io/observability-hub"
 
 system_specification:
-  objective: "A self-hosted observability hub orchestrated via OpenTofu (Terraform), demonstrating SRE and Platform Engineering principles through Go, eBPF-native Kubernetes (K3s/Cilium), and OpenTelemetry."
-  stack: "Go, OpenTelemetry, Cilium (eBPF), Kubernetes (K3s), Helm, OpenTofu (Terraform), Grafana, Loki, Prometheus, Tempo, OpenBao, PostgreSQL, Azure Blob Storage"
-  pattern: "Pure Wrapper / Hybrid Orchestration (K3s + Systemd)"
+  objective: "A self-hosted observability hub orchestrated via OpenTofu (Terraform) and ArgoCD (GitOps), demonstrating SRE and Platform Engineering principles through Go, eBPF-native Kubernetes (K3s/Cilium), and OpenTelemetry."
+  stack: "Go, OpenTelemetry, Cilium (eBPF), ArgoCD (GitOps), Kubernetes (K3s), Helm, OpenTofu (Terraform), Grafana, Loki, Prometheus, Tempo, OpenBao, PostgreSQL, Azure Blob Storage"
+  pattern: "Pure Wrapper / Hybrid Orchestration (Kubernetes + Systemd)"
   entry_point: "cmd/web/main.go"
   persistence_strategy: "PostgreSQL (CNPG) and tfstate on Azure Blob Storage; Logs, Metrics, and Traces on MinIO S3"
   observability: "OpenTelemetry (OTLP/gRPC) and eBPF (Cilium/Hubble) with Prometheus, Tempo, and Loki"
@@ -19,6 +19,8 @@ hero:
   cta_link: "https://github.com/victoriacheng15/observability-hub"
   secondary_cta_text: "See the Evolution"
   secondary_cta_link: "evolution.html"
+  tertiary_cta_text: "Read the Visual Gallery"
+  tertiary_cta_link: "https://github.com/victoriacheng15/observability-hub/blob/main/docs/visual/README.md"
 
 what_is_observability_hub:
   title: "Observability as an Engineering Discipline"
@@ -37,7 +39,7 @@ key_features:
       description: "Enforcing strict project encapsulation in the internal/ namespace to isolate core domain logic from infrastructure boilerplate."
       icon: "layers-half"
     - name: "Config as the Truth"
-      description: "Using GitOps to ensure version control remains the ultimate source of truth, with automated state reconciliation."
+      description: "Leveraging ArgoCD to ensure version control remains the ultimate source of truth, with an automated GitOps reconciliation loop."
       icon: "shield-check"
     - name: "Pragmatic Orchestration"
       description: "Leveraging Kubernetes for the data platform, managed declaratively via OpenTofu (Terraform) to ensure consistent and scalable deployments."
