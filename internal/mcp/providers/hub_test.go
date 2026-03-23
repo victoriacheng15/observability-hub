@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -183,6 +184,85 @@ func TestHubProvider_InspectHost(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("got %+v, want %+v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestHubProvider_QueryHubbleFlows(t *testing.T) {
+	tests := []struct {
+		name       string
+		namespace  string
+		pod        string
+		reserved   string
+		last       int
+		mockOutput string
+		mockErr    error
+		wantErr    bool
+		wantArgs   []string
+	}{
+		{
+			name:       "Successful Flow Query",
+			namespace:  "default",
+			pod:        "proxy",
+			last:       10,
+			mockOutput: `{"flow":{}}`,
+			wantErr:    false,
+			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "10", "--output", "json", "--namespace", "default", "--pod", "proxy"},
+		},
+		{
+			name:       "Reserved Entity Filter",
+			reserved:   "host",
+			last:       5,
+			mockOutput: "Defaulted container\n" + `{"flow":{}}`,
+			wantErr:    false,
+			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "5", "--output", "json", "--label", "reserved:host"},
+		},
+		{
+			name:       "Default Last Value",
+			namespace:  "",
+			pod:        "",
+			last:       0,
+			mockOutput: `{"flow":{}}`,
+			wantErr:    false,
+			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "20", "--output", "json"},
+		},
+		{
+			name:    "Command Failure",
+			mockErr: errors.New("kubectl exec error"),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &MockCommandRunner{
+				RunFn: func(ctx context.Context, name string, arg ...string) ([]byte, error) {
+					if name != "kubectl" {
+						t.Errorf("expected kubectl command, got %s", name)
+					}
+					if tt.wantArgs != nil {
+						if !reflect.DeepEqual(arg, tt.wantArgs) {
+							t.Errorf("got args %v, want %v", arg, tt.wantArgs)
+						}
+					}
+					return []byte(tt.mockOutput), tt.mockErr
+				},
+			}
+			p := &HubProvider{runner: mock}
+
+			got, err := p.QueryHubbleFlows(context.Background(), tt.namespace, tt.pod, tt.reserved, tt.last)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryHubbleFlows() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if strings.Contains(got, "Defaulted container") {
+					t.Errorf("output contains noise: %q", got)
+				}
+				if got != `{"flow":{}}` {
+					t.Errorf("got %q, want %q", got, `{"flow":{}}`)
+				}
 			}
 		})
 	}

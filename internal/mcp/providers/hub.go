@@ -108,6 +108,51 @@ func (p *HubProvider) QueryServiceLogs(ctx context.Context, service string, sinc
 	return string(out), nil
 }
 
+// QueryHubbleFlows retrieves real-time flow data from Hubble Relay.
+// Since hubble CLI is not on the host, we exec into the cilium agent pod.
+func (p *HubProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, reserved string, last int) (string, error) {
+	if last <= 0 {
+		last = 20
+	}
+	if last > 100 {
+		last = 100
+	}
+
+	hubbleArgs := []string{"observe", "--last", fmt.Sprintf("%d", last), "--output", "json"}
+	if namespace != "" {
+		hubbleArgs = append(hubbleArgs, "--namespace", namespace)
+	}
+	if pod != "" {
+		hubbleArgs = append(hubbleArgs, "--pod", pod)
+	}
+	if reserved != "" {
+		hubbleArgs = append(hubbleArgs, "--label", fmt.Sprintf("reserved:%s", reserved))
+	}
+
+	// Build kubectl exec command: kubectl -n kube-system exec ds/cilium -- hubble <args>
+	args := []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock"}
+	args = append(args, hubbleArgs...)
+
+	out, err := p.runner.Run(ctx, "kubectl", args...)
+	if err != nil {
+		telemetry.Error("hubble observe via kubectl failed", "error", err, "output", string(out))
+		return "", fmt.Errorf("hubble observe failed: %w", err)
+	}
+
+	// Clean up kubectl stderr noise (e.g. "Defaulted container...")
+	lines := strings.Split(string(out), "\n")
+	var cleaned []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "Defaulted container") {
+			continue
+		}
+		cleaned = append(cleaned, trimmed)
+	}
+
+	return strings.Join(cleaned, "\n"), nil
+}
+
 // InspectHost retrieves physical resource statistics.
 func (p *HubProvider) InspectHost(ctx context.Context) (*HostResource, error) {
 	res := &HostResource{}

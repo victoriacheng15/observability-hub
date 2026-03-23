@@ -10,6 +10,7 @@ Detailed input schemas for Cilium and Hubble-related MCP tools.
 - **Input:**
   - `namespace` (string, optional): Filter by source/destination namespace.
   - `pod` (string, optional): Filter by source/destination pod.
+  - `reserved` (string, optional): Filter by reserved entity (e.g. "host", "world", "ingress").
   - `last` (number, optional): Number of recent flows to return (default 20).
 - **Returns:** List of flows including Verdict (Forwarded/Dropped), Protocol, Source/Destination labels, and Port.
 
