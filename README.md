@@ -72,7 +72,7 @@ flowchart TB
             end
 
             GoApps["Go Services (Proxy, Ingestion)"]
-            MCP["MCP Gateway - Telemetry, Pods, Hub"]
+            MCP["MCP Gateway - Telemetry, Pods, Hub, Network"]
             Analytics["Analytics (Host Metrics & Tailscale)"]
         end
 
