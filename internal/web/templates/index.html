@@ -10,6 +10,9 @@
         {{if .Landing.Hero.SecondaryCtaText}}
         <a href="{{ .Landing.Hero.SecondaryCtaLink }}" class="inline-block bg-rose-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95">{{ .Landing.Hero.SecondaryCtaText }}</a>
         {{end}}
+        {{if .Landing.Hero.TertiaryCtaText}}
+        <a href="{{ .Landing.Hero.TertiaryCtaLink }}" target="_blank" rel="noopener noreferrer" class="inline-block bg-emerald-500 text-white px-8 py-3 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95">{{ .Landing.Hero.TertiaryCtaText }}</a>
+        {{end}}
     </div>
 </div>
 {{end}}
