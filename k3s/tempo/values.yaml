@@ -39,7 +39,7 @@ config: |
       - "localhost"
   multitenancy_enabled: false
   usage_report:
-    reporting_enabled: true
+    reporting_enabled: false
   compactor:
     compaction:
       block_retention: 168h
