@@ -2,6 +2,8 @@ loki:
   podLabels:
     app.kubernetes.io/feature: observability-logs
   auth_enabled: false
+  analytics:
+    reporting_enabled: false
   commonConfig:
     replication_factor: 1
   storage:
