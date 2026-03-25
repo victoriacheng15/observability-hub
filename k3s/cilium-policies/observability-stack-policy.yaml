@@ -1,9 +1,9 @@
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: "observability-stack-global-core"
+  name: "observability-stack-micro-isolation"
 spec:
-  description: "Exhaustive global policy for observability. Reverted MQTT to pure L4 for stability."
+  description: "Strict identity-based isolation and L7 visibility for the observability stack and core databases."
   endpointSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
@@ -18,70 +18,172 @@ spec:
           - kube-state-metrics
           - emqx
           - prometheus-node-exporter
+      - key: cnpg.io/cluster
+        operator: In
+        values:
+          - postgres-hub
   ingress:
-    # 1. Allow internal communication (from anywhere in the cluster to the stack)
+    # 1. OpenTelemetry Collector: Universal Ingestion Gateway
     - fromEntities:
       - cluster
-      toPorts:
-        - ports:
-          - port: "3100"
-          - port: "4317"
-          - port: "4318"
-          - port: "9090"
-          - port: "3200"
-          - port: "28282"
-          - port: "10901"
-          - port: "10902"
-          - port: "8080"
-          - port: "8081"
-          - port: "18083"
-          - port: "8888"
-          - port: "9100"
-          - port: "1883" # MQTT Standard Port (L4 Only)
-            protocol: TCP
-    # 2. Allow Health Probes (from Host)
-    - fromEntities:
       - host
       - remote-node
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: opentelemetry-collector
       toPorts:
         - ports:
-          - port: "3100"
-          - port: "4317"
-          - port: "4318"
-          - port: "9090"
-          - port: "3200"
-          - port: "28282"
-          - port: "13133"
-          - port: "8080"
-          - port: "8081"
-          - port: "18083"
-          - port: "8888"
-          - port: "9100"
-          - port: "1883"
+          - port: "4317" # OTLP gRPC
             protocol: TCP
-  egress:
-    # 1. Allow stack to reach each other (anywhere in cluster)
-    - toEntities:
+          - port: "4318" # OTLP HTTP
+            protocol: TCP
+          - port: "8888" # Internal metrics
+            protocol: TCP
+          - port: "13133" # Health check
+            protocol: TCP
+
+    # 2. Postgres Core: Only accept from Ingestion (Host) and Analytics (Cluster)
+    - fromEntities: [host, remote-node]
+      endpointSelector:
+        matchLabels:
+          cnpg.io/cluster: postgres-hub
+      toPorts:
+        - ports:
+          - port: "5432"
+            protocol: TCP
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: analytics
+      endpointSelector:
+        matchLabels:
+          cnpg.io/cluster: postgres-hub
+      toPorts:
+        - ports:
+          - port: "5432"
+            protocol: TCP
+
+    # 3. Sinks (Loki & Tempo): Only accept from OTel Collector & Self (Memberlist)
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: opentelemetry-collector
+      - matchLabels: # Allow internal gossip/memberlist
+          app.kubernetes.io/name: 
+            operator: In
+            values: [loki, tempo]
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name:
+            operator: In
+            values: [loki, tempo]
+      toPorts:
+        - ports:
+          - port: "3100" # Loki API
+            protocol: TCP
+          - port: "3200" # Tempo API
+            protocol: TCP
+          - port: "4318" # Tempo OTLP HTTP
+            protocol: TCP
+          rules:
+            http:
+              - {}
+        - ports:
+          - port: "4317" # Tempo OTLP gRPC
+            protocol: TCP
+          - port: "7946" # Memberlist (Gossip)
+            protocol: ANY
+
+    # 4. Prometheus Server: Only accept from OTel (Remote Write) and Thanos (Query)
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: opentelemetry-collector
+      - matchLabels: # Tempo Metrics Generator
+          app.kubernetes.io/name: tempo
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+          - port: "80" # Remote Write Ingress
+            protocol: TCP
+          rules:
+            http:
+              - {}
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: thanos
+          app.kubernetes.io/component: query
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+          - port: "10901" # Sidecar gRPC
+            protocol: TCP
+          - port: "10902" # Sidecar HTTP
+            protocol: TCP
+
+    # 5. Thanos Query: Only accept from Grafana (in hub namespace)
+    - fromEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": hub
+          app.kubernetes.io/name: grafana
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: thanos
+          app.kubernetes.io/component: query
+      toPorts:
+        - ports:
+          - port: "9090" # UI/API
+            protocol: TCP
+          rules:
+            http:
+              - {}
+
+    # 6. Infrastructure Exporters: Only accept from Prometheus
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name:
+            operator: In
+            values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx]
+      toPorts:
+        - ports:
+          - port: "28282" # Kepler
+          - port: "8080"  # KSM
+          - port: "9100"  # Node Exporter
+          - port: "18083" # EMQX Dashboard/Scrape
+            protocol: TCP
+
+    # 7. MQTT Broker (EMQX): Accept traffic from anywhere (Cluster/Host)
+    - fromEntities:
       - cluster
+      - host
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: emqx
       toPorts:
         - ports:
-          - port: "3100"
-          - port: "4317"
-          - port: "4318"
-          - port: "9090"
-          - port: "3200"
-          - port: "10901"
-          - port: "10902"
-          - port: "9000"
-          - port: "8080"
-          - port: "8081"
-          - port: "18083"
-          - port: "8888"
-          - port: "28282"
-          - port: "9100"
-          - port: "1883"
+          - port: "1883"  # MQTT Standard
             protocol: TCP
-    # 2. Allow DNS lookups
+
+    # 8. Global Health Probes (from Host/Kubelet)
+    - fromEntities: [host, remote-node]
+      toPorts:
+        - ports:
+          - port: "13133" # OTel
+          - port: "3100"  # Loki
+          - port: "3200"  # Tempo
+          - port: "9090"  # Prom/Thanos
+          - port: "30090" # Thanos NodePort
+            protocol: TCP
+
+  egress:
+    # 1. Core Services (DNS & Object Storage)
     - toEndpoints:
       - matchLabels:
           "k8s:io.kubernetes.pod.namespace": kube-system
@@ -93,13 +195,93 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    # 3. Allow egress to Host/API Server & Kubelet
-    - toEntities:
-      - host
-      - remote-node
-      - kube-apiserver
-    - toCIDR:
-      - 10.43.0.1/32
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": databases
+          app: minio
+      toPorts:
+        - ports:
+          - port: "9000"
+            protocol: TCP
+
+    # 2. Prometheus Scrape Egress: Targeted to all infrastructure endpoints
+    - toEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name:
+            operator: In
+            values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx, opentelemetry-collector]
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+          - port: "28282" # Kepler
+          - port: "8080"  # KSM
+          - port: "9100"  # Node Exporter
+          - port: "18083" # EMQX
+          - port: "8888"  # OTel Internal
+            protocol: TCP
+
+    # 3. OTel Collector Egress: To Loki, Tempo, and Prometheus
+    - toEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: 
+            operator: In
+            values: [loki, tempo, prometheus]
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: opentelemetry-collector
+      toPorts:
+        - ports:
+          - port: "3100" # Loki
+          - port: "3200" # Tempo API
+          - port: "4317" # Tempo OTLP gRPC
+          - port: "4318" # Tempo OTLP HTTP
+          - port: "80"   # Prometheus
+            protocol: TCP
+
+    # 4. Thanos Query Egress: To StoreGateway & Prometheus Sidecar
+    - toEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: thanos
+          app.kubernetes.io/component: storegateway
+      - matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: thanos
+          app.kubernetes.io/component: query
+      toPorts:
+        - ports:
+          - port: "10901"
+            protocol: TCP
+
+    # 5. Internal Component Sync (Memberlist & Metrics Generator)
+    - toEndpoints:
+      - matchLabels: # Memberlist
+          app.kubernetes.io/name: 
+            operator: In
+            values: [loki, tempo]
+      - matchLabels: # Tempo -> Prometheus Remote Write
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: 
+            operator: In
+            values: [loki, tempo]
+      toPorts:
+        - ports:
+          - port: "7946" # Gossip
+            protocol: ANY
+          - port: "80"   # Prometheus Remote Write
+            protocol: TCP
+
+    # 6. Global API/Egress for Control Plane
+    - toEntities: [host, remote-node, kube-apiserver]
+    - toCIDR: [10.43.0.1/32]
       toPorts:
         - ports:
           - port: "443"
