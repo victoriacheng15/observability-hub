@@ -66,13 +66,13 @@ spec:
     - fromEndpoints:
       - matchLabels:
           app.kubernetes.io/name: opentelemetry-collector
-      - matchLabels: # Allow internal gossip/memberlist
-          app.kubernetes.io/name: 
+      - matchExpressions: # Allow internal gossip/memberlist
+          - key: app.kubernetes.io/name
             operator: In
             values: [loki, tempo]
       endpointSelector:
-        matchLabels:
-          app.kubernetes.io/name:
+        matchExpressions:
+          - key: app.kubernetes.io/name
             operator: In
             values: [loki, tempo]
       toPorts:
@@ -147,8 +147,8 @@ spec:
           app.kubernetes.io/name: prometheus
           app.kubernetes.io/component: server
       endpointSelector:
-        matchLabels:
-          app.kubernetes.io/name:
+        matchExpressions:
+          - key: app.kubernetes.io/name
             operator: In
             values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx]
       toPorts:
@@ -206,8 +206,8 @@ spec:
 
     # 2. Prometheus Scrape Egress: Targeted to all infrastructure endpoints
     - toEndpoints:
-      - matchLabels:
-          app.kubernetes.io/name:
+      - matchExpressions:
+          - key: app.kubernetes.io/name
             operator: In
             values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx, opentelemetry-collector]
       endpointSelector:
@@ -225,8 +225,8 @@ spec:
 
     # 3. OTel Collector Egress: To Loki, Tempo, and Prometheus
     - toEndpoints:
-      - matchLabels:
-          app.kubernetes.io/name: 
+      - matchExpressions:
+          - key: app.kubernetes.io/name
             operator: In
             values: [loki, tempo, prometheus]
       endpointSelector:
@@ -260,16 +260,16 @@ spec:
 
     # 5. Internal Component Sync (Memberlist & Metrics Generator)
     - toEndpoints:
-      - matchLabels: # Memberlist
-          app.kubernetes.io/name: 
+      - matchExpressions: # Memberlist
+          - key: app.kubernetes.io/name
             operator: In
             values: [loki, tempo]
       - matchLabels: # Tempo -> Prometheus Remote Write
           app.kubernetes.io/name: prometheus
           app.kubernetes.io/component: server
       endpointSelector:
-        matchLabels:
-          app.kubernetes.io/name: 
+        matchExpressions:
+          - key: app.kubernetes.io/name
             operator: In
             values: [loki, tempo]
       toPorts:
