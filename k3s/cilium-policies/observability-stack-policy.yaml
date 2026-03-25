@@ -3,7 +3,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-otel-ingestion"
 spec:
-  description: "Allow external and internal ingestion into the OTel Collector."
+  description: "Universal ingestion gateway. Forwarding traces to Tempo, logs to Loki, and metrics to Prometheus."
   endpointSelector:
     matchLabels:
       app.kubernetes.io/name: opentelemetry-collector
@@ -11,17 +11,31 @@ spec:
     - fromEntities: [cluster, host, remote-node]
       toPorts:
         - ports:
-          - port: "4317"
+          - port: "4317" # OTLP gRPC
             protocol: TCP
-          - port: "4318"
+          - port: "4318" # OTLP HTTP
             protocol: TCP
-          - port: "8888"
+          - port: "8888" # Internal metrics
             protocol: TCP
-          - port: "13133"
+          - port: "13133" # Health check
             protocol: TCP
   egress:
+    - toEndpoints:
+      - matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values: [loki, tempo, prometheus]
+      toPorts:
+        - ports:
+          - port: "3100"
+          - port: "3200"
+          - port: "4317"
+          - port: "4318"
+          - port: "80"
+            protocol: TCP
+          rules:
+            http: [{}]
     - toEntities: [host, remote-node, kube-apiserver]
-    - toCIDR: [10.43.0.1/32]
       toPorts:
         - ports:
           - port: "443"
@@ -42,7 +56,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-data-sinks"
 spec:
-  description: "Secure data paths from OTel to Loki and Tempo."
+  description: "Secure sinks for logs and traces. Accepting from OTel and coordination via Memberlist."
   endpointSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
@@ -69,6 +83,9 @@ spec:
             protocol: TCP
           - port: "7946"
             protocol: ANY
+    - fromEntities: [host, remote-node] # Health Probes
+      toPorts:
+        - ports: [{port: "3100", protocol: TCP}, {port: "3200", protocol: TCP}]
   egress:
     - toEndpoints:
       - matchExpressions:
@@ -104,7 +121,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-prometheus-thanos"
 spec:
-  description: "Secure paths for Prometheus scraping and Thanos querying."
+  description: "Metrics and Querying plane. Scraping exporters and accepting queries from Grafana."
   endpointSelector:
     matchExpressions:
       - key: app.kubernetes.io/name
@@ -125,6 +142,8 @@ spec:
           - port: "10901"
           - port: "10902"
             protocol: TCP
+          rules:
+            http: [{}]
     - fromEndpoints:
       - matchLabels:
           app.kubernetes.io/name: grafana
@@ -132,12 +151,18 @@ spec:
       toPorts:
         - ports: [{port: "9090", protocol: TCP}]
           rules: {http: [{}]}
+    - fromEntities: [host, remote-node] # Health Probes and NodePort access
+      toPorts:
+        - ports: [{port: "9090", protocol: TCP}, {port: "30090", protocol: TCP}]
   egress:
     - toEndpoints:
       - matchExpressions:
           - key: app.kubernetes.io/name
             operator: In
             values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx, opentelemetry-collector]
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": argocd
+          app.kubernetes.io/name: argocd-repo-server
       toPorts:
         - ports:
           - port: "28282"
@@ -145,7 +170,10 @@ spec:
           - port: "9100"
           - port: "18083"
           - port: "8888"
+          - port: "8081"
             protocol: TCP
+          rules:
+            http: [{}]
     - toEndpoints:
       - matchLabels:
           app.kubernetes.io/name: thanos
@@ -155,6 +183,9 @@ spec:
           app.kubernetes.io/component: server
       toPorts:
         - ports: [{port: "10901", protocol: TCP}]
+    - toEntities: [host, remote-node, kube-apiserver] # Required for API scraping/HA
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}, {port: "6443", protocol: TCP}]
     - toEndpoints:
       - matchLabels:
           "k8s:io.kubernetes.pod.namespace": kube-system
@@ -169,12 +200,12 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-core-databases"
 spec:
-  description: "Isolate Postgres cluster and allow host-level ingestion."
+  description: "Isolate Postgres cluster. Authorizing host ingestion, K8s API for HA, and Azure for backups."
   endpointSelector:
     matchLabels:
       cnpg.io/cluster: postgres-hub
   ingress:
-    - fromEntities: [host, remote-node]
+    - fromEntities: [host, remote-node] # Ingestion Binary
       toPorts:
         - ports: [{port: "5432", protocol: TCP}]
     - fromEndpoints:
@@ -182,6 +213,53 @@ spec:
           app.kubernetes.io/name: analytics
       toPorts:
         - ports: [{port: "5432", protocol: TCP}]
+  egress:
+    - toEntities: [host, remote-node, kube-apiserver] # HA coordination
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}, {port: "6443", protocol: TCP}]
+    - toEntities: [world] # Azure Blob Storage backups
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports: [{port: "53", protocol: UDP}]
+          rules: {dns: [{matchPattern: "*"}]}
+
+---
+apiVersion: "cilium.io/v2"
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: "observability-infrastructure-exporters"
+spec:
+  description: "Secure exporters. Accepting scrapes from Prometheus and MQTT from sensors."
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [kepler, kube-state-metrics, prometheus-node-exporter, emqx]
+  ingress:
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: prometheus
+          app.kubernetes.io/component: server
+      toPorts:
+        - ports:
+          - port: "28282" # Kepler
+          - port: "8080"  # KSM
+          - port: "9100"  # Node Exporter
+          - port: "18083" # EMQX Dashboard/Scrape
+            protocol: TCP
+          rules:
+            http: [{}]
+    - fromEntities: [cluster, host] # MQTT Data Ingress
+      endpointSelector:
+        matchLabels:
+          app.kubernetes.io/name: emqx
+      toPorts:
+        - ports: [{port: "1883", protocol: TCP}]
   egress:
     - toEndpoints:
       - matchLabels:
