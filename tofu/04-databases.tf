@@ -8,7 +8,7 @@ resource "helm_release" "minio" {
   namespace  = kubernetes_namespace_v1.databases.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/minio/values.yaml"),
+    file("${path.module}/../k3s/base/infra/minio/values.yaml"),
     yamlencode({
       persistence = {
         storageClass = local.standards.persistence.storage_class

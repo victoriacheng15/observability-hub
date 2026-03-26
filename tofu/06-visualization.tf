@@ -8,7 +8,7 @@ resource "helm_release" "grafana" {
   namespace  = kubernetes_namespace_v1.hub.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/grafana/values.yaml"),
+    file("${path.module}/../k3s/base/infra/grafana/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       persistence = {
@@ -55,10 +55,10 @@ resource "grafana_folder" "observability" {
 }
 
 resource "grafana_dashboard" "dashboards" {
-  for_each = fileset("${path.module}/../k3s/grafana/dashboards", "*.json")
+  for_each = fileset("${path.module}/../k3s/base/infra/grafana/dashboards", "*.json")
 
   folder      = grafana_folder.observability.id
-  config_json = file("${path.module}/../k3s/grafana/dashboards/${each.value}")
+  config_json = file("${path.module}/../k3s/base/infra/grafana/dashboards/${each.value}")
   overwrite   = true
 }
 

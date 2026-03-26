@@ -8,7 +8,7 @@ resource "helm_release" "prometheus" {
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/prometheus/values.yaml"),
+    file("${path.module}/../k3s/base/infra/prometheus/values.yaml"),
     yamlencode({
       server = {
         revisionHistoryLimit = local.standards.deployment.revision_history_limit
@@ -317,7 +317,7 @@ resource "helm_release" "thanos" {
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/thanos/values.yaml"),
+    file("${path.module}/../k3s/base/infra/thanos/values.yaml"),
     yamlencode({
       query = {
         extraFlags = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
@@ -381,7 +381,7 @@ resource "helm_release" "loki" {
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/loki/values.yaml"),
+    file("${path.module}/../k3s/base/infra/loki/values.yaml"),
     yamlencode({
       loki = {
         persistence = {
@@ -439,7 +439,7 @@ resource "helm_release" "tempo" {
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/tempo/values.yaml"),
+    file("${path.module}/../k3s/base/infra/tempo/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       persistence = {
@@ -468,7 +468,7 @@ resource "helm_release" "opentelemetry_collector" {
   namespace  = kubernetes_namespace_v1.observability.metadata[0].name
 
   values = [
-    file("${path.module}/../k3s/opentelemetry/values.yaml"),
+    file("${path.module}/../k3s/base/infra/opentelemetry/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       resources            = local.standards.resources.medium
