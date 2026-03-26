@@ -88,8 +88,8 @@ spec:
             protocol: TCP
     - toEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": kube-system
-          "any:k8s-app": kube-dns
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
       toPorts:
         - ports:
           - port: "53"
@@ -165,28 +165,32 @@ spec:
   description: "Secure connectivity for Postgres and MinIO in the databases namespace."
   endpointSelector:
     matchExpressions:
-      - key: any:io.kubernetes.pod.namespace
+      - key: k8s:io.kubernetes.pod.namespace
         operator: In
         values: [databases]
   ingress:
     # 1. Intra-namespace traffic (Postgres replication, MinIO internal)
     - fromEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": databases
+          "k8s:io.kubernetes.pod.namespace": databases
       toPorts:
         - ports:
+          - port: "80"
+            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
             protocol: TCP
           - port: "9000"
             protocol: TCP
+          - port: "9001"
+            protocol: TCP
     # 2. Traffic from Observability Stack (Ingestion, Analytics, Grafana)
     - fromEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": observability
+          "k8s:io.kubernetes.pod.namespace": observability
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": hub
+          "k8s:io.kubernetes.pod.namespace": hub
       toPorts:
         - ports:
           - port: "5432"
@@ -196,39 +200,47 @@ spec:
     # 3. CNPG Operator management traffic
     - fromEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": cnpg-system
+          "k8s:io.kubernetes.pod.namespace": cnpg-system
       toPorts:
         - ports:
           - port: "8000"
             protocol: TCP
-    # 4. Health probes and NodePort
-    - fromEntities: [cluster, host, remote-node]
+    # 4. Health probes, NodePort, and external access (pgAdmin from browser)
+    - fromEntities: [cluster, host, remote-node, world]
       toPorts:
         - ports:
+          - port: "80"
+            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
             protocol: TCP
           - port: "9000"
+            protocol: TCP
+          - port: "9001"
             protocol: TCP
   egress:
     # 1. Allow reaching other database nodes
     - toEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": databases
+          "k8s:io.kubernetes.pod.namespace": databases
       toPorts:
         - ports:
+          - port: "80"
+            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
             protocol: TCP
           - port: "9000"
             protocol: TCP
+          - port: "9001"
+            protocol: TCP
     # 2. Allow DNS and K8s API
     - toEndpoints:
       - matchLabels:
-          "any:io.kubernetes.pod.namespace": kube-system
-          "any:k8s-app": kube-dns
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
       toPorts:
         - ports:
           - port: "53"
@@ -242,4 +254,247 @@ spec:
           - port: "6443"
             protocol: TCP
           - port: "10250"
+            protocol: TCP
+    # 3. Allow pgAdmin egress for SMTP and external services
+    - toFQDNs:
+      - matchPattern: "*"
+    - toEntities: [world]
+      toPorts:
+        - ports:
+          - port: "25"
+            protocol: TCP
+          - port: "587"
+            protocol: TCP
+          - port: "465"
+            protocol: TCP
+          - port: "80"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+
+---
+apiVersion: "cilium.io/v2"
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: "argocd-security"
+spec:
+  description: "Secure ArgoCD namespace - allow UI access, Git repos, and K8s API only."
+  endpointSelector:
+    matchExpressions:
+      - key: k8s:io.kubernetes.pod.namespace
+        operator: In
+        values: [argocd]
+  ingress:
+    # 1. Allow intra-namespace communication (ArgoCD components)
+    - fromEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": argocd
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+          - port: "6379"
+            protocol: TCP
+          - port: "7000"
+            protocol: TCP
+          - port: "8080"
+            protocol: TCP
+          - port: "8081"
+            protocol: TCP
+    # 2. Allow external access to ArgoCD UI (from world)
+    - fromEntities: [cluster, host, remote-node, world]
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+          - port: "8080"
+            protocol: TCP
+  egress:
+    # 1. Allow ArgoCD to communicate internally
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": argocd
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+          - port: "6379"
+            protocol: TCP
+          - port: "7000"
+            protocol: TCP
+          - port: "8080"
+            protocol: TCP
+          - port: "8081"
+            protocol: TCP
+    # 2. Allow DNS resolution
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+          - port: "53"
+            protocol: UDP
+    # 3. Allow access to K8s API (ArgoCD needs this to manage resources)
+    - toEntities: [host, remote-node, kube-apiserver]
+    - toCIDR: [10.43.0.1/32]
+      toPorts:
+        - ports:
+          - port: "443"
+            protocol: TCP
+          - port: "6443"
+            protocol: TCP
+          - port: "10250"
+            protocol: TCP
+    # 4. Allow egress to Git repositories (GitHub, GitLab, etc.)
+    - toFQDNs:
+      - matchPattern: "*.github.com"
+      - matchPattern: "*.gitlab.com"
+      - matchPattern: "github.com"
+      - matchPattern: "gitlab.com"
+    - toEntities: [world]
+      toPorts:
+        - ports:
+          - port: "22"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+          - port: "9418"
+            protocol: TCP
+
+---
+apiVersion: "cilium.io/v2"
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: "hub-security"
+spec:
+  description: "Secure hub namespace - Grafana, n8n, Ollama, and Analytics."
+  endpointSelector:
+    matchExpressions:
+      - key: k8s:io.kubernetes.pod.namespace
+        operator: In
+        values: [hub]
+  ingress:
+    # 1. Allow intra-namespace communication
+    - fromEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": hub
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "3000"
+            protocol: TCP
+          - port: "5678"
+            protocol: TCP
+          - port: "11434"
+            protocol: TCP
+    # 2. Allow external access to web UIs (Grafana, n8n)
+    - fromEntities: [cluster, host, remote-node, world]
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "3000"
+            protocol: TCP
+          - port: "5678"
+            protocol: TCP
+          - port: "11434"
+            protocol: TCP
+    # 3. Allow observability stack to reach Grafana
+    - fromEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": observability
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "3000"
+            protocol: TCP
+  egress:
+    # 1. Allow hub services to communicate internally
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": hub
+      toPorts:
+        - ports:
+          - port: "80"
+            protocol: TCP
+          - port: "3000"
+            protocol: TCP
+          - port: "5678"
+            protocol: TCP
+          - port: "11434"
+            protocol: TCP
+    # 2. Allow access to observability stack (Prometheus, Loki, Tempo)
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": observability
+      toPorts:
+        - ports:
+          - port: "3100"
+            protocol: TCP
+          - port: "3200"
+            protocol: TCP
+          - port: "9090"
+            protocol: TCP
+          - port: "10901"
+            protocol: TCP
+          - port: "10902"
+            protocol: TCP
+    # 3. Allow access to databases (Postgres for Grafana/n8n)
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": databases
+      toPorts:
+        - ports:
+          - port: "5432"
+            protocol: TCP
+          - port: "9000"
+            protocol: TCP
+    # 4. Allow DNS resolution
+    - toEndpoints:
+      - matchLabels:
+          "k8s:io.kubernetes.pod.namespace": kube-system
+          "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+          - port: "53"
+            protocol: UDP
+    # 5. Allow access to K8s API
+    - toEntities: [host, remote-node, kube-apiserver]
+    - toCIDR: [10.43.0.1/32]
+      toPorts:
+        - ports:
+          - port: "443"
+            protocol: TCP
+          - port: "6443"
+            protocol: TCP
+          - port: "10250"
+            protocol: TCP
+    # 6. Allow n8n webhooks and external API calls
+    - toFQDNs:
+      - matchPattern: "*"
+    - toEntities: [world]
+      toPorts:
+        - ports:
+          - port: "25"
+            protocol: TCP
+          - port: "80"
+            protocol: TCP
+          - port: "443"
+            protocol: TCP
+          - port: "465"
+            protocol: TCP
+          - port: "587"
+            protocol: TCP
+          - port: "993"
+            protocol: TCP
+          - port: "995"
             protocol: TCP
