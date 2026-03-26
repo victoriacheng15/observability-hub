@@ -194,7 +194,16 @@ func TestHubProvider_QueryHubbleFlows(t *testing.T) {
 		name       string
 		namespace  string
 		pod        string
+		fromPod    string
+		toPod      string
+		protocol   string
+		verdict    string
+		httpStatus string
+		httpMethod string
+		httpPath   string
 		reserved   string
+		port       int
+		toPort     int
 		last       int
 		mockOutput string
 		mockErr    error
@@ -202,7 +211,7 @@ func TestHubProvider_QueryHubbleFlows(t *testing.T) {
 		wantArgs   []string
 	}{
 		{
-			name:       "Successful Flow Query",
+			name:       "Basic Filters",
 			namespace:  "default",
 			pod:        "proxy",
 			last:       10,
@@ -211,21 +220,30 @@ func TestHubProvider_QueryHubbleFlows(t *testing.T) {
 			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "10", "--output", "json", "--namespace", "default", "--pod", "proxy"},
 		},
 		{
+			name:       "Directional Pod Filters",
+			fromPod:    "default/frontend",
+			toPod:      "default/backend",
+			mockOutput: `{"flow":{}}`,
+			wantErr:    false,
+			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "20", "--output", "json", "--from-pod", "default/frontend", "--to-pod", "default/backend"},
+		},
+		{
+			name:       "L4/L7 and Verdict Filters",
+			protocol:   "tcp",
+			port:       80,
+			toPort:     8080,
+			verdict:    "DROPPED",
+			mockOutput: `{"flow":{}}`,
+			wantErr:    false,
+			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "20", "--output", "json", "--protocol", "tcp", "--port", "80", "--to-port", "8080", "--verdict", "DROPPED"},
+		},
+		{
 			name:       "Reserved Entity Filter",
 			reserved:   "host",
 			last:       5,
 			mockOutput: "Defaulted container\n" + `{"flow":{}}`,
 			wantErr:    false,
 			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "5", "--output", "json", "--label", "reserved:host"},
-		},
-		{
-			name:       "Default Last Value",
-			namespace:  "",
-			pod:        "",
-			last:       0,
-			mockOutput: `{"flow":{}}`,
-			wantErr:    false,
-			wantArgs:   []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock", "observe", "--last", "20", "--output", "json"},
 		},
 		{
 			name:    "Command Failure",
@@ -251,7 +269,7 @@ func TestHubProvider_QueryHubbleFlows(t *testing.T) {
 			}
 			p := &HubProvider{runner: mock}
 
-			got, err := p.QueryHubbleFlows(context.Background(), tt.namespace, tt.pod, tt.reserved, tt.last)
+			got, err := p.QueryHubbleFlows(context.Background(), tt.namespace, tt.pod, tt.fromPod, tt.toPod, tt.protocol, tt.verdict, tt.httpStatus, tt.httpMethod, tt.httpPath, tt.reserved, tt.port, tt.toPort, tt.last)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("QueryHubbleFlows() error = %v, wantErr %v", err, tt.wantErr)
 				return

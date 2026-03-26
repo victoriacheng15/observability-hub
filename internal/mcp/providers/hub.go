@@ -110,7 +110,7 @@ func (p *HubProvider) QueryServiceLogs(ctx context.Context, service string, sinc
 
 // QueryHubbleFlows retrieves real-time flow data from Hubble Relay.
 // Since hubble CLI is not on the host, we exec into the cilium agent pod.
-func (p *HubProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, reserved string, last int) (string, error) {
+func (p *HubProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, fromPod, toPod, protocol, verdict, httpStatus, httpMethod, httpPath, reserved string, port, toPort, last int) (string, error) {
 	if last <= 0 {
 		last = 20
 	}
@@ -119,6 +119,8 @@ func (p *HubProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, rese
 	}
 
 	hubbleArgs := []string{"observe", "--last", fmt.Sprintf("%d", last), "--output", "json"}
+
+	// Core filters
 	if namespace != "" {
 		hubbleArgs = append(hubbleArgs, "--namespace", namespace)
 	}
@@ -127,6 +129,39 @@ func (p *HubProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, rese
 	}
 	if reserved != "" {
 		hubbleArgs = append(hubbleArgs, "--label", fmt.Sprintf("reserved:%s", reserved))
+	}
+
+	// Directional pod filters
+	if fromPod != "" {
+		hubbleArgs = append(hubbleArgs, "--from-pod", fromPod)
+	}
+	if toPod != "" {
+		hubbleArgs = append(hubbleArgs, "--to-pod", toPod)
+	}
+
+	// Protocol and Port filters
+	if protocol != "" {
+		hubbleArgs = append(hubbleArgs, "--protocol", protocol)
+	}
+	if port > 0 {
+		hubbleArgs = append(hubbleArgs, "--port", fmt.Sprintf("%d", port))
+	}
+	if toPort > 0 {
+		hubbleArgs = append(hubbleArgs, "--to-port", fmt.Sprintf("%d", toPort))
+	}
+
+	// Verdict and L7 filters
+	if verdict != "" {
+		hubbleArgs = append(hubbleArgs, "--verdict", verdict)
+	}
+	if httpStatus != "" {
+		hubbleArgs = append(hubbleArgs, "--http-status", httpStatus)
+	}
+	if httpMethod != "" {
+		hubbleArgs = append(hubbleArgs, "--http-method", httpMethod)
+	}
+	if httpPath != "" {
+		hubbleArgs = append(hubbleArgs, "--http-path", httpPath)
 	}
 
 	// Build kubectl exec command: kubectl -n kube-system exec ds/cilium -- hubble <args>
