@@ -1,9 +1,72 @@
+################################################################################
+# CILIUM NETWORK POLICIES - OBSERVABILITY HUB
+# Organized by visibility layer (L7) → global scope → namespace-specific
+################################################################################
+
+---
+################################################################################
+# LAYER 1: L7 VISIBILITY - Foundational HTTP/gRPC inspection
+################################################################################
+apiVersion: "cilium.io/v2"
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: "observability-l7-global-visibility"
+spec:
+  description: "L7 HTTP/gRPC visibility layer for telemetry services (OTel, Loki, Tempo, Prometheus). Enables protocol inspection for security monitoring."
+  endpointSelector:
+    matchExpressions:
+      - key: any:app.kubernetes.io/name
+        operator: In
+        values:
+          - opentelemetry-collector
+          - loki
+          - tempo
+          - prometheus
+  ingress:
+    - fromEntities: [all]
+      toPorts:
+        - ports:
+          - port: "3100"
+            protocol: TCP
+          - port: "4318"
+            protocol: TCP
+          - port: "3200"
+            protocol: TCP
+          - port: "9090"
+            protocol: TCP
+          rules:
+            http: [{}]
+        - ports:
+          - port: "4317"
+            protocol: TCP
+  egress:
+    - toEntities: [all]
+      toPorts:
+        - ports:
+          - port: "3100"
+            protocol: TCP
+          - port: "4318"
+            protocol: TCP
+          - port: "3200"
+            protocol: TCP
+          - port: "9090"
+            protocol: TCP
+          rules:
+            http: [{}]
+        - ports:
+          - port: "4317"
+            protocol: TCP
+
+---
+################################################################################
+# LAYER 2: GLOBAL SCOPE - Core observability services connectivity
+################################################################################
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-stack-global-core"
 spec:
-  description: "Exhaustive global policy for observability stack. Pure L3/L4 connectivity."
+  description: "Core observability platform (OTel, Loki, Tempo, Prometheus, etc). Enables telemetry collection and metric aggregation across cluster."
   endpointSelector:
     matchExpressions:
       - key: any:app.kubernetes.io/name
@@ -106,63 +169,21 @@ spec:
             protocol: TCP
 
 ---
-apiVersion: "cilium.io/v2"
-kind: CiliumClusterwideNetworkPolicy
-metadata:
-  name: "observability-l7-global-visibility"
-spec:
-  description: "Global L7 visibility for OTel, Loki, Tempo, and Prometheus."
-  endpointSelector:
-    matchExpressions:
-      - key: any:app.kubernetes.io/name
-        operator: In
-        values:
-          - opentelemetry-collector
-          - loki
-          - tempo
-          - prometheus
-  ingress:
-    - fromEntities: [all]
-      toPorts:
-        - ports:
-          - port: "3100"
-            protocol: TCP
-          - port: "4318"
-            protocol: TCP
-          - port: "3200"
-            protocol: TCP
-          - port: "9090"
-            protocol: TCP
-          rules:
-            http: [{}]
-        - ports:
-          - port: "4317"
-            protocol: TCP
-  egress:
-    - toEntities: [all]
-      toPorts:
-        - ports:
-          - port: "3100"
-            protocol: TCP
-          - port: "4318"
-            protocol: TCP
-          - port: "3200"
-            protocol: TCP
-          - port: "9090"
-            protocol: TCP
-          rules:
-            http: [{}]
-        - ports:
-          - port: "4317"
-            protocol: TCP
+################################################################################
+# LAYER 3: NAMESPACE-SPECIFIC POLICIES
+################################################################################
 
----
+################################################################################
+# NAMESPACE: databases
+# SCOPE: Postgres, MinIO, pgAdmin
+# PURPOSE: Secure data layer with controlled external access for DB management
+################################################################################
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-databases-core"
 spec:
-  description: "Secure connectivity for Postgres and MinIO in the databases namespace."
+  description: "Database services (Postgres, MinIO, pgAdmin). Enforces microsegmentation for data layer with restricted external access for database administration."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
@@ -205,7 +226,7 @@ spec:
         - ports:
           - port: "8000"
             protocol: TCP
-    # 4. Health probes, NodePort, and external access (pgAdmin from browser)
+    # 4. External access (pgAdmin UI from browsers)
     - fromEntities: [cluster, host, remote-node, world]
       toPorts:
         - ports:
@@ -255,7 +276,7 @@ spec:
             protocol: TCP
           - port: "10250"
             protocol: TCP
-    # 3. Allow pgAdmin egress for SMTP and external services
+    # 3. Allow pgAdmin egress for external services
     - toFQDNs:
       - matchPattern: "*"
     - toEntities: [world]
@@ -273,12 +294,17 @@ spec:
             protocol: TCP
 
 ---
+################################################################################
+# NAMESPACE: argocd
+# SCOPE: ArgoCD server, repo server, controller, redis
+# PURPOSE: Protect GitOps infrastructure with minimal external access
+################################################################################
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "argocd-security"
 spec:
-  description: "Secure ArgoCD namespace - allow UI access, Git repos, and K8s API only."
+  description: "GitOps platform (ArgoCD). Restricts access to UI and deployment pipeline, allowing only essential git repository and K8s API communication."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
@@ -369,12 +395,17 @@ spec:
             protocol: TCP
 
 ---
+################################################################################
+# NAMESPACE: hub
+# SCOPE: Grafana, n8n, Ollama, Analytics
+# PURPOSE: Secure observability UI and automation layer with external integrations
+################################################################################
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "hub-security"
 spec:
-  description: "Secure hub namespace - Grafana, n8n, Ollama, and Analytics."
+  description: "Observability UI and automation (Grafana, n8n, Ollama, Analytics). Enables telemetry visualization and workflow automation while restricting unauthorized network access."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
