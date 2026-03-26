@@ -101,7 +101,7 @@ resource "helm_release" "cilium" {
       }
 
       # Standard Resource Limits & Standards
-      resources            = local.standards.resources.standard
+      resources            = local.standards.resources.large
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
     })
   ]

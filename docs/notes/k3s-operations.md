@@ -77,6 +77,18 @@ sudo k3s ctr images tag localhost/analytics:v0.1.0 docker.io/library/analytics:v
 rm analytics.tar
 ```
 
+### Cilium (Network Policies & L7 Visibility)
+
+- **Chart**: `cilium/cilium`
+- **Tofu Configuration**: `tofu/network.tf`
+- **Namespace**: `kube-system`
+- **Policy File**: `k3s/cilium-policies/observability-stack-policy.yaml`
+- **Notes**:
+  - DaemonSet runs on every node for network policy enforcement
+  - Opt-in policy mode: pods without policies allow all traffic
+  - L7 visibility enabled for: OTel, Loki, Tempo, Prometheus, MinIO, OpenTelemetry
+  - Monitor via Hubble UI (`http://localhost:30080`) for traffic flows
+
 ### Grafana (Visualization)
 
 - **Chart**: `grafana-community/grafana`
@@ -170,25 +182,33 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-03-16 (Standardized via _standards.yaml)*
+- *Last Updated: 2026-03-26 (Cilium upgraded to Large for L7 visibility; comprehensive audit of all components)*
 
 | Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **analytics** | Small | 10m | 64Mi | 50m | 128Mi | Telemetry Collection |
+| **analytics** | Small | 10m | 64Mi | 50m | 128Mi | Telemetry Collection (DaemonSet) |
+| **argocd** | Standard | 100m | 512Mi | 500m | 1Gi | GitOps Orchestration |
+| **cilium** | Large | 100m | 512Mi | 500m | 1Gi | Network Policies & L7 DPI (DaemonSet) |
+| **emqx** | Medium | 50m | 256Mi | 200m | 512Mi | MQTT Broker |
 | **grafana** | Medium | 50m | 256Mi | 200m | 512Mi | Visualization |
+| **kepler** | None | — | — | — | — | Power/Energy Monitoring (DaemonSet) |
 | **loki** | Standard | 100m | 512Mi | 500m | 1Gi | Log Storage |
 | **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
 | **n8n** | Standard | 100m | 512Mi | 500m | 1Gi | Workflow Automation |
-| **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace Gateway |
-| **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Data |
+| **ollama** | Custom | 2000m | 4Gi | 4000m | 8Gi | LLM Inference Engine |
+| **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace/Metric/Log Collector |
+| **pgadmin** | Medium | 100m | 256Mi | 500m | 512Mi | PostgreSQL Admin UI |
+| **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Database (HA x3) |
 | **prometheus** | Large | 200m | 512Mi | 1000m | 2Gi | Metrics Storage |
+| **prometheus-node-exporter** | Small | 10m | 64Mi | 50m | 128Mi | Node Metrics Collector (DaemonSet) |
 | **tempo** | Standard | 100m | 512Mi | 500m | 1Gi | Trace Storage |
-| **thanos** | Medium | 50m | 256Mi | 200m | 512Mi | Long-term Metrics Access |
+| **thanos** | Medium | 100m | 256Mi | 200m | 512Mi | Long-term Metrics Storage |
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~0.96 Cores / 3.87Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~4.70 Cores / 10.12Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~1.26 Cores / 4.99Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~8.65 Cores / 19.99Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Note**: Ollama is a special case (4 CPU / 8Gi RAM reserved for LLM inference).
 
 ---
 
