@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-app
+  name: dev-hub
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,21 +10,13 @@ spec:
   source:
     repoURL: https://github.com/victoriacheng15/observability-hub.git
     targetRevision: HEAD
-    path: k3s/argocd
+    path: k3s/overlays/dev
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: dev-hub
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
     syncOptions:
       - CreateNamespace=true
-      - PruneLast=true
-      - ApplyOutOfSyncOnly=true

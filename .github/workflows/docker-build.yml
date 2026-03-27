@@ -53,7 +53,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}/${{ matrix.service }}
           tags: |
             type=sha,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=canary,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
 
       - name: Build and push Docker image

@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - analytics/manifest.yaml
+  - hub-apps/automation.yaml
+  - hub-apps/intelligence.yaml
+  - hardware-sim/chaos-controller.yaml
+  - hardware-sim/sensor-fleet.yaml
