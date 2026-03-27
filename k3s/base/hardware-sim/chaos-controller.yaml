@@ -49,6 +49,18 @@ spec:
       serviceAccountName: chaos-controller
       imagePullSecrets:
         - name: ghcr-auth
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - chaos-controller
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: chaos-controller
         image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-7d8708b
@@ -65,4 +77,3 @@ spec:
           limits:
             cpu: "100m"
             memory: "256Mi"
-
