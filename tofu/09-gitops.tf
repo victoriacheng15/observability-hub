@@ -16,6 +16,12 @@ resource "helm_release" "argocd" {
           imagePullPolicy = local.standards.deployment.image_pull_policy
         }
       }
+      configs = {
+        cm = {
+          "application.instanceLabelKey"       = "argocd.argoproj.io/instance"
+          "application.resourceTrackingMethod" = "annotation+label"
+        }
+      }
       server = {
         extraArgs = ["--insecure"]
         service = {
