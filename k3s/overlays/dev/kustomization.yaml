@@ -9,3 +9,16 @@ namespace: dev-hub
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
     newTag: canary
+  - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
+    newTag: canary
+  - name: ghcr.io/victoriacheng15/observability-hub/sensor
+    newTag: canary
+
+patches:
+  - target:
+      kind: Deployment
+      name: chaos-controller
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "dev-hub"

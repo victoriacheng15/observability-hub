@@ -8,4 +8,17 @@ namespace: prod-hub
 
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
-    newTag: sha-c6e147e
+    newTag: sha-ac6ec2b
+  - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
+    newTag: sha-ac6ec2b
+  - name: ghcr.io/victoriacheng15/observability-hub/sensor
+    newTag: sha-ac6ec2b
+
+patches:
+  - target:
+      kind: Deployment
+      name: chaos-controller
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "prod-hub"
