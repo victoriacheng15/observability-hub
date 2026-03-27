@@ -12,7 +12,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "observability-l7-global-visibility"
 spec:
-  description: "L7 HTTP/gRPC visibility layer for telemetry services (OTel, Loki, Tempo, Prometheus). Enables protocol inspection for security monitoring."
+  description: "L7 HTTP/gRPC visibility layer for selected observability services. Enables protocol inspection for security monitoring."
   endpointSelector:
     matchExpressions:
       - key: any:app.kubernetes.io/name
@@ -22,6 +22,8 @@ spec:
           - loki
           - tempo
           - prometheus
+          - minio
+          - thanos
   ingress:
     - fromEntities: [all]
       toPorts:
@@ -33,6 +35,12 @@ spec:
           - port: "3200"
             protocol: TCP
           - port: "9090"
+            protocol: TCP
+          - port: "9000"
+            protocol: TCP
+          - port: "10901"
+            protocol: TCP
+          - port: "10902"
             protocol: TCP
           rules:
             http: [{}]
@@ -50,6 +58,12 @@ spec:
           - port: "3200"
             protocol: TCP
           - port: "9090"
+            protocol: TCP
+          - port: "9000"
+            protocol: TCP
+          - port: "10901"
+            protocol: TCP
+          - port: "10902"
             protocol: TCP
           rules:
             http: [{}]
