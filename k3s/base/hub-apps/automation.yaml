@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+  namespace: hub
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: hub
+  labels:
+    app: n8n
+    app.kubernetes.io/feature: automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      containers:
+      - name: n8n
+        image: n8nio/n8n:stable
+        ports:
+        - name: http
+          containerPort: 5678
+        env:
+        - name: DB_TYPE
+          value: "postgresdb"
+        - name: DB_POSTGRESDB_HOST
+          value: "postgres-hub-rw.databases.svc.cluster.local"
+        - name: DB_POSTGRESDB_PORT
+          value: "5432"
+        - name: DB_POSTGRESDB_DATABASE
+          value: "n8n"
+        - name: DB_POSTGRESDB_USER
+          value: "server"
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: server-db-password
+        - name: GENERIC_TIMEZONE
+          value: "UTC"
+        - name: N8N_PORT
+          value: "5678"
+        - name: N8N_SECURE_COOKIE
+          value: "false"
+        - name: N8N_SKIP_WEBHOOK_DEREGISTRATION_ON_SHUTDOWN
+          value: "true"
+        - name: N8N_DISABLE_VERSION_CHECK
+          value: "true"
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+      volumes:
+      - name: n8n-data
+        persistentVolumeClaim:
+          claimName: n8n-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+  namespace: hub
+spec:
+  selector:
+    app: n8n
+  ports:
+  - port: 80
+    targetPort: 5678
+    nodePort: 30568
+  type: NodePort
