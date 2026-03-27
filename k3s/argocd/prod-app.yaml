@@ -13,7 +13,7 @@ spec:
     path: k3s/overlays/prod
   destination:
     server: https://kubernetes.default.svc
-    namespace: prod-hub
+    namespace: hub
   syncPolicy:
     automated:
       prune: true

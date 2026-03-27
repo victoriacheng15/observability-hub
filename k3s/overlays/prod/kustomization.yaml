@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: prod-hub
+namespace: hub
 
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
@@ -21,4 +21,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
-        value: "prod-hub"
+        value: "hub"
