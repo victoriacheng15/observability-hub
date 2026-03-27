@@ -16,6 +16,15 @@ images:
 
 patches:
   - target:
+      kind: DaemonSet
+      name: analytics
+    patch: |-
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: analytics
+      $patch: delete
+  - target:
       kind: Deployment
       name: chaos-controller
     patch: |-
