@@ -10,7 +10,7 @@
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: "observability-l7-global-visibility"
+  name: "observability-l7"
 spec:
   description: "L7 HTTP/gRPC visibility layer for selected observability services. Enables protocol inspection for security monitoring."
   endpointSelector:
@@ -24,6 +24,7 @@ spec:
           - prometheus
           - minio
           - thanos
+          - kepler
   ingress:
     - fromEntities: [all]
       toPorts:
@@ -41,6 +42,8 @@ spec:
           - port: "10901"
             protocol: TCP
           - port: "10902"
+            protocol: TCP
+          - port: "28282"
             protocol: TCP
           rules:
             http: [{}]
@@ -65,6 +68,8 @@ spec:
             protocol: TCP
           - port: "10902"
             protocol: TCP
+          - port: "28282"
+            protocol: TCP
           rules:
             http: [{}]
         - ports:
@@ -78,7 +83,7 @@ spec:
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: "observability-stack-global-core"
+  name: "observability-core"
 spec:
   description: "Core observability platform (OTel, Loki, Tempo, Prometheus, etc). Enables telemetry collection and metric aggregation across cluster."
   endpointSelector:
@@ -195,7 +200,7 @@ spec:
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: "observability-databases-core"
+  name: "databases-core"
 spec:
   description: "Database services (Postgres, MinIO, pgAdmin). Enforces microsegmentation for data layer with restricted external access for database administration."
   endpointSelector:
