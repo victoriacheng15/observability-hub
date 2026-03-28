@@ -31,7 +31,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -51,11 +51,11 @@
       },
       "targets": [
         {
-          "expr": "count(container_start_time_seconds{namespace=\"hardware-sim\", container=\"sensor\"})",
+          "expr": "count(container_start_time_seconds{namespace=\"dev-hub\", container=\"sensor\"})",
           "refId": "A"
         }
       ],
-      "title": "Active Sensors",
+      "title": "Dev-Hub Sensors",
       "type": "stat"
     },
     {
@@ -85,8 +85,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "id": 8,
@@ -105,11 +105,11 @@
       },
       "targets": [
         {
-          "expr": "emqx_connections_count{job=\"emqx\"}",
+          "expr": "count(container_start_time_seconds{namespace=\"hub\", container=\"sensor\"})",
           "refId": "A"
         }
       ],
-      "title": "MQTT Clients",
+      "title": "Hub Sensors",
       "type": "stat"
     },
     {
@@ -138,9 +138,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 0
+        "w": 6,
+        "x": 0,
+        "y": 4
       },
       "id": 2,
       "options": {
@@ -158,7 +158,7 @@
       },
       "targets": [
         {
-          "expr": "sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1m])) * $energy_cost_kwh / 3600000",
+          "expr": "sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
           "refId": "A"
         }
       ],
@@ -191,9 +191,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 0
+        "w": 6,
+        "x": 6,
+        "y": 4
       },
       "id": 6,
       "options": {
@@ -211,7 +211,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1h])) * $energy_cost_kwh / 3600000",
+          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
           "refId": "A"
         }
       ],
@@ -244,9 +244,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 0
+        "w": 6,
+        "x": 12,
+        "y": 4
       },
       "id": 11,
       "options": {
@@ -264,7 +264,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1h])) * $carbon_intensity_kwh / 3600000",
+          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $carbon_intensity_kwh / 3600000",
           "refId": "A"
         }
       ],
@@ -296,9 +296,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 0
+        "w": 6,
+        "x": 18,
+        "y": 4
       },
       "id": 7,
       "options": {
@@ -316,7 +316,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1m])) * $energy_cost_kwh / 3600000) / ignoring(cluster, instance, job) (rate(emqx_messages_received{job=\"emqx\"}[1m]) * 3600 / 1000 + 0.0001)",
+          "expr": "(sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000) / ignoring(cluster, instance, job) (rate(emqx_messages_received{job=\"emqx\"}[1m]) * 3600 / 1000 + 0.0001)",
           "refId": "A"
         }
       ],
@@ -346,7 +346,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "id": 3,
       "options": {
@@ -367,7 +367,7 @@
           "refId": "A"
         }
       ],
-      "title": "Fleet Messaging Performance",
+      "title": "Fleet Messaging Performance (Broker-Wide)",
       "type": "timeseries"
     },
     {
@@ -378,33 +378,53 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dev-hub"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 2
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
               }
             ]
           },
-          "unit": "watt"
-        }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hub"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "id": 4,
       "options": {
@@ -420,8 +440,8 @@
       },
       "targets": [
         {
-          "expr": "sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1m]))",
-          "legendFormat": "Fleet Power Draw",
+          "expr": "sum by (namespace) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
+          "legendFormat": "{{namespace}}",
           "refId": "A"
         }
       ],
@@ -450,7 +470,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 16
       },
       "id": 5,
       "options": {
@@ -466,8 +486,8 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod_id) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\"}[1m]))",
-          "legendFormat": "{{pod_id}}",
+          "expr": "sum by (namespace, pod) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
+          "legendFormat": "{{namespace}} / {{pod}}",
           "refId": "A"
         }
       ],
@@ -497,7 +517,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "id": 9,
       "options": {
@@ -513,18 +533,126 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (irate(container_network_transmit_bytes_total{namespace=\"hardware-sim\", pod=~\"sensor-fleet-.*\"}[1m]))",
-          "legendFormat": "TX: {{pod}}",
+          "expr": "sum by (namespace, pod) (irate(container_network_transmit_bytes_total{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}[1m]))",
+          "legendFormat": "TX: {{namespace}} / {{pod}}",
           "refId": "A"
         },
         {
-          "expr": "sum by (pod) (irate(container_network_receive_bytes_total{namespace=\"hardware-sim\", pod=~\"sensor-fleet-.*\"}[1m]))",
-          "legendFormat": "RX: {{pod}}",
+          "expr": "sum by (namespace, pod) (irate(container_network_receive_bytes_total{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}[1m]))",
+          "legendFormat": "RX: {{namespace}} / {{pod}}",
           "refId": "B"
         }
       ],
       "title": "Network Traffic Volume (Per-Sensor)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hub\", container=\"chaos-controller\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Dev-Hub Controller",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "count(kube_pod_container_status_running{namespace=\"hub\", container=\"chaos-controller\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Hub Controller",
+      "type": "stat"
     }
   ],
   "refresh": "5s",
@@ -536,6 +664,39 @@
   ],
   "templating": {
     "list": [
+      {
+        "allValue": "hub|dev-hub",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Simulation Namespace",
+        "multi": true,
+        "name": "simulation_namespace",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "hub",
+            "value": "hub"
+          },
+          {
+            "selected": false,
+            "text": "dev-hub",
+            "value": "dev-hub"
+          }
+        ],
+        "query": "hub,dev-hub",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
       {
         "current": {
           "selected": true,
