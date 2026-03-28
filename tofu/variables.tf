@@ -72,12 +72,6 @@ variable "cnpg_operator_chart_version" {
   default     = "0.23.0"
 }
 
-variable "pgadmin_chart_version" {
-  description = "Helm chart version for pgAdmin."
-  type        = string
-  default     = "1.59.0"
-}
-
 variable "postgres_image" {
   description = "PostgreSQL image to use in the cluster."
   type        = string
@@ -122,12 +116,6 @@ variable "prometheus_chart_version" {
   default     = "28.10.1"
 }
 
-variable "kepler_chart_version" {
-  description = "Helm chart version for Kepler."
-  type        = string
-  default     = "0.11.2"
-}
-
 variable "thanos_chart_version" {
   description = "Helm chart version for Thanos."
   type        = string
@@ -156,18 +144,6 @@ variable "grafana_chart_version" {
   description = "Helm chart version for Grafana."
   type        = string
   default     = "10.5.15"
-}
-
-variable "n8n_chart_version" {
-  description = "Helm chart version for n8n."
-  type        = string
-  default     = "1.16.31"
-}
-
-variable "ollama_storage_size" {
-  description = "Storage size for Ollama models."
-  type        = string
-  default     = "50Gi"
 }
 
 variable "emqx_chart_version" {

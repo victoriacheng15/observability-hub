@@ -48,7 +48,7 @@ provider "helm" {
 data "kubernetes_secret_v1" "grafana_admin" {
   metadata {
     name      = "grafana-admin-secret"
-    namespace = var.observability_namespace
+    namespace = var.hub_namespace
   }
 }
 
