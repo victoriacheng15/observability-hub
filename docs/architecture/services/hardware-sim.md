@@ -66,6 +66,7 @@ The simulation is fully integrated into the platform's observability stack:
 ## 🛡️ Future Roadmap
 
 As outlined in `plan-hardware-sim.md`, the simulation will evolve to include:
+
 - **Voltage Sag**: Emulating battery drops during high-throughput MQTT bursts.
 - **Signal Multi-path**: Simulating radio interference through RSSI and SNR fluctuations.
 - **Link Quality**: Correlating network latency with simulated "Physical Obstacles."

@@ -1,66 +1,168 @@
 # Cilium & Hubble: Network Layer Intelligence
 
-This guide explains how the Observability Hub uses **Cilium (eBPF)** and **Hubble** to visualize and secure the network workflow across L3, L4, and L7 layers.
+This note documents how the Observability Hub currently uses Cilium and Hubble for network visibility, service isolation, and operational troubleshooting.
 
-## 1. The Three Layers of Visibility
+## 1. What Cilium Is Doing Here
 
-Cilium moves network logic into the Linux kernel using eBPF, allowing us to see traffic in three distinct stages of meaning:
+Cilium replaces the default K3s networking datapath with an eBPF-based model.
 
-| Layer | Focus | Hubble UI Representation | Example Discovery |
-| :--- | :--- | :--- | :--- |
-| **L3 (Network)** | **"The Who"** | Identity Labels (e.g., `otel-collector`) | "Pod A is talking to Pod B." |
-| **L4 (Transport)** | **"The How"** | Ports & Verdicts (e.g., `3100`, `forwarded`) | "The connection is healthy and authorized." |
-| **L7 (Application)** | **"The What"** | Protocols & Paths (e.g., `POST /loki/push`) | "The application is sending logs to Loki." |
+In this repo, that gives us three practical capabilities:
 
----
+- service-to-service identity at L3/L4
+- selective HTTP and gRPC visibility at L7
+- clusterwide policy enforcement without sidecars
 
-## 2. Operationalizing the Workflow
+Hubble is the operator-facing view into that datapath. It turns raw flows into verdicts, labels, ports, and protocol metadata that can be inspected in the UI or scraped as metrics.
 
-Hubble transforms raw binary traffic into a **Logical Service Map**. Use this map to identify three critical system states:
+## 2. Reading Hubble Output
 
-### 🟢 Green Lines (Forwarded)
+Hubble is most useful when read as a sequence of questions.
 
-- **Meaning**: The kernel has verified the identity of both pods and an explicit **CiliumNetworkPolicy** (CNP) or **ClusterwidePolicy** (CCNP) allows the flow.
-- **Action**: None required. The "Pipe" is open.
-
-### 🔴 Red Lines (Dropped)
-
-- **Meaning**: A **Security Violation**. Cilium is in "Default-Deny" mode because a policy exists in that namespace, but no rule allows this specific flow.
-- **Action**: Check `hubble_drop_total` metrics or pod logs. Usually requires updating the `endpointSelector` or `toPorts` in the policy.
-
-### 🟡 Yellow/Dash Lines (L7 Errors)
-
-- **Meaning**: The connection (L4) is allowed, but the application (L7) is failing (e.g., `HTTP 500` or `gRPC Timeout`).
-- **Action**: Investigate the destination pod's logs or check **Tempo Traces** for the specific `traceID`.
-
----
-
-## 3. Deep Visibility (L7 Proxy)
-
-By default, Cilium is "Content-Blind" to save CPU. In this repo, we enable **Deep Visibility** using the following architecture:
-
-1. **Envoy Proxy**: Enabled in `tofu/02-networking.tf` via `l7Proxy = true`. This starts a sidecar-less proxy on each node.
-2. **Visibility Policies**: Policies like `observability-l7-global-visibility` tell the proxy which ports to "peel open."
-    - **Port 3100**: Loki (HTTP)
-    - **Port 4317/4318**: OTel/Tempo (gRPC/HTTP)
-    - **Port 9090**: Prometheus (HTTP)
-
----
-
-## 4. Policy Hierarchy: CNP vs. CCNP
-
-| Type | Scope | Usage in this Hub |
+| Layer | Question | Example |
 | :--- | :--- | :--- |
-| **CNP** | Namespace-only | Used for local, internal service hardening. |
-| **CCNP** | **Cluster-wide** | Used for the Observability Stack to allow telemetry from **all namespaces** (Databases, Sensors, etc.). |
+| L3 | Who is talking? | `grafana` to `prometheus` |
+| L4 | How is it talking? | TCP `9090`, verdict `FORWARDED` |
+| L7 | What is it doing? | `GET /api/v1/query` |
 
-### Pro-Tip: The "L7 Cheat Code"
+Typical interpretations:
 
-If you don't see L7 info in Hubble but need to know "What" is moving, use the **MCP Agents** to query **Tempo**:
+- `FORWARDED`: the flow matched an allowed path
+- `DROPPED`: a policy blocked the flow or a required allow rule is missing
+- L7 errors with allowed L4 traffic: the network path is open, but the application is failing upstream
 
-```bash
-# Ask the agent:
-"Show me the latest traces for the proxy service"
-```
+For dropped traffic, check Hubble first, then confirm with pod logs and service health.
 
-Traces often show the same L7 info (URLs/Paths) as Hubble but with even more internal application context.
+## 3. Current Policy Layout
+
+The active policy model in this repo is built around Cilium clusterwide policies.
+
+### L7 Visibility Layer
+
+The `observability-l7` policy enables HTTP and gRPC inspection for selected services:
+
+- OpenTelemetry Collector
+- Loki
+- Tempo
+- Prometheus
+- MinIO
+- Thanos
+- Kepler
+
+This is visibility-oriented policy, not full application isolation. It tells Cilium which ports are worth decoding at L7.
+
+### Core Observability Layer
+
+The `observability-core` policy protects and enables shared platform traffic for:
+
+- OpenTelemetry Collector
+- Loki
+- Tempo
+- Prometheus
+- Thanos
+- Kepler
+- kube-state-metrics
+- EMQX
+- prometheus-node-exporter
+
+It allows cluster traffic on the known observability ports, plus DNS and Kubernetes API access needed for basic operation.
+
+### Namespace-Specific Layers
+
+There are separate clusterwide policies for:
+
+- `databases`
+- `argocd`
+- `hub`
+
+These policies provide a namespace boundary, but they are not equally strict.
+
+## 4. Current Security Posture
+
+The cluster has useful segmentation, but it is not full zero-trust yet.
+
+Important exceptions:
+
+- `hub` allows wildcard FQDN egress for n8n and related external API traffic
+- `databases` allows wildcard FQDN egress for pgAdmin and related admin traffic
+- several UI and admin ports still allow ingress from `world`
+
+This is intentional for now. It keeps core workflows working while the actual dependency graph is still being documented.
+
+ArgoCD is the notable exception: its git egress is already scoped to GitHub and GitLab patterns instead of wildcard external access.
+
+## 5. L7 Coverage in Practice
+
+The current L7 ports matter because they map directly to platform behavior:
+
+- `3100`: Loki HTTP ingestion and query paths
+- `4318`: OTLP over HTTP
+- `4317`: OTLP over gRPC
+- `3200`: Tempo HTTP
+- `9090`: Prometheus HTTP
+- `9000`: MinIO S3 API
+- `10901` and `10902`: Thanos gRPC and HTTP
+- `28282`: Kepler metrics endpoint
+
+If Hubble is not showing L7 details for one of these services, verify both of the following:
+
+- the service label matches the `observability-l7` selector
+- the relevant port is included in the L7 policy
+
+## 6. Operational Constraints
+
+This cluster is single-node and already had a Cilium recovery incident. That changes how policy changes should be made.
+
+Practical implications:
+
+- prefer reversible, additive changes over broad lockdowns
+- treat DNS and Kubernetes API reachability as first-class validation targets
+- avoid treating `kube-system` as the next easy hardening target
+- do not assume a policy change is low risk just because it looks narrow in YAML
+
+Policy regressions can break critical paths quickly on a single-node control-plane system.
+
+## 7. Metrics and Alerting
+
+Hubble metrics are already scraped by Prometheus and available for dashboards.
+
+That supports:
+
+- drop-rate monitoring
+- traffic inspection dashboards
+- troubleshooting of missing allows and noisy denies
+
+Alerting is a separate concern. Hubble metrics existing does not mean policy-drop alerting is already wired end to end. If alerting is added later, verify the delivery path first.
+
+## 8. Safe Workflow for Policy Changes
+
+Before tightening a policy:
+
+1. Document the expected traffic path first.
+2. Verify whether the flow is namespace-local, cross-namespace, or external.
+3. Confirm DNS, Kubernetes API, and storage dependencies.
+4. Apply the narrowest rule that preserves the known workflow.
+5. Watch Hubble for dropped flows immediately after rollout.
+
+Minimum validation checklist:
+
+- Grafana can query Prometheus, Loki, and Tempo
+- n8n can reach Postgres and any required external APIs
+- ArgoCD can resolve DNS, reach the Kubernetes API, and sync repositories
+- Tempo, Loki, and Thanos can reach MinIO
+- pgAdmin remains reachable for required admin workflows
+
+## 9. What To Document Next
+
+The highest-value documentation gap is not more theory. It is the actual allowed flow baseline.
+
+That baseline now lives in `docs/notes/network-flow-baseline.md`.
+
+It should continue to cover:
+
+- `observability` to `databases`
+- `hub` to `observability`
+- `hub` to `databases`
+- `argocd` to Kubernetes API and git remotes
+- external destinations currently needed by n8n and pgAdmin
+
+Once those paths are explicit, targeted hardening becomes realistic and much safer.
