@@ -22,15 +22,26 @@ flowchart TB
         subgraph Kube["Kubernetes API"]
           K3S["Kubernetes Cluster State"]
         end
-        subgraph OtelCollector["OpenTelemetry"]
-          OTEL[OpenTelemetry Collector]
+
+        subgraph DataPlatform ["Data & Messaging"]
+            subgraph Simulation ["Simulation Fleet"]
+                Sensors["Sensor Pods"]
+                Chaos["Chaos Controller"]
+            end
+            EMQX["EMQX (MQTT)"]
+            subgraph OtelCollector ["OpenTelemetry"]
+                OTEL[OTel Collector]
+            end
         end
-        subgraph Kernal["Cilium"]
+
+        subgraph Kernal ["Cilium"]
           Cilium["Cilium / Hubble (eBPF)"]
         end
-        subgraph Observability["Observability"]
+
+        subgraph Observability ["Observability Stack"]
           LGTM["Loki, Tempo, Prometheus (Thanos)"]
         end
+
         subgraph Storage ["Data Engines"]
             PG[(HA Postgres - CNPG)]
             S3[(MinIO - S3)]
@@ -42,23 +53,29 @@ flowchart TB
     External --> GoApps
     
     %% Unified MCP Paths
-    Observability -- "Query Data" --> MCP
+    LGTM -- "Query Data" --> MCP
     K3S -- "Cluster State" --> MCP
 
+    %% Simulation Flow
+    Chaos -- "Inject Failure" --> EMQX
+    EMQX -- "Deliver Command" --> Sensors
+    Sensors -- "Telemetry" --> EMQX
+    EMQX -- "Metrics" --> LGTM
+
     %% Telemetry & Storage Connections
-    Observability -- "Host Metrics" --> Analytics
+    LGTM -- "Host Metrics" --> Analytics
     Gate -- "Status" --> Analytics
     Analytics -- "Host Metrics Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OtelCollector
-    Cilium -- "Network Flows & L7 Metrics" --> Observability
+    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OTEL
+    Cilium -- "Network Flows & L7 Metrics" --> LGTM
     
-    OtelCollector --> Observability
+    OTEL --> LGTM
     
     %% Resilience & Backup
-    Observability -- "Offload" --> S3
+    LGTM -- "Offload" --> S3
     PG -- "Streaming Backup" --> Azure
     S3 -- "Replication" --> Azure
 ```
