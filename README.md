@@ -84,7 +84,15 @@ flowchart TB
         K3S["Kubernetes API (Cluster State)"]
         OTEL[OpenTelemetry Collector]
 
-        Observability["Loki, Tempo, and Prometheus (Thanos)"]
+        subgraph DataPlatform ["Observability & Messaging"]
+            Observability["Loki, Tempo, and Prometheus (Thanos)"]
+            EMQX["EMQX (MQTT Broker)"]
+            subgraph Simulation ["Hardware Simulation"]
+                Sensors["Sensor Fleet"]
+                Chaos["Chaos Controller"]
+            end
+        end
+
         subgraph Storage ["Data Engines"]
             PG[(HA Postgres - CNPG)]
             S3[(MinIO - S3)]
@@ -109,6 +117,12 @@ flowchart TB
     Observability -- "Query Data" --> MCP
     K3S -- "Cluster State" --> MCP
 
+    %% Simulation & Chaos
+    Chaos -- "Inject Failure" --> EMQX
+    EMQX -- "Deliver Command" --> Sensors
+    Sensors -- "Telemetry" --> EMQX
+    EMQX -- "Metrics" --> Observability
+
     %% Telemetry & Storage Connections
     Observability -- "Host Metrics" --> Analytics
     Tailscale -- "Status" --> Analytics
@@ -124,7 +138,7 @@ flowchart TB
     PG -- "Streaming Backup" --> Azure
 
     %% Visualization Connections
-    Observability & PG --> Grafana
+    Observability & PG & EMQX --> Grafana
 ```
 
 ---
