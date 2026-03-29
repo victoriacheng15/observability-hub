@@ -488,6 +488,8 @@ spec:
           "k8s:io.kubernetes.pod.namespace": observability
       toPorts:
         - ports:
+          - port: "80"
+            protocol: TCP
           - port: "1883"
             protocol: TCP
           - port: "3100"
