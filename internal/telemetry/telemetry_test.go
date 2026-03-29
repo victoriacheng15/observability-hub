@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -375,4 +376,77 @@ func TestHTTPHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+type countingHandler struct {
+	enabled   bool
+	handled   int
+	withAttrs int
+	withGroup int
+}
+
+func (h *countingHandler) Enabled(context.Context, slog.Level) bool { return h.enabled }
+func (h *countingHandler) Handle(context.Context, slog.Record) error {
+	h.handled++
+	return nil
+}
+func (h *countingHandler) WithAttrs([]slog.Attr) slog.Handler {
+	h.withAttrs++
+	return h
+}
+func (h *countingHandler) WithGroup(string) slog.Handler {
+	h.withGroup++
+	return h
+}
+
+func TestMultiHandler(t *testing.T) {
+	h1 := &countingHandler{enabled: false}
+	h2 := &countingHandler{enabled: true}
+
+	m := &MultiHandler{Handlers: []slog.Handler{h1, h2}}
+	if !m.Enabled(context.Background(), slog.LevelInfo) {
+		t.Fatal("expected Enabled to be true when any handler is enabled")
+	}
+
+	if err := m.Handle(context.Background(), slog.NewRecord(time.Now(), slog.LevelInfo, "msg", 0)); err != nil {
+		t.Fatalf("handle error: %v", err)
+	}
+	if h1.handled != 1 || h2.handled != 1 {
+		t.Fatalf("expected both handlers to be invoked, got h1=%d h2=%d", h1.handled, h2.handled)
+	}
+
+	_ = m.WithAttrs([]slog.Attr{slog.String("k", "v")})
+	_ = m.WithGroup("g")
+	if h1.withAttrs != 1 || h2.withAttrs != 1 {
+		t.Fatalf("expected WithAttrs to be forwarded, got h1=%d h2=%d", h1.withAttrs, h2.withAttrs)
+	}
+	if h1.withGroup != 1 || h2.withGroup != 1 {
+		t.Fatalf("expected WithGroup to be forwarded, got h1=%d h2=%d", h1.withGroup, h2.withGroup)
+	}
+}
+
+func TestInit_EndpointMissing_DisablesTelemetry(t *testing.T) {
+	oldEnv := os.Getenv("APP_ENV")
+	oldEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	defer func() {
+		os.Setenv("APP_ENV", oldEnv)
+		if oldEndpoint == "" {
+			os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+		} else {
+			os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", oldEndpoint)
+		}
+		SilenceLogs()
+	}()
+
+	os.Setenv("APP_ENV", "dev")
+	os.Unsetenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+	shutdown, err := Init(context.Background(), "svc")
+	if err != nil {
+		t.Fatalf("Init error: %v", err)
+	}
+	if shutdown == nil {
+		t.Fatal("expected non-nil shutdown")
+	}
+	shutdown()
 }

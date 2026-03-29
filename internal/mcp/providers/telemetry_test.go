@@ -8,6 +8,36 @@ import (
 	"time"
 )
 
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// newInMemoryHTTPClient routes requests directly into a handler without opening a TCP listener.
+// This is needed in sandboxed environments where `httptest.NewServer` is not permitted.
+func newInMemoryHTTPClient(h http.Handler) *http.Client {
+	return &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			done := make(chan *http.Response, 1)
+			go func() {
+				rr := httptest.NewRecorder()
+				r2 := req.Clone(req.Context())
+				r2.RequestURI = r2.URL.RequestURI()
+				h.ServeHTTP(rr, r2)
+				resp := rr.Result()
+				resp.Request = req
+				done <- resp
+			}()
+
+			select {
+			case <-req.Context().Done():
+				return nil, req.Context().Err()
+			case resp := <-done:
+				return resp, nil
+			}
+		}),
+	}
+}
+
 func TestTelemetryProvider_NewAndInitialization(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -102,10 +132,10 @@ func TestTelemetryProvider_QueryMetrics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(tt.setupServer))
-			defer server.Close()
+			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider(server.URL, "http://localhost:30100", "http://localhost:30200")
+			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
@@ -138,13 +168,17 @@ func TestTelemetryProvider_RequestTimeout(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(tt.sleep)
+			h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				select {
+				case <-r.Context().Done():
+					return
+				case <-time.After(tt.sleep):
+				}
 				w.WriteHeader(http.StatusOK)
-			}))
-			defer server.Close()
+			})
 
-			provider := NewTelemetryProvider(server.URL, "http://localhost:30100", "http://localhost:30200")
+			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider.httpClient = newInMemoryHTTPClient(h)
 			provider.httpClient.Timeout = tt.timeout
 			ctx := context.Background()
 
@@ -258,10 +292,10 @@ func TestTelemetryProvider_QueryLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(tt.setupServer))
-			defer server.Close()
+			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider("http://localhost:30090", server.URL, "http://localhost:30200")
+			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
@@ -347,10 +381,10 @@ func TestTelemetryProvider_QueryTraces(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(tt.setupServer))
-			defer server.Close()
+			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider("http://localhost:30090", "http://localhost:30100", server.URL)
+			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 

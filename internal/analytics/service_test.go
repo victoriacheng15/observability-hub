@@ -245,25 +245,70 @@ func TestCollectAndStoreHostMetrics(t *testing.T) {
 	}
 }
 
-func TestService_RunBatch(t *testing.T) {
+func TestNewService(t *testing.T) {
+	s := NewService(nil, nil, nil)
+	if s == nil {
+		t.Fatal("expected service instance, got nil")
+	}
+	if s.Thanos != nil || s.Store != nil || s.Resources != nil {
+		t.Fatal("expected nil dependencies when passing nil")
+	}
+}
+
+func TestService_RunBatch_Table(t *testing.T) {
 	cleanup := setupHostMetadata(t)
 	defer cleanup()
 
 	telemetry.SilenceLogs()
 	EnsureMetrics()
 
-	mockThanos := &MockThanos{}
-	mockStore := &MockStore{}
-	mockResources := &MockResources{}
-
-	s := &Service{
-		Thanos:    mockThanos,
-		Store:     mockStore,
-		Resources: mockResources,
+	tests := []struct {
+		name      string
+		thanos    ThanosSource
+		store     DataStore
+		resources ResourceProvider
+	}{
+		{
+			name:      "All Nil Dependencies",
+			thanos:    nil,
+			store:     nil,
+			resources: nil,
+		},
+		{
+			name:      "Partial Dependencies",
+			thanos:    &MockThanos{},
+			store:     &MockStore{},
+			resources: nil,
+		},
+		{
+			name:      "Full Dependencies",
+			thanos:    &MockThanos{},
+			store:     &MockStore{},
+			resources: &MockResources{},
+		},
 	}
 
-	// Should not panic and should run without real analytics
-	s.RunBatch(context.Background())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				Thanos:    tt.thanos,
+				Store:     tt.store,
+				Resources: tt.resources,
+			}
+			// Should run without panicking even with nil dependencies
+			s.RunBatch(context.Background())
+		})
+	}
+}
+
+func TestService_Start(t *testing.T) {
+	// Start normally runs a loop, so we test it with a canceled context.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	s := NewService(nil, nil, nil)
+	// Should return immediately on canceled context
+	s.Start(ctx)
 }
 
 func TestService_ProcessResources(t *testing.T) {

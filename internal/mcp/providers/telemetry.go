@@ -22,14 +22,21 @@ type TelemetryProvider struct {
 
 // NewTelemetryProvider creates a new telemetry provider connected to Thanos, Loki, and Tempo.
 func NewTelemetryProvider(thanosURL, lokiURL, tempoURL string) *TelemetryProvider {
+	return NewTelemetryProviderWithClient(thanosURL, lokiURL, tempoURL, nil)
+}
+
+// NewTelemetryProviderWithClient creates a new telemetry provider, allowing injection of a custom HTTP client.
+// Passing a nil client will create a default client with a 30s timeout.
+func NewTelemetryProviderWithClient(thanosURL, lokiURL, tempoURL string, client *http.Client) *TelemetryProvider {
 	telemetry.Info("creating new telemetry provider", "thanos_url", thanosURL, "loki_url", lokiURL, "tempo_url", tempoURL)
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
 	return &TelemetryProvider{
-		thanosURL: thanosURL,
-		lokiURL:   lokiURL,
-		tempoURL:  tempoURL,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		thanosURL:  thanosURL,
+		lokiURL:    lokiURL,
+		tempoURL:   tempoURL,
+		httpClient: client,
 	}
 }
 

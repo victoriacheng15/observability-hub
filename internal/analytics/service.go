@@ -136,6 +136,9 @@ func EnsureMetrics() {
 }
 
 func (s *Service) RunBatch(ctx context.Context) {
+	if s == nil {
+		return
+	}
 	start := time.Now()
 	tracer := telemetry.GetTracer(ServiceName)
 	ctx, span := tracer.Start(ctx, "job.collect_batch")
@@ -169,13 +172,19 @@ func (s *Service) RunBatch(ctx context.Context) {
 	)
 
 	// 2. Fetch and Persist Legacy Host Metrics
-	s.collectAndStoreHostMetrics(ctx, startBoundary, end, hostName, osName)
+	if s.Thanos != nil && s.Store != nil {
+		s.collectAndStoreHostMetrics(ctx, startBoundary, end, hostName, osName)
+	}
 
 	// 3. Resource Integration (Phase 3)
-	s.processResources(ctx, startBoundary, end, hostName, osName)
+	if s.Resources != nil && s.Store != nil {
+		s.processResources(ctx, startBoundary, end, hostName, osName)
+	}
 
 	// 4. Value Integration (Phase 4: Business Value Ingestion)
-	s.processValueUnits(ctx, startBoundary, end, hostName, osName)
+	if s.Resources != nil && s.Store != nil {
+		s.processValueUnits(ctx, startBoundary, end, hostName, osName)
+	}
 
 	// 5. Fetch Tailscale State (Logs/Metrics only, no DB)
 	s.collectTailscale(ctx)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -19,6 +21,36 @@ func (m *MockRunner) Run(ctx context.Context, name string, arg ...string) ([]byt
 		return m.RunFn(ctx, name, arg...)
 	}
 	return nil, nil
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// newInMemoryHTTPClient routes requests directly into a handler without opening a TCP listener.
+// This is needed in sandboxed environments where `httptest.NewServer` is not permitted.
+func newInMemoryHTTPClient(h http.Handler) *http.Client {
+	return &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			done := make(chan *http.Response, 1)
+			go func() {
+				rr := httptest.NewRecorder()
+				r2 := req.Clone(req.Context())
+				r2.RequestURI = r2.URL.RequestURI()
+				h.ServeHTTP(rr, r2)
+				resp := rr.Result()
+				resp.Request = req
+				done <- resp
+			}()
+
+			select {
+			case <-req.Context().Done():
+				return nil, req.Context().Err()
+			case resp := <-done:
+				return resp, nil
+			}
+		}),
+	}
 }
 
 func TestThanosClient_QueryRange(t *testing.T) {
@@ -53,14 +85,14 @@ func TestThanosClient_QueryRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.status)
 				fmt.Fprint(w, tt.responseJSON)
-			}))
-			defer ts.Close()
+			})
 
-			client := NewThanosClient(ts.URL)
+			client := NewThanosClient("http://thanos")
+			client.HTTPClient = newInMemoryHTTPClient(h)
 			samples, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("QueryRange() error = %v, wantErr %v", err, tt.wantErr)
@@ -192,19 +224,242 @@ func TestThanosClient_QueryRange_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.serverStatus)
 				fmt.Fprint(w, tt.serverResponse)
-			}))
-			defer ts.Close()
+			})
 
-			client := NewThanosClient(ts.URL)
+			client := NewThanosClient("http://thanos")
+			client.HTTPClient = newInMemoryHTTPClient(h)
 			_, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("QueryRange() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func TestThanosResourceProvider(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("GetEnergyJoules", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			response string
+			want     float64
+			wantErr  bool
+		}{
+			{
+				name: "Success",
+				response: `{
+					"status": "success",
+					"data": {
+						"resultType": "matrix",
+						"result": [{"metric": {}, "values": [[1708531200, "123.45"]]}]
+					}
+				}`,
+				want: 123.45,
+			},
+			{
+				name:     "No Samples",
+				response: `{"status": "success", "data": {"resultType": "matrix", "result": []}}`,
+				want:     0,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, tt.response)
+				})
+				client := NewThanosClient("http://thanos")
+				client.HTTPClient = newInMemoryHTTPClient(h)
+				provider := NewThanosResourceProvider(client)
+
+				val, err := provider.GetEnergyJoules(ctx, time.Now(), time.Now())
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GetEnergyJoules() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if val != tt.want {
+					t.Errorf("got %v, want %v", val, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("GetContainerEnergy", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			response string
+			want     map[string]float64
+			wantErr  bool
+		}{
+			{
+				name: "Success with Filter",
+				response: `{
+					"status": "success",
+					"data": {
+						"resultType": "matrix",
+						"result": [
+							{"metric": {"container_name": "pod1"}, "values": [[1708531200, "10.5"]]},
+							{"metric": {"container_name": "POD"}, "values": [[1708531200, "1.0"]]}
+						]
+					}
+				}`,
+				want: map[string]float64{"pod1": 10.5},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, tt.response)
+				})
+				client := NewThanosClient("http://thanos")
+				client.HTTPClient = newInMemoryHTTPClient(h)
+				provider := NewThanosResourceProvider(client)
+
+				res, err := provider.GetContainerEnergy(ctx, time.Now(), time.Now())
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GetContainerEnergy() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if !reflect.DeepEqual(res, tt.want) {
+					t.Errorf("got %v, want %v", res, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("GetHostServiceCPU", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			response string
+			want     map[string]float64
+			wantErr  bool
+		}{
+			{
+				name: "Success",
+				response: `{
+					"status": "success",
+					"data": {
+						"resultType": "matrix",
+						"result": [{"metric": {"name": "proxy.service"}, "values": [[1708531200, "0.25"]]}]
+					}
+				}`,
+				want: map[string]float64{"proxy.service": 0.25},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, tt.response)
+				})
+				client := NewThanosClient("http://thanos")
+				client.HTTPClient = newInMemoryHTTPClient(h)
+				provider := NewThanosResourceProvider(client)
+
+				res, err := provider.GetHostServiceCPU(ctx, time.Now(), time.Now())
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GetHostServiceCPU() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if !reflect.DeepEqual(res, tt.want) {
+					t.Errorf("got %v, want %v", res, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("GetValueUnits", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			response string
+			want     map[string]float64
+			wantErr  bool
+		}{
+			{
+				name: "Success",
+				response: `{
+					"status": "success",
+					"data": {
+						"resultType": "matrix",
+						"result": [{"metric": {}, "values": [[1708531200, "5"]]}]
+					}
+				}`,
+				want: map[string]float64{"ingestion": 5, "proxy": 5},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprint(w, tt.response)
+				})
+				client := NewThanosClient("http://thanos")
+				client.HTTPClient = newInMemoryHTTPClient(h)
+				provider := NewThanosResourceProvider(client)
+
+				res, err := provider.GetValueUnits(ctx, time.Now(), time.Now())
+				if (err != nil) != tt.wantErr {
+					t.Errorf("GetValueUnits() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if !reflect.DeepEqual(res, tt.want) {
+					t.Errorf("got %v, want %v", res, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("Factors", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			envCarbon  string
+			envCost    string
+			wantCarbon float64
+			wantCost   float64
+		}{
+			{
+				name:       "Custom Environment",
+				envCarbon:  "200.0",
+				envCost:    "0.20",
+				wantCarbon: 200.0,
+				wantCost:   0.20 / 3600000.0,
+			},
+			{
+				name:       "Defaults",
+				envCarbon:  "",
+				envCost:    "",
+				wantCarbon: 150.0,
+				wantCost:   0.15 / 3600000.0,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if tt.envCarbon != "" {
+					t.Setenv("CARBON_INTENSITY_G_KWH", tt.envCarbon)
+				} else {
+					os.Unsetenv("CARBON_INTENSITY_G_KWH")
+				}
+				if tt.envCost != "" {
+					t.Setenv("ENERGY_COST_CAD_KWH", tt.envCost)
+				} else {
+					os.Unsetenv("ENERGY_COST_CAD_KWH")
+				}
+
+				provider := NewThanosResourceProvider(nil)
+				carbon, _ := provider.GetCarbonIntensity(ctx)
+				cost, _ := provider.GetCostFactor(ctx)
+
+				if carbon != tt.wantCarbon {
+					t.Errorf("carbon got %v, want %v", carbon, tt.wantCarbon)
+				}
+				if diff := cost - tt.wantCost; diff < -1e-15 || diff > 1e-15 {
+					t.Errorf("cost got %v, want %v", cost, tt.wantCost)
+				}
+			})
+		}
+	})
 }
 
 func TestRealCommandRunner_Run(t *testing.T) {
