@@ -79,6 +79,9 @@ service:
 
 # Security settings and UI tweaks
 grafana.ini:
+  server:
+    domain: grafana.observability-hub.home
+    root_url: http://grafana.observability-hub.home:30000
   users:
     allow_sign_up: false
   analytics:

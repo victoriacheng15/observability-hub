@@ -146,6 +146,13 @@ variable "grafana_chart_version" {
   default     = "10.5.15"
 }
 
+variable "grafana_discord_webhook_url" {
+  description = "Discord webhook URL used by Grafana alert notifications."
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
 variable "emqx_chart_version" {
   description = "Helm chart version for EMQX."
   type        = string
