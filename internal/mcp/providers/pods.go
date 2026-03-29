@@ -53,6 +53,11 @@ func NewPodsProvider() (*PodsProvider, error) {
 	return &PodsProvider{clientset: clientset}, nil
 }
 
+// NewPodsProviderWithClientset creates a new PodsProvider with a provided clientset.
+func NewPodsProviderWithClientset(clientset kubernetes.Interface) *PodsProvider {
+	return &PodsProvider{clientset: clientset}
+}
+
 // ListPods returns a list of pods in the specified namespace.
 func (p *PodsProvider) ListPods(ctx context.Context, namespace string) (*corev1.PodList, error) {
 	if namespace == "" {
