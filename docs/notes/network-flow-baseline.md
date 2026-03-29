@@ -68,8 +68,8 @@ If a path is required by application configuration but is broader in policy than
 
 | Source | Destination | Port / Protocol | Purpose | Current Policy State |
 | :--- | :--- | :--- | :--- | :--- |
-| `hub/grafana` | `observability/prometheus-server` | `9090/TCP` | Metrics queries and dashboards | Explicitly allowed by `hub-security` |
-| `hub/grafana` | `observability/loki-gateway` | `3100/TCP` | Log queries | Explicitly allowed by `hub-security` |
+| `hub/grafana` | `observability/prometheus-server` | `80/TCP` service to Prometheus | Metrics queries and dashboards | Explicitly allowed by `hub-security` |
+| `hub/grafana` | `observability/loki-gateway` | `80/TCP` service to Loki gateway | Log queries | Explicitly allowed by `hub-security` |
 | `hub/grafana` | `observability/tempo` | `3200/TCP` | Trace queries | Explicitly allowed by `hub-security` |
 | `hub/grafana` | `databases/postgres-hub-rw` | `5432/TCP` | PostgreSQL datasource | Explicitly allowed by `hub-security` |
 | `hub/n8n` | `databases/postgres-hub-rw` | `5432/TCP` | Workflow state and application DB | Explicitly allowed by `hub-security` |
@@ -125,7 +125,7 @@ These items should be verified against live traffic before any tightening work:
 - which exact external domains n8n needs
 - whether pgAdmin actually requires all currently allowed outbound ports
 - whether any hub workload besides Grafana and n8n needs MinIO access
-- whether Prometheus service-port access over `80/TCP` should be modeled more explicitly in policy documentation
+- whether any observability service-port dependencies remain documented by container port instead of service port
 - whether `hardware-sim` needs its own namespace policy and baseline entries
 
 ## Update Rules
