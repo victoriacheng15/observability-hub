@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/eclipse/paho.mqtt.golang v1.5.1
-	github.com/hashicorp/vault/api v1.22.0
+	github.com/hashicorp/vault/api v1.23.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.0
 	github.com/modelcontextprotocol/go-sdk v1.4.1
