@@ -63,7 +63,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: chaos-controller
-        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-7d8708b
+        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-0c243b3
         imagePullPolicy: IfNotPresent
         env:
         - name: MQTT_BROKER

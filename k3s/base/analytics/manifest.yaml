@@ -21,7 +21,7 @@ spec:
         - name: ghcr-auth
       containers:
       - name: analytics
-        image: ghcr.io/victoriacheng15/observability-hub/analytics:sha-c6e147e
+        image: ghcr.io/victoriacheng15/observability-hub/analytics:sha-0c243b3
         imagePullPolicy: IfNotPresent
         env:
         - name: THANOS_URL
