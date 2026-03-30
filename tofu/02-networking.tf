@@ -52,6 +52,8 @@ resource "helm_release" "cilium" {
       # --- Hubble (Observability) ---
       hubble = {
         enabled = true
+        # Ring buffer capacity (default: 4095)
+        eventBufferCapacity = 16383
         metrics = {
           enabled = [
             "dns",
