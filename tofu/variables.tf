@@ -69,7 +69,7 @@ variable "minio_chart_version" {
 variable "cnpg_operator_chart_version" {
   description = "Helm chart version for CloudNativePG Operator."
   type        = string
-  default     = "0.23.0"
+  default     = "0.27.1"
 }
 
 variable "postgres_image" {
@@ -162,7 +162,7 @@ variable "emqx_chart_version" {
 variable "cilium_chart_version" {
   description = "Helm chart version for Cilium."
   type        = string
-  default     = "1.16.1"
+  default     = "1.16.19"
 }
 
 variable "amdgpu_plugin_chart_version" {

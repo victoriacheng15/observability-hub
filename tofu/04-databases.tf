@@ -223,12 +223,12 @@ resource "kubernetes_deployment_v1" "pgadmin" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
+              cpu    = local.standards.resources.standard.requests.cpu
+              memory = local.standards.resources.standard.requests.memory
             }
             limits = {
-              cpu    = "500m"
-              memory = "512Mi"
+              cpu    = local.standards.resources.standard.limits.cpu
+              memory = local.standards.resources.standard.limits.memory
             }
           }
 
