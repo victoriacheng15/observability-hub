@@ -8,11 +8,11 @@ namespace: hub
 
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
-    newTag: sha-ac6ec2b
+    newTag: sha-0c243b3
   - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
-    newTag: sha-ac6ec2b
+    newTag: sha-0c243b3
   - name: ghcr.io/victoriacheng15/observability-hub/sensor
-    newTag: sha-ac6ec2b
+    newTag: sha-0c243b3
 
 patches:
   - target:
