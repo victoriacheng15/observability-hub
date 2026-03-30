@@ -192,17 +192,17 @@ resource "grafana_rule_group" "cilium_hubble" {
   }
 
   rule {
-    name      = "Hubble Policy Drops High"
+    name      = "Hubble Ring Buffer Saturation"
     condition = "B"
-    for       = "10m"
+    for       = "5m"
 
     annotations = {
-      summary     = "Hubble is reporting repeated dropped flows."
-      description = "The five minute average drop rate has stayed above 1 event per second for 10 minutes."
+      summary     = "Hubble is losing events due to ring buffer saturation."
+      description = "The event loss ratio has exceeded 1% for 5 minutes. The buffer capacity ($hubble_buffer_capacity) or relay throughput may need to be increased."
     }
 
     labels = {
-      severity = "warning"
+      severity = "critical"
       service  = "hubble"
     }
 
@@ -216,7 +216,7 @@ resource "grafana_rule_group" "cilium_hubble" {
       datasource_uid = "prometheus-provisioned"
 
       relative_time_range {
-        from = 600
+        from = 300
         to   = 0
       }
 
@@ -227,7 +227,7 @@ resource "grafana_rule_group" "cilium_hubble" {
         }
         editorMode    = "code"
         exemplar      = false
-        expr          = "sum(rate(hubble_drop_total[5m]))"
+        expr          = "sum(rate(hubble_lost_events_total[1m])) / (sum(rate(hubble_flows_processed_total[1m])) + sum(rate(hubble_lost_events_total[1m])))"
         instant       = true
         intervalMs    = 1000
         legendFormat  = "__auto"
@@ -251,7 +251,7 @@ resource "grafana_rule_group" "cilium_hubble" {
         conditions = [
           {
             evaluator = {
-              params = [1]
+              params = [0.01]
               type   = "gt"
             }
             operator = {
