@@ -11,7 +11,6 @@ resource "helm_release" "cilium" {
     yamlencode({
       # --- eBPF Datapath & Routing ---
       routingMode          = "native"
-      tunnel               = "disabled"
       kubeProxyReplacement = true
       bpf = {
         masquerade = true
