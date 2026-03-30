@@ -21,7 +21,6 @@ tempo:
 
   extraArgs:
     config.expand-env: "true"
-    mem-ballast-size-mbs: "512"
 
   multitenancy_enabled: false
 

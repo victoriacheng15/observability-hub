@@ -9,7 +9,7 @@ replicaCount: 1
 
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: 0.94.0 # Using a recent stable version
+  tag: 0.147.0
   pullPolicy: IfNotPresent
 
 # Use alternateConfig to fully control the collector's configuration and avoid default merges
@@ -29,24 +29,28 @@ alternateConfig:
         - key: service
           action: upsert
           from_attribute: service.name
-        - key: loki.resource.labels
-          action: insert
-          value: service
   exporters:
     otlp:
       endpoint: tempo.observability.svc.cluster.local:4317
       tls:
         insecure: true
-    logging:
-      loglevel: debug
-    loki:
-      endpoint: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
+    debug:
+      verbosity: basic
+    otlphttp/loki:
+      endpoint: http://loki.observability.svc.cluster.local:3100/otlp
+      tls:
+        insecure: true
     prometheusremotewrite:
       endpoint: http://prometheus-server.observability.svc.cluster.local:80/api/v1/write
   service:
     telemetry:
       metrics:
-        address: 0.0.0.0:8888
+        readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: 0.0.0.0
+                  port: 8888
     extensions: [health_check] # Ensure health_check is used
     pipelines:
       traces:
@@ -60,7 +64,7 @@ alternateConfig:
       logs:
         receivers: [otlp]
         processors: [batch, resource]
-        exporters: [loki]
+        exporters: [otlphttp/loki]
 
 # Expose as LoadBalancer so host-level systemd services (e.g. proxy) can reach the collector via localhost
 service:
