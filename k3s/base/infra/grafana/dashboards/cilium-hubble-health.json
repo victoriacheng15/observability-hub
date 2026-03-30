@@ -100,7 +100,7 @@
         "type": "prometheus",
         "uid": "prometheus-provisioned"
       },
-      "description": "Hubble ring buffer capacity utilization. Should stay below 90% to prevent event loss.",
+      "description": "Percentage of events being lost due to buffer saturation. 0% is ideal. Any value > 0% indicates the buffer or consumer needs tuning.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -113,20 +113,20 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": 0
               },
               {
                 "color": "yellow",
-                "value": 0.7
+                "value": 0.01
               },
               {
                 "color": "orange",
-                "value": 0.85
+                "value": 0.05
               },
               {
-                "color": "orange",
-                "value": 0.9
+                "color": "red",
+                "value": 0.1
               }
             ]
           },
@@ -164,28 +164,15 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "hubble_flows_processed_total / 16383",
-          "hide": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-provisioned"
-          },
-          "editorMode": "code",
-          "expr": "1.0",
+          "expr": "sum(rate(hubble_lost_events_total[1m])) / (sum(rate(hubble_flows_processed_total[1m])) + sum(rate(hubble_lost_events_total[1m])))",
           "hide": false,
           "instant": false,
-          "legendFormat": "Buffer Capacity (Assuming Full)",
+          "legendFormat": "Current Loss Ratio",
           "range": true,
-          "refId": "B"
+          "refId": "A"
         }
       ],
-      "title": "Hubble Ring Buffer Utilization",
+      "title": "Hubble Event Loss Ratio",
       "type": "gauge"
     },
     {
@@ -523,7 +510,7 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "16383",
+          "expr": "$hubble_buffer_capacity",
           "legendFormat": "Buffer Capacity",
           "range": true,
           "refId": "A"
@@ -882,7 +869,6 @@
           },
           "editorMode": "code",
           "expr": "sum(rate(hubble_flows_processed_total{verdict=\"REDIRECTED\"}[5m]))",
-          "hide": false,
           "legendFormat": "Redirected",
           "range": true,
           "refId": "REDIRECTED"
@@ -1544,7 +1530,23 @@
     "health"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "hide": 2,
+        "label": "Hubble Buffer Capacity",
+        "name": "hubble_buffer_capacity",
+        "options": [
+          {
+            "selected": true,
+            "text": "32767",
+            "value": "32767"
+          }
+        ],
+        "query": "32767",
+        "skipUrlSync": false,
+        "type": "constant"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
