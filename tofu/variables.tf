@@ -131,7 +131,7 @@ variable "loki_chart_version" {
 variable "tempo_chart_version" {
   description = "Helm chart version for Tempo."
   type        = string
-  default     = "1.26.1"
+  default     = "2.0.0"
 }
 
 variable "otel_collector_chart_version" {
