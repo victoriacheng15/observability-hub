@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hub-automation-binding
+subjects:
+- kind: ServiceAccount
+  name: hub-automation
+roleRef:
+  kind: Role
+  name: hub-automation-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: db-admin-binding
+subjects:
+- kind: ServiceAccount
+  name: db-admin
+roleRef:
+  kind: Role
+  name: db-admin-role
+  apiGroup: rbac.authorization.k8s.io

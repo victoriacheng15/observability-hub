@@ -5,3 +5,6 @@ resources:
   - analytics/manifest.yaml
   - hardware-sim/chaos-controller.yaml
   - hardware-sim/sensor-fleet.yaml
+  - rbac/serviceaccounts.yaml
+  - rbac/roles.yaml
+  - rbac/bindings.yaml
