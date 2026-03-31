@@ -5,6 +5,44 @@
 
 # --- ServiceAccounts ---
 
+# Namespace: hub
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hub-automation
+  namespace: hub
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hub-intelligence
+  namespace: hub
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hub-automation-role
+  namespace: hub
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hub-automation-binding
+  namespace: hub
+subjects:
+- kind: ServiceAccount
+  name: hub-automation
+  namespace: hub
+roleRef:
+  kind: Role
+  name: hub-automation-role
+  apiGroup: rbac.authorization.k8s.io
+---
 # Namespace: databases
 apiVersion: v1
 kind: ServiceAccount

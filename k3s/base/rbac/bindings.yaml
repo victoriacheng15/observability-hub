@@ -1,4 +1,4 @@
-# --- Namespace-scoped Bindings (hub) ---
+# --- Namespace: hardware-sim (pinned by overlay patches) ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -11,16 +11,4 @@ subjects:
 roleRef:
   kind: Role
   name: hw-controller-role
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: hub-automation-binding
-subjects:
-- kind: ServiceAccount
-  name: hub-automation
-roleRef:
-  kind: Role
-  name: hub-automation-role
   apiGroup: rbac.authorization.k8s.io
