@@ -28,6 +28,7 @@ spec:
       labels:
         app: n8n
     spec:
+      serviceAccountName: hub-automation
       containers:
       - name: n8n
         image: n8nio/n8n:stable

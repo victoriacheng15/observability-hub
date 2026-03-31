@@ -1,8 +1,9 @@
 # =============================================================================
-# Cross-Namespace ServiceAccounts (Identity Only)
+# Cross-Namespace RBAC
 # Referenced directly from root kustomization to bypass overlay namespace transformer.
-# Roles and Bindings will be added in Phase 3 (Infrastructure Hardening).
 # =============================================================================
+
+# --- ServiceAccounts ---
 
 # Namespace: databases
 apiVersion: v1
