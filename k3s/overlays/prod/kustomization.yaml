@@ -20,19 +20,49 @@ patches:
       name: chaos-controller
     patch: |-
       - op: replace
+        path: /metadata/namespace
+        value: hardware-sim
+      - op: replace
         path: /spec/replicas
         value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "hardware-sim"
   - target:
       kind: Deployment
       name: sensor-fleet
     patch: |-
       - op: replace
+        path: /metadata/namespace
+        value: hardware-sim
+      - op: replace
         path: /spec/replicas
         value: 8
   - target:
-      kind: Deployment
-      name: chaos-controller
+      kind: ServiceAccount
+      name: hw-controller
     patch: |-
       - op: replace
-        path: /spec/template/spec/containers/0/env/1/value
-        value: "hub"
+        path: /metadata/namespace
+        value: hardware-sim
+  - target:
+      kind: ServiceAccount
+      name: hw-sensor
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: hardware-sim
+  - target:
+      kind: Role
+      name: hw-controller-role
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: hardware-sim
+  - target:
+      kind: RoleBinding
+      name: hw-controller-binding
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: hardware-sim

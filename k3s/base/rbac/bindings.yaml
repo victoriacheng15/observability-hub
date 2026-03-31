@@ -2,13 +2,15 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: hub-controller-binding
+  name: hw-controller-binding
+  namespace: hardware-sim
 subjects:
 - kind: ServiceAccount
-  name: hub-controller
+  name: hw-controller
+  namespace: hardware-sim
 roleRef:
   kind: Role
-  name: hub-controller-role
+  name: hw-controller-role
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
