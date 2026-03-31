@@ -1,0 +1,56 @@
+# =============================================================================
+# Cross-Namespace ServiceAccounts (Identity Only)
+# Referenced directly from root kustomization to bypass overlay namespace transformer.
+# Roles and Bindings will be added in Phase 3 (Infrastructure Hardening).
+# =============================================================================
+
+# Namespace: databases
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: db-admin
+  namespace: databases
+---
+# Namespace: argocd
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-redis
+  namespace: argocd
+automountServiceAccountToken: false
+---
+# Namespace: kube-system
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gpu-plugin
+  namespace: kube-system
+---
+# Namespace: observability
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos-query
+  namespace: observability
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos-storegateway
+  namespace: observability
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos-compactor
+  namespace: observability
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tempo
+  namespace: observability
+automountServiceAccountToken: false
