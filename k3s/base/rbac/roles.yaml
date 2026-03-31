@@ -1,4 +1,4 @@
-# --- Namespace-scoped Roles (hub) ---
+# --- Namespace: hardware-sim (pinned by overlay patches) ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -8,12 +8,3 @@ rules:
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["list", "get", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: hub-automation-role
-rules:
-- apiGroups: [""]
-  resources: ["secrets", "configmaps"]
-  verbs: ["get"]
