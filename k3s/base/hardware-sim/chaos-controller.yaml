@@ -16,7 +16,7 @@ spec:
       labels:
         app: chaos-controller
     spec:
-      serviceAccountName: hub-controller
+      serviceAccountName: hw-controller
       imagePullSecrets:
         - name: ghcr-auth
       affinity:

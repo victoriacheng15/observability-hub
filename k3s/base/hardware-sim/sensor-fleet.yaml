@@ -16,7 +16,7 @@ spec:
       labels:
         app: sensor-fleet
     spec:
-      serviceAccountName: hub-sensor
+      serviceAccountName: hw-sensor
       automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-auth
