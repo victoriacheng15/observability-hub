@@ -1,39 +1,32 @@
-# --- Namespace-scoped Bindings ---
+# --- Namespace-scoped Roles ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: Role
 metadata:
-  name: hub-automation-binding
-subjects:
-- kind: ServiceAccount
-  name: hub-automation
-roleRef:
-  kind: Role
   name: hub-automation-role
-  apiGroup: rbac.authorization.k8s.io
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: Role
 metadata:
-  name: db-admin-binding
-subjects:
-- kind: ServiceAccount
-  name: db-admin
-roleRef:
-  kind: Role
   name: db-admin-role
-  apiGroup: rbac.authorization.k8s.io
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
 
-# --- Cluster-wide Bindings ---
+# --- Cluster-wide Roles ---
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: ClusterRole
 metadata:
-  name: gpu-plugin-binding
-subjects:
-- kind: ServiceAccount
-  name: gpu-plugin
-  namespace: kube-system
-roleRef:
-  kind: ClusterRole
   name: gpu-plugin-clusterrole
-  apiGroup: rbac.authorization.k8s.io
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "patch", "update"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "watch"]
