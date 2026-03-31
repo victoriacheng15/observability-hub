@@ -4,8 +4,6 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: dev-hub
-
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
     newTag: canary
@@ -24,9 +22,9 @@ patches:
       metadata:
         name: analytics
       $patch: delete
+  # --- Simulation Fleet (dev-hardware-sim) ---
   - target:
-      kind: Deployment
-      name: chaos-controller
+      labelSelector: "feature=simulation"
     patch: |-
       - op: replace
         path: /metadata/namespace
@@ -34,36 +32,21 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
-      - op: replace
-        path: /spec/template/spec/containers/0/env/1/value
-        value: "dev-hardware-sim"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TARGET_NAMESPACE
+          value: "dev-hardware-sim"
   - target:
       kind: Deployment
       name: sensor-fleet
     patch: |-
       - op: replace
-        path: /metadata/namespace
-        value: dev-hardware-sim
-      - op: replace
         path: /spec/replicas
         value: 2
+  # --- Simulation RBAC (dev-hardware-sim) ---
   - target:
-      kind: ServiceAccount
-      name: hw-controller
-    patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: dev-hardware-sim
-  - target:
-      kind: ServiceAccount
-      name: hw-sensor
-    patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: dev-hardware-sim
-  - target:
-      kind: Role
-      name: hw-controller-role
+      name: hw-.*
     patch: |-
       - op: replace
         path: /metadata/namespace
@@ -72,9 +55,6 @@ patches:
       kind: RoleBinding
       name: hw-controller-binding
     patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: dev-hardware-sim
       - op: replace
         path: /subjects/0/namespace
         value: dev-hardware-sim

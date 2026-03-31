@@ -4,8 +4,6 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: hub
-
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/analytics
     newTag: sha-0c243b3
@@ -15,9 +13,9 @@ images:
     newTag: sha-0c243b3
 
 patches:
+  # --- Simulation Fleet (hardware-sim) ---
   - target:
-      kind: Deployment
-      name: chaos-controller
+      labelSelector: "feature=simulation"
     patch: |-
       - op: replace
         path: /metadata/namespace
@@ -25,36 +23,21 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 2
-      - op: replace
-        path: /spec/template/spec/containers/0/env/1/value
-        value: "hardware-sim"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: TARGET_NAMESPACE
+          value: "hardware-sim"
   - target:
       kind: Deployment
       name: sensor-fleet
     patch: |-
       - op: replace
-        path: /metadata/namespace
-        value: hardware-sim
-      - op: replace
         path: /spec/replicas
         value: 8
+  # --- Simulation RBAC (hardware-sim) ---
   - target:
-      kind: ServiceAccount
-      name: hw-controller
-    patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: hardware-sim
-  - target:
-      kind: ServiceAccount
-      name: hw-sensor
-    patch: |-
-      - op: replace
-        path: /metadata/namespace
-        value: hardware-sim
-  - target:
-      kind: Role
-      name: hw-controller-role
+      name: hw-.*
     patch: |-
       - op: replace
         path: /metadata/namespace
@@ -64,5 +47,5 @@ patches:
       name: hw-controller-binding
     patch: |-
       - op: replace
-        path: /metadata/namespace
+        path: /subjects/0/namespace
         value: hardware-sim
