@@ -39,6 +39,8 @@ spec:
         env:
         - name: MQTT_BROKER
           value: "tcp://emqx.observability.svc.cluster.local:1883"
+        - name: TARGET_NAMESPACE
+          value: "hardware-sim"
         resources:
           requests:
             cpu: "20m"
