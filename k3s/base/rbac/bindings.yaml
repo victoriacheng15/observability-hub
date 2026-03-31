@@ -1,2 +1,24 @@
-# Placeholder: Bindings will be wired in Phase 2 (hub) and Phase 3 (infrastructure).
-# Keeping this file in the kustomization resource list for structural readiness.
+# --- Namespace-scoped Bindings (hub) ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hub-controller-binding
+subjects:
+- kind: ServiceAccount
+  name: hub-controller
+roleRef:
+  kind: Role
+  name: hub-controller-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hub-automation-binding
+subjects:
+- kind: ServiceAccount
+  name: hub-automation
+roleRef:
+  kind: Role
+  name: hub-automation-role
+  apiGroup: rbac.authorization.k8s.io

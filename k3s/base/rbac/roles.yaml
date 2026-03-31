@@ -1,2 +1,18 @@
-# Placeholder: Roles will be wired in Phase 2 (hub) and Phase 3 (infrastructure).
-# Keeping this file in the kustomization resource list for structural readiness.
+# --- Namespace-scoped Roles (hub) ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hub-controller-role
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hub-automation-role
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get"]
