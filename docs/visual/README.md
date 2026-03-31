@@ -18,12 +18,6 @@ The control plane for declarative infrastructure. Shows the 'App-of-Apps' patter
 
 ![ArgoCD UI](./argocd-ui.png)
 
-### ArgoCD Chaos Sensors
-
-Visualization of chaos engineering sensors integrated with ArgoCD, showing the automated rollout and health status of the simulation fleet.
-
-![ArgoCD Chaos Sensors](./argocd-chaos-sensors.png)
-
 ## 📊 Observability Dashboards (LGTM Stack)
 
 ### Infrastructure & Host Health
@@ -42,7 +36,7 @@ Powered by **Kepler (eBPF)**. This dashboard correlates workload energy consumpt
 
 Visualization of real-time telemetry from the simulation fleet. This dashboard tracks the impact of chaos experiments on system reliability and sensor accuracy.
 
-![Chaos Sensors Simulation](./chaos-sensors-sim.png)
+![Chaos Sensors Simulation](./edge-simulation.png)
 
 ## 🌐 Network Flow & Security
 
