@@ -47,6 +47,12 @@ resource "helm_release" "argocd" {
           storageClass = local.standards.persistence.storage_class
           size         = "2Gi" # Specific cache override
         }
+        # Identity Handshake: Use the ServiceAccount managed in k3s/base/rbac
+        serviceAccount = {
+          create = false
+          name   = "argocd-redis"
+        }
+        automountServiceAccountToken = false
       }
       # Disable unused components for a leaner footprint
       notifications = { enabled = false }
