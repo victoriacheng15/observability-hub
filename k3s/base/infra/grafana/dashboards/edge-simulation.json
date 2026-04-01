@@ -51,7 +51,7 @@
       },
       "targets": [
         {
-          "expr": "count(container_start_time_seconds{namespace=\"dev-hub\", container=\"sensor\"})",
+          "expr": "count(container_start_time_seconds{namespace=\"dev-hardware-sim\", container=\"sensor\"})",
           "refId": "A"
         }
       ],
@@ -105,7 +105,7 @@
       },
       "targets": [
         {
-          "expr": "count(container_start_time_seconds{namespace=\"hub\", container=\"sensor\"})",
+          "expr": "count(container_start_time_seconds{namespace=\"hardware-sim\", container=\"sensor\"})",
           "refId": "A"
         }
       ],
@@ -391,7 +391,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "dev-hub"
+              "options": "dev-hardware-sim"
             },
             "properties": [
               {
@@ -406,7 +406,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "hub"
+              "options": "hardware-sim"
             },
             "properties": [
               {
@@ -593,7 +593,7 @@
       },
       "targets": [
         {
-          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hub\", container=\"chaos-controller\"}) or vector(0)",
+          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
           "refId": "A"
         }
       ],
@@ -647,7 +647,7 @@
       },
       "targets": [
         {
-          "expr": "count(kube_pod_container_status_running{namespace=\"hub\", container=\"chaos-controller\"}) or vector(0)",
+          "expr": "count(kube_pod_container_status_running{namespace=\"hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
           "refId": "A"
         }
       ],
@@ -665,7 +665,7 @@
   "templating": {
     "list": [
       {
-        "allValue": "hub|dev-hub",
+        "allValue": "hardware-sim|dev-hardware-sim",
         "current": {
           "selected": true,
           "text": "All",
@@ -684,16 +684,16 @@
           },
           {
             "selected": false,
-            "text": "hub",
-            "value": "hub"
+            "text": "hardware-sim",
+            "value": "hardware-sim"
           },
           {
             "selected": false,
-            "text": "dev-hub",
-            "value": "dev-hub"
+            "text": "dev-hardware-sim",
+            "value": "dev-hardware-sim"
           }
         ],
-        "query": "hub,dev-hub",
+        "query": "hardware-sim,dev-hardware-sim",
         "skipUrlSync": false,
         "type": "custom"
       },
