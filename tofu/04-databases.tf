@@ -178,6 +178,7 @@ resource "kubernetes_deployment_v1" "pgadmin" {
 
       spec {
         automount_service_account_token = false
+        service_account_name            = "db-admin"
 
         container {
           name              = "pgadmin4"
