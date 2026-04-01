@@ -15,6 +15,7 @@ spec:
       labels:
         app.kubernetes.io/name: analytics
     spec:
+      serviceAccountName: hub-analytics
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       imagePullSecrets:
