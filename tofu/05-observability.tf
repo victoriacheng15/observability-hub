@@ -1,5 +1,13 @@
 # --- Metrics (Prometheus) ---
 
+# Fetch kube-dns service IP for nginx resolver configuration
+data "kubernetes_service_v1" "kube_dns" {
+  metadata {
+    name      = "kube-dns"
+    namespace = "kube-system"
+  }
+}
+
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
@@ -430,6 +438,11 @@ resource "helm_release" "loki" {
         }
         affinity  = null
         resources = local.standards.resources.medium
+        nginxConfig = {
+          # Use kube-dns ClusterIP directly to avoid DNS resolution timeout
+          # The default "kube-dns.kube-system.svc.cluster.local." causes circular dependency
+          resolver = data.kubernetes_service_v1.kube_dns.spec[0].cluster_ip
+        }
         containerSecurityContext = {
           readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
           allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
