@@ -320,9 +320,19 @@ resource "helm_release" "thanos" {
     file("${path.module}/../k3s/base/infra/thanos/values.yaml"),
     yamlencode({
       query = {
-        extraFlags = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
+        serviceAccount = {
+          create = false
+          name   = "thanos-query"
+        }
+        automountServiceAccountToken = false
+        extraFlags                   = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
       }
       storegateway = {
+        serviceAccount = {
+          create = false
+          name   = "thanos-storegateway"
+        }
+        automountServiceAccountToken = false
         persistence = {
           storageClass = local.standards.persistence.storage_class
           size         = "2Gi" # Preserve existing override
@@ -345,6 +355,11 @@ resource "helm_release" "thanos" {
         }
       }
       compactor = {
+        serviceAccount = {
+          create = false
+          name   = "thanos-compactor"
+        }
+        automountServiceAccountToken = false
         persistence = {
           storageClass = local.standards.persistence.storage_class
           size         = "2Gi" # Preserve existing override
@@ -442,6 +457,11 @@ resource "helm_release" "tempo" {
     file("${path.module}/../k3s/base/infra/tempo/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
+      serviceAccount = {
+        create = false
+        name   = "tempo"
+      }
+      automountServiceAccountToken = false
       persistence = {
         storageClassName = local.standards.persistence.storage_class
         size             = local.standards.persistence.size
