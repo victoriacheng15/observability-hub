@@ -19,6 +19,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 // Re-export common OTel types to centralize dependency management
@@ -62,6 +63,16 @@ func Init(ctx context.Context, serviceName string) (func(), error) {
 	conn, err := grpc.NewClient(
 		endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// Fast connection establishment for short-lived workloads
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: 2 * time.Second,
+		}),
+		// Keepalive to maintain connection health and detect failures
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                5 * time.Second, // Send keepalive ping every 5s
+			Timeout:             2 * time.Second, // Wait 2s for ping ack
+			PermitWithoutStream: true,            // Allow pings even without active streams
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)
