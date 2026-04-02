@@ -33,7 +33,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [sensor, chaos-controller, analytics, postgres-cnpg]
+        service: [sensor, chaos-controller, analytics, postgres-cnpg, worker]
 
     steps:
       - name: Checkout repository

@@ -7,8 +7,13 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy specific source code directories required for the worker
+COPY cmd/worker/ ./cmd/worker/
+COPY internal/env/ ./internal/env/
+COPY internal/telemetry/ ./internal/telemetry/
+COPY internal/worker/ ./internal/worker/
+COPY internal/db/ ./internal/db/
+COPY internal/secrets/ ./internal/secrets/
 
 # Build the worker binary (statically linked for Linux)
 RUN CGO_ENABLED=0 GOOS=linux go build -o /worker ./cmd/worker
