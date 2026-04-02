@@ -486,7 +486,7 @@ spec:
             protocol: TCP
           - port: "11434"
             protocol: TCP
-    # 2. Allow access to observability stack (Prometheus, Loki, Tempo)
+    # 2. Allow access to observability stack (Prometheus, Loki, Tempo, OpenTelemetry)
     - toEndpoints:
       - matchLabels:
           "k8s:io.kubernetes.pod.namespace": observability
@@ -501,6 +501,10 @@ spec:
           - port: "3100"
             protocol: TCP
           - port: "3200"
+            protocol: TCP
+          - port: "4317"
+            protocol: TCP
+          - port: "4318"
             protocol: TCP
           - port: "9090"
             protocol: TCP
