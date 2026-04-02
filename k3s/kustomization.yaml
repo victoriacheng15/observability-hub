@@ -4,13 +4,8 @@ kind: Kustomization
 resources:
   - overlays/dev
   - overlays/prod
-  - base/analytics/manifest.yaml
   - base/hub-apps/automation.yaml
   - base/hub-apps/intelligence.yaml
   - base/rbac/cluster-rbac.yaml
   - base/worker
   - cilium-policies/observability-stack-policy.yaml
-
-images:
-  - name: ghcr.io/victoriacheng15/observability-hub/analytics
-    newTag: sha-0c243b3
