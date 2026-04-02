@@ -52,36 +52,19 @@ tofu apply
 
 ---
 
-### Analytics (Unified Host Telemetry)
+### Unified Worker (Batch Tasks)
 
-- **Tofu Configuration**: `tofu/hub.tf`
+- **Orchestration**: **ArgoCD** (`k3s/base/worker/`)
 - **Notes**:
-  - Managed as a native `kubernetes_daemon_set_v1` resource.
-  - Requires local image building and sideloading (see below).
-
-- **Local Image Sideloading**:
-
-```bash
-# 1. Build locally (using podman)
-podman build -t analytics:v0.1.0 -f docker/analytics/Dockerfile .
-
-# 2. Export and Import
-podman save -o analytics.tar localhost/analytics:v0.1.0
-sudo k3s ctr images import analytics.tar
-
-# 3. Tag for K3s local lookup
-sudo k3s ctr images tag localhost/analytics:v0.1.0 analytics:v0.1.0
-sudo k3s ctr images tag localhost/analytics:v0.1.0 docker.io/library/analytics:v0.1.0
-
-# 4. Cleanup
-rm analytics.tar
-```
+  - Managed as Kubernetes `CronJob` resources.
+  - Consolidates legacy Analytics and Ingestion services.
+  - Analytics runs every 15 minutes; Ingestion runs daily.
+  - **Image Management**: Automatically handled via **GitHub Actions** (build/push to GHCR) and reconciled in the cluster by **ArgoCD**.
 
 ### Cilium (Network Policies & L7 Visibility)
 
 - **Chart**: `cilium/cilium`
 - **Tofu Configuration**: `tofu/network.tf`
-- **Namespace**: `kube-system`
 - **Policy File**: `k3s/cilium-policies/observability-stack-policy.yaml`
 - **Notes**:
   - DaemonSet runs on every node for network policy enforcement
@@ -167,7 +150,7 @@ rm postgres-cnpg.tar
 
 ## 🔌 Connectivity Bridge (MCP Era)
 
-The platform utilizes **NodePort** to bridge host-based services (MCP agents, proxy, ingestion) with the K3s cluster via `localhost`.
+The platform utilizes **NodePort** to bridge host-based services (MCP agents, proxy) with the K3s cluster via `localhost`.
 
 | Service | Protocol | NodePort | Target URI (Host-View) |
 | :--- | :--- | :--- | :--- |
@@ -182,11 +165,12 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-03-26 (Cilium upgraded to Large for L7 visibility; comprehensive audit of all components)*
+- *Last Updated: 2026-04-02 (Consolidated Analytics/Ingestion into Unified Worker)*
 
 | Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **analytics** | Small | 10m | 64Mi | 50m | 128Mi | Telemetry Collection (DaemonSet) |
+| **worker (analytics)** | Small | 10m | 64Mi | 50m | 128Mi | Batch Telemetry Collection (CronJob) |
+| **worker (ingestion)** | Standard | 100m | 256Mi | 500m | 512Mi | Batch Data Synchronization (CronJob) |
 | **argocd** | Standard | 100m | 512Mi | 500m | 1Gi | GitOps Orchestration |
 | **cilium** | Large | 100m | 512Mi | 500m | 1Gi | Network Policies & L7 DPI (DaemonSet) |
 | **emqx** | Medium | 50m | 256Mi | 200m | 512Mi | MQTT Broker |
@@ -206,8 +190,8 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~1.26 Cores / 4.99Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~8.65 Cores / 19.99Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~1.36 Cores / 5.18Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~9.15 Cores / 20.37Gi RAM)**: The sum of all *Limits* (burst ceiling).
 - **Note**: Ollama is a special case (4 CPU / 8Gi RAM reserved for LLM inference).
 
 ---

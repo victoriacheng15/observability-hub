@@ -1,6 +1,6 @@
 # OpenBao Setup & Operations Guide
 
-## 1. Overview
+## Overview
 
 We use **OpenBao** (an open-source fork of HashiCorp Vault) as our centralized secret store. It is installed via **Nix** and configured to store encrypted data locally on the filesystem.
 
@@ -10,7 +10,7 @@ We use **OpenBao** (an open-source fork of HashiCorp Vault) as our centralized s
 
 ---
 
-## 2. Core Concepts
+## Core Concepts
 
 ### 🔐 Initialization (Run ONCE)
 
@@ -28,7 +28,7 @@ We use **OpenBao** (an open-source fork of HashiCorp Vault) as our centralized s
 
 ---
 
-## 3. Operational Commands
+## Operational Commands
 
 **CRITICAL:** All `bao` commands must be run within the project's Nix environment and require the `BAO_ADDR` to be set.
 
@@ -110,7 +110,7 @@ bao kv put secret/observability-hub/proxy \
 
 ---
 
-## 4. Systemd Service (Production)
+## Systemd Service (Production)
 
 We use the project's **Makefile** to manage systemd services.
 
@@ -132,7 +132,7 @@ We use the project's **Makefile** to manage systemd services.
 
 ---
 
-## 5. Disaster Recovery (Lost Keys)
+## Disaster Recovery (Lost Keys)
 
 **If you lose the unseal keys, the data is unrecoverable.**
 There is no "reset password" functionality. You must destroy the vault and start over.
@@ -170,7 +170,7 @@ There is no "reset password" functionality. You must destroy the vault and start
 
 ---
 
-## 6. Troubleshooting
+## Troubleshooting
 
 - **"Connection Refused":** The server is not running. Check logs: `journalctl -u openbao -e`.
 - **"Vault is sealed":** The server is running but encrypted. Run the unseal commands.

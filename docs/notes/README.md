@@ -5,8 +5,9 @@ This directory contains technical "cheat sheets" and operational guides for main
 ## 📂 Available Notes
 
 - **[Cilium & Hubble](./cilium-networking.md)**: Breakdown of L3/L4/L7 visibility and policy-driven network observability.
+- **[k3s Operations Guide](./k3s-operations.md)**: Procedures for deployment, image management, and data migration in the cluster.
+- **[MCP Gateway](./mcp-gateway-deployment.md)**: Unified agentic execution guide for autonomous platform operations.
 - **[Network Flow Baseline](./network-flow-baseline.md)**: Current reference matrix for required in-cluster and external traffic paths.
-- **[k3s Operations Guide](./k3s-operations.md)**: Procedures for deployment, image sideloading, and data migration in the cluster.
 - **[OpenBao Setup](./openbao-setup.md)**: Procedures for initialization, unsealing, and managing the secret store.
 - **[OpenTelemetry](./opentelemetry.md)**: Standards for OTel implementation, signal naming, and "Pure Wrapper" philosophy.
 - **[PostgreSQL Guide](./postgres.md)**: Best practices for database ownership, user permissions, and TimescaleDB/PostGIS setup.

@@ -5,7 +5,7 @@ The Observability Hub leverages a **Dual-Tier GitOps Model** to manage both clus
 ## Core Philosophy
 
 - **Declarative Kubernetes (Tier 1)**: All cluster resources are managed via **ArgoCD**. This ensures that the "Intent" defined in Git is continuously reconciled, providing automated recovery from configuration drift.
-- **Resilient Host-Sync (Tier 2)**: Critical host-tier components (Proxy, Ingestion, Analytics) are synchronized via native Systemd services and custom scripts. This ensures the host's physical filesystem and systemd units stay in sync with the remote repository independently of the Kubernetes runtime.
+- **Resilient Host-Sync (Tier 2)**: Critical host-tier components (Proxy, Tailscale Gate) are synchronized via native Systemd services and custom scripts. This ensures the host's physical filesystem and systemd units stay in sync with the remote repository independently of the Kubernetes runtime.
 - **Event-Driven Reconciliation**: We prioritize webhooks over polling. Push events from GitHub trigger a simultaneous loop: ArgoCD updates the cluster, and the Proxy-Webhook triggers a fast-forward sync of the local host directory.
 
 ## GitOps Implementation
@@ -49,7 +49,6 @@ The system consists of several main service families, each with a `.service` uni
 | :--- | :--- | :--- | :--- |
 | **`tailscale-gate`** | `simple` | Continuous | **Security**: Monitors Proxy health and toggles Tailscale Funnel access. |
 | **`proxy`** | `simple` | Continuous | **API Gateway**: Core listener for data pipelines and GitOps webhooks. |
-| **`ingestion`** | `oneshot` | Daily (00:00) | **Data Ingestion**: Unified engine for Reading Analytics and Second Brain sync. |
 
 ## Operational Excellence
 

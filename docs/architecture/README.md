@@ -24,9 +24,8 @@ The runtime environment and foundational deployment strategies.
 
 Deep dives into the logic and implementation of specific system components.
 
-- **[Analytics Service](./services/analytics.md)**: Host-level telemetry collector for metrics and Tailscale status.
 - **[Hardware Simulation](./services/hardware-sim.md)**: Fleet of synthetic sensors and chaos injection engine.
-- **[Proxy Service](./services/proxy.md)**: The API Gateway and GitOps listener.
-- **[Ingestion Service](./services/ingestion.md)**: Unified data orchestration engine (Reading Analytics + Second Brain).
 - **[MCP Servers](./services/mcp-servers.md)**: The "Agentic Interface" suite for autonomous operations.
+- **[Proxy Service](./services/proxy.md)**: The API Gateway and GitOps listener.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.
+- **[Unified Worker](./services/worker.md)**: The one-shot execution engine for Analytics and Ingestion tasks.

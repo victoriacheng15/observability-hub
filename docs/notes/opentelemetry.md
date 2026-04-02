@@ -1,6 +1,6 @@
 # OpenTelemetry & Observability Guide
 
-## 1. Overview
+## Overview
 
 The Observability Hub uses **OpenTelemetry (OTel)** as the standardized protocol for all signals (Logs, Metrics, and Traces). All telemetry is routed through a central collector in the `observability` namespace and visualized in **Grafana**.
 
@@ -11,12 +11,12 @@ The Observability Hub uses **OpenTelemetry (OTel)** as the standardized protocol
   - **Traces**: Tempo (via OTLP)
 - **Library**: `internal/telemetry` (A wrapper around the OTel Go SDK).
 - **Collector Endpoint**:
-  - **Host Services**: `localhost:30317` (NodePort)
-  - **K3s Services**: `opentelemetry.observability.svc.cluster.local:4317`
+  - **Host Services (Proxy, Gate)**: `localhost:30317` (NodePort)
+  - **K3s Services (Worker, Simulation)**: `opentelemetry.observability.svc.cluster.local:4317`
 
 ---
 
-## 2. Core Philosophy: The "Pure Wrapper"
+## Core Philosophy: The "Pure Wrapper"
 
 To maintain scalability and clean separation of concerns, we follow the **Pure Wrapper** pattern:
 
@@ -25,7 +25,7 @@ To maintain scalability and clean separation of concerns, we follow the **Pure W
 
 ---
 
-## 3. Standard Naming Conventions
+## Standard Naming Conventions
 
 To ensure dashboard compatibility across the entire fleet, all signals follow these rules:
 
@@ -39,9 +39,9 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 ---
 
-## 4. Signal Inventory (Grafana Reference)
+## Signal Inventory (Grafana Reference)
 
-### 1. Proxy Service
+### Proxy Service
 
 **Service Name:** `proxy` | **Tracers:** `proxy.synthetic`, `proxy.webhook`, `proxy/home`
 
@@ -67,72 +67,31 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 
 - `request_processed` (Standard Access Log), `webhook_received`, `webhook_sync_triggered`, `webhook_sync_success`, `synthetic_trace_payload_received`, `synthetic_trace_processed`
 
-### 2. Ingestion Service
+### Unified Worker (CronJob)
 
-**Service Name:** `ingestion` | **Tracers:** `reading.sync`, `second.brain`, `ingestion.engine`
+**Service Names:** `worker.analytics`, `worker.ingestion` | **Tracers:** `worker.analytics`, `worker.ingestion`, `worker.run`
 
-**Root Spans (Engine):**
+**Metrics (Emitted):**
+- `worker.batch.total`: Counter (Total worker invocations)
+- `worker.batch.errors.total`: Counter (Total execution failures)
+- `worker.batch.duration`: Histogram (Execution time per run in ms)
 
-- `task.reading`: Root for Reading Sync
-- `task.brain`: Root for Brain Sync
-
-#### 2.1 Reading Task (`reading.sync`)
-
-**Metrics:**
-
-- `reading.sync.total`: Counter
-- `reading.sync.processed.total`: Counter (Total articles processed)
-- `reading.sync.errors.total`: Counter
-- `reading.sync.duration`: Histogram
-- `reading.sync.lag.seconds`: Gauge (Time since last success)
+**Mode-Specific Metrics:**
+- `worker.brain.sync.total`: Counter (Ingestion mode)
+- `worker.reading.sync.total`: Counter (Ingestion mode)
+- `worker.tailscale.active`: Observable Gauge (Analytics mode; 1 = Active)
 
 **Traces:**
-
-- `job.reading_sync`: Process Span
-- `db.mongodb.fetch_ingested_articles`: Child Span
-- `db.mongodb.mark_article_processed`: Child Span
-- **Attributes:** `task.name`, `db.documents.count`
-
-#### 2.2 Brain Task (`second.brain`)
-
-**Metrics:**
-
-- `second.brain.sync.total`: Counter
-- `second.brain.sync.processed.total`: Counter (Total thoughts processed)
-- `second.brain.sync.errors.total`: Counter
-- `second.brain.sync.duration`: Histogram
-- `second.brain.sync.lag.seconds`: Gauge
-- `second.brain.token.count.total`: Counter (Token count for LLM context)
-
-**Traces:**
-
-- `job.second_brain_sync`: Process Span
-- `github.fetch`: GitHub CLI interaction
-- `ingest.delta`: Single issue processing
-- `parse.markdown.duration`: Atomization logic
-- **Attributes:** `github.issue_number`, `issue.title`, `atoms.count`
-
-### 3. Analytics Service (Host Telemetry)
-
-**Service Name:** `analytics` | **Tracer/Meter:** `analytics`
-
-**Metrics:**
-
-- `analytics.batch.total`: Counter (Labeled by `host`, `os`)
-- `analytics.batch.errors.total`: Counter
-- `analytics.batch.duration`: Histogram
-- `analytics.tailscale.active`: Observable Gauge (1 = Active, 0 = Inactive)
-
-**Traces:**
-
-- `job.collect_batch`: Root Span
-- **Attributes:** `host`, `os`, `start`, `end` (RFC3339)
+- `worker.run`: Root Span for every execution.
+- `db.postgres.*`, `github.fetch`, `thanos.query`: Mode-specific child spans.
 
 **Logs:**
 
-- `service_started`, `batch_started`, `feature_analytics_recorded`, `value_unit_recorded`, `tailscale_funnel_status`, `batch_complete`
+- **Shared:** `postgres_initialization_failed`, `schema_initialization_failed`
+- **Analytics Mode:** `analytics_batch_starting`, `analytics_factors_loaded`, `analytics_batch_complete`
+- **Ingestion Mode:** `starting_ingestion_tasks`, `running_task`, `task_succeeded`, `task_failed`, `all_ingestion_tasks_finished`, `failed_to_record_brain_sync_history`, `failed_to_record_reading_sync_history`
 
-### 4. Database Wrappers (Internal Library)
+### Database Wrappers (Internal Library)
 
 **Tracers:** `db/postgres`, `db/mongodb`
 
@@ -153,7 +112,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 - `db.query.limit`: Operation limit
 - `db.mongodb.id`: Hex string of the target document ID
 
-### 5. MCP Agents (Unified Gateway)
+### MCP Agents (Unified Gateway)
 
 **Service Name:** `mcp` (Binary: `mcp_obs_hub`) | **Tracer/Meter:** `mcp`
 
