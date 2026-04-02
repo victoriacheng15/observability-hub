@@ -8,6 +8,7 @@ resources:
   - base/hub-apps/automation.yaml
   - base/hub-apps/intelligence.yaml
   - base/rbac/cluster-rbac.yaml
+  - base/worker
   - cilium-policies/observability-stack-policy.yaml
 
 images:

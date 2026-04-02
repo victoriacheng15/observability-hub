@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: worker-ingestion
+  namespace: hub
+spec:
+  schedule: "0 2 * * *" # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: worker
+            mode: ingestion
+        spec:
+          serviceAccountName: hub-worker
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-auth
+          containers:
+          - name: worker
+            image: ghcr.io/victoriacheng15/observability-hub/worker:canary
+            imagePullPolicy: Always
+            args: ["--mode", "ingestion"]
+            env:
+            - name: JOURNAL_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: worker-config
+                  key: JOURNAL_REPO
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "opentelemetry.observability.svc.cluster.local:4317"
+            - name: DB_HOST
+              value: "postgres-hub-rw.databases.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "server"
+            - name: DB_NAME
+              value: "homelab"
+            - name: SERVER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: server-db-password
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                cpu: 50m
+                memory: 128Mi

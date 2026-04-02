@@ -25,6 +25,7 @@ func TestStore_EnsureSchema(t *testing.T) {
 			setup: func() {
 				mdb.ExpectExec("CREATE TYPE metric_kind AS ENUM").WillReturnResult(mdb.NewResult(0, 0))
 				mdb.ExpectExec("CREATE TABLE IF NOT EXISTS analytics_metrics").WillReturnResult(mdb.NewResult(0, 0))
+				mdb.ExpectExec("CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_metrics_idempotency").WillReturnResult(mdb.NewResult(0, 0))
 				mdb.ExpectExec("CREATE TABLE IF NOT EXISTS reading_analytics").WillReturnResult(mdb.NewResult(0, 0))
 				mdb.ExpectExec("CREATE TABLE IF NOT EXISTS second_brain").WillReturnResult(mdb.NewResult(0, 0))
 				mdb.ExpectExec("CREATE TABLE IF NOT EXISTS reading_sync_history").WillReturnResult(mdb.NewResult(0, 0))

@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - analytics/manifest.yaml
+  - worker
   - hub-apps
   - hardware-sim
   - rbac
