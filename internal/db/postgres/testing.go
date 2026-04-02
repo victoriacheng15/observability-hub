@@ -42,6 +42,16 @@ func (m *MockDB) NewRows(columns []string) *sqlmock.Rows {
 	return sqlmock.NewRows(columns)
 }
 
+// ExpectExec sets up an expectation for an Exec statement.
+func (m *MockDB) ExpectExec(query string) *sqlmock.ExpectedExec {
+	return m.Mock.ExpectExec(query)
+}
+
+// ExpectQuery sets up an expectation for a Query statement.
+func (m *MockDB) ExpectQuery(query string) *sqlmock.ExpectedQuery {
+	return m.Mock.ExpectQuery(query)
+}
+
 // ExpectTableCreation sets up an expectation for a CREATE TABLE IF NOT EXISTS statement.
 func (m *MockDB) ExpectTableCreation(tableName string) {
 	m.Mock.ExpectExec("CREATE TABLE IF NOT EXISTS " + tableName).

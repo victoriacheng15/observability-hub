@@ -10,6 +10,9 @@ import (
 
 	"observability-hub/internal/env"
 	"observability-hub/internal/telemetry"
+	"observability-hub/internal/worker"
+	"observability-hub/internal/worker/analytics"
+	"observability-hub/internal/worker/ingestion"
 )
 
 func main() {
@@ -30,7 +33,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// 4. Initialize Telemetry with dynamic service name
+	// 4. Initialize Telemetry
 	serviceName := fmt.Sprintf("worker.%s", *mode)
 	shutdown, err := telemetry.Init(ctx, serviceName)
 	if err != nil {
@@ -38,26 +41,55 @@ func main() {
 	}
 	defer shutdown()
 
-	// 5. Route to specific task
+	// 5. Initialize Dependencies (Shared for both modes)
+	deps, err := worker.InitDependencies(ctx)
+	if err != nil {
+		telemetry.Error("dependency_init_failed", "error", err)
+		os.Exit(1)
+	}
+	defer deps.Close()
+
+	// 6. Route to specific task
 	switch *mode {
 	case "analytics":
-		runAnalytics(ctx)
+		err = runAnalytics(ctx, deps)
 	case "ingestion":
-		runIngestion(ctx)
+		err = runIngestion(ctx, deps)
 	default:
 		telemetry.Error("invalid_mode", "mode", *mode)
 		os.Exit(1)
 	}
+
+	if err != nil {
+		telemetry.Error("task_execution_failed", "mode", *mode, "error", err)
+		os.Exit(1)
+	}
+
+	telemetry.Info("worker_task_completed_successfully", "mode", *mode)
 }
 
-func runAnalytics(ctx context.Context) {
-	telemetry.Info("starting_no_op_analytics")
-	// Placeholder for PR 2
-	telemetry.Info("analytics_task_finished")
+func runAnalytics(ctx context.Context, deps *worker.Dependencies) error {
+	// 1. Setup Analytics specific clients
+	thanosClient := analytics.NewThanosClient(deps.GetThanosURL())
+	thanosProvider := analytics.NewThanosResourceProvider(thanosClient)
+
+	service := &analytics.Service{
+		Store:     deps.Store,
+		Resources: thanosProvider,
+	}
+
+	// 2. Execute one-shot batch
+	return service.Run(ctx)
 }
 
-func runIngestion(ctx context.Context) {
-	telemetry.Info("starting_no_op_ingestion")
-	// Placeholder for PR 2
-	telemetry.Info("ingestion_task_finished")
+func runIngestion(ctx context.Context, deps *worker.Dependencies) error {
+	if deps.Store == nil {
+		return fmt.Errorf("database connection is required for ingestion")
+	}
+
+	// 1. Setup Ingestion App
+	app := ingestion.NewApp(deps.SecretStore, deps.Store)
+
+	// 2. Execute all tasks
+	return app.Run(ctx)
 }
