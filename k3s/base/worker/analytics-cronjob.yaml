@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: worker-analytics
+  namespace: hub
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: worker
+            mode: analytics
+        spec:
+          serviceAccountName: hub-worker
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-auth
+          containers:
+          - name: worker
+            image: ghcr.io/victoriacheng15/observability-hub/worker:canary
+            imagePullPolicy: Always
+            args: ["--mode", "analytics"]
+            env:
+            - name: THANOS_URL
+              value: "http://thanos-query.observability.svc.cluster.local:9090"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "opentelemetry.observability.svc.cluster.local:4317"
+            - name: DB_HOST
+              value: "postgres-hub-rw.databases.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "server"
+            - name: DB_NAME
+              value: "homelab"
+            - name: SERVER_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: server-db-password
+            resources:
+              requests:
+                cpu: 10m
+                memory: 64Mi
+              limits:
+                cpu: 50m
+                memory: 128Mi
+            volumeMounts:
+            # - name: tailscale-sock
+            #   mountPath: /var/run/tailscale
+            #   readOnly: true
+            - name: host-hostname
+              mountPath: /etc/host_hostname
+              readOnly: true
+            - name: host-os-release
+              mountPath: /etc/host_os-release
+              readOnly: true
+          volumes:
+          # - name: tailscale-sock
+          #   hostPath:
+          #     path: /run/tailscale
+          #     type: Directory
+          - name: host-hostname
+            hostPath:
+              path: /etc/hostname
+              type: File
+          - name: host-os-release
+            hostPath:
+              path: /etc/os-release
+              type: File

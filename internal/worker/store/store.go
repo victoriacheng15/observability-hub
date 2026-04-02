@@ -68,6 +68,12 @@ func (s *Store) EnsureSchema(ctx context.Context) error {
 		return err
 	}
 
+	// Add unique constraint for idempotency
+	qIdx := fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_metrics_idempotency ON %s (time, feature_id, kind);", TableAnalyticsMetrics)
+	if _, err := s.Wrapper.Exec(ctx, "db.ensure_analytics_idempotency_idx", qIdx); err != nil {
+		return err
+	}
+
 	// 2. Reading Analytics
 	q3 := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 		id SERIAL PRIMARY KEY,
@@ -135,7 +141,10 @@ func (s *Store) RecordSyncHistory(ctx context.Context, tableName string, startTi
 
 func (s *Store) RecordAnalyticsMetric(ctx context.Context, t time.Time, featureID string, kind MetricKind, value float64, unit string, metadata map[string]interface{}) error {
 	mJSON, _ := json.Marshal(metadata)
-	q := fmt.Sprintf("INSERT INTO %s (time, feature_id, kind, value, unit, metadata) VALUES ($1, $2, $3, $4, $5, $6)", TableAnalyticsMetrics)
+	q := fmt.Sprintf(`INSERT INTO %s (time, feature_id, kind, value, unit, metadata) 
+		 VALUES ($1, $2, $3, $4, $5, $6) 
+		 ON CONFLICT (time, feature_id, kind) 
+		 DO UPDATE SET value = EXCLUDED.value, metadata = EXCLUDED.metadata`, TableAnalyticsMetrics)
 	_, err := s.Wrapper.Exec(ctx, "db.record_analytics_metric", q, t, featureID, string(kind), value, unit, mJSON)
 	return err
 }
