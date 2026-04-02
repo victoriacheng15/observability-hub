@@ -6,12 +6,10 @@ on:
     tags: ["v*.*.*"]
     paths:
       - "cmd/**"
-      - "!cmd/ingestion/**"
       - "!cmd/mcp-obs-hub/**"
       - "!cmd/proxy/**"
       - "!cmd/web/**"
       - "internal/**"
-      - "!internal/ingestion/**"
       - "!internal/mcp/**"
       - "!internal/proxy/**"
       - "!internal/web/**"
@@ -33,7 +31,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [sensor, chaos-controller, analytics, postgres-cnpg, worker]
+        service: [sensor, chaos-controller, postgres-cnpg, worker]
 
     steps:
       - name: Checkout repository

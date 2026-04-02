@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build ingestion-build mcp_obs_hub_build service-build mcp-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build
 
 format:
 	@echo "Formatting Go code..." && \
@@ -48,20 +48,8 @@ proxy-build:
 	sudo systemctl restart proxy.service && \
 	rm ./bin/proxy_server
 
-ingestion-build:
-	@echo "Updating Ingestion..." && \
-	go build -o ./bin/ingestion ./cmd/ingestion && \
-	sudo install -m 755 ./bin/ingestion /usr/local/bin/ingestion && \
-	sudo systemctl restart ingestion.service && \
-	rm ./bin/ingestion
-
 mcp-build:
 	@echo "Updating mcp_obs_hub..." && \
 	go build -o ./bin/mcp_obs_hub ./cmd/mcp-obs-hub && \
 	sudo install -m 755 ./bin/mcp_obs_hub /usr/local/bin/mcp_obs_hub && \
 	rm ./bin/mcp_obs_hub
-
-service-build:
-	@echo "Building all services..." && \
-	make proxy-build && \
-	make ingestion-build
