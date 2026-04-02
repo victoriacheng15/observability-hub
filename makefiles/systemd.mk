@@ -1,8 +1,7 @@
 # Systemd Service Management
 
 # Define exact units to install
-ACTIVE_UNITS = proxy.service tailscale-gate.service openbao.service  \
-							 ingestion.service ingestion.timer
+ACTIVE_UNITS = proxy.service tailscale-gate.service openbao.service
 
 .PHONY: install-services reload-services uninstall-services bao-status
 
@@ -16,8 +15,6 @@ install-services:
 	@sudo systemctl daemon-reload
 	@echo "🟢 Enabling services..."
 	@sudo systemctl enable --now proxy.service tailscale-gate.service openbao.service
-	@echo "⏰ Enabling timers..."
-	@sudo systemctl enable --now ingestion.timer
 
 reload-services:
 	@echo "Reloading systemd units..."
