@@ -13,32 +13,32 @@ flowchart TB
                 External["Telemetry Sources"]
             end
 
-            GoApps["Go Services"]
-            MCP["MCP Gateway (Unified Brain)"]
-            Analytics["Analytics (Host Metrics & Tailscale)"]
-            Gate[Tailscale Gate]
-        end
+            subgraph Kube["Kubernetes API"]
+              K3S["Kubernetes Cluster State"]
+            end
 
-        subgraph Kube["Kubernetes API"]
-          K3S["Kubernetes Cluster State"]
+            GoApps["Go Services (Proxy, etc.)"]
+            MCP["MCP Gateway (Unified Brain)"]
+            Worker["Unified Worker (Analytics & Ingestion)"]
+            Gate[Tailscale Gate]
         end
 
         subgraph DataPlatform ["Data & Messaging"]
             subgraph Simulation ["Simulation Fleet"]
-                Sensors["Sensor Pods"]
                 Chaos["Chaos Controller"]
+                Sensors["Sensor Pods"]
+                EMQX["EMQX (MQTT)"]
             end
-            EMQX["EMQX (MQTT)"]
             subgraph OtelCollector ["OpenTelemetry"]
                 OTEL[OTel Collector]
             end
         end
 
+        subgraph Observability ["Observability Stack"]
         subgraph Kernal ["Cilium"]
           Cilium["Cilium / Hubble (eBPF)"]
         end
 
-        subgraph Observability ["Observability Stack"]
           LGTM["Loki, Tempo, Prometheus (Thanos)"]
         end
 
@@ -63,13 +63,13 @@ flowchart TB
     EMQX -- "Metrics" --> LGTM
 
     %% Telemetry & Storage Connections
-    LGTM -- "Host Metrics" --> Analytics
-    Gate -- "Status" --> Analytics
-    Analytics -- "Host Metrics Data" --> PG
+    LGTM -- "Host Metrics" --> Worker
+    Gate -- "Status" --> Worker
+    Worker -- "Batch Data" --> PG
     GoApps -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OTEL
+    GoApps & MCP & Worker -- "Logs, Metrics, Traces" --> OTEL
     Cilium -- "Network Flows & L7 Metrics" --> LGTM
     
     OTEL --> LGTM
@@ -112,7 +112,7 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 - **Collection Strategy**:
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
   - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
-  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. Dedicated **Analytics** then retrieve this host metrics data from **Prometheus**, forward it via the **OpenTelemetry Collector**, which processes and exports it to **PostgreSQL** for long-term analytical reporting.
+  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. The **Unified Worker (Analytics Mode)** then retrieves this data from **Prometheus** via **Thanos**, forwards it via the **OpenTelemetry Collector**, and exports it to **PostgreSQL** for long-term analytical reporting.
   - **Network Metrics (eBPF)**: Cilium and Hubble export eBPF-level network metrics (e.g., packet drops, connection latency, and L7 protocol stats) directly to Prometheus via dedicated exporters.
 - **Persistence**:
   - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.

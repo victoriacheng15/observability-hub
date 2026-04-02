@@ -2,7 +2,7 @@
 
 This note documents how the Observability Hub currently uses Cilium and Hubble for network visibility, service isolation, and operational troubleshooting.
 
-## 1. What Cilium Is Doing Here
+## What Cilium Is Doing Here
 
 Cilium replaces the default K3s networking datapath with an eBPF-based model.
 
@@ -14,7 +14,7 @@ In this repo, that gives us three practical capabilities:
 
 Hubble is the operator-facing view into that datapath. It turns raw flows into verdicts, labels, ports, and protocol metadata that can be inspected in the UI or scraped as metrics.
 
-## 2. Reading Hubble Output
+## Reading Hubble Output
 
 Hubble is most useful when read as a sequence of questions.
 
@@ -32,7 +32,7 @@ Typical interpretations:
 
 For dropped traffic, check Hubble first, then confirm with pod logs and service health.
 
-## 3. Current Policy Layout
+## Current Policy Layout
 
 The active policy model in this repo is built around Cilium clusterwide policies.
 
@@ -76,7 +76,7 @@ There are separate clusterwide policies for:
 
 These policies provide a namespace boundary, but they are not equally strict.
 
-## 4. Current Security Posture
+## Current Security Posture
 
 The cluster has useful segmentation, but it is not full zero-trust yet.
 
@@ -90,7 +90,7 @@ This is intentional for now. It keeps core workflows working while the actual de
 
 ArgoCD is the notable exception: its git egress is already scoped to GitHub and GitLab patterns instead of wildcard external access.
 
-## 5. L7 Coverage in Practice
+## L7 Coverage in Practice
 
 The current L7 ports matter because they map directly to platform behavior:
 
@@ -108,7 +108,7 @@ If Hubble is not showing L7 details for one of these services, verify both of th
 - the service label matches the `observability-l7` selector
 - the relevant port is included in the L7 policy
 
-## 6. Operational Constraints
+## Operational Constraints
 
 This cluster is single-node and already had a Cilium recovery incident. That changes how policy changes should be made.
 
@@ -121,7 +121,7 @@ Practical implications:
 
 Policy regressions can break critical paths quickly on a single-node control-plane system.
 
-## 7. Metrics and Alerting
+## Metrics and Alerting
 
 Hubble metrics are already scraped by Prometheus and available for dashboards.
 
@@ -133,7 +133,7 @@ That supports:
 
 Alerting is a separate concern. Hubble metrics existing does not mean policy-drop alerting is already wired end to end. If alerting is added later, verify the delivery path first.
 
-## 8. Safe Workflow for Policy Changes
+## Safe Workflow for Policy Changes
 
 Before tightening a policy:
 
@@ -151,7 +151,7 @@ Minimum validation checklist:
 - Tempo, Loki, and Thanos can reach MinIO
 - pgAdmin remains reachable for required admin workflows
 
-## 9. What To Document Next
+## What To Document Next
 
 The highest-value documentation gap is not more theory. It is the actual allowed flow baseline.
 

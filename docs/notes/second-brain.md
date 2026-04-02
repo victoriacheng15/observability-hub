@@ -1,6 +1,6 @@
 # Second Brain Operations
 
-## 1. Overview
+## Overview
 
 The **Second Brain** is a knowledge ingestion layer that synchronizes personal reflections and technical insights from GitHub journals into a RAG-ready PostgreSQL database. It utilizes `pgvector` for semantic search capabilities.
 
@@ -31,7 +31,7 @@ The **Second Brain** is a knowledge ingestion layer that synchronizes personal r
 
 ---
 
-## 2. Database Schema
+## Database Schema
 
 The following schema defines the core knowledge table and its associated statistics view.
 
@@ -75,7 +75,7 @@ GROUP BY category;
 
 ---
 
-## 3. Operational Commands
+## Operational Commands
 
 ### Manual Delta Sync
 
@@ -102,7 +102,7 @@ kubectl exec -it statefulset/postgres-postgresql -n observability -c postgresql 
 
 ---
 
-## 4. Usage & Maintenance
+## Usage & Maintenance
 
 ### Sample Similarity Search (RAG)
 

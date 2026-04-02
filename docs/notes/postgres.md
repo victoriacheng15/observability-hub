@@ -8,7 +8,7 @@ To initialize the database, you must first connect to the primary Postgres pod a
 kubectl exec -it postgres-hub-1 -n databases -- psql -U postgres
 ```
 
-### 1. Application Owner (`server`)
+### Application Owner (`server`)
 
 The `server` user is for automated services (ingestion, proxy) that require write access to manage the platform's state.
 
@@ -30,7 +30,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
-### 2. Agentic Investigator (`mcp_ro`)
+### Agentic Investigator (`mcp_ro`)
 
 The `mcp_ro` user is for the MCP-Domain server. It is strictly read-only to ensure AI agents can investigate without risking data integrity.
 

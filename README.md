@@ -54,7 +54,7 @@ The platform leverages a robust set of modern technologies for its core function
 
 ### System Architecture Overview
 
-The diagram below illustrates the high-level flow of telemetry data from collection to visualization, highlighting the hybrid orchestration model between host services and the Kubernetes data platform.
+The diagram below illustrates the high-level flow of telemetry data from collection to visualization, highlighting the hybrid orchestration model between host-level entry points and the Kubernetes-native data worker.
 
 ```mermaid
 flowchart TB
@@ -62,34 +62,28 @@ flowchart TB
         direction TB
         subgraph Logic ["Data Ingestion & Agentic Interface"]
             subgraph External ["External Sources"]
-                GH(GitHub Webhooks/Journals)
                 Mongo(MongoDB Atlas)
+                GH(GitHub Webhooks/Journals)
             end
 
-            subgraph Security [Security]
-                Bao[OpenBao]
-                Tailscale[Tailscale]
+            subgraph Control ["Orchestration"]
+                GitOps[ArgoCD GitOps]
+                Tofu[OpenTofu IaC]
             end
 
-            GoApps["Go Services (Proxy, Ingestion)"]
+            Proxy["Go Proxy (Host API Gateway)"]
             MCP["MCP Gateway - Telemetry, Pods, Hub, Network"]
-            Analytics["Analytics (Host Metrics & Tailscale)"]
-        end
+            Worker["Unified Worker (K3s CronJob)"]
+            K3S["Kubernetes API (Cluster State)"]
 
-        subgraph Control ["Orchestration"]
-            GitOps[ArgoCD GitOps]
-            Tofu[OpenTofu IaC]
-        end
-
-        K3S["Kubernetes API (Cluster State)"]
-        OTEL[OpenTelemetry Collector]
-
-        subgraph DataPlatform ["Observability & Messaging"]
-            Observability["Loki, Tempo, and Prometheus (Thanos)"]
-            EMQX["EMQX (MQTT Broker)"]
-            subgraph Simulation ["Hardware Simulation"]
-                Sensors["Sensor Fleet"]
-                Chaos["Chaos Controller"]
+            subgraph DataPlatform ["Observability & Messaging"]
+                OTEL[OpenTelemetry Collector]
+                Observability["Loki, Tempo, and Prometheus (Thanos)"]
+                subgraph Simulation ["Hardware Simulation"]
+                    Sensors["Sensor Pods"]
+                    Chaos["Chaos Controller"]
+                    EMQX["EMQX (MQTT Broker)"]
+                end
             end
         end
 
@@ -106,12 +100,12 @@ flowchart TB
     end
 
     %% GitOps Loop
-    GH -- "Triggers Sync" --> GitOps
     GitOps -- "Reconciles State" --> K3S
 
     %% Data Pipeline Connections
-    GH --> GoApps
-    Mongo --> GoApps
+    GH --> Worker
+    GH -- "Webhook" --> Proxy
+    Mongo --> Worker
     
     %% Unified MCP Paths
     Observability -- "Query Data" --> MCP
@@ -120,17 +114,14 @@ flowchart TB
     %% Simulation & Chaos
     Chaos -- "Inject Failure" --> EMQX
     EMQX -- "Deliver Command" --> Sensors
-    Sensors -- "Telemetry" --> EMQX
-    EMQX -- "Metrics" --> Observability
 
     %% Telemetry & Storage Connections
-    Observability -- "Host Metrics" --> Analytics
-    Tailscale -- "Status" --> Analytics
-    Analytics -- "Host Metrics Data" --> PG
-    GoApps -- Data --> PG
+    Observability -- "Host Metrics" --> Worker
+    Worker -- "Batch Data" --> PG
+    Proxy -- Data --> PG
 
     %% Telemetry Pipeline (OTLP)
-    GoApps & MCP & Analytics -- "Logs, Metrics, Traces" --> OTEL
+    Proxy & MCP & Worker -- "Logs, Metrics, Traces" --> OTEL
     OTEL --> Observability
     
     %% Resilience & Backup
@@ -154,6 +145,7 @@ flowchart TB
 
 ### 🏗️ Software Architecture & Design
 
+- **Service Consolidation:** Unified legacy analytics and ingestion services into a single `worker` binary, reducing resource fragmentation and standardizing batch task lifecycles.
 - **Dependency Consolidation:** Unified fragmented Go modules into a single monorepo, removing 17 `replace` directives.
 - **Architectural Isolation:** Implemented `Thin Main` patterns and strict `internal/` package scoping to decouple domain logic from infrastructure plumbing.
 - **GitOps Engine:** Built a custom HMAC-secured webhook listener to trigger automated repository state reconciliation across the cluster.
@@ -212,22 +204,15 @@ tofu init
 tofu apply
 ```
 
-This will provision PostgreSQL, MinIO, Loki, Tempo, Prometheus, Thanos, Grafana, and the OpenTelemetry Collector in the `observability` namespace.
-
-For the **Analytics** service (which uses a custom local image), use the Makefile target:
-
-```bash
-make k3s-analytics-up
-```
+This will provision PostgreSQL, MinIO, Loki, Tempo, Prometheus, Thanos, Grafana, and the OpenTelemetry Collector. Application workloads (Worker, Sensors) are automatically managed by ArgoCD.
 
 #### B. Native Host Services
 
-Build and initialize the automation and telemetry analytics on the host:
+Build and initialize the API gateway and agentic interface on the host:
 
 ```bash
 # Build Go binaries
 make proxy-build
-make ingestion-build
 make mcp-build
 
 # Install and start Systemd services (requires sudo)

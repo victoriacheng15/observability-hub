@@ -2,7 +2,7 @@
 
 This guide covers the essential commands for managing the Observability Hub's services and understanding their health status.
 
-## 1. The "Big Picture" (Health Check)
+## The "Big Picture" (Health Check)
 
 Use these to see the health of the whole system at once.
 
@@ -14,7 +14,7 @@ Use these to see the health of the whole system at once.
 
 ---
 
-## 2. Checking Specific Services
+## Checking Specific Services
 
 * **Check status with logs (The standard check):**
 
@@ -30,7 +30,7 @@ Use these to see the health of the whole system at once.
 
 ---
 
-## 3. Troubleshooting & Logs (`journalctl`)
+## Troubleshooting & Logs (`journalctl`)
 
 Systemctl status only shows the last ~10 lines. Use `journalctl` to see the full history.
 
@@ -54,7 +54,7 @@ Systemctl status only shows the last ~10 lines. Use `journalctl` to see the full
 
 ---
 
-## 4. Managing Services
+## Managing Services
 
 * **Start/Stop/Restart:**
 
@@ -73,7 +73,7 @@ Systemctl status only shows the last ~10 lines. Use `journalctl` to see the full
 
 ---
 
-## 5. Critical Concept: Timers vs. Services
+## Critical Concept: Timers vs. Services
 
 For scheduled jobs (like backups or metrics), you have two units:
 

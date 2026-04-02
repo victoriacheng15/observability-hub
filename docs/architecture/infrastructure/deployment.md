@@ -11,7 +11,7 @@ Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **ArgoCD** | GitOps Orchestrator | Controller for declarative cluster state management and automated self-healing. |
-| **Analytics** | Host Telemetry Collector | DaemonSet for collecting host telemetry and gathering Tailscale status. |
+| **Unified Worker** | Batch Task Engine | CronJobs for collecting host telemetry (Analytics) and synchronizing data sources (Ingestion). |
 | **Cilium & Hubble** | eBPF Networking | CNI with eBPF-native datapath for L7 visibility (MQTT) and network-level observability. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
@@ -27,7 +27,6 @@ Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **Proxy Service** | API Gateway | Handles webhooks, GitOps triggers, and Data Pipelines. |
-| **Ingestion Service** | Data Orchestrator | Unified engine for syncing Reading Analytics and Second Brain knowledge. |
 
 ### 🛠️ Automation & Security (Native Script)
 
@@ -40,9 +39,9 @@ Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 
 ```mermaid
 sequenceDiagram
-    participant App as Go Services
+    participant App as Go Services (Proxy)
     participant MCP as MCP Gateway
-    participant Analytics_Agent as Analytics
+    participant Worker as Unified Worker (CronJob)
     participant Cilium as Cilium/Hubble (eBPF)
     participant OTel_Collector as OpenTelemetry Collector
     participant Observability as Observability (Loki, Prometheus, Tempo)
@@ -50,7 +49,7 @@ sequenceDiagram
 
     App->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     MCP->>OTel_Collector: Logs, Metrics, Traces (OTLP)
-    Analytics_Agent->>OTel_Collector: Metrics, Traces (OTLP)
+    Worker->>OTel_Collector: Logs, Metrics, Traces (OTLP)
     Cilium->>Observability: Network Flows & L7 Metrics
 
     OTel_Collector->>Observability: Push Logs, Metrics, Traces
