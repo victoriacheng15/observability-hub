@@ -18,6 +18,18 @@ The control plane for declarative infrastructure. Shows the 'App-of-Apps' patter
 
 ![ArgoCD UI](./argocd-ui.png)
 
+### Cilium Policies (ArgoCD Managed)
+
+Declarative management of eBPF-based security policies. ArgoCD ensures that the L3-L7 Cilium Network Policies are synchronized with the cluster's intended security posture.
+
+![Cilium Network Policies](./argocd-cillium-policy.png)
+
+### RBAC & Service Accounts
+
+Identity and Access Management (IAM) for the cluster. This view showcases the reconciled state of ServiceAccounts and RBAC bindings across all observability namespaces.
+
+![RBAC Service Accounts](./argocd-service-accounts.png)
+
 ## 📊 Observability Dashboards (LGTM Stack)
 
 ### Infrastructure & Host Health
@@ -45,6 +57,12 @@ Visualization of real-time telemetry from the simulation fleet. This dashboard t
 Sidecar-less networking visibility. Shows the service map, protocol-level interactions (L3/L4/L7), and security policy enforcement across the cluster.
 
 ![Hubble UI Observability](./hubble-ui-observability.png)
+
+### Hubble: Hub Domain Interactions
+
+Detailed view of traffic flows within the `hub` namespace. This captures the communication between analytical services and the core observability stack.
+
+![Hubble UI Hub](./hubble-ui-hub.png)
 
 ---
 

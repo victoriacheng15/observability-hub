@@ -72,16 +72,19 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 **Service Names:** `worker.analytics`, `worker.ingestion` | **Tracers:** `worker.analytics`, `worker.ingestion`, `worker.run`
 
 **Metrics (Emitted):**
+
 - `worker.batch.total`: Counter (Total worker invocations)
 - `worker.batch.errors.total`: Counter (Total execution failures)
 - `worker.batch.duration`: Histogram (Execution time per run in ms)
 
 **Mode-Specific Metrics:**
+
 - `worker.brain.sync.total`: Counter (Ingestion mode)
 - `worker.reading.sync.total`: Counter (Ingestion mode)
 - `worker.tailscale.active`: Observable Gauge (Analytics mode; 1 = Active)
 
 **Traces:**
+
 - `worker.run`: Root Span for every execution.
 - `db.postgres.*`, `github.fetch`, `thanos.query`: Mode-specific child spans.
 
