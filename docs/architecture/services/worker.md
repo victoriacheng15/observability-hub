@@ -11,14 +11,16 @@ To minimize operational overhead and resource fragmentation by providing a stand
 The worker operates in two primary modes, triggered via the `--mode` CLI flag:
 
 ### 1. Analytics Mode (`--mode analytics`)
+
 - **Mission**: Correlates infrastructure resource consumption (Energy, Cost) with platform outcomes.
-- **Sources**: 
+- **Sources**:
   - **Thanos**: Retrieves energy (Kepler) and host utilization metrics.
   - **Tailscale**: Inspects Funnel and mesh connectivity status.
 - **Persistence**: Records high-fidelity resource samples into the PostgreSQL `analytics_metrics` table.
 - **Scheduling**: Every 15 minutes via Kubernetes `CronJob`.
 
 ### 2. Ingestion Mode (`--mode ingestion`)
+
 - **Mission**: Synchronizes external data sources into the Hub's local analytical store.
 - **Sub-tasks**:
   - **Reading Sync**: Pulls article metadata and engagement metrics from MongoDB Atlas.
