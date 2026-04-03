@@ -21,7 +21,7 @@ patches:
         value: hardware-sim
       - op: replace
         path: /spec/replicas
-        value: 2
+        value: 1
       - op: replace
         path: /spec/template/spec/containers/0/env/1/value
         value: "hardware-sim"
@@ -31,7 +31,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/replicas
-        value: 8
+        value: 4
   # --- Simulation RBAC (hardware-sim) ---
   - target:
       name: hw-.*
