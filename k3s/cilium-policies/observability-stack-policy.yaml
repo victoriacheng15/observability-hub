@@ -420,7 +420,7 @@ spec:
 ---
 ################################################################################
 # NAMESPACE: hub
-# SCOPE: Grafana, n8n, Ollama, Analytics
+# SCOPE: Grafana, n8n, Analytics
 # PURPOSE: Secure observability UI and automation layer with external integrations
 ################################################################################
 apiVersion: "cilium.io/v2"
@@ -428,7 +428,7 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "hub-security"
 spec:
-  description: "Observability UI and automation (Grafana, n8n, Ollama, Analytics). Enables telemetry visualization and workflow automation while restricting unauthorized network access."
+  description: "Observability UI and automation (Grafana, n8n, Analytics). Enables telemetry visualization and workflow automation while restricting unauthorized network access."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
@@ -447,8 +447,6 @@ spec:
             protocol: TCP
           - port: "5678"
             protocol: TCP
-          - port: "11434"
-            protocol: TCP
     # 2. Allow external access to web UIs (Grafana, n8n)
     - fromEntities: [cluster, host, remote-node, world]
       toPorts:
@@ -458,8 +456,6 @@ spec:
           - port: "3000"
             protocol: TCP
           - port: "5678"
-            protocol: TCP
-          - port: "11434"
             protocol: TCP
     # 3. Allow observability stack to reach Grafana
     - fromEndpoints:
@@ -483,8 +479,6 @@ spec:
           - port: "3000"
             protocol: TCP
           - port: "5678"
-            protocol: TCP
-          - port: "11434"
             protocol: TCP
     # 2. Allow access to observability stack (Prometheus, Loki, Tempo, OpenTelemetry)
     - toEndpoints:

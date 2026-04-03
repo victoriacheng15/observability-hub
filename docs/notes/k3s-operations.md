@@ -165,12 +165,12 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-04-02 (Consolidated Analytics/Ingestion into Unified Worker)*
+- *Last Updated: 2026-04-03*
 
 | Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **worker (analytics)** | Small | 10m | 64Mi | 50m | 128Mi | Batch Telemetry Collection (CronJob) |
-| **worker (ingestion)** | Standard | 100m | 256Mi | 500m | 512Mi | Batch Data Synchronization (CronJob) |
+| **worker (ingestion)** | Small | 10m | 64Mi | 50m | 128Mi | Batch Data Synchronization (CronJob) |
 | **argocd** | Standard | 100m | 512Mi | 500m | 1Gi | GitOps Orchestration |
 | **cilium** | Large | 100m | 512Mi | 500m | 1Gi | Network Policies & L7 DPI (DaemonSet) |
 | **emqx** | Medium | 50m | 256Mi | 200m | 512Mi | MQTT Broker |
@@ -179,7 +179,6 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 | **loki** | Standard | 100m | 512Mi | 500m | 1Gi | Log Storage |
 | **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
 | **n8n** | Standard | 100m | 512Mi | 500m | 1Gi | Workflow Automation |
-| **ollama** | Custom | 2000m | 4Gi | 4000m | 8Gi | LLM Inference Engine |
 | **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace/Metric/Log Collector |
 | **pgadmin** | Medium | 100m | 256Mi | 500m | 512Mi | PostgreSQL Admin UI |
 | **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Database (HA x3) |
@@ -190,9 +189,8 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~1.36 Cores / 5.18Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~9.15 Cores / 20.37Gi RAM)**: The sum of all *Limits* (burst ceiling).
-- **Note**: Ollama is a special case (4 CPU / 8Gi RAM reserved for LLM inference).
+- **Mini Total (~1.58 Cores / 4.99Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~4.70 Cores / 12.00Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
