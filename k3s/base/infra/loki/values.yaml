@@ -28,11 +28,11 @@ loki:
           prefix: index_
           period: 24h
   limits_config:
-    retention_period: 720h
+    retention_period: 168h
     retention_stream:
       - selector: '{service!=""}'
         priority: 1
-        period: 720h
+        period: 168h
   compactor:
     working_directory: /var/loki/compactor
     compaction_interval: 10m
