@@ -26,15 +26,17 @@ type SystemSpec struct {
 
 // Hero represents the hero section of the landing page.
 type Hero struct {
-	Headline         string `yaml:"headline"`
-	SubHeadline      string `yaml:"sub_headline"`
-	BriefDescription string `yaml:"brief_description"`
-	CtaText          string `yaml:"cta_text"`
-	CtaLink          string `yaml:"cta_link"`
-	SecondaryCtaText string `yaml:"secondary_cta_text"`
-	SecondaryCtaLink string `yaml:"secondary_cta_link"`
-	TertiaryCtaText  string `yaml:"tertiary_cta_text"`
-	TertiaryCtaLink  string `yaml:"tertiary_cta_link"`
+	Headline          string `yaml:"headline"`
+	SubHeadline       string `yaml:"sub_headline"`
+	BriefDescription  string `yaml:"brief_description"`
+	CtaText           string `yaml:"cta_text"`
+	CtaLink           string `yaml:"cta_link"`
+	SecondaryCtaText  string `yaml:"secondary_cta_text"`
+	SecondaryCtaLink  string `yaml:"secondary_cta_link"`
+	TertiaryCtaText   string `yaml:"tertiary_cta_text"`
+	TertiaryCtaLink   string `yaml:"tertiary_cta_link"`
+	QuaternaryCtaText string `yaml:"quaternary_cta_text"`
+	QuaternaryCtaLink string `yaml:"quaternary_cta_link"`
 }
 
 // WhatIs represents the "What is" section.
