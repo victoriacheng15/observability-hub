@@ -4,7 +4,7 @@ server:
       cluster: homelab
   extraArgs:
     web.enable-remote-write-receiver: null
-    storage.tsdb.retention.time: 168h # Standard 1-week local retention
+    storage.tsdb.retention.time: 72h # Standard 3-day local retention
     storage.tsdb.min-block-duration: 2h
     storage.tsdb.max-block-duration: 2h
   thanos:
