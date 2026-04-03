@@ -164,9 +164,3 @@ variable "cilium_chart_version" {
   type        = string
   default     = "1.16.19"
 }
-
-variable "amdgpu_plugin_chart_version" {
-  description = "Helm chart version for AMD GPU Device Plugin."
-  type        = string
-  default     = "0.21.0"
-}

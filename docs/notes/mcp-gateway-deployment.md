@@ -12,17 +12,7 @@ The `mcp_obs_hub` gateway provides a unified **Model Context Protocol (MCP)** in
 make mcp-build
 ```
 
-This command:
-
-1. Compiles `cmd/mcp-obs-hub` → `bin/mcp_obs_hub`
-
-### Run Manually
-
-```bash
-./bin/mcp_obs_hub
-```
-
-Operational logs are emitted to **stderr** to ensure `stdout` remains dedicated to the JSON-RPC protocol required by MCP.
+This command compiles `cmd/mcp-obs-hub` → `bin/mcp_obs_hub`
 
 ---
 
