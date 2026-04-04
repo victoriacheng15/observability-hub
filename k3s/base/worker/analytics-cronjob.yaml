@@ -20,7 +20,7 @@ spec:
             - name: ghcr-auth
           containers:
           - name: worker
-            image: ghcr.io/victoriacheng15/observability-hub/worker:sha-fe25b96
+            image: ghcr.io/victoriacheng15/observability-hub/worker:sha-b541d13
             imagePullPolicy: Always
             args: ["--mode", "analytics"]
             env:
