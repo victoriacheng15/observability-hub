@@ -44,15 +44,14 @@ func ensureGlobalMetrics() {
 
 func (t *BrainTask) Name() string { return "brain" }
 
-var newBrainAPI = func() brain.BrainAPI { return brain.NewBrainAPI() }
-
 func (t *BrainTask) Run(ctx context.Context, s *store.Store, secretStore secrets.SecretStore) error {
 	ensureGlobalMetrics()
 	repo := os.Getenv("JOURNAL_REPO")
 	if repo == "" {
 		return fmt.Errorf("JOURNAL_REPO not set")
 	}
-	return t.Sync(ctx, repo, s, newBrainAPI())
+	token := os.Getenv("GITHUB_TOKEN")
+	return t.Sync(ctx, repo, s, brain.NewBrainAPI(token))
 }
 
 func (t *BrainTask) Sync(ctx context.Context, repo string, s *store.Store, api brain.BrainAPI) error {
