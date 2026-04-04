@@ -82,7 +82,7 @@ If a path is required by application configuration but is broader in policy than
 | `observability/loki` | `databases/minio` | `9000/TCP` | Log chunk and ruler object storage | Allowed across namespace boundary by `databases-core` |
 | `observability/prometheus + thanos-sidecar` | `databases/minio` | object store via Thanos config | Long-term metrics block storage | Allowed across namespace boundary by `databases-core` |
 | `argocd` components | `argocd` components | `80,443,6379,7000,8080,8081/TCP` | Internal control-plane communication | Explicitly allowed by `argocd-security` |
-| `databases` components | `databases` components | `80,5432,8000,9000,9001/TCP` | Postgres, pgAdmin, and MinIO internal flows | Explicitly allowed by `databases-core` |
+| `databases` components | `databases` components | `5432,8000,9000,9001/TCP` | Postgres and MinIO internal flows | Explicitly allowed by `databases-core` |
 
 ## Platform Dependency Flows
 
@@ -102,7 +102,7 @@ These paths exist today, but some are broader in policy than the desired long-te
 | :--- | :--- | :--- | :--- | :--- |
 | `argocd` | `github.com`, `gitlab.com`, related subdomains | `22/TCP`, `443/TCP`, `9418/TCP` | Repository sync | Explicitly scoped by `argocd-security` |
 | `hub/n8n` | external APIs and webhook destinations | `25/TCP`, `80/TCP`, `443/TCP`, `465/TCP`, `587/TCP`, `993/TCP`, `995/TCP` | Integrations, outbound webhooks, email | Broad wildcard FQDN egress in `hub-security` |
-| `databases/pgadmin` | external admin and SMTP destinations | `25/TCP`, `80/TCP`, `443/TCP`, `465/TCP`, `587/TCP` | Admin UI outbound access and mail delivery | Broad wildcard FQDN egress in `databases-core` |
+| `databases/postgres` | Azure Blob Storage | `443/TCP` | Database backups | Requires egress to Azure storage endpoints |
 
 ## External Ingress Surfaces
 
@@ -114,7 +114,6 @@ These are intentionally exposed today and should be part of every validation pas
 | `hub/n8n` | `5678/TCP` and service `80/TCP` | UI and webhook endpoint | Allowed from `world` by `hub-security` |
 | `hub/ollama` | `11434/TCP` | model endpoint | Allowed from `world` by `hub-security` |
 | `argocd/server` | `80/TCP`, `443/TCP`, `8080/TCP` | GitOps UI and API access | Allowed from `world` by `argocd-security` |
-| `databases/pgadmin` | `80/TCP` | DB admin UI | Allowed from `world` by `databases-core` |
 | `databases/postgres` | `5432/TCP` | Database access | Currently allowed from broad entities by `databases-core`; review whether this should remain externally reachable |
 | `databases/minio` | `9000/TCP`, `9001/TCP` | S3 API and console | Currently allowed from broad entities by `databases-core`; review whether this should remain externally reachable |
 
@@ -123,7 +122,6 @@ These are intentionally exposed today and should be part of every validation pas
 These items should be verified against live traffic before any tightening work:
 
 - which exact external domains n8n needs
-- whether pgAdmin actually requires all currently allowed outbound ports
 - whether any hub workload besides Grafana and n8n needs MinIO access
 - whether any observability service-port dependencies remain documented by container port instead of service port
 - whether `hardware-sim` needs its own namespace policy and baseline entries

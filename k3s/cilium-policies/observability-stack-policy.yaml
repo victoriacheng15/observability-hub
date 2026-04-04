@@ -198,15 +198,15 @@ spec:
 
 ################################################################################
 # NAMESPACE: databases
-# SCOPE: Postgres, MinIO, pgAdmin
-# PURPOSE: Secure data layer with controlled external access for DB management
+# SCOPE: Postgres, MinIO
+# PURPOSE: Secure data layer with controlled access for database operations
 ################################################################################
 apiVersion: "cilium.io/v2"
 kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "databases-core"
 spec:
-  description: "Database services (Postgres, MinIO, pgAdmin). Enforces microsegmentation for data layer with restricted external access for database administration."
+  description: "Database services (Postgres, MinIO). Enforces microsegmentation for data layer with restricted external access."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
@@ -219,8 +219,6 @@ spec:
           "k8s:io.kubernetes.pod.namespace": databases
       toPorts:
         - ports:
-          - port: "80"
-            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
@@ -249,12 +247,10 @@ spec:
         - ports:
           - port: "8000"
             protocol: TCP
-    # 4. External access (pgAdmin UI from browsers)
+    # 4. External access to Postgres and MinIO
     - fromEntities: [cluster, host, remote-node, world]
       toPorts:
         - ports:
-          - port: "80"
-            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
@@ -270,8 +266,6 @@ spec:
           "k8s:io.kubernetes.pod.namespace": databases
       toPorts:
         - ports:
-          - port: "80"
-            protocol: TCP
           - port: "5432"
             protocol: TCP
           - port: "8000"
@@ -298,22 +292,6 @@ spec:
           - port: "6443"
             protocol: TCP
           - port: "10250"
-            protocol: TCP
-    # 3. Allow pgAdmin egress for external services
-    - toFQDNs:
-      - matchPattern: "*"
-    - toEntities: [world]
-      toPorts:
-        - ports:
-          - port: "25"
-            protocol: TCP
-          - port: "587"
-            protocol: TCP
-          - port: "465"
-            protocol: TCP
-          - port: "80"
-            protocol: TCP
-          - port: "443"
             protocol: TCP
 
 ---

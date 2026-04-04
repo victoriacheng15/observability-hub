@@ -165,7 +165,7 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 ## 📊 Resource Limits Summary
 
-- *Last Updated: 2026-04-03*
+- *Last Updated: 2026-04-04*
 
 | Component | Profile | CPU Req | RAM Req | CPU Limit | RAM Limit | Purpose |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -180,7 +180,6 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 | **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
 | **n8n** | Standard | 100m | 512Mi | 500m | 1Gi | Workflow Automation |
 | **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace/Metric/Log Collector |
-| **pgadmin** | Medium | 100m | 256Mi | 500m | 512Mi | PostgreSQL Admin UI |
 | **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Database (HA x3) |
 | **prometheus** | Large | 200m | 512Mi | 1000m | 2Gi | Metrics Storage |
 | **prometheus-node-exporter** | Small | 10m | 64Mi | 50m | 128Mi | Node Metrics Collector (DaemonSet) |
@@ -189,8 +188,8 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 
 **Understanding Usage Totals:**
 
-- **Mini Total (~1.58 Cores / 4.99Gi RAM)**: The sum of all *Requests* (guaranteed resources).
-- **Max Total (~4.70 Cores / 12.00Gi RAM)**: The sum of all *Limits* (burst ceiling).
+- **Mini Total (~1.48 Cores / 4.74Gi RAM)**: The sum of all *Requests* (guaranteed resources).
+- **Max Total (~4.20 Cores / 11.50Gi RAM)**: The sum of all *Limits* (burst ceiling).
 
 ---
 
