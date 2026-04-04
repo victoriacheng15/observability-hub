@@ -83,7 +83,6 @@ The cluster has useful segmentation, but it is not full zero-trust yet.
 Important exceptions:
 
 - `hub` allows wildcard FQDN egress for n8n and related external API traffic
-- `databases` allows wildcard FQDN egress for pgAdmin and related admin traffic
 - several UI and admin ports still allow ingress from `world`
 
 This is intentional for now. It keeps core workflows working while the actual dependency graph is still being documented.
@@ -149,7 +148,6 @@ Minimum validation checklist:
 - n8n can reach Postgres and any required external APIs
 - ArgoCD can resolve DNS, reach the Kubernetes API, and sync repositories
 - Tempo, Loki, and Thanos can reach MinIO
-- pgAdmin remains reachable for required admin workflows
 
 ## What To Document Next
 
@@ -163,6 +161,5 @@ It should continue to cover:
 - `hub` to `observability`
 - `hub` to `databases`
 - `argocd` to Kubernetes API and git remotes
-- external destinations currently needed by n8n and pgAdmin
 
 Once those paths are explicit, targeted hardening becomes realistic and much safer.
