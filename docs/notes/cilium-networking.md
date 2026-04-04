@@ -44,9 +44,6 @@ The `observability-l7` policy enables HTTP and gRPC inspection for selected serv
 - Loki
 - Tempo
 - Prometheus
-- MinIO
-- Thanos
-- Kepler
 
 This is visibility-oriented policy, not full application isolation. It tells Cilium which ports are worth decoding at L7.
 
@@ -98,9 +95,6 @@ The current L7 ports matter because they map directly to platform behavior:
 - `4317`: OTLP over gRPC
 - `3200`: Tempo HTTP
 - `9090`: Prometheus HTTP
-- `9000`: MinIO S3 API
-- `10901` and `10902`: Thanos gRPC and HTTP
-- `28282`: Kepler metrics endpoint
 
 If Hubble is not showing L7 details for one of these services, verify both of the following:
 

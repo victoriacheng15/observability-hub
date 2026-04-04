@@ -22,7 +22,6 @@ spec:
           - loki
           - tempo
           - prometheus
-          - thanos
   ingress:
     - fromEntities: [all]
       toPorts:
@@ -36,10 +35,6 @@ spec:
           - port: "3200"
             protocol: TCP
           - port: "9090"
-            protocol: TCP
-          - port: "10901"
-            protocol: TCP
-          - port: "10902"
             protocol: TCP
           rules:
             http: [{}]
@@ -59,10 +54,6 @@ spec:
           - port: "3200"
             protocol: TCP
           - port: "9090"
-            protocol: TCP
-          - port: "10901"
-            protocol: TCP
-          - port: "10902"
             protocol: TCP
           rules:
             http: [{}]
@@ -282,6 +273,14 @@ spec:
           - port: "6443"
             protocol: TCP
           - port: "10250"
+            protocol: TCP
+    # 3. Allow egress to Azure Blob Storage for backups
+    - toFQDNs:
+      - matchPattern: "*.blob.core.windows.net"
+    - toEntities: [world]
+      toPorts:
+        - ports:
+          - port: "443"
             protocol: TCP
 
 ---
