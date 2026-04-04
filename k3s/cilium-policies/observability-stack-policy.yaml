@@ -22,9 +22,7 @@ spec:
           - loki
           - tempo
           - prometheus
-          - minio
           - thanos
-          - kepler
   ingress:
     - fromEntities: [all]
       toPorts:
@@ -39,13 +37,9 @@ spec:
             protocol: TCP
           - port: "9090"
             protocol: TCP
-          - port: "9000"
-            protocol: TCP
           - port: "10901"
             protocol: TCP
           - port: "10902"
-            protocol: TCP
-          - port: "28282"
             protocol: TCP
           rules:
             http: [{}]
@@ -66,13 +60,9 @@ spec:
             protocol: TCP
           - port: "9090"
             protocol: TCP
-          - port: "9000"
-            protocol: TCP
           - port: "10901"
             protocol: TCP
           - port: "10902"
-            protocol: TCP
-          - port: "28282"
             protocol: TCP
           rules:
             http: [{}]
