@@ -269,7 +269,7 @@ func TestRegistry_HubHandlers(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.HubInput{})
 				return res, err
 			},
-			want: "ingestion.service",
+			want: "proxy.service",
 		},
 		{
 			name: "observe_network_flows",

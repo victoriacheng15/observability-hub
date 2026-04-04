@@ -30,13 +30,11 @@ func TestHubProvider_ListHostServices(t *testing.T) {
 		{
 			name: "All Services Active",
 			mockOutput: map[string]string{
-				"ingestion.service":      "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 				"proxy.service":          "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 				"openbao.service":        "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 				"tailscale-gate.service": "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 			},
 			expectedStatus: []ServiceStatus{
-				{Name: "ingestion.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
 				{Name: "proxy.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
 				{Name: "openbao.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
 				{Name: "tailscale-gate.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
@@ -45,14 +43,12 @@ func TestHubProvider_ListHostServices(t *testing.T) {
 		{
 			name: "Service Inactive",
 			mockOutput: map[string]string{
-				"ingestion.service":      "ActiveState=inactive\nSubState=dead\nActiveEnterTimestamp=",
-				"proxy.service":          "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
+				"proxy.service":          "ActiveState=inactive\nSubState=dead\nActiveEnterTimestamp=",
 				"openbao.service":        "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 				"tailscale-gate.service": "ActiveState=active\nSubState=running\nActiveEnterTimestamp=Wed 2026-03-11",
 			},
 			expectedStatus: []ServiceStatus{
-				{Name: "ingestion.service", Active: "inactive", Sub: "dead", Since: ""},
-				{Name: "proxy.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
+				{Name: "proxy.service", Active: "inactive", Sub: "dead", Since: ""},
 				{Name: "openbao.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
 				{Name: "tailscale-gate.service", Active: "active", Sub: "running", Since: "Wed 2026-03-11"},
 			},
@@ -76,7 +72,6 @@ func TestHubProvider_ListHostServices(t *testing.T) {
 			p := &HubProvider{
 				runner: mock,
 				targetServices: []string{
-					"ingestion.service",
 					"proxy.service",
 					"openbao.service",
 					"tailscale-gate.service",
@@ -299,14 +294,14 @@ func TestHubProvider_InspectPlatform(t *testing.T) {
 			kubectlErr: nil,
 			mockSvcOut: "ActiveState=active\nSubState=running\nActiveEnterTimestamp=now",
 			wantK3s:    "healthy",
-			wantSvc:    "4/4",
+			wantSvc:    "3/3",
 		},
 		{
 			name:       "K3s Unreachable",
 			kubectlErr: errors.New("connection refused"),
 			mockSvcOut: "ActiveState=inactive\nSubState=dead\nActiveEnterTimestamp=",
 			wantK3s:    "unreachable",
-			wantSvc:    "4/4",
+			wantSvc:    "3/3",
 		},
 	}
 
@@ -325,7 +320,7 @@ func TestHubProvider_InspectPlatform(t *testing.T) {
 			}
 			p := &HubProvider{
 				runner:         mock,
-				targetServices: []string{"s1", "s2", "s3", "s4"},
+				targetServices: []string{"s1", "s2", "s3"},
 			}
 
 			got, err := p.InspectPlatform(context.Background())

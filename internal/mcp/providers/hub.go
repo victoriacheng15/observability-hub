@@ -34,7 +34,6 @@ func NewHubProvider() *HubProvider {
 	return &HubProvider{
 		runner: &RealCommandRunner{},
 		targetServices: []string{
-			"ingestion.service",
 			"proxy.service",
 			"openbao.service",
 			"tailscale-gate.service",
