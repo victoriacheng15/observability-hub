@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build build-log-analyzer
 
 format:
 	@echo "Formatting Go code..." && \
@@ -47,6 +47,10 @@ proxy-build:
 	sudo install -m 755 ./bin/proxy_server /usr/local/bin/proxy_server && \
 	sudo systemctl restart proxy.service && \
 	rm ./bin/proxy_server
+
+build-log-analyzer:
+	@echo "Building Rust log processor..." && \
+	cd internal/mcp/tools/log-processor && cargo build --release
 
 mcp-build:
 	@echo "Updating mcp_obs_hub..." && \
