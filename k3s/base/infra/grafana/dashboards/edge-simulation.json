@@ -1,7 +1,24 @@
 {
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 12,
   "links": [],
   "panels": [
     {
@@ -14,12 +31,13 @@
           "color": {
             "mode": "thresholds"
           },
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "red",
-                "value": null
+                "value": 0
               },
               {
                 "color": "green",
@@ -27,7 +45,8 @@
               }
             ]
           }
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -40,6 +59,8 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -47,8 +68,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "count(container_start_time_seconds{namespace=\"dev-hardware-sim\", container=\"sensor\"})",
@@ -68,12 +92,13 @@
           "color": {
             "mode": "thresholds"
           },
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "red",
-                "value": null
+                "value": 0
               },
               {
                 "color": "blue",
@@ -81,7 +106,8 @@
               }
             ]
           }
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -94,6 +120,8 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -101,8 +129,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "count(container_start_time_seconds{namespace=\"hardware-sim\", container=\"sensor\"})",
@@ -122,6 +153,128 @@
           "color": {
             "mode": "thresholds"
           },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Dev-Hub Controller",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 16,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "count(kube_pod_container_status_running{namespace=\"hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Hub Controller",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "decimals": 8,
           "mappings": [],
           "thresholds": {
@@ -129,12 +282,13 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "CAD"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -145,8 +299,10 @@
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -154,8 +310,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
@@ -182,12 +341,13 @@
             "steps": [
               {
                 "color": "cyan",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "CAD"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -200,6 +360,8 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "sum"
@@ -207,8 +369,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
@@ -235,12 +400,13 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "massg"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -253,6 +419,8 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "sum"
@@ -260,8 +428,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $carbon_intensity_kwh / 3600000",
@@ -282,17 +453,19 @@
             "mode": "thresholds"
           },
           "decimals": 8,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "orange",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "CAD"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -305,6 +478,8 @@
         "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -312,8 +487,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "(sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000) / ignoring(cluster, instance, job) (rate(emqx_messages_received{job=\"emqx\"}[1m]) * 3600 / 1000 + 0.0001)",
@@ -334,13 +512,56 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
             "axisLabel": "msg/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "lineWidth": 2
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           },
           "unit": "pps"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -351,15 +572,18 @@
       "id": 3,
       "options": {
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "rate(emqx_messages_received{job=\"emqx\"}[1m])",
@@ -381,9 +605,52 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "lineWidth": 2
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           },
           "unit": "watt"
         },
@@ -429,15 +696,18 @@
       "id": 4,
       "options": {
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum by (namespace) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
@@ -459,12 +729,56 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "lineWidth": 1
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           },
           "unit": "watt"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -475,15 +789,18 @@
       "id": 5,
       "options": {
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum by (namespace, pod) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
@@ -505,13 +822,56 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
             "axisLabel": "B/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "lineWidth": 1
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           },
           "unit": "Bps"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -522,15 +882,18 @@
       "id": 9,
       "options": {
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "right",
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "expr": "sum by (namespace, pod) (irate(container_network_transmit_bytes_total{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}[1m]))",
@@ -545,119 +908,11 @@
       ],
       "title": "Network Traffic Volume (Per-Sensor)",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "id": 15,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
-          "refId": "A"
-        }
-      ],
-      "title": "Dev-Hub Controller",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        }
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 16,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "expr": "count(kube_pod_container_status_running{namespace=\"hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
-          "refId": "A"
-        }
-      ],
-      "title": "Hub Controller",
-      "type": "stat"
     }
   ],
+  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 42,
   "tags": [
     "simulation",
     "finops"
@@ -667,21 +922,14 @@
       {
         "allValue": "hardware-sim|dev-hardware-sim",
         "current": {
-          "selected": true,
-          "text": "All",
+          "text": "$__all",
           "value": "$__all"
         },
-        "hide": 0,
         "includeAll": true,
         "label": "Simulation Namespace",
         "multi": true,
         "name": "simulation_namespace",
         "options": [
-          {
-            "selected": true,
-            "text": "All",
-            "value": "$__all"
-          },
           {
             "selected": false,
             "text": "hardware-sim",
@@ -694,16 +942,13 @@
           }
         ],
         "query": "hardware-sim,dev-hardware-sim",
-        "skipUrlSync": false,
         "type": "custom"
       },
       {
         "current": {
-          "selected": true,
           "text": "0.15",
           "value": "0.15"
         },
-        "hide": 0,
         "label": "Energy Cost (CAD/kWh)",
         "name": "energy_cost_kwh",
         "options": [
@@ -714,16 +959,13 @@
           }
         ],
         "query": "0.15",
-        "skipUrlSync": false,
         "type": "custom"
       },
       {
         "current": {
-          "selected": true,
           "text": "150",
           "value": "150"
         },
-        "hide": 0,
         "label": "Carbon Intensity (g/kWh)",
         "name": "carbon_intensity_kwh",
         "options": [
@@ -734,7 +976,6 @@
           }
         ],
         "query": "150",
-        "skipUrlSync": false,
         "type": "custom"
       }
     ]
@@ -743,6 +984,9 @@
     "from": "now-3h",
     "to": "now"
   },
+  "timepicker": {},
+  "timezone": "",
   "title": "Edge Simulation: Chaos & FinOps",
-  "uid": "edge-sim-finops-v1"
+  "uid": "edge-sim-finops-v1",
+  "version": 13
 }

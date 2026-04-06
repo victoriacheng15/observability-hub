@@ -57,7 +57,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -111,8 +111,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
-        "x": 12,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "id": 304,
@@ -122,7 +122,7 @@
         ],
         "legend": {
           "displayMode": "list",
-          "placement": "right",
+          "placement": "bottom",
           "showLegend": true
         },
         "pieType": "donut",
@@ -149,6 +149,134 @@
         }
       ],
       "title": "Energy Distribution by Feature",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 305,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Power Distribution by Namespace (Watts)",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "massg"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 306,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) * ($carbon_intensity_kwh / 1000)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Carbon Distribution by Namespace (gCO2/h)",
       "type": "piechart"
     },
     {
@@ -979,134 +1107,6 @@
       ],
       "title": "Carbon Intensity Breakdown",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": [],
-          "unit": "watt"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 31
-      },
-      "id": 305,
-      "options": {
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "sort": "desc",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "sum by (namespace) (rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))))",
-          "legendFormat": "{{namespace}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Power Distribution by Namespace (Watts)",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": [],
-          "unit": "massg"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 31
-      },
-      "id": 306,
-      "options": {
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "sort": "desc",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "sum by (namespace) (rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) * ($carbon_intensity_kwh / 1000)",
-          "legendFormat": "{{namespace}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Carbon Distribution by Namespace (gCO2/h)",
-      "type": "piechart"
     }
   ],
   "preload": false,
@@ -1162,5 +1162,5 @@
   "timezone": "",
   "title": "FinOps & Sustainability Hub",
   "uid": "finops-sustainability-hub",
-  "version": 1
+  "version": 20
 }
