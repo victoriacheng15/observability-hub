@@ -132,7 +132,10 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := NewQueryLogsHandler(mockQuery)
-			_, err := handler.Execute(context.Background(), QueryLogsInput{Query: tt.query})
+			// Point to a non-existent binary to test fail-open logic
+			handler.logProcessorPath = "/tmp/non-existent-binary"
+
+			result, err := handler.Execute(context.Background(), QueryLogsInput{Query: tt.query})
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("got error %v, want error %v", err, tt.wantErr)
@@ -140,6 +143,13 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 			if tt.wantErr && err != nil && tt.errMsg != "" {
 				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("got error %q, want error containing %q", err.Error(), tt.errMsg)
+				}
+			}
+
+			// For valid queries, ensure we get raw logs back (fail-open)
+			if !tt.wantErr && err == nil {
+				if result == nil {
+					t.Error("expected non-nil result for fail-open scenario")
 				}
 			}
 		})

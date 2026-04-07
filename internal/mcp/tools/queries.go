@@ -1,10 +1,14 @@
 package tools
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"observability-hub/internal/telemetry"
 )
@@ -93,13 +97,15 @@ type QueryLogsInput struct {
 
 // QueryLogsHandler executes a LogQL query and validates input safety.
 type QueryLogsHandler struct {
-	queryFunc func(ctx context.Context, query string, limit int, hours int) (interface{}, error)
+	queryFunc        func(ctx context.Context, query string, limit int, hours int) (interface{}, error)
+	logProcessorPath string
 }
 
 // NewQueryLogsHandler creates a new query logs handler.
 func NewQueryLogsHandler(queryFunc func(ctx context.Context, query string, limit int, hours int) (interface{}, error)) *QueryLogsHandler {
 	return &QueryLogsHandler{
-		queryFunc: queryFunc,
+		queryFunc:        queryFunc,
+		logProcessorPath: "/usr/local/bin/log-processor",
 	}
 }
 
@@ -116,8 +122,45 @@ func (h *QueryLogsHandler) Execute(ctx context.Context, input QueryLogsInput) (i
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
-	telemetry.Info("logs query handler executed successfully")
-	return result, nil
+	// Phase 2: Attempt to summarize logs using the Rust processor.
+	// We use a fail-open approach: if summarization fails, we return raw logs.
+	summarized, err := h.summarizeLogs(ctx, result)
+	if err != nil {
+		telemetry.Warn("log summarization failed, falling back to raw logs", "error", err)
+		return result, nil
+	}
+
+	telemetry.Info("logs query handler executed successfully (summarized)")
+	return summarized, nil
+}
+
+// summarizeLogs pipes the raw Loki response through the Rust log-processor binary.
+func (h *QueryLogsHandler) summarizeLogs(ctx context.Context, raw interface{}) (interface{}, error) {
+	rawJSON, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal raw logs: %w", err)
+	}
+
+	// Create command with 5s timeout to prevent hanging the MCP server
+	childCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(childCtx, h.logProcessorPath)
+	cmd.Stdin = bytes.NewReader(rawJSON)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("rust processor execution failed: %w", err)
+	}
+
+	var summarized interface{}
+	if err := json.Unmarshal(out.Bytes(), &summarized); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal summarized logs: %w", err)
+	}
+
+	return summarized, nil
 }
 
 // validateInput performs safety checks on LogQL query.
