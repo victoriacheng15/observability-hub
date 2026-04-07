@@ -101,7 +101,7 @@ These paths exist today, but some are broader in policy than the desired long-te
 | Source | Destination | Port / Protocol | Purpose | Current Policy State |
 | :--- | :--- | :--- | :--- | :--- |
 | `argocd` | `github.com`, `gitlab.com`, related subdomains | `22/TCP`, `443/TCP`, `9418/TCP` | Repository sync | Explicitly scoped by `argocd-security` |
-| `hub/n8n` | external APIs and webhook destinations | `25/TCP`, `80/TCP`, `443/TCP`, `465/TCP`, `587/TCP`, `993/TCP`, `995/TCP` | Integrations, outbound webhooks, email | Broad wildcard FQDN egress in `hub-security` |
+| `hub/n8n` | external APIs and webhook destinations | `25/TCP`, `80/TCP`, `443/TCP`, `465/TCP`, `587/TCP` | Integrations, outbound webhooks, email | Broad wildcard FQDN egress in `hub-security` |
 | `databases/postgres` | Azure Blob Storage | `443/TCP` | Database backups | Requires egress to Azure storage endpoints |
 
 ## External Ingress Surfaces
