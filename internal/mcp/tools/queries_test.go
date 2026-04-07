@@ -134,7 +134,7 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 			handler := NewQueryLogsHandler(mockQuery)
 			// Point to a non-existent binary to test fail-open logic
 			handler.logProcessorPath = "/tmp/non-existent-binary"
-			
+
 			result, err := handler.Execute(context.Background(), QueryLogsInput{Query: tt.query})
 
 			if (err != nil) != tt.wantErr {

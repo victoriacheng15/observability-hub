@@ -70,12 +70,16 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
 
     // 2. Construct final summary (Priority: ERROR > WARN > INFO)
     let mut final_entries = Vec::new();
-    
+
     // Process Errors
     let mut err_msgs: Vec<_> = error_counts.into_iter().collect();
     err_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in err_msgs {
-        let suffix = if count > 1 { format!(" (x{})", count) } else { "".to_string() };
+        let suffix = if count > 1 {
+            format!(" (x{})", count)
+        } else {
+            "".to_string()
+        };
         final_entries.push(format!("[ERROR] {}{}", msg, suffix));
     }
 
@@ -83,7 +87,11 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
     let mut warn_msgs: Vec<_> = warn_counts.into_iter().collect();
     warn_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in warn_msgs {
-        let suffix = if count > 1 { format!(" (x{})", count) } else { "".to_string() };
+        let suffix = if count > 1 {
+            format!(" (x{})", count)
+        } else {
+            "".to_string()
+        };
         final_entries.push(format!("[WARN] {}{}", msg, suffix));
     }
 
@@ -91,7 +99,11 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
     let mut info_msgs: Vec<_> = info_counts.into_iter().collect();
     info_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in info_msgs {
-        let suffix = if count > 1 { format!(" (x{})", count) } else { "".to_string() };
+        let suffix = if count > 1 {
+            format!(" (x{})", count)
+        } else {
+            "".to_string()
+        };
         final_entries.push(format!("[INFO] {}{}", msg, suffix));
     }
 
@@ -131,8 +143,9 @@ mod tests {
     fn create_mock_response(level: &str, messages: Vec<&str>) -> LokiResponse {
         let mut stream = HashMap::new();
         stream.insert("level".to_string(), level.to_string());
-        
-        let values = messages.into_iter()
+
+        let values = messages
+            .into_iter()
             .map(|m| vec!["12345".to_string(), m.to_string()])
             .collect();
 
@@ -140,10 +153,7 @@ mod tests {
             status: "success".to_string(),
             data: LokiData {
                 result_type: "streams".to_string(),
-                result: vec![LokiStream {
-                    stream,
-                    values,
-                }],
+                result: vec![LokiStream { stream, values }],
             },
         }
     }
@@ -152,7 +162,7 @@ mod tests {
     fn test_deduplication_info() {
         let resp = create_mock_response("info", vec!["pulse", "pulse", "unique"]);
         let result = process_loki_response(resp);
-        
+
         assert_eq!(result.total_raw_lines, 3);
         assert_eq!(result.summarized_count, 2);
         assert!(result.entries.contains(&"[INFO] pulse (x2)".to_string()));
@@ -163,7 +173,7 @@ mod tests {
     fn test_deduplication_error() {
         let resp = create_mock_response("error", vec!["fail", "fail", "broken"]);
         let result = process_loki_response(resp);
-        
+
         assert_eq!(result.total_raw_lines, 3);
         assert_eq!(result.summarized_count, 2);
         assert!(result.entries.contains(&"[ERROR] fail (x2)".to_string()));
@@ -183,7 +193,7 @@ mod tests {
         });
 
         let result = process_loki_response(resp);
-        
+
         // Errors should come before Info
         assert_eq!(result.entries[0], "[ERROR] e1");
         assert_eq!(result.entries[1], "[INFO] i1");
@@ -193,7 +203,7 @@ mod tests {
     fn test_alternate_level_labels() {
         let mut stream = HashMap::new();
         stream.insert("detected_level".to_string(), "WARN".to_string());
-        
+
         let resp = LokiResponse {
             status: "success".to_string(),
             data: LokiData {
