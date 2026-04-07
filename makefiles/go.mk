@@ -52,7 +52,9 @@ build-log-analyzer:
 	@echo "Building Rust log processor..." && \
 	cd internal/mcp/tools/log-processor && cargo build --release
 
-mcp-build:
+mcp-build: build-log-analyzer
+	@echo "Installing Rust log processor..." && \
+	sudo install -m 755 ./internal/mcp/tools/log-processor/target/release/log-processor /usr/local/bin/log-processor
 	@echo "Updating mcp_obs_hub..." && \
 	go build -o ./bin/mcp_obs_hub ./cmd/mcp-obs-hub && \
 	sudo install -m 755 ./bin/mcp_obs_hub /usr/local/bin/mcp_obs_hub && \
