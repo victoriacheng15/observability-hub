@@ -105,7 +105,7 @@ type QueryLogsHandler struct {
 func NewQueryLogsHandler(queryFunc func(ctx context.Context, query string, limit int, hours int) (interface{}, error)) *QueryLogsHandler {
 	return &QueryLogsHandler{
 		queryFunc:        queryFunc,
-		logProcessorPath: "/usr/local/bin/log-processor",
+		logProcessorPath: "/usr/local/bin/obs-processor",
 	}
 }
 
@@ -145,7 +145,7 @@ func (h *QueryLogsHandler) summarizeLogs(ctx context.Context, raw interface{}) (
 	childCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(childCtx, h.logProcessorPath)
+	cmd := exec.CommandContext(childCtx, h.logProcessorPath, "--type", "logs")
 	cmd.Stdin = bytes.NewReader(rawJSON)
 
 	var out bytes.Buffer

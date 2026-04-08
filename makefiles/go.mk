@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build build-log-analyzer
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build obs-processor
 
 format:
 	@echo "Formatting Go code..." && \
@@ -48,13 +48,13 @@ proxy-build:
 	sudo systemctl restart proxy.service && \
 	rm ./bin/proxy_server
 
-build-log-analyzer:
-	@echo "Building Rust log processor..." && \
-	cd internal/mcp/tools/log-processor && cargo build --release
+obs-processor:
+	@echo "Building Rust observability processor..." && \
+	cargo build --release -p obs-processor
 
-mcp-build: build-log-analyzer
-	@echo "Installing Rust log processor..." && \
-	sudo install -m 755 ./internal/mcp/tools/log-processor/target/release/log-processor /usr/local/bin/log-processor
+mcp-build: obs-processor
+	@echo "Installing Rust observability processor..." && \
+	sudo install -m 755 ./target/release/obs-processor /usr/local/bin/obs-processor
 	@echo "Updating mcp_obs_hub..." && \
 	go build -o ./bin/mcp_obs_hub ./cmd/mcp-obs-hub && \
 	sudo install -m 755 ./bin/mcp_obs_hub /usr/local/bin/mcp_obs_hub && \
