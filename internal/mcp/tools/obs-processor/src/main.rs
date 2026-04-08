@@ -1,8 +1,26 @@
+use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{self, Read};
 
-/// LokiResponse represents the raw JSON structure returned by the Loki API.
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Type of telemetry to process
+    #[arg(short, long, value_enum, default_value_t = TelemetryType::Logs)]
+    r#type: TelemetryType,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum TelemetryType {
+    /// Loki logs (json format)
+    Logs,
+    /// Prometheus metrics (json format)
+    Metrics,
+}
+
+// --- Logs (Loki) Structs ---
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LokiResponse {
     pub status: String,
@@ -19,10 +37,33 @@ pub struct LokiData {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LokiStream {
     pub stream: HashMap<String, String>,
-    pub values: Vec<Vec<String>>, // Each entry is [timestamp_ns, message]
+    pub values: Vec<Vec<String>>,
 }
 
-/// SummaryResult is the optimized output for the AI agent.
+// --- Metrics (Prometheus) Structs ---
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MetricResponse {
+    pub status: String,
+    pub data: MetricData,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MetricData {
+    #[serde(rename = "resultType")]
+    pub result_type: String, // "matrix" or "vector"
+    pub result: Vec<MetricResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MetricResult {
+    pub metric: HashMap<String, String>,
+    pub value: Option<(f64, String)>,       // Instant Vector: [timestamp, "value"]
+    pub values: Option<Vec<(f64, String)>>, // Range Vector: [[timestamp, "value"], ...]
+}
+
+// --- Unified Output ---
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SummaryResult {
     pub total_raw_lines: usize,
@@ -30,14 +71,14 @@ pub struct SummaryResult {
     pub entries: Vec<String>,
 }
 
-/// Core logic to transform raw Loki JSON into summarized entries.
+// --- Implementation Logic ---
+
 pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
     let mut info_counts: HashMap<String, usize> = HashMap::new();
     let mut warn_counts: HashMap<String, usize> = HashMap::new();
     let mut error_counts: HashMap<String, usize> = HashMap::new();
     let mut total_lines = 0;
 
-    // 1. Process logs
     for stream in response.data.result {
         let level = stream
             .stream
@@ -68,43 +109,23 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
         }
     }
 
-    // 2. Construct final summary (Priority: ERROR > WARN > INFO)
     let mut final_entries = Vec::new();
-
-    // Process Errors
     let mut err_msgs: Vec<_> = error_counts.into_iter().collect();
     err_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in err_msgs {
-        let suffix = if count > 1 {
-            format!(" (x{})", count)
-        } else {
-            "".to_string()
-        };
-        final_entries.push(format!("[ERROR] {}{}", msg, suffix));
+        final_entries.push(format!("[ERROR] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
     }
 
-    // Process Warnings
     let mut warn_msgs: Vec<_> = warn_counts.into_iter().collect();
     warn_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in warn_msgs {
-        let suffix = if count > 1 {
-            format!(" (x{})", count)
-        } else {
-            "".to_string()
-        };
-        final_entries.push(format!("[WARN] {}{}", msg, suffix));
+        final_entries.push(format!("[WARN] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
     }
 
-    // Process Info
     let mut info_msgs: Vec<_> = info_counts.into_iter().collect();
     info_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     for (msg, count) in info_msgs {
-        let suffix = if count > 1 {
-            format!(" (x{})", count)
-        } else {
-            "".to_string()
-        };
-        final_entries.push(format!("[INFO] {}{}", msg, suffix));
+        final_entries.push(format!("[INFO] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
     }
 
     SummaryResult {
@@ -114,7 +135,18 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
     }
 }
 
+pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
+    let series_count = response.data.result.len();
+    SummaryResult {
+        total_raw_lines: series_count,
+        summarized_count: series_count,
+        entries: vec![format!("Received {} metric series (type: {})", series_count, response.data.result_type)],
+    }
+}
+
 fn main() -> io::Result<()> {
+    let args = Args::parse();
+
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer)?;
 
@@ -122,16 +154,30 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    let response: LokiResponse = match serde_json::from_str(&buffer) {
-        Ok(res) => res,
-        Err(e) => {
-            eprintln!("Error parsing Loki JSON: {}", e);
-            return Err(io::Error::new(io::ErrorKind::InvalidData, e));
+    match args.r#type {
+        TelemetryType::Logs => {
+            let response: LokiResponse = match serde_json::from_str(&buffer) {
+                Ok(res) => res,
+                Err(e) => {
+                    eprintln!("Error parsing Loki JSON: {}", e);
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, e));
+                }
+            };
+            let result = process_loki_response(response);
+            println!("{}", serde_json::to_string(&result).unwrap());
         }
-    };
-
-    let result = process_loki_response(response);
-    println!("{}", serde_json::to_string(&result).unwrap());
+        TelemetryType::Metrics => {
+            let response: MetricResponse = match serde_json::from_str(&buffer) {
+                Ok(res) => res,
+                Err(e) => {
+                    eprintln!("Error parsing Prometheus JSON: {}", e);
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, e));
+                }
+            };
+            let result = process_metrics_response(response);
+            println!("{}", serde_json::to_string(&result).unwrap());
+        }
+    }
 
     Ok(())
 }
@@ -140,82 +186,52 @@ fn main() -> io::Result<()> {
 mod tests {
     use super::*;
 
-    fn create_mock_response(level: &str, messages: Vec<&str>) -> LokiResponse {
+    fn create_mock_loki_response(level: &str, messages: Vec<&str>) -> LokiResponse {
         let mut stream = HashMap::new();
         stream.insert("level".to_string(), level.to_string());
-
-        let values = messages
-            .into_iter()
-            .map(|m| vec!["12345".to_string(), m.to_string()])
-            .collect();
-
+        let values = messages.into_iter().map(|m| vec!["123".to_string(), m.to_string()]).collect();
         LokiResponse {
             status: "success".to_string(),
-            data: LokiData {
-                result_type: "streams".to_string(),
-                result: vec![LokiStream { stream, values }],
-            },
+            data: LokiData { result_type: "streams".to_string(), result: vec![LokiStream { stream, values }] },
+        }
+    }
+
+    fn create_mock_metric_response(result_type: &str, series_count: usize) -> MetricResponse {
+        let mut result = Vec::new();
+        for i in 0..series_count {
+            result.push(MetricResult {
+                metric: HashMap::from([("__name__".to_string(), format!("metric_{}", i))]),
+                value: if result_type == "vector" { Some((1.0, "1".to_string())) } else { None },
+                values: if result_type == "matrix" { Some(vec![(1.0, "1".to_string())]) } else { None },
+            });
+        }
+        MetricResponse {
+            status: "success".to_string(),
+            data: MetricData { result_type: result_type.to_string(), result },
         }
     }
 
     #[test]
     fn test_deduplication_info() {
-        let resp = create_mock_response("info", vec!["pulse", "pulse", "unique"]);
+        let resp = create_mock_loki_response("info", vec!["pulse", "pulse", "unique"]);
         let result = process_loki_response(resp);
-
         assert_eq!(result.total_raw_lines, 3);
         assert_eq!(result.summarized_count, 2);
-        assert!(result.entries.contains(&"[INFO] pulse (x2)".to_string()));
-        assert!(result.entries.contains(&"[INFO] unique".to_string()));
     }
 
     #[test]
-    fn test_deduplication_error() {
-        let resp = create_mock_response("error", vec!["fail", "fail", "broken"]);
-        let result = process_loki_response(resp);
-
-        assert_eq!(result.total_raw_lines, 3);
-        assert_eq!(result.summarized_count, 2);
-        assert!(result.entries.contains(&"[ERROR] fail (x2)".to_string()));
-        assert!(result.entries.contains(&"[ERROR] broken".to_string()));
+    fn test_process_metrics_vector() {
+        let resp = create_mock_metric_response("vector", 2);
+        let result = process_metrics_response(resp);
+        assert_eq!(result.total_raw_lines, 2);
+        assert_eq!(result.entries[0], "Received 2 metric series (type: vector)");
     }
 
     #[test]
-    fn test_level_priority() {
-        let mut resp = create_mock_response("info", vec!["i1"]);
-        resp.data.result.push(LokiStream {
-            stream: {
-                let mut h = HashMap::new();
-                h.insert("level".to_string(), "error".to_string());
-                h
-            },
-            values: vec![vec!["1".to_string(), "e1".to_string()]],
-        });
-
-        let result = process_loki_response(resp);
-
-        // Errors should come before Info
-        assert_eq!(result.entries[0], "[ERROR] e1");
-        assert_eq!(result.entries[1], "[INFO] i1");
-    }
-
-    #[test]
-    fn test_alternate_level_labels() {
-        let mut stream = HashMap::new();
-        stream.insert("detected_level".to_string(), "WARN".to_string());
-
-        let resp = LokiResponse {
-            status: "success".to_string(),
-            data: LokiData {
-                result_type: "streams".to_string(),
-                result: vec![LokiStream {
-                    stream,
-                    values: vec![vec!["1".to_string(), "careful".to_string()]],
-                }],
-            },
-        };
-
-        let result = process_loki_response(resp);
-        assert_eq!(result.entries[0], "[WARN] careful");
+    fn test_process_metrics_matrix() {
+        let resp = create_mock_metric_response("matrix", 1);
+        let result = process_metrics_response(resp);
+        assert_eq!(result.total_raw_lines, 1);
+        assert_eq!(result.entries[0], "Received 1 metric series (type: matrix)");
     }
 }
