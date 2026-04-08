@@ -90,7 +90,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.QueryMetricsInput{Query: "up"})
 				return res, err
 			},
-			want: `"status":"success"`,
+			want: `"summarized_count"`,
 		},
 		{
 			name: "query_logs",
@@ -99,7 +99,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.QueryLogsInput{Query: `{service="proxy"}`, Limit: 1, Hours: 1})
 				return res, err
 			},
-			want: `"status":"success"`,
+			want: `"summarized_count"`,
 		},
 		{
 			name: "query_traces_by_id",

@@ -33,13 +33,15 @@ type QueryMetricsInput struct {
 
 // QueryMetricsHandler executes a PromQL query and validates input safety.
 type QueryMetricsHandler struct {
-	queryFunc func(ctx context.Context, query string) (interface{}, error)
+	queryFunc     func(ctx context.Context, query string) (interface{}, error)
+	processorPath string
 }
 
 // NewQueryMetricsHandler creates a new query metrics handler.
 func NewQueryMetricsHandler(queryFunc func(ctx context.Context, query string) (interface{}, error)) *QueryMetricsHandler {
 	return &QueryMetricsHandler{
-		queryFunc: queryFunc,
+		queryFunc:     queryFunc,
+		processorPath: "/usr/local/bin/obs-processor",
 	}
 }
 
@@ -58,8 +60,45 @@ func (h *QueryMetricsHandler) Execute(ctx context.Context, input QueryMetricsInp
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
-	telemetry.Info("query handler executed successfully")
-	return result, nil
+	// Phase 3: Attempt to summarize metrics using the Rust processor.
+	// We use a fail-open approach: if summarization fails, we return raw metrics.
+	summarized, err := h.summarizeMetrics(ctx, result)
+	if err != nil {
+		telemetry.Warn("metrics summarization failed, falling back to raw data", "error", err)
+		return result, nil
+	}
+
+	telemetry.Info("query handler executed successfully (summarized)")
+	return summarized, nil
+}
+
+// summarizeMetrics pipes the raw Prometheus response through the Rust processor binary.
+func (h *QueryMetricsHandler) summarizeMetrics(ctx context.Context, raw interface{}) (interface{}, error) {
+	rawJSON, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal raw metrics: %w", err)
+	}
+
+	// Create command with 5s timeout to prevent hanging the MCP server
+	childCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(childCtx, h.processorPath, "--type", "metrics")
+	cmd.Stdin = bytes.NewReader(rawJSON)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("rust processor execution failed: %w", err)
+	}
+
+	var summarized interface{}
+	if err := json.Unmarshal(out.Bytes(), &summarized); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal summarized metrics: %w", err)
+	}
+
+	return summarized, nil
 }
 
 // validateInput performs safety checks on PromQL query.

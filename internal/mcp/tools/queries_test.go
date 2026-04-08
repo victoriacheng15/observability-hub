@@ -43,32 +43,35 @@ func TestQueryMetricsHandler_Execute(t *testing.T) {
 			name:    "dangerous keyword delete",
 			query:   "DELETE FROM metrics",
 			wantErr: true,
-			errMsg:  "dangerous keyword: delete",
+			errMsg:  "potentially dangerous keyword: delete",
 		},
 		{
 			name:    "dangerous keyword drop",
 			query:   "DROP TABLE metrics",
 			wantErr: true,
-			errMsg:  "dangerous keyword: drop",
+			errMsg:  "potentially dangerous keyword: drop",
 		},
 		{
 			name:    "dangerous keyword insert",
 			query:   "INSERT INTO metrics VALUES (1)",
 			wantErr: true,
-			errMsg:  "dangerous keyword: insert",
+			errMsg:  "potentially dangerous keyword: insert",
 		},
 		{
 			name:    "case insensitive delete",
 			query:   "dElEtE",
 			wantErr: true,
-			errMsg:  "dangerous keyword: delete",
+			errMsg:  "potentially dangerous keyword: delete",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := NewQueryMetricsHandler(mockQuery)
-			_, err := handler.Execute(context.Background(), QueryMetricsInput{Query: tt.query})
+			// Point to a non-existent binary to test fail-open logic
+			handler.processorPath = "/tmp/non-existent-binary"
+
+			result, err := handler.Execute(context.Background(), QueryMetricsInput{Query: tt.query})
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("got error %v, want error %v", err, tt.wantErr)
@@ -76,6 +79,13 @@ func TestQueryMetricsHandler_Execute(t *testing.T) {
 			if tt.wantErr && err != nil && tt.errMsg != "" {
 				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("got error %q, want error containing %q", err.Error(), tt.errMsg)
+				}
+			}
+
+			// For valid queries, ensure we get raw metrics back (fail-open)
+			if !tt.wantErr && err == nil {
+				if result == nil {
+					t.Error("expected non-nil result for fail-open scenario")
 				}
 			}
 		})
@@ -119,13 +129,13 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 			name:    "dangerous keyword delete",
 			query:   "DELETE FROM logs",
 			wantErr: true,
-			errMsg:  "dangerous keyword: delete",
+			errMsg:  "potentially dangerous keyword: delete",
 		},
 		{
 			name:    "dangerous keyword drop",
 			query:   "drop table logs",
 			wantErr: true,
-			errMsg:  "dangerous keyword: drop",
+			errMsg:  "potentially dangerous keyword: drop",
 		},
 	}
 
