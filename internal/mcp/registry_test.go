@@ -81,7 +81,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 	tests := []struct {
 		name    string
 		handler func(ctx context.Context) (*sdkmcp.CallToolResult, error)
-		want    string
+		wants   []string // Accept any of these substrings (supports raw and summarized modes)
 	}{
 		{
 			name: "query_metrics",
@@ -90,7 +90,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.QueryMetricsInput{Query: "up"})
 				return res, err
 			},
-			want: `"status":"success"`,
+			wants: []string{`"summarized_count"`, `"status":"success"`},
 		},
 		{
 			name: "query_logs",
@@ -99,7 +99,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.QueryLogsInput{Query: `{service="proxy"}`, Limit: 1, Hours: 1})
 				return res, err
 			},
-			want: `"status":"success"`,
+			wants: []string{`"summarized_count"`, `"status":"success"`},
 		},
 		{
 			name: "query_traces_by_id",
@@ -108,7 +108,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.QueryTracesInput{TraceID: "4bf92f3577b34da6a3ce929d0e0e4736"})
 				return res, err
 			},
-			want: "4bf92f3577b34da6a3ce929d0e0e4736",
+			wants: []string{"4bf92f3577b34da6a3ce929d0e0e4736"},
 		},
 		{
 			name: "investigate_incident",
@@ -117,7 +117,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				res, _, err := h(ctx, nil, tools.InvestigateIncidentInput{Service: "proxy", Hours: 1})
 				return res, err
 			},
-			want: `"service":"proxy"`,
+			wants: []string{`"service":"proxy"`},
 		},
 	}
 
@@ -128,8 +128,16 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 				t.Fatalf("handler failed: %v", err)
 			}
 			tc := res.Content[0].(*sdkmcp.TextContent)
-			if !strings.Contains(tc.Text, tt.want) {
-				t.Errorf("got %s, want to contain %s", tc.Text, tt.want)
+
+			found := false
+			for _, want := range tt.wants {
+				if strings.Contains(tc.Text, want) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("got %s, want to contain any of %v", tc.Text, tt.wants)
 			}
 		})
 	}
