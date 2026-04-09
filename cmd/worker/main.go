@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"observability-hub/internal/env"
 	"observability-hub/internal/telemetry"
@@ -50,6 +51,12 @@ func main() {
 	defer deps.Close()
 
 	// 6. Route to specific task
+	meter := telemetry.GetMeter("worker.run")
+	batchCounter, _ := telemetry.NewInt64Counter(meter, "worker.batch.total", "Total worker runs")
+	errorCounter, _ := telemetry.NewInt64Counter(meter, "worker.batch.errors.total", "Total worker errors")
+	durationHist, _ := telemetry.NewInt64Histogram(meter, "worker.batch.duration", "Execution time", "ms")
+	startTime := time.Now()
+
 	switch *mode {
 	case "analytics":
 		err = runAnalytics(ctx, deps)
@@ -60,7 +67,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	durationMs := time.Since(startTime).Milliseconds()
+	telemetry.RecordInt64Histogram(ctx, durationHist, durationMs, telemetry.StringAttribute("mode", *mode))
+	telemetry.AddInt64Counter(ctx, batchCounter, 1, telemetry.StringAttribute("mode", *mode))
+
 	if err != nil {
+		telemetry.AddInt64Counter(ctx, errorCounter, 1, telemetry.StringAttribute("mode", *mode))
 		telemetry.Error("task_execution_failed", "mode", *mode, "error", err)
 		os.Exit(1)
 	}
