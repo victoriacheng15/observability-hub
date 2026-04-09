@@ -119,7 +119,7 @@ resource "kubernetes_manifest" "postgres_cluster" {
         shared_preload_libraries = ["timescaledb", "pg_stat_statements"]
         parameters = {
           "archive_mode"               = "on"
-          "archive_timeout"            = "5min"
+          "archive_timeout"            = "30min"
           "dynamic_shared_memory_type" = "posix"
           "full_page_writes"           = "on"
           "log_destination"            = "csvlog"
