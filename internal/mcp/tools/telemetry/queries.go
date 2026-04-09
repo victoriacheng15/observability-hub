@@ -1,4 +1,4 @@
-package tools
+package telemetry
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"observability-hub/internal/telemetry"
+	libtelemetry "observability-hub/internal/telemetry"
 )
 
 // dangerousPatterns are keywords that must not appear in any query.
@@ -49,14 +49,14 @@ func NewQueryMetricsHandler(queryFunc func(ctx context.Context, query string) (i
 func (h *QueryMetricsHandler) Execute(ctx context.Context, input QueryMetricsInput) (interface{}, error) {
 	// Validate input
 	if err := h.validateInput(input); err != nil {
-		telemetry.Warn("query validation failed", "error", err)
+		libtelemetry.Warn("query validation failed", "error", err)
 		return nil, err
 	}
 
 	// Execute query through provider
 	result, err := h.queryFunc(ctx, input.Query)
 	if err != nil {
-		telemetry.Error("query execution failed", "error", err)
+		libtelemetry.Error("query execution failed", "error", err)
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
@@ -64,11 +64,11 @@ func (h *QueryMetricsHandler) Execute(ctx context.Context, input QueryMetricsInp
 	// We use a fail-open approach: if summarization fails, we return raw metrics.
 	summarized, err := h.summarizeMetrics(ctx, result)
 	if err != nil {
-		telemetry.Warn("metrics summarization failed, falling back to raw data", "error", err)
+		libtelemetry.Warn("metrics summarization failed, falling back to raw data", "error", err)
 		return result, nil
 	}
 
-	telemetry.Info("query handler executed successfully (summarized)")
+	libtelemetry.Info("query handler executed successfully (summarized)")
 	return summarized, nil
 }
 
@@ -110,14 +110,14 @@ func (h *QueryMetricsHandler) validateInput(input QueryMetricsInput) error {
 	}
 
 	if len(query) > 5000 {
-		telemetry.Warn("query exceeds max length", "query_len", len(query))
+		libtelemetry.Warn("query exceeds max length", "query_len", len(query))
 		return fmt.Errorf("query too long (max 5000 chars)")
 	}
 
 	lower := strings.ToLower(query)
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(lower, pattern) {
-			telemetry.Warn("dangerous keyword detected in query", "keyword", pattern)
+			libtelemetry.Warn("dangerous keyword detected in query", "keyword", pattern)
 			return fmt.Errorf("query contains potentially dangerous keyword: %s", pattern)
 		}
 	}
@@ -151,13 +151,13 @@ func NewQueryLogsHandler(queryFunc func(ctx context.Context, query string, limit
 // Execute runs the query_logs tool with safety validation.
 func (h *QueryLogsHandler) Execute(ctx context.Context, input QueryLogsInput) (interface{}, error) {
 	if err := h.validateInput(input); err != nil {
-		telemetry.Warn("logs query validation failed", "error", err)
+		libtelemetry.Warn("logs query validation failed", "error", err)
 		return nil, err
 	}
 
 	result, err := h.queryFunc(ctx, input.Query, input.Limit, input.Hours)
 	if err != nil {
-		telemetry.Error("logs query execution failed", "error", err)
+		libtelemetry.Error("logs query execution failed", "error", err)
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
@@ -165,11 +165,11 @@ func (h *QueryLogsHandler) Execute(ctx context.Context, input QueryLogsInput) (i
 	// We use a fail-open approach: if summarization fails, we return raw logs.
 	summarized, err := h.summarizeLogs(ctx, result)
 	if err != nil {
-		telemetry.Warn("log summarization failed, falling back to raw logs", "error", err)
+		libtelemetry.Warn("log summarization failed, falling back to raw logs", "error", err)
 		return result, nil
 	}
 
-	telemetry.Info("logs query handler executed successfully (summarized)")
+	libtelemetry.Info("logs query handler executed successfully (summarized)")
 	return summarized, nil
 }
 
@@ -211,14 +211,14 @@ func (h *QueryLogsHandler) validateInput(input QueryLogsInput) error {
 	}
 
 	if len(query) > 5000 {
-		telemetry.Warn("logs query exceeds max length", "query_len", len(query))
+		libtelemetry.Warn("logs query exceeds max length", "query_len", len(query))
 		return fmt.Errorf("query too long (max 5000 chars)")
 	}
 
 	lower := strings.ToLower(query)
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(lower, pattern) {
-			telemetry.Warn("dangerous keyword detected in logs query", "keyword", pattern)
+			libtelemetry.Warn("dangerous keyword detected in logs query", "keyword", pattern)
 			return fmt.Errorf("query contains potentially dangerous keyword: %s", pattern)
 		}
 	}
@@ -252,38 +252,38 @@ func NewQueryTracesHandler(queryFunc func(ctx context.Context, traceID string, q
 func (h *QueryTracesHandler) Execute(ctx context.Context, input QueryTracesInput) (interface{}, error) {
 	if input.TraceID != "" {
 		if err := validateTraceID(input.TraceID); err != nil {
-			telemetry.Warn("trace ID validation failed", "error", err)
+			libtelemetry.Warn("trace ID validation failed", "error", err)
 			return nil, err
 		}
 	}
 
 	raw, err := h.queryFunc(ctx, input.TraceID, input.Query, input.Hours, input.Limit)
 	if err != nil {
-		telemetry.Error("traces query execution failed", "error", err)
+		libtelemetry.Error("traces query execution failed", "error", err)
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
 	// Summarize full trace responses into compact format for AI consumption
 	if input.TraceID != "" {
 		if rawMap, ok := raw.(map[string]interface{}); ok {
-			telemetry.Info("traces query handler executed successfully")
+			libtelemetry.Info("traces query handler executed successfully")
 			return summarizeTrace(input.TraceID, rawMap), nil
 		}
 	}
 
-	telemetry.Info("traces query handler executed successfully")
+	libtelemetry.Info("traces query handler executed successfully")
 	return raw, nil
 }
 
 // validateTraceID checks that the trace ID is a valid hex string.
 func validateTraceID(traceID string) error {
 	if len(traceID) > 128 {
-		telemetry.Warn("trace_id exceeds max length", "trace_id_len", len(traceID))
+		libtelemetry.Warn("trace_id exceeds max length", "trace_id_len", len(traceID))
 		return fmt.Errorf("trace_id too long (max 128 chars)")
 	}
 	for _, ch := range traceID {
 		if !isHexChar(ch) {
-			telemetry.Warn("invalid trace_id format", "char", string(ch))
+			libtelemetry.Warn("invalid trace_id format", "char", string(ch))
 			return fmt.Errorf("trace_id must be hexadecimal")
 		}
 	}
