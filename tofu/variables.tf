@@ -55,7 +55,7 @@ variable "azurerm_storage_account_name" {
 variable "azurerm_resource_group_name" {
   description = "Name of the Azure Resource Group."
   type        = string
-  default     = "personal-rg"
+  default     = "projects-rg"
 }
 
 # --- Databases & Persistence (infrastructure.tf) ---
