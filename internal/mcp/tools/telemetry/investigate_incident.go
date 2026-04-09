@@ -1,4 +1,4 @@
-package tools
+package telemetry
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"observability-hub/internal/telemetry"
+	libtelemetry "observability-hub/internal/telemetry"
 )
 
 // InvestigateIncidentInput represents the input for the investigate_incident tool.
@@ -77,7 +77,7 @@ func (h *InvestigateIncidentHandler) Execute(ctx context.Context, input Investig
 		input.Hours = 168
 	}
 
-	telemetry.Info("investigating incident", "service", input.Service, "hours", input.Hours, "since", input.Since)
+	libtelemetry.Info("investigating incident", "service", input.Service, "hours", input.Hours, "since", input.Since)
 
 	// Step 1: Check for errors in logs and traces in parallel
 	type result struct {
@@ -129,7 +129,7 @@ func (h *InvestigateIncidentHandler) Execute(ctx context.Context, input Investig
 	}
 
 	if !hasErrors {
-		telemetry.Info("incident investigation complete: no errors found", "service", input.Service)
+		libtelemetry.Info("incident investigation complete: no errors found", "service", input.Service)
 		return report, nil
 	}
 
@@ -142,7 +142,7 @@ func (h *InvestigateIncidentHandler) Execute(ctx context.Context, input Investig
 	}
 
 	report.ErrorSummary = buildSummary(report)
-	telemetry.Info("incident investigation complete: errors detected", "service", input.Service)
+	libtelemetry.Info("incident investigation complete: errors detected", "service", input.Service)
 	return report, nil
 }
 

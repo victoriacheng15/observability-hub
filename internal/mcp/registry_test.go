@@ -11,7 +11,9 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"observability-hub/internal/mcp/providers"
-	"observability-hub/internal/mcp/tools"
+	"observability-hub/internal/mcp/tools/hub"
+	"observability-hub/internal/mcp/tools/pods"
+	"observability-hub/internal/mcp/tools/telemetry"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +89,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 			name: "query_metrics",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleQueryMetrics(tp, "svc")
-				res, _, err := h(ctx, nil, tools.QueryMetricsInput{Query: "up"})
+				res, _, err := h(ctx, nil, telemetry.QueryMetricsInput{Query: "up"})
 				return res, err
 			},
 			wants: []string{`"summarized_count"`, `"status":"success"`},
@@ -96,7 +98,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 			name: "query_logs",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleQueryLogs(tp, "svc")
-				res, _, err := h(ctx, nil, tools.QueryLogsInput{Query: `{service="proxy"}`, Limit: 1, Hours: 1})
+				res, _, err := h(ctx, nil, telemetry.QueryLogsInput{Query: `{service="proxy"}`, Limit: 1, Hours: 1})
 				return res, err
 			},
 			wants: []string{`"summarized_count"`, `"status":"success"`},
@@ -105,7 +107,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 			name: "query_traces_by_id",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleQueryTraces(tp, "svc")
-				res, _, err := h(ctx, nil, tools.QueryTracesInput{TraceID: "4bf92f3577b34da6a3ce929d0e0e4736"})
+				res, _, err := h(ctx, nil, telemetry.QueryTracesInput{TraceID: "4bf92f3577b34da6a3ce929d0e0e4736"})
 				return res, err
 			},
 			wants: []string{"4bf92f3577b34da6a3ce929d0e0e4736"},
@@ -114,7 +116,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 			name: "investigate_incident",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleInvestigateIncident(tp, "svc")
-				res, _, err := h(ctx, nil, tools.InvestigateIncidentInput{Service: "proxy", Hours: 1})
+				res, _, err := h(ctx, nil, telemetry.InvestigateIncidentInput{Service: "proxy", Hours: 1})
 				return res, err
 			},
 			wants: []string{`"service":"proxy"`},
@@ -186,7 +188,7 @@ func TestRegistry_PodHandlers(t *testing.T) {
 			name: "inspect_pods",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleInspectPods(pp, "svc")
-				res, _, err := h(ctx, nil, tools.PodsInput{Namespace: "default"})
+				res, _, err := h(ctx, nil, pods.PodsInput{Namespace: "default"})
 				return res, err
 			},
 			want: "test-pod",
@@ -195,7 +197,7 @@ func TestRegistry_PodHandlers(t *testing.T) {
 			name: "describe_pod",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleDescribePod(pp, "svc")
-				res, _, err := h(ctx, nil, tools.PodsInput{Namespace: "default", Name: "test-pod"})
+				res, _, err := h(ctx, nil, pods.PodsInput{Namespace: "default", Name: "test-pod"})
 				return res, err
 			},
 			want: `"name":"test-pod"`,
@@ -204,7 +206,7 @@ func TestRegistry_PodHandlers(t *testing.T) {
 			name: "list_pod_events",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleListPodEvents(pp, "svc")
-				res, _, err := h(ctx, nil, tools.PodsInput{Namespace: "default", Name: "test-pod"})
+				res, _, err := h(ctx, nil, pods.PodsInput{Namespace: "default", Name: "test-pod"})
 				return res, err
 			},
 			want: "pod started",
@@ -213,7 +215,7 @@ func TestRegistry_PodHandlers(t *testing.T) {
 			name: "get_pod_logs",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleGetPodLogs(pp, "svc")
-				res, _, err := h(ctx, nil, tools.PodLogsInput{Namespace: "default", Name: "test-pod"})
+				res, _, err := h(ctx, nil, pods.PodLogsInput{Namespace: "default", Name: "test-pod"})
 				return res, err
 			},
 			want: "", // fake logs are empty string
@@ -222,7 +224,7 @@ func TestRegistry_PodHandlers(t *testing.T) {
 			name: "delete_pod",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleDeletePod(pp, "svc")
-				res, _, err := h(ctx, nil, tools.DeletePodInput{Namespace: "default", Name: "test-pod"})
+				res, _, err := h(ctx, nil, pods.DeletePodInput{Namespace: "default", Name: "test-pod"})
 				return res, err
 			},
 			want: `"status":"deleted"`,
@@ -256,7 +258,7 @@ func TestRegistry_HubHandlers(t *testing.T) {
 			name: "hub_inspect_platform",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleInspectPlatform(hp, "svc")
-				res, _, err := h(ctx, nil, tools.HubInput{})
+				res, _, err := h(ctx, nil, hub.HubInput{})
 				return res, err
 			},
 			want: `"node":"server2"`,
@@ -265,7 +267,7 @@ func TestRegistry_HubHandlers(t *testing.T) {
 			name: "hub_inspect_host",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleInspectHost(hp, "svc")
-				res, _, err := h(ctx, nil, tools.HubInput{})
+				res, _, err := h(ctx, nil, hub.HubInput{})
 				return res, err
 			},
 			want: "cpu_usage",
@@ -274,7 +276,7 @@ func TestRegistry_HubHandlers(t *testing.T) {
 			name: "hub_list_host_services",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleListHostServices(hp, "svc")
-				res, _, err := h(ctx, nil, tools.HubInput{})
+				res, _, err := h(ctx, nil, hub.HubInput{})
 				return res, err
 			},
 			want: "proxy.service",
@@ -283,7 +285,7 @@ func TestRegistry_HubHandlers(t *testing.T) {
 			name: "observe_network_flows",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
 				h := handleObserveNetworkFlows(hp, "svc")
-				res, _, err := h(ctx, nil, tools.ObserveNetworkFlowsInput{Namespace: "default"})
+				res, _, err := h(ctx, nil, hub.ObserveNetworkFlowsInput{Namespace: "default"})
 				return res, err
 			},
 			want: "", // Output might be empty in test but we verify the call
