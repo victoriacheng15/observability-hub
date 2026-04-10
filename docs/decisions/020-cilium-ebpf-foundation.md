@@ -1,6 +1,6 @@
 # ADR 020: Cilium eBPF Foundation
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-03-16
 - **Author:** Victoria Cheng
 

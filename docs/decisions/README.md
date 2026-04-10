@@ -8,7 +8,8 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
-| **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🟢 Proposed |
+| **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |
+| **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🔵 Accepted |
 | **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🔵 Accepted |
 | **018** | [Domain-Isolated MCP Architecture](./018-domain-isolated-mcp-architecture.md) | 🔵 Accepted |
 | **017** | [Agentic Interface via MCP](./017-agentic-interface-mcp.md) | 🔵 Accepted |
