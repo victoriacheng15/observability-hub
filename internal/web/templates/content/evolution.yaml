@@ -1,8 +1,8 @@
 page_title: "System Logs & Milestones"
-intro_text: "A chronological record of architectural pivots, technical wins, and lessons learned while scaling a single-node laboratory. This is the paper trail of a platform in motion."
+intro_text: "A chronological view of how the Observability Hub evolved from a local lab into a layered platform for telemetry, automation, and operations."
 chapters:
   - title: "The Genesis"
-    intro: "Laying the bedrock of the platform by establishing automated local infrastructure and developing the initial Go telemetry engine to bridge hybrid cloud boundaries."
+    intro: "The starting point: a reliable local lab, an initial Go telemetry path, and the first bridge between cloud-generated events and self-hosted storage."
     timeline:
       - date: "2025-11-20"
         title: "Reliable Local Lab"
@@ -27,7 +27,7 @@ chapters:
           - Decoupled stateless analytics from persistent storage to enable independent scaling.
 
   - title: "The Platform Core"
-    intro: "Standardizing the platform architecture through shared Go libraries and GitOps automation, while launching an interactive portal to visualize real-time system performance."
+    intro: "The phase where the project stopped being a loose collection of experiments and became a more structured platform with shared libraries, automation, and a visible system story."
     timeline:
       - date: "2026-01-01"
         title: "Project Portal Launch"
@@ -50,7 +50,7 @@ chapters:
           - name: "ADR 005: GitOps Reconciliation"
             url: "docs/decisions/005-gitops-reconciliation-engine.md"
         description: |
-          - Automating data ingestion using reliable, journal-backed Systemd timers.
+          - Automated data ingestion with journal-backed Systemd timers.
           - Validated GitOps strategy for automated repository synchronization.
       - date: "2026-01-09"
         title: "Shared Database Module"
@@ -62,7 +62,7 @@ chapters:
           - Eliminated configuration drift by refactoring services to use the shared configuration module.
 
   - title: "GitOps & Host Observability"
-    intro: "Scaling single-node infrastructure via templated GitOps automation and deep host-level visibility via systemd-journal integration."
+    intro: "The first operational hardening pass: GitOps-style automation for repeatability and host-level logging for visibility into the machine running the platform."
     timeline:
       - date: "2026-01-10"
         title: "GitOps Infrastructure: Phase 1"
@@ -75,7 +75,7 @@ chapters:
       - date: "2026-01-11"
         title: "Host-Level Observability" 
         description: |
-          - established a pipeline to ingest Systemd journal logs into Loki via Promtail.
+          - Established a pipeline to ingest Systemd journal logs into Loki via Promtail.
           - Implemented parsing and labeling for key infrastructure units.
       - date: "2026-01-14"
         title: "GitOps Infrastructure: Phase 2"
@@ -87,7 +87,7 @@ chapters:
           - Optimized reconciliation intervals to balance data freshness with operational stability.
 
   - title: "Orchestration & Event-Driven Pivot"
-    intro: "Scaling beyond static host-management: pivoting from polling-based timers to event-driven webhooks and k3s orchestration."
+    intro: "The transition away from timer-driven workflows toward event-driven automation and the first meaningful step toward Kubernetes orchestration."
     timeline:
       - date: "2026-01-19"
         title: "Orchestration Spike: k3s"
@@ -109,7 +109,7 @@ chapters:
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
 
   - title: "Vault via OpenBao"
-    intro: "Establishing a secure, centralized secret store to eliminate static environment variable management."
+    intro: "The security chapter: replacing scattered static environment variables with a centralized, more production-like secret management model."
     timeline:
       - date: "2026-01-22"
         title: "The Security Blueprint"
@@ -126,7 +126,7 @@ chapters:
           - Migrated 'system-metrics' and 'proxy' services to dynamic credential retrieval.
 
   - title: "The Kubernetes Era"
-    intro: "Evolving from container management to a Kubernetes (K3s) platform. Standardizing on cloud-native patterns for true operational resilience."
+    intro: "The migration from standalone containers to Kubernetes, moving the core observability stack onto a more resilient and self-healing runtime."
     timeline:
       - date: "2026-02-01"
         title: "Strategic Migration Planning"
@@ -136,8 +136,8 @@ chapters:
           - name: "ADR 012: Migrate Promtail to Grafana Alloy"
             url: "docs/decisions/012-migrate-promtail-to-alloy.md"
         description: |
-          - Proposed a four-stage migration strategy (Alloy -> Loki -> Grafana -> PostgreSQL) to move the core services into Kubernetes.
-          - Proposed migrating from legacy Promtail to Grafana Alloy as the unified telemetry brain, leveraging the 'Strangler Fig' pattern for zero-downtime.
+          - Proposed a four-stage migration plan to move the core stack into Kubernetes.
+          - Proposed replacing Promtail with Grafana Alloy as the unified telemetry agent.
       - date: "2026-02-02"
         title: "Phase 1 Complete: Grafana Alloy Telemetry"
         artifacts:
@@ -148,7 +148,7 @@ chapters:
         title: "Phase 2 & 3 Complete: Grafana Loki & Grafana on K3s"
         description: |
           - Migrated Grafana Loki and Grafana from standalone Docker containers to K3s-native deployments.
-          - Verified self-healing and data persistence for the visualization layer, completing Phase 3 of the platform orchestration strategy.
+          - Verified self-healing and persistent storage for the visualization layer.
       - date: "2026-02-05"
         title: "Phase 4 Complete: PostgreSQL on K3s"
         artifacts:
@@ -156,10 +156,10 @@ chapters:
             url: "docs/decisions/011-phased-k3s-migration-strategy.md"
         description: |
           - Migrated the core PostgreSQL database from standalone Docker to a K3s StatefulSet.
-          - Implemented data persistence via PVC synchronization and verified extension compatibility for TimescaleDB and PostGIS, completing the four-stage migration strategy.
+          - Verified PVC-based persistence and extension compatibility for TimescaleDB and PostGIS.
 
   - title: "The SRE Era"
-    intro: "The transition from 'functional' to 'standardized' observability. A phase dedicated to learning and understanding the OpenTelemetry ecosystem and SRE principles."
+    intro: "The observability maturity chapter: standardizing around OpenTelemetry, adding traces and metrics, and building the workflows needed for real incident analysis."
     timeline:
       - date: "2026-02-07"
         title: "Proposal: Standardize on OpenTelemetry"
@@ -167,7 +167,7 @@ chapters:
           - name: "ADR 013: Standardize on OpenTelemetry"
             url: "docs/decisions/013-standardize-on-opentelemetry.md"
         description: |
-          - Proposed the adoption of OpenTelemetry to gain hands-on experience with industry-standard distributed tracing and metrics.
+          - Proposed adopting OpenTelemetry to standardize tracing and metrics across the platform.
       - date: "2026-02-08"
         title: "Phase 1 Complete: OpenTelemetry Collector"
         artifacts:
@@ -181,18 +181,18 @@ chapters:
           - name: "RCA 001: Grafana Provisioning Failure"
             url: "docs/incidents/001-grafana-dashboard-provisioning-failure.md"
         description: |
-          - Introduced a lightweight 'docs/incidents' template to capture what happened, how it was debugged, and the Root Cause Analysis (RCA) for future reference.
-          - Resolved the first incident by migrating to a 'JSON-from-file' for Grafana dashboard provisioning.
+          - Introduced a lightweight RCA workflow to document incidents and debugging steps.
+          - Resolved the first incident by switching Grafana dashboard provisioning to JSON-from-file.
       - date: "2026-02-10"
         title: "Phase 2 Complete: Grafana Tempo"
         description: |
           - Deployed Grafana Tempo in single-binary mode for distributed trace storage.
-          - Integrated the OpenTelemetry Collector with Grafana Tempo via OTLP/gRPC for end-to-end trace propagation.
+          - Connected the OpenTelemetry Collector to Tempo for end-to-end trace propagation.
       - date: "2026-02-11"
         title: "Phase 3 Complete: Prometheus"
         description: |
           - Deployed Prometheus for operational metrics storage with lean retention policies.
-          - Integrated with the OpenTelemetry Collector to ingest internal metrics and established connectivity with Grafana as a provisioned data source.
+          - Connected Prometheus to the OpenTelemetry pipeline and Grafana.
       - date: "2026-02-12"
         title: "Phase 4 Complete: Proxy Instrumentation & Synthetic Traces"
         artifacts:
@@ -201,17 +201,17 @@ chapters:
           - name: "RCA 002: Service Graph Metrics Failure"
             url: "docs/incidents/002-service-graph-metrics-failure.md"
         description: |
-          - Completed high-fidelity OpenTelemetry instrumentation for the 'proxy' service, transitioning to dynamic span naming and deep-dive diagnostics.
-          - Engineered a synthetic validation suite that simulates global traffic (Region, Timezone, Device) to stress-test Grafana Tempo storage and Grafana visualization.
-          - Resolved a critical 'silent' failure in the service graph pipeline by enabling Prometheus Remote Write and missing Tempo processors.
+          - Added deeper OpenTelemetry instrumentation to the `proxy` service.
+          - Built a synthetic traffic suite to validate traces and Grafana views under load.
+          - Fixed a silent service graph failure by enabling the missing Prometheus and Tempo pipeline pieces.
       - date: "2026-02-13"
         title: "Storage Scalability & Security Hardening"
         description: |
-          - Scaled telemetry persistence by migrating from restricted local disks to professional S3-compatible object storage (MinIO), ensuring long-term data reliability.
-          - Established a 'Safe-by-Default' infrastructure baseline, achieving 100% automated security compliance across the platform's core services.
+          - Moved telemetry storage to S3-compatible object storage with MinIO for better durability.
+          - Established a safer default baseline across the core platform services.
 
   - title: "Platform Maturity & Reusability"
-    intro: "Evolving the Hub into a modular platform by organizing core logic into reusable 'building blocks' and executable services, culminating in a unified, OpenTelemetry-native architecture."
+    intro: "The internal architecture cleanup: refactoring the codebase into reusable building blocks so new services and interfaces could share the same core logic."
     timeline:
       - date: "2026-02-16"
         title: "Proposal: Modular Library Architecture"
@@ -219,7 +219,7 @@ chapters:
           - name: "ADR 014: Library-First Service Architecture"
             url: "docs/decisions/014-library-first-service-architecture.md"
         description: |
-          - A strategic proposal to organize the platform's core features into reusable 'building blocks.' This ensures the system remains reliable and consistent as it grows, allowing new tools to be added easily without duplicating effort.
+          - Proposed reorganizing the platform around reusable building blocks to support growth without duplicating logic.
       - date: "2026-02-18"
         title: "Library-First Implementation"
         artifacts:
@@ -242,11 +242,11 @@ chapters:
             url: "docs/decisions/015-unified-host-telemetry-analytics.md"
         description: |
           - Deployed a resource-efficient Analytics service, centralizing host-level data collection and optimizing processing with batch processing.
-          - Achieved significant cost savings and improved system performance by retiring Alloy, resulting in an 80% reduction in idle resource consumption and freeing up ~50% of reserved CPU and ~65% of reserved memory.
-          - Established a modern, OpenTelemetry-native platform, delivering a robust and standardized solution for comprehensive system observability (logs, metrics, traces).
+          - Retired Alloy and cut idle resource usage significantly while freeing reserved CPU and memory.
+          - Completed a more consistent OpenTelemetry-native observability stack for logs, metrics, and traces.
 
   - title: "The Terraform Era"
-    intro: "Adopting OpenTofu (Terraform-compatible) to manage Kubernetes (K3s) workloads as infrastructure-as-code, replacing manual Helm workflows."
+    intro: "The infrastructure-as-code phase: replacing manual Kubernetes operations with OpenTofu so the stack could be managed declaratively and audited over time."
     timeline:
       - date: "2026-02-25"
         title: "Proposal: OpenTofu for K3s Service Management"
@@ -255,17 +255,17 @@ chapters:
             url: "docs/decisions/016-opentofu-k3s-migration.md"
         description: |
           - Proposed adopting OpenTofu to declaratively manage the K3s observability stack, replacing manual Helm workflows with infrastructure-as-code.
-          - Defined a phased migration strategy using tofu import for zero-downtime adoption of live services.
+          - Defined a phased migration strategy for bringing live services under OpenTofu management.
       - date: "2026-02-26"
         title: "OpenTofu Migration: OpenTelemetry & Grafana"
         description: |
           - Migrated the OpenTelemetry Collector and Grafana to OpenTofu orchestration.
-          - Validated zero-downtime migration and resolved specific resource security constraints for init containers.
+          - Validated the migration path and resolved init container security constraints.
       - date: "2026-02-27"
         title: "OpenTofu Migration: MinIO & Prometheus"
         description: |
           - Migrated MinIO and Prometheus to OpenTofu orchestration.
-          - Audited persistent volume claims to ensure stateful datasets correctly reconnect to new managed pods.
+          - Audited persistent volumes to ensure stateful workloads reattached cleanly.
       - date: "2026-02-28"
         title: "OpenTofu Migration: Thanos, Loki, & Tempo"
         description: |
@@ -277,10 +277,10 @@ chapters:
           - name: "ADR 016: OpenTofu K3s Migration"
             url: "docs/decisions/016-opentofu-k3s-migration.md"
         description: |
-          - Achieved 100% declarative infrastructure-as-code orchestration via OpenTofu, enabling auditable drift detection and consistent state management across the Kubernetes (K3s) observability stack.
+          - Moved the full K3s observability stack under OpenTofu for auditable drift detection and consistent state management.
 
   - title: "The MCP Era"
-    intro: "Evolving the Hub into an agent-native platform by exposing the LGTM stack via the Model Context Protocol (MCP), initially through domain-isolated servers and later consolidated into a unified 'mcp_obs_hub' gateway for streamlined operations."
+    intro: "The agent-native chapter: exposing telemetry and infrastructure through MCP so AI tools could query live system state, investigate incidents, and reason over compressed summaries instead of raw observability noise."
     timeline:
       - date: "2026-03-05"
         title: "Proposal: The MCP Era"
@@ -288,15 +288,15 @@ chapters:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
-          - Proposed the transition to an agent-native platform via the Model Context Protocol (MCP) to provide a high-fidelity bridge for host-to-cluster investigation.
+          - Proposed the Model Context Protocol as a bridge between AI agents and the observability stack.
       - date: "2026-03-06"
         title: "mcp-telemetry: Metrics Intelligence (Level 1)"
         description: |
-          - Achieved automated service health analysis by exposing Prometheus metrics to AI agents via 'mcp-telemetry', enabling streamlined performance baselining and anomaly detection against live Thanos data.
+          - Exposed Prometheus metrics to AI agents for service health checks, baselining, and anomaly detection.
       - date: "2026-03-07"
         title: "mcp-telemetry: Semantic Logging & Distributed Tracing (Level 2 & 3)"
         description: |
-          - Reduced Mean-Time-To-Discovery (MTTD) via 'mcp-telemetry' by implementing semantic log filtering via Loki and distributed trace search via Tempo (TraceQL), allowing agents to correlate unstructured events with system failures.
+          - Added semantic log search and distributed trace lookup so agents could correlate failures across logs and traces.
           - Implemented PII masking to prevent data leakage in logs for sensitive keys (e.g. passwords, tokens).
       - date: "2026-03-08"
         title: "mcp-telemetry: Incident Investigation (Level 4)"
@@ -304,30 +304,38 @@ chapters:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
         description: |
-          - Completed the LGTM observability loop in 'mcp-telemetry' by delivering 'investigate_incident' — a macro-tool that orchestrates metrics, logs, and traces in parallel to produce a structured incident report, reducing root cause analysis from minutes to seconds.
+          - Added `investigate_incident`, a macro-tool that combines metrics, logs, and traces into a structured incident report.
       - date: "2026-03-11"
         title: "mcp-pods: Domain-Isolated Infrastructure Intelligence"
         artifacts:
           - name: "ADR 018: Domain-Isolated MCP Architecture"
             url: "docs/decisions/018-domain-isolated-mcp-architecture.md"
         description: |
-          - Architected a domain-isolated MCP framework to enforce the Principle of Least Privilege, reducing the security blast radius by strictly decoupling infrastructure-level RBAC from the telemetry pipeline.
-          - Engineered a high-fidelity 'Infrastructure Intelligence' service (mcp-pods) that enables AI agents to correlate Kubernetes orchestration events with system-wide telemetry, accelerating the discovery of cluster-level failures.
+          - Split MCP capabilities into domain-isolated services to reduce blast radius and enforce least privilege.
+          - Added `mcp-pods` so agents could correlate Kubernetes events with telemetry during cluster failures.
       - date: "2026-03-12"
         title: "mcp-hub: Hybrid Host-Cluster Intelligence"
         artifacts:
           - name: "ADR 019: Hybrid Host-MCP Intelligence"
             url: "docs/decisions/019-hybrid-host-mcp-intelligence.md"
         description: |
-          - Eliminated visibility gaps between Kubernetes orchestration and host-resident services via 'mcp-hub' to ensure unified platform accountability.
-          - Accelerated host-level failure detection via namespaced tools (`hub_`) for surgical resource introspection and cross-layer correlation.
+          - Added `mcp-hub` to connect host-level state with Kubernetes-level investigation.
+          - Introduced namespaced `hub_` tools for focused cross-layer debugging.
       - date: "2026-03-19"
         title: "mcp_obs_hub: Unified Agentic Gateway"
         description: |
-          - Consolidated fragmented MCP services (telemetry, pods, hub) into a single 'mcp_obs_hub' fat binary to minimize management overhead.
+          - Consolidated telemetry, pods, and hub services into a single `mcp_obs_hub` binary to reduce management overhead.
+      - date: "2026-04-06"
+        title: "Rust Telemetry Summarization Processor"
+        artifacts:
+          - name: "ADR 021: Rust Telemetry Summarization Processor"
+            url: "docs/decisions/021-rust-telemetry-summarization-processor.md"
+        description: |
+          - Added `obs-processor`, a Rust helper binary that compresses large log and metric payloads into agent-friendly summaries.
+          - Reduced context waste by grouping repeated log messages and summarizing metric ranges into compact statistical views.
 
   - title: "eBPF-Native Efficiency & Networking"
-    intro: "Pivoting to the kernel for sidecar-less observability. Leveraging eBPF to bridge the gap between energy consumption (Kepler) and protocol visibility (Cilium/MQTT) to establish a high-fidelity FinOps baseline."
+    intro: "The kernel-level visibility chapter: using eBPF to improve network observability, protocol insight, and efficiency analysis beyond application-level instrumentation."
     timeline:
       - date: "2026-03-11"
         title: "Kepler Integration & Energy Dashboards"
@@ -337,8 +345,8 @@ chapters:
           - name: "Dashboard: Infrastructure Health"
             url: "docs/visual/infra-health.png"
         description: |
-          - Established a FinOps efficiency baseline across the cluster by deploying Kepler for granular energy monitoring.
-          - Enabled actionable sustainability insights through dedicated energy dashboards, correlating workload performance with power consumption.
+          - Deployed Kepler to establish an energy-efficiency baseline across the cluster.
+          - Added dashboards to correlate workload behavior with power consumption.
       - date: "2026-03-18"
         title: "eBPF-Native Networking & MQTT Visibility"
         artifacts:
@@ -347,24 +355,23 @@ chapters:
           - name: "RCA 003: SSH Lockout Incident"
             url: "docs/incidents/003-ssh-lockout-cilium-ipam-collision.md"
         description: |
-          - Migrated the cluster to Cilium CNI with kube-proxy replacement, achieving an eBPF-native datapath for optimized routing and security.
-          - Implemented L7 MQTT visibility for the EMQX broker, enabling granular topic-level energy attribution without application instrumentation.
-          - Resolved a critical SSH lockout incident during CNI transition, formalizing a robust recovery and IPAM management protocol.
+          - Migrated the cluster to Cilium with kube-proxy replacement for an eBPF-native datapath.
+          - Added L7 MQTT visibility for EMQX without requiring application instrumentation.
+          - Resolved a critical SSH lockout during migration and formalized a recovery protocol.
 
   - title: "GitOps & Operational Maturity"
-    intro: "Hardening the platform's foundation through declarative orchestration and layered infrastructure management."
+    intro: "The day-two operations chapter: hardening the platform with continuous reconciliation, safer rollouts, and a clearer GitOps operating model for ongoing changes."
     timeline:
       - date: "2026-03-21"
         title: "ArgoCD Implementation"
         description: |
-          - Transitioned the cluster to a declarative GitOps model using 'ArgoCD', moving from imperative scripts to a continuous reconciliation loop.
-          - Implemented the 'App-of-Apps' pattern to manage the entire platform lifecycle from a single source of truth, enabling automated self-healing.
+          - Transitioned the cluster to ArgoCD for continuous reconciliation instead of imperative scripts.
+          - Adopted the App-of-Apps pattern to manage the platform from a single source of truth.
       - date: "2026-03-21"
         title: "Automated Fleet Promotion"
         artifacts:
           - name: "Screenshot: ArgoCD Fleet Update"
             url: "docs/visual/argocd-ui.png"
         description: |
-          - Validated the GitOps promotion loop by resolving image pull failures caused by SHA-length mismatches, enabling ArgoCD to automatically reconcile private GHCR images and orchestrate a traceable rollout across the simulation fleet.
-
-
+          - Validated the GitOps promotion loop by fixing image pull failures caused by SHA-length mismatches.
+          - Enabled ArgoCD to reconcile private GHCR images and roll updates across the simulation fleet.
