@@ -2,6 +2,38 @@
 
 The Observability Hub implements a high-fidelity logging, tracing, and metrics pipeline. The architecture is designed for deep visibility into native host services (via unified telemetry) and cluster infrastructure (via comprehensive metrics).
 
+## Simplified Overview
+
+At the highest level, this platform answers a simple question:
+
+How does telemetry move from the services I run to the dashboards I use?
+
+The short answer is:
+
+`Apps and services -> OpenTelemetry Collector -> Loki / Tempo / Prometheus -> Grafana`
+
+This is the most important mental model for first-time readers. It captures the core portfolio story of the platform without requiring the reader to understand every supporting subsystem on the first pass.
+
+```mermaid
+flowchart LR
+    Apps["Apps and Services"]
+    OTel["OpenTelemetry Collector"]
+    Logs["Loki"]
+    Traces["Tempo"]
+    Metrics["Prometheus"]
+    Grafana["Grafana"]
+
+    Apps --> OTel
+    OTel --> Logs
+    OTel --> Traces
+    OTel --> Metrics
+    Logs --> Grafana
+    Traces --> Grafana
+    Metrics --> Grafana
+```
+
+The sections below expand this simplified story into the full implementation, including MCP access, eBPF network visibility, storage backends, and long-term retention.
+
 ## 🛠️ The Unified Pipeline
 
 ```mermaid

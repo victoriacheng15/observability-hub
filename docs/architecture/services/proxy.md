@@ -2,6 +2,10 @@
 
 The Proxy Service (`cmd/proxy/`) is a custom Go application that acts as the API gateway, Data Pipeline engine, and **GitOps automation trigger** for the platform. It runs as a native host process managed by Systemd.
 
+This service is one of the main custom entry points in the system. It bridges the outside world to the local platform by receiving requests, exposing health endpoints, triggering GitOps synchronization, and emitting telemetry into the observability pipeline.
+
+For a quick mental model: if Grafana shows what the platform is doing, the Proxy is one of the places where that activity begins.
+
 ## Component Details
 
 ### API Overview
