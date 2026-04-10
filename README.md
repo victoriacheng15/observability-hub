@@ -1,59 +1,115 @@
 # Observability Hub
 
-A resilient, self-hosted platform meticulously engineered to showcase advanced Site Reliability Engineering (SRE) and Platform Engineering principles. It delivers full-stack observability (Logs, Metrics, Traces), GitOps-driven infrastructure management, and standardized telemetry ingestion for complex cloud-native environments.
+## What is this?
 
-Built using Go and orchestrated on Kubernetes (K3s), the platform unifies system metrics, application events, and logs into a single queryable layer leveraging OpenTelemetry, High-Availability (HA) PostgreSQL via CloudNativePG (CNPG), Grafana Loki, Prometheus, and Grafana. It's designed for operational excellence, demonstrating how to build a robust, observable, and maintainable system from the ground up.
+This is a self-hosted Kubernetes platform built on my homelab.
 
-🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)
+It demonstrates how a real DevOps / Platform Engineering team would:
+- deploy applications using GitOps (Argo CD)
+- collect logs, metrics, and traces using OpenTelemetry
+- monitor systems with Grafana, Prometheus, and Loki
+- manage infrastructure using OpenTofu (Terraform)
+- handle failures with high-availability databases and backups
 
-📚 [Documentation Hub: Architecture, ADRs, Operations & Visual Gallery](./docs/README.md)
+The goal is to simulate a production-like environment and show how to build a reliable, observable system from scratch.
 
----
-
-## 📚 Project Evolution
-
-This platform evolved through intentional phases. See the full journey with ADRs:
-
-[View Complete Evolution Log](https://victoriacheng15.github.io/observability-hub/evolution.html)
-
-### Key Milestones
-
-- **Ch 1-3: Foundations** – Docker lab, Shared Go libraries, and Host-level visibility.
-- **Ch 4-6: Kubernetes Pivot** – Cluster migration, Event-driven GitOps, and Vault (OpenBao) security.
-- **Ch 7-9: SRE & Maturity** – Full OpenTelemetry (LMT) stack, Library-first modularity, and OpenTofu/Terraform IaC.
-- **Ch 10: MCP Era** – AI-native operations via a unified, domain-isolated Model Context Protocol gateway.
-- **Ch 11: eBPF-Native Efficiency & Networking** – Kepler energy monitoring and Cilium eBPF-native networking for high-fidelity L7 visibility.
-- **Ch 12: GitOps & Operational Maturity** – Centralized orchestration via ArgoCD and a layered infrastructure architecture.
+- 🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)  
+- 📚 [Full Documentation & Visual Gallery](./docs/README.md)
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 🔍 What I Built (Quick Proof)
 
-The platform leverages a robust set of modern technologies for its core functions:
+- Kubernetes (K3s) homelab running 10+ platform components
+- GitOps deployment using Argo CD (App-of-Apps pattern)
+- Full observability: logs, metrics, traces (OpenTelemetry + Grafana stack)
+- High-availability PostgreSQL with automated failover (CloudNativePG)
+- Centralized dashboards for monitoring and debugging
+- Secrets management without hardcoding credentials
+- Infrastructure as Code using OpenTofu (layered architecture)
+- Data ingestion pipeline with worker-based processing
+- eBPF-based networking and visibility using Cilium
+- Backup and storage integration with Azure Blob + MinIO
 
-![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+---
 
-![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-%23000000.svg?style=for-the-badge&logo=opentelemetry&logoColor=white)
-![Cilium](https://img.shields.io/badge/Cilium-60BAE3.svg?style=for-the-badge&logo=Cilium&logoColor=white)
-![Grafana Loki](https://img.shields.io/badge/Loki-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Grafana Tempo](https://img.shields.io/badge/Tempo-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
+## 📦 Platform Projects
 
-![ArgoCD](https://img.shields.io/badge/Argo-EF7B4D.svg?style=for-the-badge&logo=Argo&logoColor=white)
-![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5.svg?style=for-the-badge&logo=Kubernetes&logoColor=white)
-![Helm](https://img.shields.io/badge/Helm-0F1689.svg?style=for-the-badge&logo=Helm&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![Tailscale](https://img.shields.io/badge/Tailscale-%235d21d0.svg?style=for-the-badge&logo=tailscale&logoColor=white)
-![Azure Blob Storage](https://img.shields.io/badge/Azure_Blob_Storage-%230072C6.svg?style=for-the-badge&logo=microsoftazure&logoColor=white)
+This platform is built as a collection of smaller DevOps projects:
 
-![PostgreSQL (CNPG)](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-![MinIO (S3)](https://img.shields.io/badge/MinIO-be172d?style=for-the-badge&logo=minio&logoColor=white)
+1. **GitOps Deployment (Argo CD)**
+   - Declarative cluster management with self-healing
 
-### System Architecture Overview
+2. **Observability Stack**
+   - Prometheus, Grafana, Loki, Tempo dashboards and alerts
 
-The diagram below illustrates the high-level flow of telemetry data from collection to visualization, highlighting the hybrid orchestration model between host-level entry points and the Kubernetes-native data worker.
+3. **Telemetry Pipeline**
+   - OpenTelemetry for logs, metrics, and traces
+
+4. **High Availability Database**
+   - PostgreSQL with failover and Azure Blob backups
+
+5. **Secrets Management**
+   - Dynamic secrets using OpenBao
+
+6. **Infrastructure as Code**
+   - OpenTofu layered architecture (00–09 separation)
+
+7. **Networking with Cilium**
+   - eBPF-based observability and traffic control
+
+8. **CI/CD + GitOps Flow**
+   - Webhook-triggered deployments and reconciliation
+
+9. **Failure Simulation**
+   - Chaos testing and system recovery
+
+10. **Data Ingestion Pipeline**
+   - Worker-based batch processing system
+
+---
+
+## 🧠 Problems I Solved
+
+- Manual deployments → replaced with GitOps automation
+- No visibility into systems → added logs, metrics, and tracing
+- Secrets stored in code → moved to dynamic secret management
+- Single point of failure → implemented HA database and backups
+- Hard to debug issues → centralized dashboards and alerts
+- Infrastructure drift → enforced declarative state with Argo CD
+
+---
+
+## 🛠️ Tech Stack
+
+**Platform & Infrastructure**
+- Kubernetes (K3s), Helm, Docker
+- Argo CD (GitOps)
+- OpenTofu (Terraform alternative)
+
+**Observability**
+- OpenTelemetry
+- Prometheus, Grafana
+- Loki (logs), Tempo (traces), Thanos (metrics scaling)
+
+**Data & Storage**
+- PostgreSQL (CloudNativePG)
+- MinIO (S3-compatible)
+- Azure Blob Storage
+
+**Networking & Security**
+- Cilium (eBPF networking)
+- OpenBao (Secrets Management)
+- Tailscale
+
+**Languages**
+- Go (backend services)
+
+---
+
+## 🏗️ System Architecture
+
+The diagram below shows how telemetry flows through the system and how components interact.
 
 ```mermaid
 flowchart TB
@@ -71,131 +127,82 @@ flowchart TB
             end
 
             Proxy["Go Proxy (Host API Gateway)"]
-            MCP["MCP Gateway - Telemetry, Pods, Hub, Network"]
-            Worker["Unified Worker (K3s CronJob)"]
-            K3S["Kubernetes API (Cluster State)"]
+            MCP["MCP Gateway"]
+            Worker["Unified Worker"]
+            K3S["Kubernetes API"]
 
-            subgraph DataPlatform ["Observability & Messaging"]
+            subgraph DataPlatform ["Observability"]
                 OTEL[OpenTelemetry Collector]
-                Observability["Loki, Tempo, and Prometheus (Thanos)"]
-                subgraph Simulation ["Hardware Simulation"]
-                    Sensors["Sensor Pods"]
-                    Chaos["Chaos Controller"]
-                    EMQX["EMQX (MQTT Broker)"]
-                end
+                Observability["Loki, Tempo, Prometheus"]
             end
         end
 
-        subgraph Storage ["Data Engines"]
-            PG[(HA Postgres - CNPG)]
-            S3[(MinIO - S3)]
-            Azure[(Azure Blob Storage)]
+        subgraph Storage ["Storage"]
+            PG[(Postgres)]
+            S3[(MinIO)]
+            Azure[(Azure Blob)]
         end
-        
 
         subgraph Visualization ["Visualization"]
-            Grafana[Grafana Dashboards]
+            Grafana[Grafana]
         end
     end
 
-    %% GitOps Loop
-    GitOps -- "Reconciles State" --> K3S
-
-    %% Data Pipeline Connections
+    GitOps --> K3S
     GH --> Worker
-    GH -- "Webhook" --> Proxy
-    Mongo --> Worker
-    
-    %% Unified MCP Paths
-    Observability -- "Query Data" --> MCP
-    K3S -- "Cluster State" --> MCP
-
-    %% Simulation & Chaos
-    Chaos -- "Inject Failure" --> EMQX
-    EMQX -- "Deliver Command" --> Sensors
-
-    %% Telemetry & Storage Connections
-    Observability -- "Host Metrics" --> Worker
-    Worker -- "Batch Data" --> PG
-    Proxy -- Data --> PG
-
-    %% Telemetry Pipeline (OTLP)
-    Proxy & MCP & Worker -- "Logs, Metrics, Traces" --> OTEL
+    Proxy & Worker --> OTEL
     OTEL --> Observability
-    
-    %% Resilience & Backup
-    Observability -- "Offload" --> S3
-    PG -- "Streaming Backup" --> Azure
-
-    %% Visualization Connections
-    Observability & PG & EMQX --> Grafana
+    Observability --> Grafana
+    Worker --> PG
+    PG --> Azure
 ```
 
 ---
 
-## 🚀 Key Achievements & Capabilities
+## ⚠️ Challenges
 
-### ☸️ Platform Engineering & Infrastructure
+One challenge was debugging service communication with Cilium networking.
 
-- **High-Availability Data Tier:** Deployed Loki, Tempo, and Thanos on Kubernetes with CloudNativePG for automated PostgreSQL failover and Azure Blob Storage for off-cluster backups.
-- **GitOps Orchestration:** Centralized cluster lifecycle management via ArgoCD, using an `App-of-Apps` pattern to maintain declarative state and automated self-healing.
-- **Layered IaC:** Implemented a domain-isolated OpenTofu architecture (00-09) to decouple foundation, networking, and application tiers for high-fidelity maintainability.
-- **Secrets Orchestration:** Integrated OpenBao to replace static environment variables with dynamic, on-demand credential retrieval.
+- **Problem:** Services were unreachable even though pods were running  
+- **Cause:** Incorrect network policies blocking traffic  
+- **Fix:** Used logs and metrics to identify dropped packets and corrected policies  
 
-### 🏗️ Software Architecture & Design
+---
 
-- **Service Consolidation:** Unified legacy analytics and ingestion services into a single `worker` binary, reducing resource fragmentation and standardizing batch task lifecycles.
-- **Dependency Consolidation:** Unified fragmented Go modules into a single monorepo, removing 17 `replace` directives.
-- **Architectural Isolation:** Implemented `Thin Main` patterns and strict `internal/` package scoping to decouple domain logic from infrastructure plumbing.
-- **GitOps Engine:** Built a custom HMAC-secured webhook listener to trigger automated repository state reconciliation across the cluster.
+## 🚀 Project Evolution
 
-### 🔭 Observability & Agentic Intelligence
+This platform evolved through multiple phases:
 
-- **Full-Stack Telemetry:** Standardized on OpenTelemetry (Logs, Metrics, Traces) for unified signal correlation across host and Kubernetes services.
-- **Agentic Interface (MCP):** Implemented a unified Model Context Protocol gateway to expose system state to AI agents, using domain isolation to enforce platform security.
-- **Store-and-Forward Bridge:** Built a secure telemetry relay to ingest host-level data into Kubernetes without exposing internal cluster ports.
+- **Foundations:** Docker, Go services, host-level visibility  
+- **Kubernetes Migration:** Moved workloads to K3s + GitOps  
+- **SRE Maturity:** Full observability (logs, metrics, traces)  
+- **Infrastructure:** OpenTofu layered architecture  
+- **Advanced Networking:** Cilium (eBPF)  
+- **Operational Maturity:** Argo CD orchestration + HA systems  
 
-### 📋 Operational Governance
-
-- **Decision Framework:** Adopted Architectural Decision Records (ADRs) and Incident RCA templates to document system evolution and manage technical debt.
+👉 [View Full Evolution Log](https://victoriacheng15.github.io/observability-hub/evolution.html)
 
 ---
 
 ## 🚀 Getting Started
 
 <details>
-<summary><b>Local Development Guide</b></summary>
-
-This guide will help you set up and run the `observability-hub` locally using Kubernetes (K3s).
+<summary><b>Local Setup</b></summary>
 
 ### Prerequisites
+- Go
+- K3s
+- Helm
+- Make
+- Nix
 
-Ensure you have the following installed on your system:
-
-- [Go](https://go.dev/doc/install)
-- [K3s](https://k3s.io/) (Lightweight Kubernetes)
-- [Helm](https://helm.sh/)
-- `make` (GNU Make)
-- [Nix](https://nixos.org/download.html) (for reproducible toolchains)
-
-### 1. Configuration
-
-The project uses a `.env` file to manage environment variables, especially for database connections and API keys.
+### Setup
 
 ```bash
-# Start by copying the example file
 cp .env.example .env
 ```
 
-You will need to edit the newly created `.env` file to configure connections for MongoDB Atlas, PostgreSQL (K3s NodePort), and other services.
-
-### 2. Build and Run the Stack
-
-The platform utilizes a hybrid orchestration model. You must deploy both the Kubernetes data tier and the native host services.
-
-#### A. Data Infrastructure (K3s)
-
-Deploy the observability backend using OpenTofu (IaC):
+### Deploy Infrastructure
 
 ```bash
 cd tofu
@@ -203,30 +210,31 @@ tofu init
 tofu apply
 ```
 
-This will provision PostgreSQL, MinIO, Loki, Tempo, Prometheus, Thanos, Grafana, and the OpenTelemetry Collector. Application workloads (Worker, Sensors) are automatically managed by ArgoCD.
-
-#### B. Native Host Services
-
-Build and initialize the API gateway and agentic interface on the host:
+### Run Services
 
 ```bash
-# Build Go binaries
 make proxy-build
 make mcp-build
-
-# Install and start Systemd services (requires sudo)
 make install-services
 ```
 
-### 3. Verification
+### Verify
 
-Once the stack is running, you can verify the end-to-end telemetry flow:
-
-- **Cluster Health:** Access Grafana at `http://localhost:30000` (NodePort).
-- **Service Logs:** Check logs for host components via Grafana Loki.
-
-### 4. Managing the Cluster
-
-To stop or remove resources, use the standard `kubectl delete` commands targeting the `observability` namespace.
+- Grafana: http://localhost:30000  
+- Check logs via Loki  
 
 </details>
+
+---
+
+## 📌 Summary
+
+This project demonstrates how to build a production-like DevOps platform using:
+
+- Kubernetes + GitOps  
+- Full observability (logs, metrics, traces)  
+- Infrastructure as Code  
+- High availability systems  
+- Real-world debugging and failure handling  
+
+It reflects how modern platform teams operate in real environments.
