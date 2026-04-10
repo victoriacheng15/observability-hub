@@ -2,6 +2,10 @@
 
 The Unified Worker (`cmd/worker`, `internal/worker`) is a cluster-native execution engine designed for one-shot data processing tasks. It consolidates legacy analytics and ingestion services into a single, high-performance binary that executes specific domain logic based on a runtime mode flag.
 
+This service represents the platform's batch-processing layer. It handles scheduled analytical and ingestion workloads without introducing multiple one-off services, which keeps the runtime model simpler and makes the telemetry story easier to follow.
+
+For a quick mental model: the Worker is the system's scheduled execution engine for tasks that do not need to run continuously but still need strong observability, repeatability, and operational discipline.
+
 ## 🎯 Objective
 
 To minimize operational overhead and resource fragmentation by providing a standardized, containerized environment for batch operations. The worker ensures that all non-continuous tasks follow the same lifecycle, telemetry, and security standards across the platform.

@@ -5,6 +5,7 @@
 This is a self-hosted Kubernetes platform built on my homelab.
 
 It demonstrates how a real DevOps / Platform Engineering team would:
+
 - deploy applications using GitOps (Argo CD)
 - collect logs, metrics, and traces using OpenTelemetry
 - monitor systems with Grafana, Prometheus, and Loki
@@ -65,7 +66,8 @@ This platform is built as a collection of smaller DevOps projects:
    - Chaos testing and system recovery
 
 10. **Data Ingestion Pipeline**
-   - Worker-based batch processing system
+
+- Worker-based batch processing system
 
 ---
 
@@ -83,26 +85,31 @@ This platform is built as a collection of smaller DevOps projects:
 ## 🛠️ Tech Stack
 
 **Platform & Infrastructure**
+
 - Kubernetes (K3s), Helm, Docker
 - Argo CD (GitOps)
 - OpenTofu (Terraform alternative)
 
 **Observability**
+
 - OpenTelemetry
 - Prometheus, Grafana
 - Loki (logs), Tempo (traces), Thanos (metrics scaling)
 
 **Data & Storage**
+
 - PostgreSQL (CloudNativePG)
 - MinIO (S3-compatible)
 - Azure Blob Storage
 
 **Networking & Security**
+
 - Cilium (eBPF networking)
 - OpenBao (Secrets Management)
 - Tailscale
 
 **Languages**
+
 - Go (backend services)
 
 ---
@@ -190,6 +197,7 @@ This platform evolved through multiple phases:
 <summary><b>Local Setup</b></summary>
 
 ### Prerequisites
+
 - Go
 - K3s
 - Helm
@@ -220,7 +228,7 @@ make install-services
 
 ### Verify
 
-- Grafana: http://localhost:30000  
+- Grafana: <http://localhost:30000>  
 - Check logs via Loki  
 
 </details>

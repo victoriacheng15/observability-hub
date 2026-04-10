@@ -50,6 +50,12 @@ Visualization of real-time telemetry from the simulation fleet. This dashboard t
 
 ![Chaos Sensors Simulation](./edge-simulation.png)
 
+### Cilium & Hubble Health
+
+Grafana dashboard for network observability health. This view proves that Cilium and Hubble metrics are being collected, scraped, and visualized as part of the platform's operational telemetry stack.
+
+![Cilium & Hubble Health](./cilium-hubble.png)
+
 ## 🌐 Network Flow & Security
 
 ### Hubble UI (Cilium eBPF)

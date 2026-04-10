@@ -2,6 +2,10 @@
 
 The infrastructure layer follows a **hybrid model**: core data services (Storage, Logs, Viz) are orchestrated via **OpenTofu** on **Kubernetes (k3s)**, while application logic and automation agents run as native host-level Systemd services for direct hardware and filesystem access.
 
+This split is one of the key design choices in the project. It keeps scalable observability services inside the cluster while preserving direct host access for the components that need low-level control, local filesystem access, or hardware awareness.
+
+For a portfolio reader, the main takeaway is simple: the platform is intentionally divided between cluster-native data systems and host-native control systems, rather than forcing every responsibility into Kubernetes.
+
 ## Component Details
 
 ### ☸️ Data Infrastructure (Kubernetes)

@@ -2,6 +2,10 @@
 
 The Observability Hub leverages a **Dual-Tier GitOps Model** to manage both cluster infrastructure and host-level automation. By combining **ArgoCD** for Kubernetes reconciliation with **Systemd** for process management, we ensure full-stack reliability and self-healing.
 
+This page explains how the platform stays synchronized and recoverable. Instead of treating automation as a single deployment layer, the system separates cluster reconciliation from host synchronization so each environment can be managed with the tools that fit it best.
+
+For a recruiter or hiring manager, the important point is that this project is not just running services. It also demonstrates a deliberate operating model for keeping infrastructure, host automation, and observability aligned.
+
 ## Core Philosophy
 
 - **Declarative Kubernetes (Tier 1)**: All cluster resources are managed via **ArgoCD**. This ensures that the "Intent" defined in Git is continuously reconciled, providing automated recovery from configuration drift.

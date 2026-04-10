@@ -2,6 +2,25 @@
 
 The Observability Hub implements a unified **Model Context Protocol (MCP)** gateway to bridge the gap between AI agents and the platform's specialized domains. This "Agentic Interface" allows LLM-based tools (Gemini CLI, GitHub Copilot) to autonomously interact with system telemetry, Kubernetes infrastructure, and host-level automation through a single authoritative entry point.
 
+This is an advanced capability of the platform, not a prerequisite for understanding the rest of the system. The core observability story still begins with services, telemetry, and Grafana. The MCP gateway sits on top of that foundation and exposes it as a controlled interface for AI-assisted operations.
+
+In plain language, this component turns the platform into something an agent can inspect and reason about directly. Instead of opening multiple UIs and manually correlating logs, metrics, traces, pod state, and network flows, an agent can access those capabilities through one gateway.
+
+## Why This Is Interesting
+
+- It extends the platform beyond dashboards into AI-assisted operations
+- It unifies telemetry, Kubernetes state, network visibility, and host intelligence behind one interface
+- It demonstrates platform engineering work that connects observability data to autonomous tooling, not just human-facing dashboards
+
+## Example Workflow
+
+A simple example is incident investigation:
+
+1. An agent checks pod health and recent events.
+2. The same agent queries logs and traces for the affected service.
+3. It then inspects network flows to determine whether traffic is being forwarded or dropped.
+4. The result is a cross-domain investigation loop from one interface instead of several disconnected tools.
+
 ## 🎯 Objective
 
 To provide a standardized, intent-based interface for autonomous operations. Instead of requiring human engineers to manually correlate data across multiple UIs, the MCP gateway exposes high-level "Tools" that agents can use to perform multi-domain analysis, trigger reconciliation, and investigate incidents via a unified reasoning loop.
