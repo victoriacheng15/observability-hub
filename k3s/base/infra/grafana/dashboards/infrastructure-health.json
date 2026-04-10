@@ -42,12 +42,16 @@
                 "value": 0
               },
               {
+                "color": "orange",
+                "value": 70
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 90
               }
             ]
           },
-          "unit": "none"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -78,12 +82,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"\", namespace=\"observability\"}[5m]))",
-          "legendFormat": "Total Cores",
+          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+          "legendFormat": "Host CPU %",
           "refId": "A"
         }
       ],
-      "title": "Total CPU Usage",
+      "title": "Host CPU Utilization",
       "type": "stat"
     },
     {
@@ -106,12 +110,16 @@
                 "value": 0
               },
               {
+                "color": "orange",
+                "value": 75
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 90
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -142,12 +150,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(container_memory_usage_bytes{container!=\"\", namespace=\"observability\"})",
-          "legendFormat": "Total RAM",
+          "expr": "100 * (1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)))",
+          "legendFormat": "Host Memory %",
           "refId": "A"
         }
       ],
-      "title": "Total Memory Usage",
+      "title": "Host Memory Utilization",
       "type": "stat"
     },
     {
@@ -340,12 +348,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))))",
-          "legendFormat": "Current Power",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))))",
+          "legendFormat": "Cluster Workload Power",
           "refId": "A"
         }
       ],
-      "title": "Total Power (Kepler)",
+      "title": "Cluster Workload Power (Kepler)",
       "type": "stat"
     },
     {
@@ -405,12 +413,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24",
           "legendFormat": "CAD/day",
           "refId": "A"
         }
       ],
-      "title": "Daily Burn Rate",
+      "title": "Cluster Daily Burn Rate",
       "type": "stat"
     },
     {
@@ -471,13 +479,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 30",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 30",
           "legendFormat": "CAD/mo",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Monthly Spend Projection",
+      "title": "Cluster Monthly Spend Projection",
       "type": "stat"
     },
     {
@@ -538,13 +546,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info{namespace=\"observability\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 365",
+          "expr": "sum(rate(kepler_container_cpu_joules_total{container_name!=\"\", pod_id!=\"\", zone=\"package\"}[5m]) * on(pod_id) group_left(namespace) (max by (pod_id, namespace) (label_replace(kube_pod_info, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))) / 1000 * $energy_cost_kwh * 24 * 365",
           "legendFormat": "CAD/yr",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Annual Spend Projection",
+      "title": "Cluster Annual Spend Projection",
       "type": "stat"
     },
     {
@@ -631,12 +639,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"\", namespace=\"observability\"}[5m])) by (pod)",
-          "legendFormat": "{{pod}}",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"\"}[5m])) by (namespace, pod)",
+          "legendFormat": "{{namespace}}/{{pod}}",
           "refId": "A"
         }
       ],
-      "title": "Pod CPU Usage (Cores)",
+      "title": "Cluster Pod CPU Usage (Cores)",
       "type": "timeseries"
     },
     {
@@ -724,12 +732,12 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(container_memory_usage_bytes{container!=\"\", namespace=\"observability\"}) by (pod)",
-          "legendFormat": "{{pod}}",
+          "expr": "sum(container_memory_usage_bytes{container!=\"\"}) by (namespace, pod)",
+          "legendFormat": "{{namespace}}/{{pod}}",
           "refId": "A"
         }
       ],
-      "title": "Pod Memory Usage",
+      "title": "Cluster Pod Memory Usage",
       "type": "timeseries"
     },
     {
@@ -849,7 +857,7 @@
           "refId": "C"
         }
       ],
-      "title": "Thermal vs. Power Draw Correlation",
+      "title": "Host Thermal vs. Power Draw",
       "type": "timeseries"
     },
     {
@@ -942,7 +950,7 @@
           "refId": "A"
         }
       ],
-      "title": "Sub-System Thermal Trends (Storage & SoC)",
+      "title": "Host Sub-System Thermal Trends",
       "type": "timeseries"
     },
     {
@@ -1039,7 +1047,7 @@
           "refId": "B"
         }
       ],
-      "title": "Network Health: Cluster Packet Flow",
+      "title": "Cluster Network Health: Packet Flow",
       "type": "timeseries"
     },
     {
@@ -1131,7 +1139,7 @@
           "refId": "A"
         }
       ],
-      "title": "Network Security: Drops by Reason (Hubble)",
+      "title": "Cluster Network Security: Drops by Reason",
       "type": "timeseries"
     }
   ],
@@ -1169,7 +1177,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Infrastructure Health Intelligence",
+  "title": "Host & Cluster Infrastructure Health",
   "uid": "infra-health-intelligence",
   "version": 1
 }
