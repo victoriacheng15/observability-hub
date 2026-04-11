@@ -180,12 +180,15 @@
         "type": "prometheus",
         "uid": "prometheus-provisioned"
       },
+      "description": "Current flow processing rate",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "mappings": [],
+          "max": 1000,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -194,12 +197,20 @@
                 "value": 0
               },
               {
+                "color": "yellow",
+                "value": 400
+              },
+              {
                 "color": "orange",
-                "value": 1
+                "value": 600
+              },
+              {
+                "color": "orange",
+                "value": 800
               }
             ]
           },
-          "unit": "short"
+          "unit": "reqps"
         },
         "overrides": []
       },
@@ -209,13 +220,11 @@
         "x": 16,
         "y": 0
       },
-      "id": 4,
+      "id": 16,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
-        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -223,9 +232,9 @@
           "fields": "",
           "values": false
         },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
       "pluginVersion": "12.3.1",
       "targets": [
@@ -235,14 +244,14 @@
             "uid": "prometheus-provisioned"
           },
           "editorMode": "code",
-          "expr": "sum(rate(hubble_lost_events_total[5m]))",
-          "legendFormat": "Lost Events",
+          "expr": "sum(rate(hubble_flows_processed_total[1m]))",
+          "legendFormat": "Flows/sec",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Hubble Event Loss (Rate)",
-      "type": "stat"
+      "title": "Current Flow Rate",
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -389,6 +398,75 @@
         "type": "prometheus",
         "uid": "prometheus-provisioned"
       },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-provisioned"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(hubble_lost_events_total[5m]))",
+          "legendFormat": "Lost Events",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Hubble Event Loss (Rate)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
       "description": "Current buffer size configuration",
       "fieldConfig": {
         "defaults": {
@@ -412,7 +490,7 @@
       "gridPos": {
         "h": 4,
         "w": 6,
-        "x": 12,
+        "x": 18,
         "y": 4
       },
       "id": 14,
@@ -449,84 +527,6 @@
       ],
       "title": "Buffer Max Capacity",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "description": "Current flow processing rate",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "max": 1000,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 400
-              },
-              {
-                "color": "orange",
-                "value": 600
-              },
-              {
-                "color": "orange",
-                "value": 800
-              }
-            ]
-          },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 4
-      },
-      "id": 16,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-provisioned"
-          },
-          "editorMode": "code",
-          "expr": "sum(rate(hubble_flows_processed_total[1m]))",
-          "legendFormat": "Flows/sec",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Current Flow Rate",
-      "type": "gauge"
     },
     {
       "datasource": {
@@ -1377,18 +1377,15 @@
   "templating": {
     "list": [
       {
+        "current": {
+          "text": "32767",
+          "value": "32767"
+        },
         "hide": 2,
         "label": "Hubble Buffer Capacity",
         "name": "hubble_buffer_capacity",
-        "options": [
-          {
-            "selected": true,
-            "text": "32767",
-            "value": "32767"
-          }
-        ],
         "query": "32767",
-        "skipUrlSync": false,
+        "skipUrlSync": true,
         "type": "constant"
       }
     ]
