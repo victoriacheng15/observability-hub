@@ -15,7 +15,18 @@ It demonstrates how a real DevOps / Platform Engineering team would:
 The goal is to simulate a production-like environment and show how to build a reliable, observable system from scratch.
 
 - 🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)  
+
+---
+
+## Documentation Map
+
 - 📚 [Full Documentation & Visual Gallery](./docs/README.md)
+- [Architecture](./docs/architecture/README.md): system design and service boundaries
+- [ADRs](./docs/decisions/README.md): architecture decisions and tradeoffs
+- [RCAs](./docs/incidents/README.md): incidents, failures, and recovery notes
+- [Operations Notes](./docs/notes/README.md): runbooks and implementation notes
+- [Workflows](./docs/workflows.md): CI/CD and GitOps workflow reality
+- [Visual Gallery](./docs/visual/README.md): dashboards and platform screenshots
 
 ---
 
@@ -66,8 +77,7 @@ This platform is built as a collection of smaller DevOps projects:
    - Chaos testing and system recovery
 
 10. **Data Ingestion Pipeline**
-
-- Worker-based batch processing system
+    - Worker-based batch processing system
 
 ---
 
@@ -84,31 +94,31 @@ This platform is built as a collection of smaller DevOps projects:
 
 ## 🛠️ Tech Stack
 
-**Platform & Infrastructure**
+### Platform & Infrastructure
 
 - Kubernetes (K3s), Helm, Docker
 - Argo CD (GitOps)
 - OpenTofu (Terraform alternative)
 
-**Observability**
+### Observability
 
 - OpenTelemetry
 - Prometheus, Grafana
 - Loki (logs), Tempo (traces), Thanos (metrics scaling)
 
-**Data & Storage**
+### Data & Storage
 
 - PostgreSQL (CloudNativePG)
 - MinIO (S3-compatible)
 - Azure Blob Storage
 
-**Networking & Security**
+### Networking & Security
 
 - Cilium (eBPF networking)
 - OpenBao (Secrets Management)
 - Tailscale
 
-**Languages**
+### Languages
 
 - Go (backend services)
 
