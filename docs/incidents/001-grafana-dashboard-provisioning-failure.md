@@ -38,7 +38,7 @@ When the JSON was manually copied into the YAML manifest:
 
 - [x] **Fix:** Updated `makefiles/k3s.mk` to use `kubectl create configmap --from-file`.
 - [x] **Prevention:** Deleted the manual `k3s/grafana/dashboards.yaml` to prevent future maintenance errors.
-- [ ] **Process:** Audit other ConfigMaps in the `k3s/` directory for similar embedded-data patterns.
+- [x] **Process:** Audit other ConfigMaps in the `k3s/` directory for similar embedded-data patterns.
 
 ## Verification
 

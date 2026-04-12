@@ -1,4 +1,4 @@
-# RCA 003: SSH Lockout via Cilium IPAM Collision
+# RCA 004: SSH Lockout via Cilium IPAM Collision
 
 - **Status:** ✅ Resolved
 - **Date:** 2026-03-17
@@ -38,7 +38,7 @@ The primary cause was an **IP Address Space Collision** triggered by default CNI
 
 - [x] **Fix**: Reverted Cilium deployment and restored Flannel networking.
 - [x] **Documentation**: Created `tofu/CILIUM_RECOVERY_GUIDE.md` for future kernel-level cleanup.
-- [ ] **Prevention**: Implement a CIDR validation script in the IaC pipeline.
+- [x] **Prevention**: Implement a CIDR validation script in the IaC pipeline.
 
 ## Verification
 

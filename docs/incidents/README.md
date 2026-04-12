@@ -8,6 +8,11 @@ This directory contains the **Root Cause Analysis (RCA)** and post-mortem report
 
 | RCA | Date | Title | Severity | Status |
 | :--- | :--- | :--- | :--- | :--- |
+| **007** | 2026-04-06 | [Worker Ingestion Blocked from MongoDB Atlas](./007-worker-ingestion-atlas-egress-block.md) | 🟡 Medium | ✅ Resolved |
+| **006** | 2026-04-01 | [Loki Gateway DNS Timeout](./006-loki-gateway-dns-timeout.md) | 🟡 Medium | ✅ Resolved |
+| **005** | 2026-03-30 | [Kustomize RBAC Resource Collision](./005-kustomize-rbac-resource-collision.md) | 🟡 Medium | ✅ Resolved |
+| **004** | 2026-03-17 | [SSH Lockout via Cilium IPAM Collision](./004-ssh-lockout-cilium-ipam-collision.md) | 🔴 Critical | ✅ Resolved |
+| **003** | 2026-02-22 | [Thanos Discovery and Retention Failure](./003-thanos-discovery-and-retention-failure.md) | 🟡 Medium | ✅ Resolved |
 | **002** | 2026-02-12 | [Service Graph Metrics Failure](./002-service-graph-metrics-failure.md) | 🟡 Medium | ✅ Resolved |
 | **001** | 2026-02-09 | [Grafana Dashboard Provisioning Failure](./001-grafana-dashboard-provisioning-failure.md) | 🟡 Medium | ✅ Resolved |
 
