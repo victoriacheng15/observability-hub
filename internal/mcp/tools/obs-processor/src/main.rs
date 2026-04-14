@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{BTreeMap, HashMap, hash_map::Entry};
 use std::io::{self, Read};
 
 #[cfg(test)]
@@ -65,14 +65,7 @@ pub struct MetricResult {
     pub values: Option<Vec<(f64, String)>>, // Range Vector: [[timestamp, "value"], ...]
 }
 
-// --- Unified Output ---
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct SummaryResult {
-    pub total_raw_lines: usize,
-    pub summarized_count: usize,
-    pub entries: Vec<String>,
-}
+// --- Output Structs ---
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct LogSummaryResult {
@@ -98,6 +91,47 @@ struct LogAggregate {
     first_timestamp_ns: String,
     last_timestamp_ns: String,
     context: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct MetricSummaryResult {
+    pub result_type: String,
+    pub total_raw_lines: usize,
+    pub summarized_count: usize,
+    pub entries: Vec<MetricSummaryEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct MetricSummaryEntry {
+    pub metric: String,
+    pub kind: String,
+    pub status: String,
+    pub labels: BTreeMap<String, String>,
+    pub sample_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avg: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub p95: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub p99: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trend_delta: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_timestamp: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_timestamp: Option<f64>,
 }
 
 // --- Implementation Logic ---
@@ -317,9 +351,10 @@ fn merge_log_context(
     }
 }
 
-pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
+pub fn process_metrics_response(response: MetricResponse) -> MetricSummaryResult {
     let mut final_entries = Vec::new();
     let series_count = response.data.result.len();
+    let result_type = response.data.result_type.clone();
 
     for series in response.data.result {
         let name = series
@@ -327,44 +362,52 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
             .get("__name__")
             .cloned()
             .unwrap_or_else(|| "unknown".to_string());
+        let labels = metric_labels(&series.metric);
 
-        // Format labels for context: {job="proxy", instance="..."}
-        let labels: Vec<String> = series
-            .metric
-            .iter()
-            .filter(|(k, _)| k.as_str() != "__name__")
-            .map(|(k, v)| format!("{}=\"{}\"", k, v))
-            .collect();
-        let label_str = if labels.is_empty() {
-            "".to_string()
-        } else {
-            format!("{{{}}}", labels.join(", "))
-        };
-
-        match response.data.result_type.as_str() {
+        match result_type.as_str() {
             "vector" => {
-                if let Some((_, val_str)) = series.value {
-                    if let Ok(val) = val_str.parse::<f64>() {
-                        final_entries.push(format!("{}{} = {:.4}", name, label_str, val));
+                if let Some((timestamp, val_str)) = series.value {
+                    if let Ok(current) = val_str.parse::<f64>() {
+                        final_entries.push(MetricSummaryEntry {
+                            metric: name,
+                            kind: "gauge".to_string(),
+                            status: "normal".to_string(),
+                            labels,
+                            sample_count: 1,
+                            timestamp: Some(timestamp),
+                            current: Some(current),
+                            min: None,
+                            max: None,
+                            avg: None,
+                            p95: None,
+                            p99: None,
+                            first: None,
+                            last: None,
+                            trend_delta: None,
+                            first_timestamp: None,
+                            last_timestamp: None,
+                        });
                     }
                 }
             }
             "matrix" => {
                 if let Some(values) = series.values {
-                    let mut floats: Vec<f64> = values
+                    let samples: Vec<(f64, f64)> = values
                         .iter()
-                        .filter_map(|(_, v)| v.parse::<f64>().ok())
+                        .filter_map(|(timestamp, value)| {
+                            value.parse::<f64>().ok().map(|value| (*timestamp, value))
+                        })
                         .collect();
 
-                    if !floats.is_empty() {
-                        let trend = if floats.len() >= 2 {
-                            let first = floats[0];
-                            let last = floats[floats.len() - 1];
-                            last - first
-                        } else {
-                            0.0
-                        };
+                    if !samples.is_empty() {
+                        let first_timestamp = samples[0].0;
+                        let first = samples[0].1;
+                        let last_timestamp = samples[samples.len() - 1].0;
+                        let last = samples[samples.len() - 1].1;
+                        let trend_delta = last - first;
 
+                        let mut floats: Vec<f64> =
+                            samples.iter().map(|(_, value)| *value).collect();
                         floats.sort_by(|a, b| a.partial_cmp(b).unwrap());
                         let min = floats[0];
                         let max = floats[floats.len() - 1];
@@ -374,19 +417,28 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
                         // P95 calculation
                         let p95_idx = (floats.len() as f64 * 0.95).floor() as usize;
                         let p95 = floats[p95_idx.min(floats.len() - 1)];
+                        let p99_idx = (floats.len() as f64 * 0.99).floor() as usize;
+                        let p99 = floats[p99_idx.min(floats.len() - 1)];
 
-                        let trend_symbol = if trend > 0.001 {
-                            "↗"
-                        } else if trend < -0.001 {
-                            "↘"
-                        } else {
-                            "→"
-                        };
-
-                        final_entries.push(format!(
-                            "{}{} | stats: [min:{:.2}, max:{:.2}, avg:{:.2}, p95:{:.2}] trend: {} ({:+.2})",
-                            name, label_str, min, max, avg, p95, trend_symbol, trend
-                        ));
+                        final_entries.push(MetricSummaryEntry {
+                            metric: name,
+                            kind: "gauge".to_string(),
+                            status: "normal".to_string(),
+                            labels,
+                            sample_count: samples.len(),
+                            timestamp: None,
+                            current: None,
+                            min: Some(min),
+                            max: Some(max),
+                            avg: Some(avg),
+                            p95: Some(p95),
+                            p99: Some(p99),
+                            first: Some(first),
+                            last: Some(last),
+                            trend_delta: Some(trend_delta),
+                            first_timestamp: Some(first_timestamp),
+                            last_timestamp: Some(last_timestamp),
+                        });
                     }
                 }
             }
@@ -394,11 +446,20 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
         }
     }
 
-    SummaryResult {
+    MetricSummaryResult {
+        result_type,
         total_raw_lines: series_count,
         summarized_count: final_entries.len(),
         entries: final_entries,
     }
+}
+
+fn metric_labels(metric: &HashMap<String, String>) -> BTreeMap<String, String> {
+    metric
+        .iter()
+        .filter(|(key, _)| key.as_str() != "__name__")
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect()
 }
 
 fn main() -> io::Result<()> {
