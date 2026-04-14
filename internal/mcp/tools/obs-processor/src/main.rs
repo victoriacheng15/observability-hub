@@ -1,7 +1,10 @@
 use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 use std::io::{self, Read};
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -85,6 +88,8 @@ pub struct LogSummaryEntry {
     pub count: usize,
     pub first_timestamp_ns: String,
     pub last_timestamp_ns: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug)]
@@ -92,6 +97,7 @@ struct LogAggregate {
     count: usize,
     first_timestamp_ns: String,
     last_timestamp_ns: String,
+    context: Option<HashMap<String, String>>,
 }
 
 // --- Implementation Logic ---
@@ -122,13 +128,15 @@ pub fn process_loki_response(response: LokiResponse) -> LogSummaryResult {
 
             match normalized_level {
                 "error" => {
-                    record_log_entry(&mut error_entries, message, timestamp_ns);
+                    let context = extract_log_context(&stream.stream, ContextScope::Error);
+                    record_log_entry(&mut error_entries, message, timestamp_ns, context);
                 }
                 "warn" => {
-                    record_log_entry(&mut warn_entries, message, timestamp_ns);
+                    let context = extract_log_context(&stream.stream, ContextScope::Warn);
+                    record_log_entry(&mut warn_entries, message, timestamp_ns, context);
                 }
                 _ => {
-                    record_log_entry(&mut info_entries, message, timestamp_ns);
+                    record_log_entry(&mut info_entries, message, timestamp_ns, None);
                 }
             }
         }
@@ -158,10 +166,11 @@ fn record_log_entry(
     entries: &mut HashMap<String, LogAggregate>,
     message: &str,
     timestamp_ns: &str,
+    context: Option<HashMap<String, String>>,
 ) {
-    entries
-        .entry(message.to_string())
-        .and_modify(|entry| {
+    match entries.entry(message.to_string()) {
+        Entry::Occupied(mut occupied) => {
+            let entry = occupied.get_mut();
             entry.count += 1;
             if timestamp_before(timestamp_ns, &entry.first_timestamp_ns) {
                 entry.first_timestamp_ns = timestamp_ns.to_string();
@@ -169,12 +178,17 @@ fn record_log_entry(
             if timestamp_after(timestamp_ns, &entry.last_timestamp_ns) {
                 entry.last_timestamp_ns = timestamp_ns.to_string();
             }
-        })
-        .or_insert_with(|| LogAggregate {
-            count: 1,
-            first_timestamp_ns: timestamp_ns.to_string(),
-            last_timestamp_ns: timestamp_ns.to_string(),
-        });
+            merge_log_context(&mut entry.context, context);
+        }
+        Entry::Vacant(vacant) => {
+            vacant.insert(LogAggregate {
+                count: 1,
+                first_timestamp_ns: timestamp_ns.to_string(),
+                last_timestamp_ns: timestamp_ns.to_string(),
+                context,
+            });
+        }
+    }
 }
 
 fn timestamp_before(left: &str, right: &str) -> bool {
@@ -206,7 +220,100 @@ fn append_log_entries(
             count: entry.count,
             first_timestamp_ns: entry.first_timestamp_ns,
             last_timestamp_ns: entry.last_timestamp_ns,
+            context: entry.context,
         });
+    }
+}
+
+#[derive(Copy, Clone)]
+enum ContextScope {
+    Error,
+    Warn,
+}
+
+fn extract_log_context(
+    stream: &HashMap<String, String>,
+    scope: ContextScope,
+) -> Option<HashMap<String, String>> {
+    let allowed_keys = match scope {
+        ContextScope::Error => [
+            "service_name",
+            "repo",
+            "error",
+            "status",
+            "path",
+            "ref",
+            "action",
+        ]
+        .as_slice(),
+        ContextScope::Warn => ["service_name", "status", "path", "action", "error"].as_slice(),
+    };
+
+    let mut context = HashMap::new();
+    for key in allowed_keys {
+        if let Some(value) = stream.get(*key).filter(|value| !value.trim().is_empty()) {
+            context.insert((*key).to_string(), trim_context_value(value));
+        }
+    }
+
+    if matches!(scope, ContextScope::Error) {
+        if let Some(output) = stream.get("output").and_then(|value| preview_output(value)) {
+            context.insert("output_preview".to_string(), output);
+        }
+    }
+
+    if context.is_empty() {
+        None
+    } else {
+        Some(context)
+    }
+}
+
+fn trim_context_value(value: &str) -> String {
+    const MAX_CONTEXT_VALUE_LEN: usize = 160;
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= MAX_CONTEXT_VALUE_LEN {
+        return trimmed.to_string();
+    }
+
+    let mut truncated: String = trimmed.chars().take(MAX_CONTEXT_VALUE_LEN).collect();
+    truncated.push_str("...");
+    truncated
+}
+
+fn preview_output(output: &str) -> Option<String> {
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) {
+        if let Some(message) = value.get("msg").and_then(|msg| msg.as_str()) {
+            return Some(trim_context_value(message));
+        }
+    }
+
+    trimmed.lines().next().map(trim_context_value)
+}
+
+fn merge_log_context(
+    existing_context: &mut Option<HashMap<String, String>>,
+    new_context: Option<HashMap<String, String>>,
+) {
+    let Some(new_context) = new_context else {
+        return;
+    };
+
+    let existing_context = existing_context.get_or_insert_with(HashMap::new);
+    for (key, value) in new_context {
+        existing_context
+            .entry(key)
+            .and_modify(|existing_value| {
+                if existing_value != &value {
+                    *existing_value = "<multiple>".to_string();
+                }
+            })
+            .or_insert(value);
     }
 }
 
@@ -330,181 +437,4 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn create_mock_loki_response(level: &str, messages: Vec<&str>) -> LokiResponse {
-        let mut stream = HashMap::new();
-        stream.insert("level".to_string(), level.to_string());
-        let values = messages
-            .into_iter()
-            .enumerate()
-            .map(|(i, m)| vec![(100 + i).to_string(), m.to_string()])
-            .collect();
-        LokiResponse {
-            status: "success".to_string(),
-            data: LokiData {
-                result_type: "streams".to_string(),
-                result: vec![LokiStream { stream, values }],
-            },
-        }
-    }
-
-    fn create_mock_metric_response(result_type: &str, series_count: usize) -> MetricResponse {
-        let mut result = Vec::new();
-        for i in 0..series_count {
-            result.push(MetricResult {
-                metric: HashMap::from([("__name__".to_string(), format!("metric_{}", i))]),
-                value: if result_type == "vector" {
-                    Some((1.0, "1".to_string()))
-                } else {
-                    None
-                },
-                values: if result_type == "matrix" {
-                    Some(vec![(1.0, "1".to_string())])
-                } else {
-                    None
-                },
-            });
-        }
-        MetricResponse {
-            status: "success".to_string(),
-            data: MetricData {
-                result_type: result_type.to_string(),
-                result,
-            },
-        }
-    }
-
-    #[test]
-    fn test_deduplication_info() {
-        let resp = create_mock_loki_response("info", vec!["pulse", "pulse", "unique"]);
-        let result = process_loki_response(resp);
-        assert_eq!(result.total_raw_lines, 3);
-        assert_eq!(result.summarized_count, 2);
-        assert_eq!(
-            result.entries[0],
-            LogSummaryEntry {
-                level: "info".to_string(),
-                message: "pulse".to_string(),
-                count: 2,
-                first_timestamp_ns: "100".to_string(),
-                last_timestamp_ns: "101".to_string(),
-            }
-        );
-        assert_eq!(
-            result.entries[1],
-            LogSummaryEntry {
-                level: "info".to_string(),
-                message: "unique".to_string(),
-                count: 1,
-                first_timestamp_ns: "102".to_string(),
-                last_timestamp_ns: "102".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn test_process_loki_response_orders_errors_warnings_info() {
-        let error_resp = create_mock_loki_response("fatal", vec!["boom", "boom"]);
-        let warn_resp = create_mock_loki_response("warning", vec!["slow"]);
-        let info_resp = create_mock_loki_response("info", vec!["ok"]);
-
-        let mut streams = Vec::new();
-        streams.extend(error_resp.data.result);
-        streams.extend(warn_resp.data.result);
-        streams.extend(info_resp.data.result);
-
-        let result = process_loki_response(LokiResponse {
-            status: "success".to_string(),
-            data: LokiData {
-                result_type: "streams".to_string(),
-                result: streams,
-            },
-        });
-
-        assert_eq!(result.total_raw_lines, 4);
-        assert_eq!(result.summarized_count, 3);
-        assert_eq!(result.entries[0].level, "error");
-        assert_eq!(result.entries[0].message, "boom");
-        assert_eq!(result.entries[0].count, 2);
-        assert_eq!(result.entries[1].level, "warn");
-        assert_eq!(result.entries[1].message, "slow");
-        assert_eq!(result.entries[2].level, "info");
-        assert_eq!(result.entries[2].message, "ok");
-    }
-
-    #[test]
-    fn test_process_metrics_vector() {
-        let resp = create_mock_metric_response("vector", 2);
-        let result = process_metrics_response(resp);
-        assert_eq!(result.total_raw_lines, 2);
-        assert!(result.entries[0].contains("metric_0 = 1.0000"));
-    }
-
-    #[test]
-    fn test_process_metrics_matrix_stats() {
-        let mut metric = HashMap::new();
-        metric.insert("__name__".to_string(), "test_latency".to_string());
-        metric.insert("service".to_string(), "proxy".to_string());
-
-        // Test values: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
-        let values: Vec<(f64, String)> =
-            (1..=10).map(|i| (i as f64, (i * 10).to_string())).collect();
-
-        let resp = MetricResponse {
-            status: "success".to_string(),
-            data: MetricData {
-                result_type: "matrix".to_string(),
-                result: vec![MetricResult {
-                    metric,
-                    value: None,
-                    values: Some(values),
-                }],
-            },
-        };
-
-        let result = process_metrics_response(resp);
-        assert_eq!(result.summarized_count, 1);
-        let entry = &result.entries[0];
-
-        assert!(entry.contains("test_latency"));
-        assert!(entry.contains("service=\"proxy\""));
-        assert!(entry.contains("min:10.00"));
-        assert!(entry.contains("max:100.00"));
-        assert!(entry.contains("avg:55.00"));
-        assert!(entry.contains("p95:100.00"));
-        assert!(entry.contains("↗ (+90.00)"));
-    }
-
-    #[test]
-    fn test_process_metrics_trend_down() {
-        let mut metric = HashMap::new();
-        metric.insert("__name__".to_string(), "cpu_usage".to_string());
-
-        // Test values: 100, 90, 80
-        let values = vec![
-            (1.0, "100".to_string()),
-            (2.0, "90".to_string()),
-            (3.0, "80".to_string()),
-        ];
-
-        let resp = MetricResponse {
-            status: "success".to_string(),
-            data: MetricData {
-                result_type: "matrix".to_string(),
-                result: vec![MetricResult {
-                    metric,
-                    value: None,
-                    values: Some(values),
-                }],
-            },
-        };
-
-        let result = process_metrics_response(resp);
-        assert!(result.entries[0].contains("↘ (-20.00)"));
-    }
 }
