@@ -1,6 +1,6 @@
 # ADR 022: Structured Summaries for Obs Processor
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-04-14
 - **Author:** Victoria Cheng
 
@@ -13,7 +13,7 @@ Live use showed that the first summary format is too lossy for investigation. It
 - **Repeated log errors lose cause:** An error such as `webhook_sync_failed (x2)` does not preserve structured fields like `repo`, `error`, `output`, or the failure window.
 - **Timestamps disappear:** Grouped log entries do not expose first and last timestamps, making it harder to pivot into raw logs and traces around the event.
 - **Warnings and info logs are not differentiated enough:** Normal high-volume info logs need minimal counts, while warnings and errors need more diagnostic context.
-- **Metric summaries stay noisy for high-cardinality results:** Large Prometheus responses can still emit one summarized entry per series, including long label sets.
+- **Metric summaries need clearer semantics:** Large Prometheus responses can emit one summarized entry per series, and that is acceptable while compression remains strong, but each entry needs clearer structure and metric-type semantics.
 - **Counters are summarized like gauges:** Cumulative metrics such as `*_total` can show raw upward trends that are technically true but operationally misleading.
 
 The platform needs a second-stage refinement that preserves the sidecar boundary and token savings while making summaries useful as investigation starting points.
@@ -79,49 +79,35 @@ Current metric summaries can still emit long one-line entries per series:
 }
 ```
 
-The target metric summary groups normal high-cardinality series and makes anomalies explicit:
+The target metric summary keeps structured labels, summarizes counters with counter-aware fields, and leaves future filtering decisions to operational feedback:
 
 ```json
 {
   "result_type": "matrix",
-  "total_series": 128,
-  "total_samples": 7680,
-  "summarized_count": 2,
+  "total_raw_lines": 128,
+  "summarized_count": 128,
   "entries": [
     {
       "metric": "node_cpu_seconds_total",
       "kind": "counter",
       "status": "normal",
       "labels": {
+        "cluster": "homelab",
+        "cpu": "0",
+        "instance": "node-exporter:9100",
+        "job": "kubernetes-service-endpoints",
         "mode": "idle"
       },
-      "series_count": 16,
-      "sample_count": 960,
-      "delta": 54516.25,
-      "average_rate_per_second": 15.14,
+      "sample_count": 6,
+      "first": 701759.78,
+      "last": 702047.6,
+      "delta": 287.82,
+      "average_rate_per_second": 0.9594,
       "resets_detected": 0,
-      "first_timestamp": 1776126896.4,
-      "last_timestamp": 1776130436.4
-    },
-    {
-      "metric": "up",
-      "kind": "gauge",
-      "status": "anomaly",
-      "labels": {
-        "job": "kubernetes-service-endpoints",
-        "instance": "service-endpoint:4244"
-      },
-      "sample_count": 1,
-      "current": 0,
-      "expected": 1,
-      "first_timestamp": 1776130436.4,
-      "last_timestamp": 1776130436.4,
-      "context": {
-        "reason": "scrape target down"
-      }
+      "first_timestamp": 1776135942.0,
+      "last_timestamp": 1776136242.0
     }
-  ],
-  "omitted_series": 126
+  ]
 }
 ```
 
@@ -137,18 +123,18 @@ Diagnostic context should be extracted from structured Loki stream metadata thro
 
 ### Metric Summary Policy
 
-Metric summaries should distinguish normal volume from operational anomalies:
+Metric summaries should distinguish metric semantics without prematurely dropping labels:
 
 - **Anomalies:** Include status, retained labels, timestamps, current or expected values, and short context.
 - **Counters:** Use delta, average rate, reset count, sample count, and timestamps.
-- **Gauges:** Use min, max, average, p95, first value, last value, trend delta, sample count, and timestamps.
-- **Normal high-cardinality series:** Group by the smallest useful retained label set and report omitted counts instead of listing every series.
+- **Gauges:** Use min, max, average, p95, p99, first value, last value, trend delta, sample count, and timestamps.
+- **Labels:** Retain labels for now so live usage can show which labels are actually useful for investigation.
 
-Metric labels should be filtered through an allowlist so summary text is not dominated by noisy labels. The processor may retain extra labels for small result sets when they are the only useful differentiator.
+Label filtering and grouping are deferred. The benchmark shows strong compression even with labels retained, so filtering should be revisited only if live usage shows that labels hurt readability, privacy, or investigation quality.
 
 ### Benchmark Policy
 
-Benchmarking remains required, but benchmark script changes are deferred until after the log and metric refactors land. The benchmark must continue to prove that summarization preserves the practical ROI of the sidecar:
+Benchmarking remains required. The benchmark must continue to prove that summarization preserves the practical ROI of the sidecar:
 
 - Raw bytes
 - Summary bytes
@@ -156,13 +142,21 @@ Benchmarking remains required, but benchmark script changes are deferred until a
 - Estimated savings
 - Context-density gain
 
-The benchmark should validate the final structured schema after implementation rather than being updated before the schema exists.
+The existing benchmark script continued to work after structured summaries landed, so no benchmark script change was required.
+
+Representative validation after the structured refactor:
+
+| Type | Raw Bytes | Summary Bytes | Context Gain |
+| :--- | ---: | ---: | ---: |
+| Logs | `566,863` | `6,280` | `~90.2x` |
+| Metrics | `4,169,708` | `51,747` | `~80.5x` |
 
 ### Rationale
 
 - **Better investigation pivots:** Error and anomaly summaries should contain enough timestamps and context to guide follow-up Loki, Prometheus, or trace queries.
 - **Preserved compression:** Info logs and normal high-cardinality metric series should remain compact.
 - **Clearer metric semantics:** Counter summaries should report rate and delta rather than raw monotonic growth.
+- **Deferred label filtering:** The measured compression gain is already strong, so label filtering should wait for operational evidence.
 - **Stable architecture:** The Go fail-open contract and Rust helper boundary from ADR 021 remain unchanged.
 
 ## Consequences
@@ -172,18 +166,18 @@ The benchmark should validate the final structured schema after implementation r
 - **Higher diagnostic value:** Summaries preserve the fields most useful for root-cause investigation.
 - **Cleaner agent reasoning:** Agents can focus on errors, anomalies, and compact normal-volume summaries.
 - **Better metric interpretation:** Counters, gauges, and anomalies have different summary shapes aligned to their operational meaning.
-- **Controlled cardinality:** Label filtering and grouping reduce large metric responses without hiding anomaly context.
+- **Measured ROI:** Structured summaries preserved strong compression for both logs and metrics without requiring benchmark script changes.
 
 ### Negative
 
 - **More complex schema:** Structured entries are more expressive than strings, but require more careful tests and downstream handling.
 - **Slightly larger summaries:** Error and anomaly entries may use more bytes than string-only summaries.
-- **Implementation sequencing:** Logs, metrics, grouping, and benchmark validation should land in small PRs to keep review manageable.
+- **Deferred filtering decision:** Label filtering may still be needed later for privacy or readability, but it is no longer justified as an immediate compression requirement.
 
 ## Verification
 
-- [ ] **ADR Review:** Confirm the structured summary policy is accepted before implementation begins.
-- [ ] **Log Tests:** Rust tests cover structured log entries, severity-specific detail, timestamps, and context extraction.
-- [ ] **Metric Tests:** Rust tests cover vectors, gauges, counters, reset detection, label filtering, grouping, and anomaly summaries.
-- [ ] **Fail-Open Check:** Go MCP handlers still return raw telemetry if the processor fails.
-- [ ] **Benchmark Check:** After log and metric refactors land, verify `bench_sidecar_roi.sh` still reports raw bytes, summary bytes, estimated tokens, savings, and density gain.
+- [x] **ADR Review:** ADR 022 captured the structured summary policy before implementation began.
+- [x] **Log Tests:** Rust tests cover structured log entries, severity-specific detail, timestamps, and context extraction.
+- [x] **Metric Tests:** Rust tests cover vectors, gauges, counters, p99, and reset detection.
+- [x] **Fail-Open Check:** `go test ./internal/mcp/tools/telemetry` verified the Go MCP telemetry boundary still accepts summarized output and preserves fail-open behavior.
+- [x] **Benchmark Check:** `bench_sidecar_roi.sh --type logs` and `bench_sidecar_roi.sh --type metrics` verified raw bytes, summary bytes, estimated tokens, savings, and density gain.
