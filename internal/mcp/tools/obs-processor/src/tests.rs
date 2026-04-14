@@ -276,3 +276,83 @@ fn test_process_metrics_trend_down() {
     assert_eq!(result.entries[0].first_timestamp, Some(1.0));
     assert_eq!(result.entries[0].last_timestamp, Some(3.0));
 }
+
+#[test]
+fn test_process_metrics_counter_stats() {
+    let mut metric = HashMap::new();
+    metric.insert("__name__".to_string(), "http_requests_total".to_string());
+    metric.insert("service".to_string(), "proxy".to_string());
+
+    let values = vec![
+        (10.0, "100".to_string()),
+        (20.0, "125".to_string()),
+        (30.0, "175".to_string()),
+    ];
+
+    let resp = MetricResponse {
+        status: "success".to_string(),
+        data: MetricData {
+            result_type: "matrix".to_string(),
+            result: vec![MetricResult {
+                metric,
+                value: None,
+                values: Some(values),
+            }],
+        },
+    };
+
+    let result = process_metrics_response(resp);
+    let entry = &result.entries[0];
+
+    assert_eq!(entry.metric, "http_requests_total");
+    assert_eq!(entry.kind, "counter");
+    assert_eq!(entry.status, "normal");
+    assert_eq!(entry.labels.get("service").unwrap(), "proxy");
+    assert_eq!(entry.sample_count, 3);
+    assert_eq!(entry.first, Some(100.0));
+    assert_eq!(entry.last, Some(175.0));
+    assert_eq!(entry.delta, Some(75.0));
+    assert_eq!(entry.average_rate_per_second, Some(3.75));
+    assert_eq!(entry.resets_detected, Some(0));
+    assert_eq!(entry.trend_delta, None);
+    assert_eq!(entry.min, None);
+    assert_eq!(entry.p95, None);
+    assert_eq!(entry.p99, None);
+    assert_eq!(entry.first_timestamp, Some(10.0));
+    assert_eq!(entry.last_timestamp, Some(30.0));
+}
+
+#[test]
+fn test_process_metrics_counter_reset_detection() {
+    let mut metric = HashMap::new();
+    metric.insert("__name__".to_string(), "worker_jobs_count".to_string());
+
+    let values = vec![
+        (1.0, "90".to_string()),
+        (2.0, "100".to_string()),
+        (3.0, "4".to_string()),
+        (4.0, "10".to_string()),
+    ];
+
+    let resp = MetricResponse {
+        status: "success".to_string(),
+        data: MetricData {
+            result_type: "matrix".to_string(),
+            result: vec![MetricResult {
+                metric,
+                value: None,
+                values: Some(values),
+            }],
+        },
+    };
+
+    let result = process_metrics_response(resp);
+    let entry = &result.entries[0];
+
+    assert_eq!(entry.kind, "counter");
+    assert_eq!(entry.delta, Some(20.0));
+    assert_eq!(entry.average_rate_per_second, Some(20.0 / 3.0));
+    assert_eq!(entry.resets_detected, Some(1));
+    assert_eq!(entry.first, Some(90.0));
+    assert_eq!(entry.last, Some(10.0));
+}
