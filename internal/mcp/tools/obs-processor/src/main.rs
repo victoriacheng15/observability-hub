@@ -58,7 +58,7 @@ pub struct MetricData {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MetricResult {
     pub metric: HashMap<String, String>,
-    pub value: Option<(f64, String)>,       // Instant Vector: [timestamp, "value"]
+    pub value: Option<(f64, String)>, // Instant Vector: [timestamp, "value"]
     pub values: Option<Vec<(f64, String)>>, // Range Vector: [[timestamp, "value"], ...]
 }
 
@@ -71,12 +71,35 @@ pub struct SummaryResult {
     pub entries: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct LogSummaryResult {
+    pub total_raw_lines: usize,
+    pub summarized_count: usize,
+    pub entries: Vec<LogSummaryEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct LogSummaryEntry {
+    pub level: String,
+    pub message: String,
+    pub count: usize,
+    pub first_timestamp_ns: String,
+    pub last_timestamp_ns: String,
+}
+
+#[derive(Debug)]
+struct LogAggregate {
+    count: usize,
+    first_timestamp_ns: String,
+    last_timestamp_ns: String,
+}
+
 // --- Implementation Logic ---
 
-pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
-    let mut info_counts: HashMap<String, usize> = HashMap::new();
-    let mut warn_counts: HashMap<String, usize> = HashMap::new();
-    let mut error_counts: HashMap<String, usize> = HashMap::new();
+pub fn process_loki_response(response: LokiResponse) -> LogSummaryResult {
+    let mut info_entries: HashMap<String, LogAggregate> = HashMap::new();
+    let mut warn_entries: HashMap<String, LogAggregate> = HashMap::new();
+    let mut error_entries: HashMap<String, LogAggregate> = HashMap::new();
     let mut total_lines = 0;
 
     for stream in response.data.result {
@@ -87,51 +110,103 @@ pub fn process_loki_response(response: LokiResponse) -> SummaryResult {
             .or_else(|| stream.stream.get("severity_text"))
             .map(|l| l.to_lowercase())
             .unwrap_or_else(|| "info".to_string());
+        let normalized_level = normalize_log_level(&level);
 
         for entry in stream.values {
             total_lines += 1;
             if entry.len() < 2 {
                 continue;
             }
-            let msg = &entry[1];
+            let timestamp_ns = &entry[0];
+            let message = &entry[1];
 
-            match level.as_str() {
-                "error" | "err" | "fatal" | "panic" => {
-                    *error_counts.entry(msg.clone()).or_insert(0) += 1;
+            match normalized_level {
+                "error" => {
+                    record_log_entry(&mut error_entries, message, timestamp_ns);
                 }
-                "warn" | "warning" => {
-                    *warn_counts.entry(msg.clone()).or_insert(0) += 1;
+                "warn" => {
+                    record_log_entry(&mut warn_entries, message, timestamp_ns);
                 }
                 _ => {
-                    *info_counts.entry(msg.clone()).or_insert(0) += 1;
+                    record_log_entry(&mut info_entries, message, timestamp_ns);
                 }
             }
         }
     }
 
     let mut final_entries = Vec::new();
-    let mut err_msgs: Vec<_> = error_counts.into_iter().collect();
-    err_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    for (msg, count) in err_msgs {
-        final_entries.push(format!("[ERROR] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
-    }
+    append_log_entries(&mut final_entries, "error", error_entries);
+    append_log_entries(&mut final_entries, "warn", warn_entries);
+    append_log_entries(&mut final_entries, "info", info_entries);
 
-    let mut warn_msgs: Vec<_> = warn_counts.into_iter().collect();
-    warn_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    for (msg, count) in warn_msgs {
-        final_entries.push(format!("[WARN] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
-    }
-
-    let mut info_msgs: Vec<_> = info_counts.into_iter().collect();
-    info_msgs.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    for (msg, count) in info_msgs {
-        final_entries.push(format!("[INFO] {}{}", msg, if count > 1 { format!(" (x{})", count) } else { "".to_string() }));
-    }
-
-    SummaryResult {
+    LogSummaryResult {
         total_raw_lines: total_lines,
         summarized_count: final_entries.len(),
         entries: final_entries,
+    }
+}
+
+fn normalize_log_level(level: &str) -> &'static str {
+    match level {
+        "error" | "err" | "fatal" | "panic" => "error",
+        "warn" | "warning" => "warn",
+        _ => "info",
+    }
+}
+
+fn record_log_entry(
+    entries: &mut HashMap<String, LogAggregate>,
+    message: &str,
+    timestamp_ns: &str,
+) {
+    entries
+        .entry(message.to_string())
+        .and_modify(|entry| {
+            entry.count += 1;
+            if timestamp_before(timestamp_ns, &entry.first_timestamp_ns) {
+                entry.first_timestamp_ns = timestamp_ns.to_string();
+            }
+            if timestamp_after(timestamp_ns, &entry.last_timestamp_ns) {
+                entry.last_timestamp_ns = timestamp_ns.to_string();
+            }
+        })
+        .or_insert_with(|| LogAggregate {
+            count: 1,
+            first_timestamp_ns: timestamp_ns.to_string(),
+            last_timestamp_ns: timestamp_ns.to_string(),
+        });
+}
+
+fn timestamp_before(left: &str, right: &str) -> bool {
+    match (left.parse::<u128>(), right.parse::<u128>()) {
+        (Ok(left), Ok(right)) => left < right,
+        _ => left < right,
+    }
+}
+
+fn timestamp_after(left: &str, right: &str) -> bool {
+    match (left.parse::<u128>(), right.parse::<u128>()) {
+        (Ok(left), Ok(right)) => left > right,
+        _ => left > right,
+    }
+}
+
+fn append_log_entries(
+    final_entries: &mut Vec<LogSummaryEntry>,
+    level: &str,
+    entries: HashMap<String, LogAggregate>,
+) {
+    let mut sorted_entries: Vec<_> = entries.into_iter().collect();
+    sorted_entries.sort_by(|a, b| b.1.count.cmp(&a.1.count).then_with(|| a.0.cmp(&b.0)));
+
+    for (message, entry) in sorted_entries {
+        final_entries.push(LogSummaryEntry {
+            level: level.to_string(),
+            message,
+            count: entry.count,
+            first_timestamp_ns: entry.first_timestamp_ns,
+            last_timestamp_ns: entry.last_timestamp_ns,
+        });
     }
 }
 
@@ -140,14 +215,24 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
     let series_count = response.data.result.len();
 
     for series in response.data.result {
-        let name = series.metric.get("__name__").cloned().unwrap_or_else(|| "unknown".to_string());
-        
+        let name = series
+            .metric
+            .get("__name__")
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string());
+
         // Format labels for context: {job="proxy", instance="..."}
-        let labels: Vec<String> = series.metric.iter()
+        let labels: Vec<String> = series
+            .metric
+            .iter()
             .filter(|(k, _)| k.as_str() != "__name__")
             .map(|(k, v)| format!("{}=\"{}\"", k, v))
             .collect();
-        let label_str = if labels.is_empty() { "".to_string() } else { format!("{{{}}}", labels.join(", ")) };
+        let label_str = if labels.is_empty() {
+            "".to_string()
+        } else {
+            format!("{{{}}}", labels.join(", "))
+        };
 
         match response.data.result_type.as_str() {
             "vector" => {
@@ -159,7 +244,8 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
             }
             "matrix" => {
                 if let Some(values) = series.values {
-                    let mut floats: Vec<f64> = values.iter()
+                    let mut floats: Vec<f64> = values
+                        .iter()
                         .filter_map(|(_, v)| v.parse::<f64>().ok())
                         .collect();
 
@@ -177,12 +263,18 @@ pub fn process_metrics_response(response: MetricResponse) -> SummaryResult {
                         let max = floats[floats.len() - 1];
                         let sum: f64 = floats.iter().sum();
                         let avg = sum / floats.len() as f64;
-                        
+
                         // P95 calculation
                         let p95_idx = (floats.len() as f64 * 0.95).floor() as usize;
                         let p95 = floats[p95_idx.min(floats.len() - 1)];
 
-                        let trend_symbol = if trend > 0.001 { "↗" } else if trend < -0.001 { "↘" } else { "→" };
+                        let trend_symbol = if trend > 0.001 {
+                            "↗"
+                        } else if trend < -0.001 {
+                            "↘"
+                        } else {
+                            "→"
+                        };
 
                         final_entries.push(format!(
                             "{}{} | stats: [min:{:.2}, max:{:.2}, avg:{:.2}, p95:{:.2}] trend: {} ({:+.2})",
@@ -247,10 +339,17 @@ mod tests {
     fn create_mock_loki_response(level: &str, messages: Vec<&str>) -> LokiResponse {
         let mut stream = HashMap::new();
         stream.insert("level".to_string(), level.to_string());
-        let values = messages.into_iter().map(|m| vec!["123".to_string(), m.to_string()]).collect();
+        let values = messages
+            .into_iter()
+            .enumerate()
+            .map(|(i, m)| vec![(100 + i).to_string(), m.to_string()])
+            .collect();
         LokiResponse {
             status: "success".to_string(),
-            data: LokiData { result_type: "streams".to_string(), result: vec![LokiStream { stream, values }] },
+            data: LokiData {
+                result_type: "streams".to_string(),
+                result: vec![LokiStream { stream, values }],
+            },
         }
     }
 
@@ -259,13 +358,24 @@ mod tests {
         for i in 0..series_count {
             result.push(MetricResult {
                 metric: HashMap::from([("__name__".to_string(), format!("metric_{}", i))]),
-                value: if result_type == "vector" { Some((1.0, "1".to_string())) } else { None },
-                values: if result_type == "matrix" { Some(vec![(1.0, "1".to_string())]) } else { None },
+                value: if result_type == "vector" {
+                    Some((1.0, "1".to_string()))
+                } else {
+                    None
+                },
+                values: if result_type == "matrix" {
+                    Some(vec![(1.0, "1".to_string())])
+                } else {
+                    None
+                },
             });
         }
         MetricResponse {
             status: "success".to_string(),
-            data: MetricData { result_type: result_type.to_string(), result },
+            data: MetricData {
+                result_type: result_type.to_string(),
+                result,
+            },
         }
     }
 
@@ -275,6 +385,56 @@ mod tests {
         let result = process_loki_response(resp);
         assert_eq!(result.total_raw_lines, 3);
         assert_eq!(result.summarized_count, 2);
+        assert_eq!(
+            result.entries[0],
+            LogSummaryEntry {
+                level: "info".to_string(),
+                message: "pulse".to_string(),
+                count: 2,
+                first_timestamp_ns: "100".to_string(),
+                last_timestamp_ns: "101".to_string(),
+            }
+        );
+        assert_eq!(
+            result.entries[1],
+            LogSummaryEntry {
+                level: "info".to_string(),
+                message: "unique".to_string(),
+                count: 1,
+                first_timestamp_ns: "102".to_string(),
+                last_timestamp_ns: "102".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_process_loki_response_orders_errors_warnings_info() {
+        let error_resp = create_mock_loki_response("fatal", vec!["boom", "boom"]);
+        let warn_resp = create_mock_loki_response("warning", vec!["slow"]);
+        let info_resp = create_mock_loki_response("info", vec!["ok"]);
+
+        let mut streams = Vec::new();
+        streams.extend(error_resp.data.result);
+        streams.extend(warn_resp.data.result);
+        streams.extend(info_resp.data.result);
+
+        let result = process_loki_response(LokiResponse {
+            status: "success".to_string(),
+            data: LokiData {
+                result_type: "streams".to_string(),
+                result: streams,
+            },
+        });
+
+        assert_eq!(result.total_raw_lines, 4);
+        assert_eq!(result.summarized_count, 3);
+        assert_eq!(result.entries[0].level, "error");
+        assert_eq!(result.entries[0].message, "boom");
+        assert_eq!(result.entries[0].count, 2);
+        assert_eq!(result.entries[1].level, "warn");
+        assert_eq!(result.entries[1].message, "slow");
+        assert_eq!(result.entries[2].level, "info");
+        assert_eq!(result.entries[2].message, "ok");
     }
 
     #[test]
@@ -292,22 +452,25 @@ mod tests {
         metric.insert("service".to_string(), "proxy".to_string());
 
         // Test values: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
-        let values: Vec<(f64, String)> = (1..=10)
-            .map(|i| (i as f64, (i * 10).to_string()))
-            .collect();
+        let values: Vec<(f64, String)> =
+            (1..=10).map(|i| (i as f64, (i * 10).to_string())).collect();
 
         let resp = MetricResponse {
             status: "success".to_string(),
             data: MetricData {
                 result_type: "matrix".to_string(),
-                result: vec![MetricResult { metric, value: None, values: Some(values) }],
+                result: vec![MetricResult {
+                    metric,
+                    value: None,
+                    values: Some(values),
+                }],
             },
         };
 
         let result = process_metrics_response(resp);
         assert_eq!(result.summarized_count, 1);
         let entry = &result.entries[0];
-        
+
         assert!(entry.contains("test_latency"));
         assert!(entry.contains("service=\"proxy\""));
         assert!(entry.contains("min:10.00"));
@@ -333,7 +496,11 @@ mod tests {
             status: "success".to_string(),
             data: MetricData {
                 result_type: "matrix".to_string(),
-                result: vec![MetricResult { metric, value: None, values: Some(values) }],
+                result: vec![MetricResult {
+                    metric,
+                    value: None,
+                    values: Some(values),
+                }],
             },
         };
 
