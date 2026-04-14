@@ -129,6 +129,12 @@ pub struct MetricSummaryEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trend_delta: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub delta: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub average_rate_per_second: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resets_detected: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub first_timestamp: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_timestamp: Option<f64>,
@@ -368,9 +374,10 @@ pub fn process_metrics_response(response: MetricResponse) -> MetricSummaryResult
             "vector" => {
                 if let Some((timestamp, val_str)) = series.value {
                     if let Ok(current) = val_str.parse::<f64>() {
+                        let kind = metric_kind(&name);
                         final_entries.push(MetricSummaryEntry {
                             metric: name,
-                            kind: "gauge".to_string(),
+                            kind: kind.to_string(),
                             status: "normal".to_string(),
                             labels,
                             sample_count: 1,
@@ -384,6 +391,9 @@ pub fn process_metrics_response(response: MetricResponse) -> MetricSummaryResult
                             first: None,
                             last: None,
                             trend_delta: None,
+                            delta: None,
+                            average_rate_per_second: None,
+                            resets_detected: None,
                             first_timestamp: None,
                             last_timestamp: None,
                         });
@@ -404,6 +414,42 @@ pub fn process_metrics_response(response: MetricResponse) -> MetricSummaryResult
                         let first = samples[0].1;
                         let last_timestamp = samples[samples.len() - 1].0;
                         let last = samples[samples.len() - 1].1;
+                        let kind = metric_kind(&name);
+
+                        if kind == "counter" {
+                            let (delta, resets_detected) = counter_delta_and_resets(&samples);
+                            let elapsed_seconds = last_timestamp - first_timestamp;
+                            let average_rate_per_second = if elapsed_seconds > 0.0 {
+                                Some(delta / elapsed_seconds)
+                            } else {
+                                None
+                            };
+
+                            final_entries.push(MetricSummaryEntry {
+                                metric: name,
+                                kind: kind.to_string(),
+                                status: "normal".to_string(),
+                                labels,
+                                sample_count: samples.len(),
+                                timestamp: None,
+                                current: None,
+                                min: None,
+                                max: None,
+                                avg: None,
+                                p95: None,
+                                p99: None,
+                                first: Some(first),
+                                last: Some(last),
+                                trend_delta: None,
+                                delta: Some(delta),
+                                average_rate_per_second,
+                                resets_detected: Some(resets_detected),
+                                first_timestamp: Some(first_timestamp),
+                                last_timestamp: Some(last_timestamp),
+                            });
+                            continue;
+                        }
+
                         let trend_delta = last - first;
 
                         let mut floats: Vec<f64> =
@@ -436,6 +482,9 @@ pub fn process_metrics_response(response: MetricResponse) -> MetricSummaryResult
                             first: Some(first),
                             last: Some(last),
                             trend_delta: Some(trend_delta),
+                            delta: None,
+                            average_rate_per_second: None,
+                            resets_detected: None,
                             first_timestamp: Some(first_timestamp),
                             last_timestamp: Some(last_timestamp),
                         });
@@ -460,6 +509,36 @@ fn metric_labels(metric: &HashMap<String, String>) -> BTreeMap<String, String> {
         .filter(|(key, _)| key.as_str() != "__name__")
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect()
+}
+
+fn metric_kind(name: &str) -> &'static str {
+    if name.ends_with("_total") || name.ends_with("_count") || name.ends_with("_sum") {
+        "counter"
+    } else {
+        "gauge"
+    }
+}
+
+fn counter_delta_and_resets(samples: &[(f64, f64)]) -> (f64, usize) {
+    if samples.len() < 2 {
+        return (0.0, 0);
+    }
+
+    let mut delta = 0.0;
+    let mut resets = 0;
+
+    for window in samples.windows(2) {
+        let previous = window[0].1;
+        let current = window[1].1;
+        if current >= previous {
+            delta += current - previous;
+        } else {
+            resets += 1;
+            delta += current;
+        }
+    }
+
+    (delta, resets)
 }
 
 fn main() -> io::Result<()> {
