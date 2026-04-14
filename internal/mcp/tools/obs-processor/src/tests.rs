@@ -189,8 +189,18 @@ fn test_process_loki_response_keeps_warning_context_small() {
 fn test_process_metrics_vector() {
     let resp = create_mock_metric_response("vector", 2);
     let result = process_metrics_response(resp);
+    let entry = &result.entries[0];
+
+    assert_eq!(result.result_type, "vector");
     assert_eq!(result.total_raw_lines, 2);
-    assert!(result.entries[0].contains("metric_0 = 1.0000"));
+    assert_eq!(result.summarized_count, 2);
+    assert_eq!(entry.metric, "metric_0");
+    assert_eq!(entry.kind, "gauge");
+    assert_eq!(entry.status, "normal");
+    assert_eq!(entry.sample_count, 1);
+    assert_eq!(entry.timestamp, Some(1.0));
+    assert_eq!(entry.current, Some(1.0));
+    assert!(entry.labels.is_empty());
 }
 
 #[test]
@@ -215,16 +225,26 @@ fn test_process_metrics_matrix_stats() {
     };
 
     let result = process_metrics_response(resp);
-    assert_eq!(result.summarized_count, 1);
     let entry = &result.entries[0];
 
-    assert!(entry.contains("test_latency"));
-    assert!(entry.contains("service=\"proxy\""));
-    assert!(entry.contains("min:10.00"));
-    assert!(entry.contains("max:100.00"));
-    assert!(entry.contains("avg:55.00"));
-    assert!(entry.contains("p95:100.00"));
-    assert!(entry.contains("↗ (+90.00)"));
+    assert_eq!(result.result_type, "matrix");
+    assert_eq!(result.total_raw_lines, 1);
+    assert_eq!(result.summarized_count, 1);
+    assert_eq!(entry.metric, "test_latency");
+    assert_eq!(entry.kind, "gauge");
+    assert_eq!(entry.status, "normal");
+    assert_eq!(entry.labels.get("service").unwrap(), "proxy");
+    assert_eq!(entry.sample_count, 10);
+    assert_eq!(entry.min, Some(10.0));
+    assert_eq!(entry.max, Some(100.0));
+    assert_eq!(entry.avg, Some(55.0));
+    assert_eq!(entry.p95, Some(100.0));
+    assert_eq!(entry.p99, Some(100.0));
+    assert_eq!(entry.first, Some(10.0));
+    assert_eq!(entry.last, Some(100.0));
+    assert_eq!(entry.trend_delta, Some(90.0));
+    assert_eq!(entry.first_timestamp, Some(1.0));
+    assert_eq!(entry.last_timestamp, Some(10.0));
 }
 
 #[test]
@@ -252,5 +272,7 @@ fn test_process_metrics_trend_down() {
     };
 
     let result = process_metrics_response(resp);
-    assert!(result.entries[0].contains("↘ (-20.00)"));
+    assert_eq!(result.entries[0].trend_delta, Some(-20.0));
+    assert_eq!(result.entries[0].first_timestamp, Some(1.0));
+    assert_eq!(result.entries[0].last_timestamp, Some(3.0));
 }
