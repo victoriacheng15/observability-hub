@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **022** | [Structured Summaries for Obs Processor](./022-obs-processor-structured-summaries.md) | 🟢 Proposed |
 | **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |
 | **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🔵 Accepted |
 | **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🔵 Accepted |
