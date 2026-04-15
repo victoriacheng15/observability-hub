@@ -95,115 +95,26 @@ resource "grafana_notification_policy" "default" {
   repeat_interval = "4h"
 }
 
-resource "grafana_rule_group" "cilium_hubble" {
+resource "grafana_rule_group" "loki_log_errors" {
   count = local.grafana_alerting_enabled ? 1 : 0
 
-  name             = "Cilium Hubble Alerts"
+  name             = "Loki Log Alerts"
   folder_uid       = grafana_folder.observability.uid
-  interval_seconds = 60
+  interval_seconds = 600
 
   rule {
-    name      = "Hubble Metrics Missing"
+    name      = "Error Logs Detected"
     condition = "B"
-    for       = "10m"
+    for       = "0s"
 
     annotations = {
-      summary     = "Prometheus cannot scrape Hubble metrics."
-      description = "The Hubble metrics target has stayed below 1 for 10 minutes."
+      summary     = "Loki received error-level log output."
+      description = "At least one log line containing error, fatal, or panic appeared in a service_name-labeled Loki stream during the last 5 minutes."
     }
 
     labels = {
       severity = "warning"
-      service  = "hubble"
-    }
-
-    exec_err_state = "Alerting"
-    no_data_state  = "Alerting"
-    is_paused      = false
-
-    data {
-      ref_id         = "A"
-      query_type     = ""
-      datasource_uid = "prometheus-provisioned"
-
-      relative_time_range {
-        from = 600
-        to   = 0
-      }
-
-      model = jsonencode({
-        datasource = {
-          type = "prometheus"
-          uid  = "prometheus-provisioned"
-        }
-        editorMode    = "code"
-        exemplar      = false
-        expr          = "max_over_time(up{job=\"hubble\"}[5m])"
-        instant       = true
-        intervalMs    = 1000
-        legendFormat  = "__auto"
-        maxDataPoints = 43200
-        range         = false
-        refId         = "A"
-      })
-    }
-
-    data {
-      ref_id         = "B"
-      query_type     = ""
-      datasource_uid = "-100"
-
-      relative_time_range {
-        from = 0
-        to   = 0
-      }
-
-      model = jsonencode({
-        conditions = [
-          {
-            evaluator = {
-              params = [1]
-              type   = "lt"
-            }
-            operator = {
-              type = "and"
-            }
-            query = {
-              params = ["A"]
-            }
-            reducer = {
-              params = []
-              type   = "last"
-            }
-            type = "query"
-          }
-        ]
-        datasource = {
-          name = "Expression"
-          type = "__expr__"
-          uid  = "-100"
-        }
-        intervalMs    = 1000
-        maxDataPoints = 43200
-        refId         = "B"
-        type          = "classic_conditions"
-      })
-    }
-  }
-
-  rule {
-    name      = "Hubble Ring Buffer Saturation"
-    condition = "B"
-    for       = "5m"
-
-    annotations = {
-      summary     = "Hubble is losing events due to ring buffer saturation."
-      description = "The event loss ratio has exceeded 1% for 5 minutes. The buffer capacity ($hubble_buffer_capacity) or relay throughput may need to be increased."
-    }
-
-    labels = {
-      severity = "critical"
-      service  = "hubble"
+      service  = "logs"
     }
 
     exec_err_state = "Alerting"
@@ -213,7 +124,7 @@ resource "grafana_rule_group" "cilium_hubble" {
     data {
       ref_id         = "A"
       query_type     = ""
-      datasource_uid = "prometheus-provisioned"
+      datasource_uid = "loki-provisioned"
 
       relative_time_range {
         from = 300
@@ -222,17 +133,14 @@ resource "grafana_rule_group" "cilium_hubble" {
 
       model = jsonencode({
         datasource = {
-          type = "prometheus"
-          uid  = "prometheus-provisioned"
+          type = "loki"
+          uid  = "loki-provisioned"
         }
         editorMode    = "code"
-        exemplar      = false
-        expr          = "sum(rate(hubble_lost_events_total[1m])) / (sum(rate(hubble_flows_processed_total[1m])) + sum(rate(hubble_lost_events_total[1m])))"
-        instant       = true
+        expr          = "sum(count_over_time({service_name=~\".+\"} |~ \"(?i)\\b(error|fatal|panic)\\b\" [5m]))"
         intervalMs    = 1000
-        legendFormat  = "__auto"
         maxDataPoints = 43200
-        range         = false
+        queryType     = "range"
         refId         = "A"
       })
     }
@@ -251,7 +159,7 @@ resource "grafana_rule_group" "cilium_hubble" {
         conditions = [
           {
             evaluator = {
-              params = [0.01]
+              params = [0]
               type   = "gt"
             }
             operator = {
