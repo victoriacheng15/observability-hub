@@ -4,7 +4,7 @@
 
 We use **OpenBao** (an open-source fork of HashiCorp Vault) as our centralized secret store. It is installed via **Nix** and configured to store encrypted data locally on the filesystem.
 
-- **Config:** `config/bao-local.hcl`
+- **Config:** `config/openbao/server.hcl`
 - **Data Storage:** `data/bao/` (Encrypted, git-ignored)
 - **Port:** `8200` (UI available at `http://127.0.0.1:8200`)
 

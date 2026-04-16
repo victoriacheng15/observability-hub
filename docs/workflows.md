@@ -1,6 +1,29 @@
-# GitHub Actions Workflows
+# Platform Workflows
 
-This document details the CI/CD and automation pipelines configured in `.github/workflows/`. These workflows provide the "Golden Path" for testing, linting, and delivering the Observability Hub.
+This document details the CI/CD and automation paths that support the Observability Hub ownership loop.
+
+The workflow model is:
+
+```text
+Change -> Validate -> Build -> Reconcile -> Observe -> Diagnose -> Remediate -> Remember
+```
+
+GitHub Actions handle validation and artifact publication. ArgoCD and GitOps reconciliation move approved state into the cluster. Observability, MCP tools, and incident docs close the loop after deployment.
+
+---
+
+## Closed-Loop Ownership Workflow
+
+| Step | Purpose | Primary Surface |
+| :--- | :--- | :--- |
+| Change | Update source of truth | Git, PRs, OpenTofu, Kustomize, Go code, docs |
+| Validate | Catch quality, security, and manifest issues early | Go CI, markdown lint, infra lint, security scan |
+| Build | Publish deployable artifacts | Docker image workflow, GHCR tags |
+| Reconcile | Apply desired state | ArgoCD, GitOps sync, proxy webhook |
+| Observe | Confirm runtime behavior | OpenTelemetry, Loki, Prometheus, Tempo, Grafana |
+| Diagnose | Explain failures and degraded behavior | MCP tools, dashboards, logs, traces, pod events |
+| Remediate | Apply bounded repair actions | PR patch, config fix, service restart, pod remediation |
+| Remember | Preserve decisions and failure knowledge | ADRs, RCAs, notes, workflow docs |
 
 ---
 

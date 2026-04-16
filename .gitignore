@@ -53,6 +53,7 @@ go.work.sum
 # env file
 .env
 .gitops
+.codex
 
 # Editor/IDE
 # .idea/

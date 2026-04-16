@@ -35,6 +35,6 @@ lint:
 # Configuration Linting (HCL & GitHub Actions)
 lint-configs:
 	@echo "Formatting OpenBao policies..."
-	$(NIX_RUN) "bao policy fmt policies/app-policy.hcl"
+	$(NIX_RUN) "bao policy fmt config/openbao/policies/app-policy.hcl"
 	@echo "Validating GitHub Actions workflows..."
 	$(NIX_RUN) "action-validator .github/workflows/*.yml"
