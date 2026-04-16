@@ -8,7 +8,7 @@ Type=simple
 User=server2
 WorkingDirectory=/home/server2/software/observability-hub
 # Run bao directly from the system path
-ExecStart=/usr/bin/bao server -config=config/bao-local.hcl
+ExecStart=/usr/bin/bao server -config=config/openbao/server.hcl
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
