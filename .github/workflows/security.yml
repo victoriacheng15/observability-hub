@@ -7,12 +7,22 @@ on:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - '.github/workflows/**'
+      - 'config/**'
+      - 'docker/**'
+      - 'k3s/**'
+      - 'tofu/**'
   pull_request:
     branches: [main]
     paths:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - '.github/workflows/**'
+      - 'config/**'
+      - 'docker/**'
+      - 'k3s/**'
+      - 'tofu/**'
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sundays
 
@@ -31,3 +41,21 @@ jobs:
 
       - name: Run vuln-scan
         run: make vuln-scan
+
+  trivy-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          format: table
