@@ -29,9 +29,25 @@ spec:
         app: n8n
     spec:
       serviceAccountName: hub-automation
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: n8n
         image: n8nio/n8n:stable
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
         ports:
         - name: http
           containerPort: 5678
@@ -64,6 +80,8 @@ spec:
         volumeMounts:
         - name: n8n-data
           mountPath: /home/node/.n8n
+        - name: tmp
+          mountPath: /tmp
         livenessProbe:
           httpGet:
             path: /healthz
@@ -91,6 +109,8 @@ spec:
       - name: n8n-data
         persistentVolumeClaim:
           claimName: n8n-data
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

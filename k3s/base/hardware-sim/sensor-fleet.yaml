@@ -18,6 +18,13 @@ spec:
     spec:
       serviceAccountName: hw-sensor
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       imagePullSecrets:
         - name: ghcr-auth
       affinity:
@@ -36,6 +43,15 @@ spec:
       - name: sensor
         image: ghcr.io/victoriacheng15/observability-hub/sensor:sha-0c243b3
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: MQTT_BROKER
           value: "tcp://emqx.observability.svc.cluster.local:1883"

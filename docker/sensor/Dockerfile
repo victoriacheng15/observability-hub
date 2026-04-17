@@ -17,9 +17,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o sensor ./cmd/sensor
 # Stage 2: Runtime
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S app -g 1000 \
+    && adduser -S app -G app -u 1000
 
 WORKDIR /app
 COPY --from=builder /app/sensor .
+
+USER 1000:1000
 
 ENTRYPOINT ["./sensor"]
