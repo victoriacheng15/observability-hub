@@ -80,6 +80,8 @@ spec:
         volumeMounts:
         - name: n8n-data
           mountPath: /home/node/.n8n
+        - name: node-cache
+          mountPath: /home/node/.cache
         - name: tmp
           mountPath: /tmp
         livenessProbe:
@@ -109,6 +111,8 @@ spec:
       - name: n8n-data
         persistentVolumeClaim:
           claimName: n8n-data
+      - name: node-cache
+        emptyDir: {}
       - name: tmp
         emptyDir: {}
 ---
