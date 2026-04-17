@@ -12,7 +12,7 @@ While merging via `gh pr merge -s -d` handles local synchronization, web-based m
 
 ## Decision Outcome
 
-We implemented a **"Pull-based" synchronization agent managed by Templated Systemd Timers**. This approach prioritizes security, scalability, and observability.
+A **"Pull-based" synchronization agent managed by Templated Systemd Timers** was implemented. This approach prioritizes security, scalability, and observability.
 
 ### The Controller (Bash Agent)
 
@@ -20,7 +20,7 @@ The core logic is contained in [scripts/gitops_sync.sh](../../scripts/gitops_syn
 
 ### Scalability (Systemd Templates)
 
-We use the `@` symbol to create a single template that can service multiple repositories.
+The `@` symbol creates a single template that can service multiple repositories.
 
 - **Unit:** `gitops-sync@.service`
 - **Timer:** `gitops-sync@.timer`

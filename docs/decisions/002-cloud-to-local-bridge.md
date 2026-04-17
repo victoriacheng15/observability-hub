@@ -8,7 +8,7 @@
 
 Telemetry generated in Azure Functions (Cover Craft / Reading App) needs to be visualized in the local Grafana instance.
 
-**Constraint:** The local environment is behind a residential firewall (NAT). Inbound HTTP connections from Azure are restricted for security reasons. The goal is to avoid the complexity of maintaining a VPN for a single-purpose logging use case.
+**Constraint:** The local environment is behind a residential firewall (NAT). Inbound HTTP connections from Azure are restricted for security reasons. The design avoids the complexity of maintaining a VPN for a single-purpose logging use case.
 
 ## Decision Outcome
 

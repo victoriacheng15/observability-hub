@@ -18,19 +18,19 @@ Adopt a **Risk-Based Phased Migration Strategy**, moving components from "Lowest
 
 - **Phase 1: The Agent (Alloy)**
   - **Risk:** Low. If a failure occurs, only live logs are lost; historical data remains safe.
-  - **Goal:** Establish the telemetry pipeline in k3s by deploying Grafana Alloy to take over systemd journal log collection from Promtail.
+  - **Objective:** Establish the telemetry pipeline in k3s by deploying Grafana Alloy to take over systemd journal log collection from Promtail.
   - **Status:** Completed on 2026-02-02. Alloy is successfully collecting systemd journal logs and forwarding them to Docker-Loki.
 - **Phase 2: The Log Store (Loki)**
   - **Risk:** Medium. Requires moving log data.
-  - **Goal:** Establish persistent storage (PVCs) in k3s. Verify K3s networking.
+  - **Objective:** Establish persistent storage (PVCs) in k3s. Verify K3s networking.
   - **Status:** Completed on 2026-02-03. Loki is running in k3s with 10Gi persistence. Historical data migrated from Docker. Alloy updated to use internal K3s-Loki.
 - **Phase 3: The UI (Grafana)**
   - **Risk:** Low/Medium. No critical state (dashboards can be re-imported).
-  - **Goal:** Switch the "Pane of Glass" to run natively in the cluster.
+  - **Objective:** Switch the "Pane of Glass" to run natively in the cluster.
   - **Status:** Completed on 2026-02-04. Grafana is running in k3s with 10Gi persistence. Dashboards, users, and plugins migrated from Docker.
 - **Phase 4: The Core Data (PostgreSQL)**
   - **Risk:** Critical. The "Heart" of the system.
-  - **Goal:** Migrate the relational database using the "StatefulSet & Volume Sync" pattern once Phases 1-3 are stable.
+  - **Objective:** Migrate the relational database using the "StatefulSet & Volume Sync" pattern once Phases 1-3 are stable.
   - **Status:** Completed on 2026-02-05. PostgreSQL is running in k3s with 10Gi persistence and custom extensions (TimescaleDB/PostGIS). All services updated to connect via the k3s NodePort.
 
 ## Consequences

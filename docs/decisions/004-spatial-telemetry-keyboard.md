@@ -6,9 +6,9 @@
 
 ## Context and Problem Statement
 
-Standard input monitoring (keyloggers or counters) lacks the physical context of *where* interactions happen. For ergonomic analysis, heatmapping, and advanced hardware telemetry, we need a way to map raw Linux input events to physical coordinates on a 2D plane.
+Standard input monitoring (keyloggers or counters) lacks the physical context of *where* interactions happen. Ergonomic analysis, heatmapping, and advanced hardware telemetry require a way to map raw Linux input events to physical coordinates on a 2D plane.
 
-Existing solutions are either platform-specific (Windows-only), high-latency (Python-based), or closed-source. We need a low-level, high-performance bridge that can ship this data from an "Edge" device (Desktop) to a "Control Plane" (Laptop) without impacting system performance.
+Existing solutions are either platform-specific (Windows-only), high-latency (Python-based), or closed-source. The platform needs a low-level, high-performance bridge that can ship this data from an "Edge" device (Desktop) to a "Control Plane" (Laptop) without impacting system performance.
 
 ## Decision Outcome
 
@@ -22,7 +22,7 @@ A distributed IoT pipeline consisting of three tiers:
 
 - **C++ for Performance:** Direct kernel access and zero Garbage Collection (GC) ensures that even high-speed typing (150+ WPM) doesn't cause telemetry lag or CPU spikes.
 - **Distributed Architecture:** Decouples the data collection (Desktop) from the visualization (Laptop), allowing the observability hub to remain centralized.
-- **Spatial Focus:** By using PostGIS, we can perform advanced spatial queries (e.g., "distance traveled between keypresses") that are impossible in standard time-series databases.
+- **Spatial Focus:** PostGIS enables advanced spatial queries (e.g., "distance traveled between keypresses") that are impossible in standard time-series databases.
 
 ## Consequences
 

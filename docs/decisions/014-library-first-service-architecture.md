@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-As the Observability Hub matures, it is transitioning from a collection of isolated services into a multi-interface platform. We now face the need to support multiple execution triggers for the same business logic, such as automated background ingestion (systemd/k3s) and real-time requests via the `proxy`.
+As the Observability Hub matures, it is transitioning from a collection of isolated services into a multi-interface platform. The system now needs to support multiple execution triggers for the same business logic, such as automated background ingestion (systemd/k3s) and real-time requests via the `proxy`.
 
 The current architecture tightly couples business logic (e.g., metric collection, "Second Brain" ingestion) within the `main` packages of individual services. This makes it difficult to reuse logic across different interfaces without duplication or fragile dependencies.
 
