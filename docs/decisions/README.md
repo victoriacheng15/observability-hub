@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **024** | [Trivy-Verified Workload Hardening](./024-trivy-verified-workload-hardening.md) | 🔵 Accepted |
 | **023** | [Benchmark-Validated Rust Obs Processor](./023-benchmark-rust-obs-processor.md) | 🔵 Accepted |
 | **022** | [Structured Summaries for Obs Processor](./022-obs-processor-structured-summaries.md) | 🔵 Accepted |
 | **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |

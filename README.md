@@ -49,6 +49,7 @@ flowchart TB
 - High-availability PostgreSQL with automated failover (CloudNativePG)
 - Centralized dashboards for monitoring and debugging
 - Secrets management without hardcoding credentials
+- Trivy-backed container and Kubernetes manifest hardening
 - Infrastructure as Code using OpenTofu (layered architecture)
 - Resource and capacity analysis using Kubernetes, host, and telemetry signals
 - Data ingestion pipeline with worker-based processing
@@ -68,6 +69,7 @@ This platform is built as connected ownership domains:
 | Telemetry Pipeline | OpenTelemetry logs, metrics, and traces across services |
 | High Availability Database | PostgreSQL failover with Azure Blob Storage backups |
 | Secrets Management | Dynamic secrets and policy management with OpenBao |
+| Workload Security | Trivy-scanned Dockerfiles and Kubernetes security contexts |
 | Infrastructure as Code | Layered OpenTofu architecture for infrastructure ownership |
 | Networking | Cilium eBPF visibility, policy control, and flow debugging |
 | CI/CD | GitHub Actions, image publication, and GitOps reconciliation |
@@ -84,6 +86,7 @@ This platform is built as connected ownership domains:
 | Manual deployments | GitOps automation with Argo CD and webhook-triggered reconciliation |
 | No visibility into systems | Logs, metrics, traces, network flows, and Grafana dashboards |
 | Secrets stored in code | Dynamic secret management with OpenBao |
+| Containers running with weak defaults | Non-root images, read-only root filesystems, dropped capabilities, and Trivy scans |
 | Single point of failure | High-availability PostgreSQL and backup paths |
 | Hard-to-debug issues | MCP diagnostics, dashboards, runbooks, and incident reports |
 | Infrastructure drift | Declarative source of truth with OpenTofu, Kustomize, and GitOps |
@@ -132,6 +135,7 @@ This platform is built as connected ownership domains:
 - Cilium (eBPF networking)
 - OpenBao (Secrets Management)
 - Tailscale
+- Trivy (container and Kubernetes misconfiguration scanning)
 
 ### Languages
 
@@ -215,6 +219,7 @@ This project demonstrates how to build a production-like DevOps platform using:
 - Kubernetes + GitOps  
 - Full observability (logs, metrics, traces)  
 - Infrastructure as Code  
+- Trivy-verified workload hardening
 - High availability systems  
 - Capacity and cost-aware infrastructure analysis  
 - Real-world debugging and failure handling  

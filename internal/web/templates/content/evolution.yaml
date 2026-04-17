@@ -284,7 +284,7 @@ chapters:
           - Resolved a critical SSH lockout during migration and formalized a recovery protocol.
 
   - title: "GitOps & Operational Maturity"
-    intro: "The day-two operations chapter: hardening the platform with ArgoCD reconciliation, deterministic Kustomize rendering, safer rollouts, and a clearer GitOps operating model."
+    intro: "The day-two operations chapter: hardening the platform with ArgoCD reconciliation, deterministic Kustomize rendering, Trivy-backed workload security, safer rollouts, and a clearer GitOps operating model."
     timeline:
       - date: "2026-03-21"
         title: "ArgoCD GitOps & Automated Fleet Promotion"
@@ -304,3 +304,11 @@ chapters:
         description: |
           - Resolved duplicate resource and namespace collision failures in the tiered Kustomize tree.
           - Split cross-namespace RBAC from overlay-scoped resources so GitOps rendering stayed deterministic.
+      - date: "2026-04-17"
+        title: "Trivy-Verified Workload Hardening"
+        artifacts:
+          - name: "ADR 024: Trivy-Verified Workload Hardening"
+            url: "docs/decisions/024-trivy-verified-workload-hardening.md"
+        description: |
+          - Established a Trivy-verified workload hardening baseline for platform-managed containers and Kubernetes manifests.
+          - Strengthened the GitOps security posture by making container runtime controls part of the source of truth.

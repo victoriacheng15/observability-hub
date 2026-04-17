@@ -25,6 +25,15 @@ All incoming requests to `/api/webhook/gitops` must be authenticated using **HMA
 - **Service Boundaries**: The Proxy (running as a native systemd service) acts as the primary "bridge" between the public funnel and the internal cluster data tier.
 - **Environment Variables**: Sensitive credentials (passwords, URIs) are managed via **Kubernetes Secrets** or retrieved from OpenBao, ensuring they never appear in plain text in process lists.
 
+## 🧰 Workload Hardening
+
+Cluster workloads are hardened at the image and manifest layers before ArgoCD reconciles them into the runtime.
+
+- **Non-Root Containers**: Project-built images for the chaos controller, sensor fleet, and worker create and run as a non-root UID/GID instead of relying on root defaults.
+- **Pod and Container Security Contexts**: Kubernetes manifests define `runAsNonRoot`, explicit user and group IDs, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, and `capabilities.drop: ["ALL"]` where supported.
+- **Read-Only Root Filesystems**: Hardened workloads set `readOnlyRootFilesystem: true`. Required write paths are modeled explicitly with PVCs or `emptyDir` mounts, such as n8n state, cache, and temporary directories.
+- **Service Account Boundaries**: Workloads that do not need Kubernetes API access disable token automounting. Workloads that do need API access, such as the chaos controller, keep a scoped service account and RBAC role.
+
 ## 🧱 Repository Integrity
 
 The GitOps agent (`gitops_sync.sh`) uses **Fast-Forward Only (`--ff-only`)** merges to prevent accidental merge commits on the host and ensure the local environment stays strictly in sync with the remote "Source of Truth."
@@ -35,5 +44,6 @@ To maintain a "Secure by Default" posture, the repository employs automated CI/C
 
 - **GitOps Desired State**: **ArgoCD** continuously enforces the desired state defined in Git, automatically reverting any unauthorized manual modifications to Kubernetes resources.
 - **Infrastructure Linting**: Every change to the `k3s/` directory is automatically scanned by `kube-linter` to identify misconfigurations and security violations in Kubernetes manifests.
+- **Misconfiguration Scanning**: **Trivy** scans Dockerfiles and Kubernetes manifests for HIGH and CRITICAL configuration risks, including root containers, missing security contexts, and mutable root filesystems.
 - **Vulnerability Scanning**: The Go codebase and its dependencies are continuously audited using `govulncheck` (triggered on pushes and weekly schedules) to proactively identify and remediate known vulnerabilities.
 - **Policy Enforcement**: Markdown and HCL configurations are linted to ensure consistent adherence to operational and security standards across all documentation and policies.

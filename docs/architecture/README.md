@@ -35,6 +35,7 @@ The surrounding platform supports that flow:
 - **LGTM Stack**: Loki, Tempo, and Prometheus as the main observability backends
 - **Grafana**: Unified visualization layer for operators
 - **Resource Analytics**: Kubernetes, host, and workload signals for capacity and efficiency analysis
+- **Workload Security**: Trivy-scanned Dockerfiles and Kubernetes manifests with non-root, read-only-root filesystem hardening
 - **MCP Gateway**: Agent-readable diagnostic and operational interface
 - **ArgoCD + OpenTofu**: Deployment and reconciliation control plane
 
@@ -64,7 +65,7 @@ Fundamental patterns and cross-cutting concerns that define how the system opera
 The runtime environment and foundational deployment strategies.
 
 - **[Deployment Model](./infrastructure/deployment.md)**: Details on the hybrid Kubernetes/Systemd orchestration.
-- **[Security](./infrastructure/security.md)**: Tailscale Funnel gating, HMAC authentication, and isolation boundaries.
+- **[Security](./infrastructure/security.md)**: Tailscale Funnel gating, HMAC authentication, workload hardening, and isolation boundaries.
 
 ### ⚙️ [Services](./services/)
 
