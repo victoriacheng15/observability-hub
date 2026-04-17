@@ -79,11 +79,11 @@ Enforces documentation standards and protects the "Institutional Memory."
 
 ### 🛡️ [Security Scan](../.github/workflows/security.yml)
 
-Proactively identifies vulnerabilities in the Go codebase and dependencies.
+Proactively identifies vulnerabilities, exposed secrets, and infrastructure misconfigurations.
 
-- **Trigger**: Pushes or Pull Requests affecting Go code, and weekly scheduled runs.
-- **Responsibility**: Executes `govulncheck` to scan for known security vulnerabilities.
-- **Key Feature**: Multi-layered protection through both event-driven and periodic security auditing.
+- **Trigger**: Pushes or Pull Requests affecting Go code, workflows, config, Dockerfiles, K3s manifests, or OpenTofu files, plus weekly scheduled runs.
+- **Responsibility**: Executes `govulncheck` for Go dependencies and Trivy filesystem scans for vulnerabilities, secrets, and misconfigurations.
+- **Key Feature**: Multi-layered protection across application code, infrastructure-as-code, container definitions, and repository content.
 
 ---
 
