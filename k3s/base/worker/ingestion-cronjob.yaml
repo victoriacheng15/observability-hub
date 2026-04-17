@@ -16,12 +16,28 @@ spec:
         spec:
           serviceAccountName: hub-worker
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
           imagePullSecrets:
             - name: ghcr-auth
           containers:
           - name: worker
             image: ghcr.io/victoriacheng15/observability-hub/worker:sha-60ae1e4
             imagePullPolicy: Always
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              capabilities:
+                drop:
+                - ALL
             args: ["--mode", "ingestion"]
             env:
             - name: JOURNAL_REPO

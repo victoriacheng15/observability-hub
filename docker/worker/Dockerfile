@@ -21,12 +21,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /worker ./cmd/worker
 # 2. Runtime Stage
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -S app -g 1000 \
+    && adduser -S app -G app -u 1000
 
 WORKDIR /app
 
 # Copy the binary from the builder stage
 COPY --from=builder /worker .
+
+USER 1000:1000
 
 # Use the binary as the entrypoint
 ENTRYPOINT ["/app/worker"]
