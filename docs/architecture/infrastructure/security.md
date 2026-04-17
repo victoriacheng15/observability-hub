@@ -4,7 +4,7 @@ The Observability Hub employs a multi-layered security model to protect the data
 
 ## 📡 External Ingress (Tailscale Funnel)
 
-To receive webhooks from GitHub without exposing the entire server to the public internet, we use **Tailscale Funnel**.
+GitHub webhooks are received through **Tailscale Funnel** without exposing the entire server to the public internet.
 
 - **Scoped Exposure**: Only port `8443` (HTTPS) is exposed to the public.
 - **Termination**: TLS is terminated at the Tailscale edge; traffic is forwarded to the local Proxy service over the secure Tailscale mesh.

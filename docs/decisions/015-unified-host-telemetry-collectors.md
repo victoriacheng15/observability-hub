@@ -39,8 +39,8 @@ Consolidate all host-level observability responsibilities into a single, re-arch
   | **Net Savings**        | **~8m / 40Mi** | **10m / 74Mi**     |
   | **% Reduction**        | **80% / 80%**  | **50% / 65%**      |
 
-- **Data Parity & Schema Consistency:** By utilizing PromQL `query_range` with a `step=1m`, we maintain the high-resolution data (1-minute granularity) required for accurate FinOps analysis while gaining the operational benefits of batch processing.
-- **Surgical Consolidation:** This approach allows us to integrate specialized collection (Tailscale, hardware temperatures) into a single path, eliminating the need for three separate management domains (Alloy, systemd, and legacy Go services).
+- **Data Parity & Schema Consistency:** PromQL `query_range` with a `step=1m` maintains the high-resolution data (1-minute granularity) required for accurate resource and cost-aware analysis while gaining the operational benefits of batch processing.
+- **Surgical Consolidation:** This approach integrates specialized collection (Tailscale, hardware temperatures) into a single path, eliminating the need for three separate management domains (Alloy, systemd, and legacy Go services).
 
 ## Consequences
 
@@ -48,13 +48,13 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 
 - **Significant Resource Savings**: Frees up approximately 8m CPU and 74Mi RAM in reserved resources per node, based on the difference between Alloy's prior requests (20m CPU / 114Mi RAM) and Analytics' new requests (10m CPU / 40Mi RAM), with even larger savings in actual idle usage.
 - **Operational Simplicity**: Replaces three legacy components (Alloy, old `system-metrics`, `systemd` units) with one unified Go binary.
-- **FinOps Readiness**: Provides a curated, efficient historical data source in PostgreSQL for electricity cost analysis.
+- **Resource Analysis Readiness**: Provides a curated, efficient historical data source in PostgreSQL for capacity, efficiency, and electricity cost analysis.
 - **Architectural Alignment**: Standardizes on Go and the "library-first" pattern.
 
 ### Negative
 
 - **Increased Development Effort**: Requires custom Go code for Tailscale and PromQL parsing rather than using off-the-shelf Alloy modules.
-- **Dependency on Thanos**: Data collection for FinOps now depends on the availability of the Thanos Query service.
+- **Dependency on Thanos**: Resource analytics depends on the availability of the Thanos Query service.
 
 ## Verification
 

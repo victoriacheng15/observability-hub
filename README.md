@@ -2,18 +2,17 @@
 
 ## What is this?
 
-Observability Hub is a closed-loop platform ownership system for a self-hosted Kubernetes environment.
+Observability Hub is an end-to-end infrastructure platform for a self-hosted Kubernetes environment.
 
-It is built to show end-to-end ownership, not just tool installation: infrastructure definition, deployment automation, runtime observability, incident diagnosis, safe remediation, and operational memory.
+The project is designed from source of truth to runtime operations: infrastructure definition, deployment automation, runtime observability, incident diagnosis, safe remediation, and operational memory.
 
 Git and infrastructure definitions describe the intended state. Host and cluster runtimes execute that state. Telemetry systems expose behavior. MCP tools and dashboards support diagnosis. Remediation flows apply controlled fixes. ADRs, RCAs, and notes preserve what was learned.
-
-It demonstrates how a platform engineering team owns a system end to end:
 
 - provision infrastructure declaratively
 - deploy services through GitOps
 - collect logs, metrics, traces, and network signals
 - diagnose failures with dashboards, runbooks, and MCP tools
+- analyze resource utilization, capacity pressure, and efficiency trends
 - remediate safely through bounded operational paths
 - preserve decisions and incidents as operational memory
 
@@ -37,13 +36,11 @@ flowchart TB
     Memory --> Source
 ```
 
-The goal is to make the ownership loop visible first, so the project reads as a complete platform engineering system rather than a collection of DevOps tools.
-
 - 🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)  
 
 ---
 
-## 🔍 What I Built (Quick Proof)
+## 🔍 What This Builds (Quick Proof)
 
 - Kubernetes (K3s) homelab running 10+ platform components
 - GitOps deployment using Argo CD (App-of-Apps pattern)
@@ -53,6 +50,7 @@ The goal is to make the ownership loop visible first, so the project reads as a 
 - Centralized dashboards for monitoring and debugging
 - Secrets management without hardcoding credentials
 - Infrastructure as Code using OpenTofu (layered architecture)
+- Resource and capacity analysis using Kubernetes, host, and telemetry signals
 - Data ingestion pipeline with worker-based processing
 - eBPF-based networking and visibility using Cilium
 - Backup and storage integration with Azure Blob Storage + MinIO
@@ -74,11 +72,12 @@ This platform is built as connected ownership domains:
 | Networking | Cilium eBPF visibility, policy control, and flow debugging |
 | CI/CD | GitHub Actions, image publication, and GitOps reconciliation |
 | Incident Response | Diagnostics, bounded repair actions, RCAs, and runbooks |
+| Resource Efficiency | Kubernetes and host telemetry used for capacity and cost-aware analysis |
 | Data Ingestion | Worker-based batch processing and analytics jobs |
 
 ---
 
-## 🧠 Problems I Solved
+## 🧠 Problems Solved
 
 | Problem | Solution |
 | :--- | :--- |
@@ -88,6 +87,7 @@ This platform is built as connected ownership domains:
 | Single point of failure | High-availability PostgreSQL and backup paths |
 | Hard-to-debug issues | MCP diagnostics, dashboards, runbooks, and incident reports |
 | Infrastructure drift | Declarative source of truth with OpenTofu, Kustomize, and GitOps |
+| Unclear resource pressure | Kubernetes, host, and workload telemetry correlated for capacity decisions |
 | Operational knowledge loss | Versioned ADRs, RCAs, notes, and workflow docs |
 
 ---
@@ -216,6 +216,7 @@ This project demonstrates how to build a production-like DevOps platform using:
 - Full observability (logs, metrics, traces)  
 - Infrastructure as Code  
 - High availability systems  
+- Capacity and cost-aware infrastructure analysis  
 - Real-world debugging and failure handling  
 
-It reflects how modern platform teams operate in real environments.
+It reflects practical infrastructure ownership: designing the system, running it, observing it, debugging it, and using telemetry to make better operational and cost-aware decisions.

@@ -24,7 +24,7 @@ The primary cause was a **Disconnected Telemetry Pipeline** due to a disabled re
 
 1. **Disabled Sink**: The Prometheus instance was running with default settings, which do not allow external services to "push" metrics via Remote Write.
 2. **Inactive Processors**: Tempo's `metrics_generator` was defined in the configuration but was not explicitly activated via the `overrides` section, meaning it was not actually analyzing traces for structural data.
-3. **Strict Semantic Requirements**: The OTel Collector's `servicegraph` implementation was too strict for our current testing methodology (direct `curl` calls), whereas Tempo's implementation was better suited for this "single-node" hybrid environment.
+3. **Strict Semantic Requirements**: The OTel Collector's `servicegraph` implementation was too strict for the current testing methodology (direct `curl` calls), whereas Tempo's implementation was better suited for this "single-node" hybrid environment.
 
 ## Lessons Learned
 

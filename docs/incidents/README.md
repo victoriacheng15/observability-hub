@@ -78,7 +78,7 @@ Detailed explanation of why the incident happened (The "Why").
 
 ## Lessons Learned (Optional)
 
-What went well? What went wrong? What did we get lucky with?
+What went well? What went wrong? What reduced the impact?
 
 ## Action Items
 

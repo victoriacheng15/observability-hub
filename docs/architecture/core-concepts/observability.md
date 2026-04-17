@@ -6,13 +6,13 @@ The Observability Hub implements a high-fidelity logging, tracing, and metrics p
 
 At the highest level, this platform answers a simple question:
 
-How does telemetry move from the services I run to the dashboards I use?
+How does telemetry move from running services to operator dashboards?
 
 The short answer is:
 
 `Apps and services -> OpenTelemetry Collector -> Loki / Tempo / Prometheus -> Grafana`
 
-This is the most important mental model for first-time readers. It captures the core portfolio story of the platform without requiring the reader to understand every supporting subsystem on the first pass.
+This model keeps the telemetry path clear before introducing the supporting subsystems. The same telemetry also supports capacity planning and cost-aware infrastructure analysis because resource usage is tied back to the workloads and systems that produced it.
 
 ```mermaid
 flowchart LR
@@ -139,12 +139,12 @@ The platform implements a dual-path logging strategy: structured application log
 
 ## 📊 Metrics
 
-The platform aggregates infrastructure metrics through Prometheus scraping, application-level metrics via OpenTelemetry, and specialized analytical data.
+The platform aggregates infrastructure metrics through Prometheus scraping, application-level metrics via OpenTelemetry, and specialized analytical data. These metrics are used for reliability diagnosis first, then extended into capacity and efficiency analysis so cost becomes one operational signal among CPU, memory, storage, network, and workload behavior.
 
 - **Collection Strategy**:
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
   - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
-  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. The **Unified Worker (Analytics Mode)** then retrieves this data from **Prometheus** via **Thanos**, forwards it via the **OpenTelemetry Collector**, and exports it to **PostgreSQL** for long-term analytical reporting.
+  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. The **Unified Worker (Analytics Mode)** then retrieves this data from **Prometheus** via **Thanos**, forwards it via the **OpenTelemetry Collector**, and exports it to **PostgreSQL** for long-term resource, capacity, and cost-aware analytical reporting.
   - **Network Metrics (eBPF)**: Cilium and Hubble export eBPF-level network metrics (e.g., packet drops, connection latency, and L7 protocol stats) directly to Prometheus via dedicated exporters.
 - **Persistence**:
   - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.
@@ -155,7 +155,7 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 Distributed tracing is powered by OpenTelemetry for correlation and performance profiling across high-throughput pipelines.
 
 - **Collection Pipeline**:
-  - **Instrumentation**: Services use the **OpenTelemetry SDK** to generate spans in OTLP format. We follow a **Pure Wrapper** philosophy where shared libraries (`internal/db`) provide standardized infrastructure spans (e.g., `db.postgres.record_metric`), while services own the root spans (`job.*` or `handler.*`).
+  - **Instrumentation**: Services use the **OpenTelemetry SDK** to generate spans in OTLP format. The platform follows a **Pure Wrapper** pattern where shared libraries (`internal/db`) provide standardized infrastructure spans (e.g., `db.postgres.record_metric`), while services own the root spans (`job.*` or `handler.*`).
   - **Ingestion**: Spans are sent to the **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Grafana Tempo**.
   - **Processing**: Tempo analyzes raw spans to generate derived **Service Graphs** and **Span Metrics**, which are pushed to Prometheus via `remote_write` for operational correlation.
 - **Persistence**:
@@ -168,7 +168,7 @@ The platform leverages **Cilium** and **Hubble** for deep, kernel-level network 
 - **L7 Visibility (MQTT)**: Cilium's eBPF-native datapath enables sidecar-less inspection of application-level protocols. This allows the platform to attribute network traffic to specific MQTT topics without requiring modifications to the application code.
 - **Autonomous Flow Analysis**: Beyond the Hubble UI, the platform exposes raw flow data directly to AI agents via the MCP `observe_network_flows` tool. This enables instantaneous, packet-level auditing of `FORWARDED`, `DROPPED`, and `DENIED` traffic across the entire cluster.
 - **Service Mapping**: Hubble provides a real-time service map and detailed flow logs, enabling engineers to visualize and troubleshoot network connectivity and performance between pods and host services.
-- **Metrics Correlation**: Network-level signals (like connection latency or throughput) are correlated with application-level traces and hardware-level energy metrics (Kepler) to provide a complete view of system efficiency.
+- **Metrics Correlation**: Network-level signals (like connection latency or throughput) are correlated with application-level traces and hardware-level energy metrics (Kepler) to provide a complete view of system efficiency and infrastructure cost drivers.
 
 ## 🗄️ Shared Data Stores
 

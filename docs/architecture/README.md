@@ -4,7 +4,7 @@ This directory contains the architectural blueprints for the Observability Hub. 
 
 ## Architecture At A Glance
 
-The Observability Hub is a self-hosted platform that provisions infrastructure, deploys workloads, collects telemetry, supports diagnosis, applies bounded remediation, and records operational memory.
+The Observability Hub is a self-hosted platform that provisions infrastructure, deploys workloads, collects telemetry, supports diagnosis, applies bounded remediation, and records operational memory. It uses observability data to reason about reliability, capacity, and cost-aware infrastructure decisions as part of the same operating loop.
 
 For a fast mental model, the main system story is:
 
@@ -34,6 +34,7 @@ The surrounding platform supports that flow:
 - **OpenTelemetry Collector**: Central intake and routing point for logs, metrics, and traces
 - **LGTM Stack**: Loki, Tempo, and Prometheus as the main observability backends
 - **Grafana**: Unified visualization layer for operators
+- **Resource Analytics**: Kubernetes, host, and workload signals for capacity and efficiency analysis
 - **MCP Gateway**: Agent-readable diagnostic and operational interface
 - **ArgoCD + OpenTofu**: Deployment and reconciliation control plane
 

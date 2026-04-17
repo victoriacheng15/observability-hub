@@ -6,11 +6,11 @@ This is an advanced capability of the platform, not a prerequisite for understan
 
 In plain language, this component turns the platform into something an agent can inspect and reason about directly. Instead of opening multiple UIs and manually correlating logs, metrics, traces, pod state, and network flows, an agent can access those capabilities through one gateway.
 
-## Why This Is Interesting
+## Operational Role
 
 - It extends the platform beyond dashboards into AI-assisted operations
 - It unifies telemetry, Kubernetes state, network visibility, and host intelligence behind one interface
-- It demonstrates platform engineering work that connects observability data to autonomous tooling, not just human-facing dashboards
+- It connects observability data to autonomous tooling, not just human-facing dashboards
 
 ## Example Workflow
 

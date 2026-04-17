@@ -8,14 +8,14 @@
 
 This decision initiates the **SRE Era** of the platform—a phase dedicated to mastering Site Reliability Engineering principles through the implementation of industry-standard telemetry.
 
-While the current custom Go collectors (e.g., `system-metrics`) and PostgreSQL storage are functional and effective for their original scope, they represent a "pre-standardized" phase of development. To evolve the platform into a true SRE learning hub, we need to bridge the gap between "working code" and "industry-standard observability."
+While the current custom Go collectors (e.g., `system-metrics`) and PostgreSQL storage are functional and effective for their original scope, they represent a "pre-standardized" phase of development. The platform needs to bridge the gap between "working code" and "industry-standard observability."
 
-The goal is not to "fix" the custom collectors, but to use the platform as a sandbox to understand:
+The decision is not to "fix" the custom collectors, but to use the platform as a sandbox to understand:
 
 - **Distributed Tracing**: How request flows are reconstructed across services.
 - **OTel Specification**: Mastering the semantic conventions for metrics, logs, and traces.
 - **Advanced Backend Management**: Operating specialized stores like Prometheus and Tempo.
-- **FinOps & Sustainability**: Leveraging standardized metadata for granular cost and carbon analysis.
+- **Resource Efficiency & Sustainability**: Leveraging standardized metadata for granular resource, cost, and carbon analysis.
 
 ## Decision Outcome
 
@@ -27,7 +27,7 @@ Standardize the platform on **OpenTelemetry (OTel)** as the primary telemetry fr
 - **Specialized Backends**: Move toward purpose-built storage engines:
   - **Prometheus**: For real-time operational metrics.
   - **Grafana Tempo**: For distributed trace storage.
-  - **PostgreSQL**: Retained for long-term analytical and FinOps-specific data via OTel Collector aggregation.
+  - **PostgreSQL**: Retained for long-term resource and cost-aware analytical data via OTel Collector aggregation.
 - **Standardized Instrumentation**: All platform services will be updated to use OpenTelemetry SDKs (Go, Python, etc.) to emit telemetry.
 
 ### Rationale
@@ -35,8 +35,8 @@ Standardize the platform on **OpenTelemetry (OTel)** as the primary telemetry fr
 - **Vendor-Agnostic**: OTel ensures the platform is not locked into a specific observability vendor.
 - **Industry Standard**: Aligns the platform with modern SRE and DevOps practices, improving the "Developer Experience" and scalability.
 - **Observability Trinity**: Completes the "Trinity" (Logs, Metrics, Traces) by adding distributed tracing capabilities.
-- **FinOps Foundation**: Provides the standardized metadata (labels/attributes) required for granular resource and cost analysis.
-- **Managed Resource Footprint**: By utilizing OTel's specialized backends and Kubernetes resource limits, we can maintain a lean cluster footprint while gaining advanced capabilities.
+- **Resource Analysis Foundation**: Provides the standardized metadata (labels/attributes) required for granular resource and cost analysis.
+- **Managed Resource Footprint**: OTel's specialized backends and Kubernetes resource limits maintain a lean cluster footprint while adding advanced capabilities.
 
 ## Consequences
 

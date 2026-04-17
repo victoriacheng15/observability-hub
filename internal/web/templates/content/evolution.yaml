@@ -1,8 +1,8 @@
 page_title: "System Logs & Milestones"
-intro_text: "A chronological view of how the Observability Hub evolved from a local lab into a layered platform for telemetry, automation, and operations."
+intro_text: "A chronological view of how the Observability Hub evolved from a local lab into an infrastructure, Kubernetes, and observability platform with automation, incident response, and cost-aware telemetry analysis."
 chapters:
   - title: "The Genesis"
-    intro: "The starting point: a reliable local lab, an initial Go telemetry path, and the first bridge between cloud-generated events and self-hosted storage."
+    intro: "The foundation chapter: building a reliable local lab, choosing PostgreSQL for durable telemetry storage, and bridging cloud-generated events into a self-hosted observability path."
     timeline:
       - date: "2025-11-20"
         title: "Reliable Local Lab"
@@ -27,7 +27,7 @@ chapters:
           - Decoupled stateless analytics from persistent storage to enable independent scaling.
 
   - title: "The Platform Core"
-    intro: "The phase where the project stopped being a loose collection of experiments and became a more structured platform with shared libraries, automation, and a visible system story."
+    intro: "The platform-structure chapter: turning early services into a coherent system with shared libraries, structured logging, automated ingestion, and documented architecture decisions."
     timeline:
       - date: "2026-01-01"
         title: "Project Portal Launch"
@@ -62,7 +62,7 @@ chapters:
           - Eliminated configuration drift by refactoring services to use the shared configuration module.
 
   - title: "GitOps & Host Observability"
-    intro: "The first operational hardening pass: GitOps-style automation for repeatability and host-level logging for visibility into the machine running the platform."
+    intro: "The host-operations chapter: using GitOps-style synchronization and systemd journal ingestion to make host services repeatable, observable, and easier to recover."
     timeline:
       - date: "2026-01-14"
         title: "GitOps Infrastructure & Host Observability"
@@ -76,7 +76,7 @@ chapters:
           - Added log parsing, labels, and allowlist controls for safer operational visibility.
 
   - title: "Orchestration & Event-Driven Pivot"
-    intro: "The transition away from timer-driven workflows toward event-driven automation and the first meaningful step toward Kubernetes orchestration."
+    intro: "The orchestration chapter: moving from timer-driven background work to event-driven webhooks, reducing wasted wakeups while preparing the platform for Kubernetes."
     timeline:
       - date: "2026-01-19"
         title: "Orchestration Spike: k3s"
@@ -98,7 +98,7 @@ chapters:
           - Proposed 'Paved Road' philosophy by centralizing database connection logic to streamline service development and enforce architectural consistency.
 
   - title: "Vault via OpenBao"
-    intro: "The security chapter: replacing scattered static environment variables with a centralized, more production-like secret management model."
+    intro: "The security chapter: replacing scattered static environment variables with OpenBao-backed secrets, central policy, and safer credential access for services."
     timeline:
       - date: "2026-01-22"
         title: "The Security Blueprint"
@@ -115,7 +115,7 @@ chapters:
           - Migrated 'system-metrics' and 'proxy' services to dynamic credential retrieval.
 
   - title: "The Kubernetes Era"
-    intro: "The migration from standalone containers to Kubernetes, moving the core observability stack onto a more resilient and self-healing runtime."
+    intro: "The Kubernetes chapter: moving the observability stack, PostgreSQL, and persistent workloads from standalone containers into K3s for resilient, self-healing operations."
     timeline:
       - date: "2026-02-05"
         title: "Core Observability Stack on K3s"
@@ -131,7 +131,7 @@ chapters:
           - Established self-healing runtime behavior for the core observability stack.
 
   - title: "The SRE Era"
-    intro: "The observability maturity chapter: standardizing around OpenTelemetry, adding traces and metrics, and building the workflows needed for real incident analysis."
+    intro: "The observability maturity chapter: standardizing on OpenTelemetry, connecting logs, metrics, and traces, and using RCAs to turn incidents into durable operational knowledge."
     timeline:
       - date: "2026-02-08"
         title: "Phase 1 Complete: OpenTelemetry Collector"
@@ -166,7 +166,7 @@ chapters:
           - Established a safer default baseline across the core platform services.
 
   - title: "Platform Maturity & Reusability"
-    intro: "The internal architecture cleanup: refactoring the codebase into reusable building blocks so new services and interfaces could share the same core logic."
+    intro: "The software-architecture chapter: refactoring the Go codebase into reusable internal packages so services, workers, and interfaces share tested platform logic."
     timeline:
       - date: "2026-02-18"
         title: "Library-First Implementation"
@@ -196,7 +196,7 @@ chapters:
           - Completed a more consistent OpenTelemetry-native observability stack for logs, metrics, and traces.
 
   - title: "The Terraform Era"
-    intro: "The infrastructure-as-code phase: replacing manual Kubernetes operations with OpenTofu so the stack could be managed declaratively and audited over time."
+    intro: "The infrastructure-as-code chapter: moving Kubernetes platform services into OpenTofu so infrastructure state is declarative, reviewable, and easier to audit over time."
     timeline:
       - date: "2026-03-01"
         title: "Platform Infrastructure: Immutable Orchestration via OpenTofu"
@@ -211,28 +211,22 @@ chapters:
           - Improved drift detection, persistent workload recovery, and cross-service telemetry discovery.
 
   - title: "The MCP Era"
-    intro: "The agent-native chapter: exposing telemetry and infrastructure through MCP so AI tools could query live system state, investigate incidents, and reason over compressed summaries instead of raw observability noise."
+    intro: "The agent-native operations chapter: building an MCP gateway for live telemetry, Kubernetes, and host state; reducing noisy observability payloads with Rust; and proving the design with Go-vs-Rust benchmarks for faster, lower-cost investigations."
     timeline:
       - date: "2026-03-08"
-        title: "mcp-telemetry: Agentic Telemetry Intelligence"
+        title: "MCP Telemetry and Infrastructure Intelligence"
         artifacts:
           - name: "ADR 017: Agentic Interface via MCP"
             url: "docs/decisions/017-agentic-interface-mcp.md"
-        description: |
-          - Exposed metrics, semantic logs, and distributed traces through MCP so agents could investigate live system behavior.
-          - Added `investigate_incident` to combine telemetry signals into structured incident reports.
-      - date: "2026-03-12"
-        title: "MCP Infrastructure Intelligence"
-        artifacts:
           - name: "ADR 018: Domain-Isolated MCP Architecture"
             url: "docs/decisions/018-domain-isolated-mcp-architecture.md"
           - name: "ADR 019: Hybrid Host-MCP Intelligence"
             url: "docs/decisions/019-hybrid-host-mcp-intelligence.md"
         description: |
-          - Split MCP capabilities into domain-isolated services to reduce blast radius and enforce least privilege.
-          - Added `mcp-pods` so agents could correlate Kubernetes events with telemetry during cluster failures.
-          - Added `mcp-hub` to connect host-level state with Kubernetes-level investigation.
-          - Introduced namespaced tools for focused cross-layer debugging.
+          - Exposed metrics, semantic logs, distributed traces, Kubernetes events, and host state through MCP.
+          - Split capabilities into domain-isolated services to reduce blast radius and enforce least privilege.
+          - Connected telemetry, pod state, and host-level signals for focused cross-layer debugging.
+          - Introduced `investigate_incident` for structured incident reports from live platform signals.
       - date: "2026-03-19"
         title: "mcp_obs_hub: Unified Agentic Gateway"
         description: |
@@ -255,9 +249,17 @@ chapters:
         description: |
           - Upgraded summaries from compressed strings to structured records with timestamps and investigation context.
           - Improved log and metric investigation quality while benchmarks still showed major context reduction.
+      - date: "2026-04-17"
+        title: "Rust Telemetry Processing Benchmarks"
+        artifacts:
+          - name: "ADR 023: Benchmark-Validated Rust Obs Processor"
+            url: "docs/decisions/023-benchmark-rust-obs-processor.md"
+        description: |
+          - Benchmarked Go and Rust telemetry processors against the same 24-hour Loki and Prometheus payloads.
+          - Established Rust as the faster reduction path, especially for metric summarization where numeric parsing and statistical aggregation dominate.
 
   - title: "eBPF-Native Efficiency & Networking"
-    intro: "The kernel-level visibility chapter: using eBPF to improve network observability, protocol insight, and efficiency analysis beyond application-level instrumentation."
+    intro: "The kernel-visibility chapter: using Cilium, Hubble, and Kepler to inspect network flows, protocol behavior, and infrastructure efficiency below the application layer."
     timeline:
       - date: "2026-03-11"
         title: "Kepler Integration & Energy Dashboards"
@@ -282,7 +284,7 @@ chapters:
           - Resolved a critical SSH lockout during migration and formalized a recovery protocol.
 
   - title: "GitOps & Operational Maturity"
-    intro: "The day-two operations chapter: hardening the platform with continuous reconciliation, safer rollouts, and a clearer GitOps operating model for ongoing changes."
+    intro: "The day-two operations chapter: hardening the platform with ArgoCD reconciliation, deterministic Kustomize rendering, safer rollouts, and a clearer GitOps operating model."
     timeline:
       - date: "2026-03-21"
         title: "ArgoCD GitOps & Automated Fleet Promotion"

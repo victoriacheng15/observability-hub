@@ -4,7 +4,7 @@ The Unified Worker (`cmd/worker`, `internal/worker`) is a cluster-native executi
 
 This service represents the platform's batch-processing layer. It handles scheduled analytical and ingestion workloads without introducing multiple one-off services, which keeps the runtime model simpler and makes the telemetry story easier to follow.
 
-For a quick mental model: the Worker is the system's scheduled execution engine for tasks that do not need to run continuously but still need strong observability, repeatability, and operational discipline.
+For a quick mental model: the Worker is the system's scheduled execution engine for tasks that do not need to run continuously but still need strong observability, repeatability, and operational discipline. Its analytics mode turns infrastructure telemetry into capacity, efficiency, and cost-aware operating data.
 
 ## 🎯 Objective
 
@@ -16,11 +16,11 @@ The worker operates in two primary modes, triggered via the `--mode` CLI flag:
 
 ### 1. Analytics Mode (`--mode analytics`)
 
-- **Mission**: Correlates infrastructure resource consumption (Energy, Cost) with platform outcomes.
+- **Mission**: Correlates infrastructure resource usage with platform outcomes so operators can reason about capacity, efficiency, and cost drivers from real telemetry.
 - **Sources**:
-  - **Thanos**: Retrieves energy (Kepler) and host utilization metrics.
+  - **Thanos**: Retrieves energy (Kepler), Kubernetes, and host utilization metrics.
   - **Tailscale**: Inspects Funnel and mesh connectivity status.
-- **Persistence**: Records high-fidelity resource samples into the PostgreSQL `analytics_metrics` table.
+- **Persistence**: Records high-fidelity resource samples into the PostgreSQL `analytics_metrics` table for trend analysis and operational reporting.
 - **Scheduling**: Every 15 minutes via Kubernetes `CronJob`.
 
 ### 2. Ingestion Mode (`--mode ingestion`)

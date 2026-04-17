@@ -2,9 +2,9 @@
 
 The infrastructure layer follows a **hybrid model**: core data services (Storage, Logs, Viz) are orchestrated via **OpenTofu** on **Kubernetes (k3s)**, while application logic and automation agents run as native host-level Systemd services for direct hardware and filesystem access.
 
-This split is one of the key design choices in the project. It keeps scalable observability services inside the cluster while preserving direct host access for the components that need low-level control, local filesystem access, or hardware awareness.
+This split is one of the key design choices in the project. It keeps scalable observability services inside the cluster while preserving direct host access for the components that need low-level control, local filesystem access, or hardware awareness. That boundary also makes resource analysis more accurate: cluster workloads, host services, storage, and network paths can be measured in the tier where they actually run.
 
-For a portfolio reader, the main takeaway is simple: the platform is intentionally divided between cluster-native data systems and host-native control systems, rather than forcing every responsibility into Kubernetes.
+The platform is intentionally divided between cluster-native data systems and host-native control systems, rather than forcing every responsibility into Kubernetes.
 
 ## Component Details
 
@@ -15,7 +15,7 @@ Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 | Component | Role | Details |
 | :--- | :--- | :--- |
 | **ArgoCD** | GitOps Orchestrator | Controller for declarative cluster state management and automated self-healing. |
-| **Unified Worker** | Batch Task Engine | CronJobs for collecting host telemetry (Analytics) and synchronizing data sources (Ingestion). |
+| **Unified Worker** | Batch Task Engine | CronJobs for collecting host and Kubernetes telemetry for resource analysis, plus synchronizing data sources. |
 | **Cilium & Hubble** | eBPF Networking | CNI with eBPF-native datapath for L7 visibility (MQTT) and network-level observability. |
 | **Grafana** | Visualization | Deployment for unified dashboarding UI. |
 | **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |

@@ -1,16 +1,16 @@
 # Automation & GitOps Architecture
 
-The Observability Hub leverages a **Dual-Tier GitOps Model** to manage both cluster infrastructure and host-level automation. By combining **ArgoCD** for Kubernetes reconciliation with **Systemd** for process management, we ensure full-stack reliability and self-healing.
+The Observability Hub leverages a **Dual-Tier GitOps Model** to manage both cluster infrastructure and host-level automation. ArgoCD handles Kubernetes reconciliation, while Systemd manages native host processes that need direct machine access.
 
 This page explains how the platform stays synchronized and recoverable. Instead of treating automation as a single deployment layer, the system separates cluster reconciliation from host synchronization so each environment can be managed with the tools that fit it best.
 
-For a recruiter or hiring manager, the important point is that this project is not just running services. It also demonstrates a deliberate operating model for keeping infrastructure, host automation, and observability aligned.
+This keeps infrastructure, host automation, and observability aligned without forcing every responsibility into one orchestration layer.
 
 ## Core Philosophy
 
 - **Declarative Kubernetes (Tier 1)**: All cluster resources are managed via **ArgoCD**. This ensures that the "Intent" defined in Git is continuously reconciled, providing automated recovery from configuration drift.
 - **Resilient Host-Sync (Tier 2)**: Critical host-tier components (Proxy, Tailscale Gate) are synchronized via native Systemd services and custom scripts. This ensures the host's physical filesystem and systemd units stay in sync with the remote repository independently of the Kubernetes runtime.
-- **Event-Driven Reconciliation**: We prioritize webhooks over polling. Push events from GitHub trigger a simultaneous loop: ArgoCD updates the cluster, and the Proxy-Webhook triggers a fast-forward sync of the local host directory.
+- **Event-Driven Reconciliation**: Webhooks are preferred over polling. Push events from GitHub trigger a simultaneous loop: ArgoCD updates the cluster, and the Proxy-Webhook triggers a fast-forward sync of the local host directory.
 
 ## GitOps Implementation
 
@@ -56,7 +56,7 @@ The system consists of several main service families, each with a `.service` uni
 
 ## Operational Excellence
 
-Our automation employs several production-grade patterns:
+The automation layer uses several production-grade patterns:
 
 - **Symmetric Configuration**: Both ArgoCD and OpenTofu inherit global resource and security policies from a centralized `_standards.yaml`.
 - **Security Gating**: The `tailscale-gate` service ensures the public entry point (Funnel) is automatically closed if the underlying `proxy` service stops.

@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **023** | [Benchmark-Validated Rust Obs Processor](./023-benchmark-rust-obs-processor.md) | 🔵 Accepted |
 | **022** | [Structured Summaries for Obs Processor](./022-obs-processor-structured-summaries.md) | 🔵 Accepted |
 | **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |
 | **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🔵 Accepted |
@@ -35,7 +36,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 ## 🛠️ Process & Standards
 
-This section defines how we propose, evaluate, and document architectural changes.
+This section defines how architectural changes are proposed, evaluated, and documented.
 
 ### Decision Lifecycle
 
