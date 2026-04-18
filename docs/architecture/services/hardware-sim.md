@@ -14,7 +14,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
 - **Logic**:
   - **Boot Sequence**: Emits serial-style logs to Loki mimicking a hardware bootloader.
-  - **Telemetry**: Generates synthetic `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, and `packet_loss_percent` data.
+  - **Telemetry**: Generates synthetic sensor, power, link-quality, and runtime-health data.
   - **Identity**: Uses the stable StatefulSet pod name as `device_id`, while `sensor_id` remains the runtime sensor identity.
   - **Firmware Metadata**: Publishes `firmware_version` with every telemetry payload.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
@@ -23,7 +23,8 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Current Baseline
 
-- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, and `timestamp`.
+- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, `free_heap`, `loop_time_ms`, `uptime_seconds`, `reboot_reason`, and `timestamp`.
+- Reports baseline runtime health through emulated heap, loop timing, uptime, and last reboot reason.
 - Uses `sensors/thermal` as the configured thermal telemetry topic.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
 - Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
