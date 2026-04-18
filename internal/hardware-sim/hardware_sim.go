@@ -31,6 +31,9 @@ type SensorData struct {
 	Voltage         float64 `json:"voltage"`
 	Current         float64 `json:"current"`
 	PowerUsage      float64 `json:"power_usage"`
+	RSSI            float64 `json:"rssi"`
+	SNR             float64 `json:"snr"`
+	PacketLoss      float64 `json:"packet_loss_percent"`
 	Timestamp       string  `json:"timestamp"`
 }
 
@@ -105,14 +108,15 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 	// Target a random pod
 	targetPod := pods.Items[c.randIntn(len(pods.Items))]
 
-	// Randomize Spike Parameters
+	// Randomize chaos parameters
+	command := []string{"spike", "signal_loss"}[c.randIntn(2)]
 	durationSec := 10 + c.randIntn(21) // 10s to 30s
 	intensity := []string{"low", "medium", "high"}[c.randIntn(3)]
 
-	log.Printf("Injecting Chaos into %s: Intensity=%s, Duration=%ds", targetPod.Name, intensity, durationSec)
+	log.Printf("Injecting Chaos into %s: Command=%s, Intensity=%s, Duration=%ds", targetPod.Name, command, intensity, durationSec)
 
 	topic := fmt.Sprintf("sensors/%s/chaos", targetPod.Name)
-	payload := fmt.Sprintf(`{"command": "spike", "duration": "%ds", "intensity": "%s"}`, durationSec, intensity)
+	payload := fmt.Sprintf(`{"command": "%s", "duration": "%ds", "intensity": "%s"}`, command, durationSec, intensity)
 
 	token := mqttClient.Publish(topic, 1, false, payload)
 	token.Wait()
@@ -129,11 +133,13 @@ type Sensor struct {
 	MqttBroker      string
 	TelemetryTopic  string
 
-	mu             sync.Mutex
-	isSpiking      bool
-	spikeIntensity string
-	randMu         sync.Mutex
-	randSource     *rand.Rand
+	mu              sync.Mutex
+	isSpiking       bool
+	spikeIntensity  string
+	signalLoss      bool
+	signalIntensity string
+	randMu          sync.Mutex
+	randSource      *rand.Rand
 }
 
 // Run starts the sensor data generation and chaos subscription loop.
@@ -197,7 +203,8 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	if cmd.Command == "spike" {
+	switch cmd.Command {
+	case "spike":
 		duration, _ := time.ParseDuration(cmd.Duration)
 		if duration == 0 {
 			duration = 10 * time.Second
@@ -216,6 +223,25 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 			s.mu.Unlock()
 			log.Println("Chaos Spike Ended.")
 		})
+	case "signal_loss":
+		duration, _ := time.ParseDuration(cmd.Duration)
+		if duration == 0 {
+			duration = 10 * time.Second
+		}
+
+		log.Printf("!!! Signal Loss Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.signalLoss = true
+		s.signalIntensity = cmd.Intensity
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.signalLoss = false
+			s.signalIntensity = ""
+			s.mu.Unlock()
+			log.Println("Signal Loss Ended.")
+		})
 	}
 }
 
@@ -223,12 +249,17 @@ func (s *Sensor) generateData() SensorData {
 	s.mu.Lock()
 	spiking := s.isSpiking
 	intensity := s.spikeIntensity
+	signalLoss := s.signalLoss
+	signalIntensity := s.signalIntensity
 	s.mu.Unlock()
 
 	// Base Simulation (Healthy state)
 	temp := 35.0 + s.randFloat64()*5.0
 	voltage := 5.0 - s.randFloat64()*0.1
 	current := 0.4 + s.randFloat64()*0.4
+	rssi := -45.0 - s.randFloat64()*10.0
+	snr := 22.0 + s.randFloat64()*8.0
+	packetLoss := s.randFloat64() * 2.0
 
 	// Apply Dynamic Spike Logic
 	if spiking {
@@ -256,6 +287,31 @@ func (s *Sensor) generateData() SensorData {
 		voltage -= voltageSag
 	}
 
+	if signalLoss {
+		var rssiDrop, snrDrop, packetLossAdd float64
+		switch signalIntensity {
+		case "low":
+			rssiDrop = 8.0 + s.randFloat64()*6.0
+			snrDrop = 4.0 + s.randFloat64()*3.0
+			packetLossAdd = 5.0 + s.randFloat64()*5.0
+		case "medium":
+			rssiDrop = 18.0 + s.randFloat64()*8.0
+			snrDrop = 10.0 + s.randFloat64()*5.0
+			packetLossAdd = 18.0 + s.randFloat64()*12.0
+		case "high":
+			rssiDrop = 30.0 + s.randFloat64()*10.0
+			snrDrop = 18.0 + s.randFloat64()*8.0
+			packetLossAdd = 45.0 + s.randFloat64()*25.0
+		default:
+			rssiDrop = 12.0
+			snrDrop = 8.0
+			packetLossAdd = 12.0
+		}
+		rssi -= rssiDrop
+		snr -= snrDrop
+		packetLoss += packetLossAdd
+	}
+
 	// Try to read actual temperature if available (HostPath mount)
 	if b, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp"); err == nil {
 		var t int
@@ -277,6 +333,9 @@ func (s *Sensor) generateData() SensorData {
 		Voltage:         voltage,
 		Current:         current,
 		PowerUsage:      voltage * current,
+		RSSI:            rssi,
+		SNR:             snr,
+		PacketLoss:      packetLoss,
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
 }
