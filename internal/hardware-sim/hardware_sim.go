@@ -28,6 +28,8 @@ type SensorData struct {
 	FirmwareVersion string  `json:"firmware_version"`
 	TelemetryTopic  string  `json:"telemetry_topic"`
 	Temperature     float64 `json:"temperature"`
+	Voltage         float64 `json:"voltage"`
+	Current         float64 `json:"current"`
 	PowerUsage      float64 `json:"power_usage"`
 	Timestamp       string  `json:"timestamp"`
 }
@@ -43,6 +45,9 @@ type ChaosCommand struct {
 type ChaosController struct {
 	MqttBroker string
 	Namespace  string
+
+	randMu     sync.Mutex
+	randSource *rand.Rand
 }
 
 // Run starts the chaos injection loop.
@@ -70,7 +75,7 @@ func (c *ChaosController) Run(ctx context.Context) error {
 
 	for {
 		// Randomize interval between 15s and 45s (Average 30s)
-		interval := time.Duration(15+rand.Intn(31)) * time.Second
+		interval := time.Duration(15+c.randIntn(31)) * time.Second
 		timer := time.NewTimer(interval)
 
 		select {
@@ -98,11 +103,11 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 	}
 
 	// Target a random pod
-	targetPod := pods.Items[rand.Intn(len(pods.Items))]
+	targetPod := pods.Items[c.randIntn(len(pods.Items))]
 
 	// Randomize Spike Parameters
-	durationSec := 10 + rand.Intn(21) // 10s to 30s
-	intensity := []string{"low", "medium", "high"}[rand.Intn(3)]
+	durationSec := 10 + c.randIntn(21) // 10s to 30s
+	intensity := []string{"low", "medium", "high"}[c.randIntn(3)]
 
 	log.Printf("Injecting Chaos into %s: Intensity=%s, Duration=%ds", targetPod.Name, intensity, durationSec)
 
@@ -127,6 +132,8 @@ type Sensor struct {
 	mu             sync.Mutex
 	isSpiking      bool
 	spikeIntensity string
+	randMu         sync.Mutex
+	randSource     *rand.Rand
 }
 
 // Run starts the sensor data generation and chaos subscription loop.
@@ -219,28 +226,34 @@ func (s *Sensor) generateData() SensorData {
 	s.mu.Unlock()
 
 	// Base Simulation (Healthy state)
-	temp := 35.0 + rand.Float64()*5.0
-	power := 2.0 + rand.Float64()*2.0
+	temp := 35.0 + s.randFloat64()*5.0
+	voltage := 5.0 - s.randFloat64()*0.1
+	current := 0.4 + s.randFloat64()*0.4
 
 	// Apply Dynamic Spike Logic
 	if spiking {
-		var tempAdd, powerAdd float64
+		var tempAdd, currentAdd, voltageSag float64
 		switch intensity {
 		case "low":
-			tempAdd = 5.0 + rand.Float64()*5.0
-			powerAdd = 2.0 + rand.Float64()*3.0
+			tempAdd = 5.0 + s.randFloat64()*5.0
+			currentAdd = 0.6 + s.randFloat64()*0.6
+			voltageSag = 0.2 + s.randFloat64()*0.2
 		case "medium":
-			tempAdd = 15.0 + rand.Float64()*10.0
-			powerAdd = 10.0 + rand.Float64()*10.0
+			tempAdd = 15.0 + s.randFloat64()*10.0
+			currentAdd = 3.0 + s.randFloat64()*2.0
+			voltageSag = 0.6 + s.randFloat64()*0.4
 		case "high":
-			tempAdd = 30.0 + rand.Float64()*20.0
-			powerAdd = 25.0 + rand.Float64()*20.0
+			tempAdd = 30.0 + s.randFloat64()*20.0
+			currentAdd = 8.0 + s.randFloat64()*4.0
+			voltageSag = 1.1 + s.randFloat64()*0.7
 		default:
 			tempAdd = 10.0
-			powerAdd = 5.0
+			currentAdd = 1.0
+			voltageSag = 0.4
 		}
 		temp += tempAdd
-		power += powerAdd
+		current += currentAdd
+		voltage -= voltageSag
 	}
 
 	// Try to read actual temperature if available (HostPath mount)
@@ -261,7 +274,9 @@ func (s *Sensor) generateData() SensorData {
 		FirmwareVersion: s.firmwareVersion(),
 		TelemetryTopic:  s.telemetryTopic(),
 		Temperature:     temp,
-		PowerUsage:      power,
+		Voltage:         voltage,
+		Current:         current,
+		PowerUsage:      voltage * current,
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
 }
@@ -285,4 +300,22 @@ func (s *Sensor) telemetryTopic() string {
 		return s.TelemetryTopic
 	}
 	return DefaultThermalTelemetryTopic
+}
+
+func (c *ChaosController) randIntn(n int) int {
+	c.randMu.Lock()
+	defer c.randMu.Unlock()
+	if c.randSource != nil {
+		return c.randSource.Intn(n)
+	}
+	return rand.Intn(n)
+}
+
+func (s *Sensor) randFloat64() float64 {
+	s.randMu.Lock()
+	defer s.randMu.Unlock()
+	if s.randSource != nil {
+		return s.randSource.Float64()
+	}
+	return rand.Float64()
 }
