@@ -40,7 +40,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: chaos-controller
-        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller:sha-b1789c1
+        image: ghcr.io/victoriacheng15/observability-hub/chaos-controller
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
