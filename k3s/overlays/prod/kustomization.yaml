@@ -7,9 +7,9 @@ resources:
 
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
-    newTag: sha-fe25b96
+    newTag: sha-b1789c1
   - name: ghcr.io/victoriacheng15/observability-hub/sensor
-    newTag: sha-fe25b96
+    newTag: sha-b1789c1
 
 patches:
   # --- Simulation Fleet (hardware-sim) ---
