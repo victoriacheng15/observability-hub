@@ -41,7 +41,7 @@ spec:
               topologyKey: kubernetes.io/hostname
       containers:
       - name: sensor
-        image: ghcr.io/victoriacheng15/observability-hub/sensor:sha-0c243b3
+        image: ghcr.io/victoriacheng15/observability-hub/sensor:sha-f8b2a4a
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
