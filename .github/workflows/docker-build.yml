@@ -21,17 +21,73 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME_PREFIX: ${{ github.repository }}
+  KEEP_PACKAGE_VERSIONS: 5
 
 jobs:
+  detect-services:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      services: ${{ steps.services.outputs.services }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Detect changed service paths
+        id: filter
+        if: ${{ github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/') }}
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            sensor:
+              - "cmd/sensor/**"
+              - "internal/hardware-sim/**"
+              - "docker/sensor/**"
+              - "go.mod"
+              - "go.sum"
+            chaos-controller:
+              - "cmd/chaos-controller/**"
+              - "internal/hardware-sim/**"
+              - "docker/chaos-controller/**"
+              - "go.mod"
+              - "go.sum"
+            postgres-cnpg:
+              - "docker/postgres-cnpg/**"
+            worker:
+              - "cmd/worker/**"
+              - "internal/db/**"
+              - "internal/env/**"
+              - "internal/secrets/**"
+              - "internal/telemetry/**"
+              - "internal/worker/**"
+              - "docker/worker/**"
+              - "go.mod"
+              - "go.sum"
+
+      - name: Select images to build
+        id: services
+        env:
+          FULL_BUILD: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') }}
+          CHANGED_SERVICES: ${{ steps.filter.outputs.changes }}
+        run: |
+          if [ "$FULL_BUILD" = "true" ]; then
+            echo 'services=["sensor","chaos-controller","postgres-cnpg","worker"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "services=${CHANGED_SERVICES:-[]}" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: detect-services
+    if: ${{ needs.detect-services.outputs.services != '[]' }}
     permissions:
       contents: read
       packages: write
 
     strategy:
       matrix:
-        service: [sensor, chaos-controller, postgres-cnpg, worker]
+        service: ${{ fromJSON(needs.detect-services.outputs.services) }}
 
     steps:
       - name: Checkout repository
@@ -63,3 +119,27 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Prune old GHCR image versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.event.repository.name }}
+          SERVICE: ${{ matrix.service }}
+        run: |
+          set -euo pipefail
+
+          package_name="${REPOSITORY}/${SERVICE}"
+          encoded_package_name="$(jq -nr --arg value "$package_name" '$value|@uri')"
+
+          if gh api "/orgs/${OWNER}" >/dev/null 2>&1; then
+            package_path="/orgs/${OWNER}/packages/container/${encoded_package_name}/versions"
+          else
+            package_path="/users/${OWNER}/packages/container/${encoded_package_name}/versions"
+          fi
+
+          gh api --paginate "$package_path" \
+            --jq '.[] | select((.metadata.container.tags // [] | map(test("^v?[0-9]+\\.[0-9]+\\.[0-9]+([+-].*)?$")) | any) | not) | {id, created_at}' \
+            | jq -s --argjson keep "$KEEP_PACKAGE_VERSIONS" 'sort_by(.created_at) | reverse | .[$keep:] | .[].id' \
+            | while read -r version_id; do
+                gh api --method DELETE "${package_path}/${version_id}"
+              done
