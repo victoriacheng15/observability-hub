@@ -10,19 +10,21 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Sensor Fleet (`sensor`)
 
-- **Type**: Kubernetes Deployment (`hardware-sim` namespace).
+- **Type**: Kubernetes StatefulSet (`hardware-sim` namespace).
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
 - **Logic**:
   - **Boot Sequence**: Emits serial-style logs to Loki mimicking a hardware bootloader.
   - **Telemetry**: Generates synthetic `temperature` and `power_usage` data.
+  - **Identity**: Uses the stable StatefulSet pod name as `device_id`, while `sensor_id` remains the runtime sensor identity.
+  - **Firmware Metadata**: Publishes `firmware_version` with every telemetry payload.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
-  - **Communication**: Publishes JSON payloads to the `sensors/thermal` topic on the EMQX broker.
+  - **Communication**: Publishes JSON payloads to the configured telemetry topic, currently `sensors/thermal`, on the EMQX broker.
 - **Failure Hooks**: Subscribes to its own chaos topic (`sensors/<pod-name>/chaos`) to receive simulated failure instructions.
 
 ### Current Baseline
 
-- Publishes sensor telemetry with `sensor_id`, `temperature`, `power_usage`, and `timestamp`.
-- Uses `sensors/thermal` as the telemetry topic.
+- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `power_usage`, and `timestamp`.
+- Uses `sensors/thermal` as the configured thermal telemetry topic.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
 - Supports the current `spike` chaos command for temporary thermal and power changes.
 - Does not yet publish explicit lifecycle state in telemetry.
@@ -71,7 +73,7 @@ sequenceDiagram
     Sensor->>Sensor: Enter "Spiking" State
 
     loop Every 2s
-        Sensor->>Broker: Publish Telemetry (sensors/thermal)
+        Sensor->>Broker: Publish Telemetry (configured topic)
         Broker->>Viz: Real-time Visualization
     end
 ```
