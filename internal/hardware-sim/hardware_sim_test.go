@@ -176,6 +176,21 @@ func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
 	if data.PacketLoss < 0 {
 		t.Fatalf("expected default packet loss to be non-negative, got %v", data.PacketLoss)
 	}
+	if data.FreeHeap == 0 {
+		t.Fatal("expected default free_heap to be set")
+	}
+	if data.FreeHeap > DefaultEmulatedHeapBytes {
+		t.Fatalf("expected free_heap to stay within emulated heap, got %v", data.FreeHeap)
+	}
+	if data.LoopTimeMS <= 0 {
+		t.Fatalf("expected default loop_time_ms to be positive, got %v", data.LoopTimeMS)
+	}
+	if data.UptimeSeconds < 0 {
+		t.Fatalf("expected default uptime_seconds to be non-negative, got %v", data.UptimeSeconds)
+	}
+	if data.RebootReason != DefaultRebootReason {
+		t.Fatalf("expected default reboot_reason %q, got %q", DefaultRebootReason, data.RebootReason)
+	}
 }
 
 func TestSensor_generateData_SignalLossDegradesLinkQuality(t *testing.T) {
@@ -202,6 +217,32 @@ func TestSensor_generateData_SignalLossDegradesLinkQuality(t *testing.T) {
 	}
 	if degraded.PacketLoss <= base.PacketLoss {
 		t.Fatalf("expected signal loss to increase packet loss, base=%v degraded=%v", base.PacketLoss, degraded.PacketLoss)
+	}
+}
+
+func TestSensor_generateData_ReportsRuntimeHealth(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		startTime:  time.Now().Add(-10 * time.Second),
+		randSource: rand.New(rand.NewSource(456)),
+	}
+
+	data := s.generateData()
+
+	if data.FreeHeap == 0 {
+		t.Fatal("expected free_heap to be set")
+	}
+	if data.FreeHeap > DefaultEmulatedHeapBytes {
+		t.Fatalf("expected free_heap to stay within emulated heap, got %v", data.FreeHeap)
+	}
+	if data.LoopTimeMS <= 0 {
+		t.Fatalf("expected loop_time_ms to be positive, got %v", data.LoopTimeMS)
+	}
+	if data.UptimeSeconds < 9 {
+		t.Fatalf("expected uptime_seconds to reflect sensor start time, got %v", data.UptimeSeconds)
+	}
+	if data.RebootReason != DefaultRebootReason {
+		t.Fatalf("expected reboot_reason %q, got %q", DefaultRebootReason, data.RebootReason)
 	}
 }
 

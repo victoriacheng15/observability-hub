@@ -19,6 +19,8 @@ import (
 const (
 	DefaultThermalTelemetryTopic = "sensors/thermal"
 	DefaultFirmwareVersion       = "dev"
+	DefaultEmulatedHeapBytes     = 320 * 1024
+	DefaultRebootReason          = "power_on"
 )
 
 // SensorData represents the synthetic sensor payload.
@@ -34,6 +36,10 @@ type SensorData struct {
 	RSSI            float64 `json:"rssi"`
 	SNR             float64 `json:"snr"`
 	PacketLoss      float64 `json:"packet_loss_percent"`
+	FreeHeap        uint64  `json:"free_heap"`
+	LoopTimeMS      float64 `json:"loop_time_ms"`
+	UptimeSeconds   int64   `json:"uptime_seconds"`
+	RebootReason    string  `json:"reboot_reason"`
 	Timestamp       string  `json:"timestamp"`
 }
 
@@ -138,6 +144,8 @@ type Sensor struct {
 	spikeIntensity  string
 	signalLoss      bool
 	signalIntensity string
+	startTime       time.Time
+	rebootReason    string
 	randMu          sync.Mutex
 	randSource      *rand.Rand
 }
@@ -247,11 +255,20 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 
 func (s *Sensor) generateData() SensorData {
 	s.mu.Lock()
+	if s.startTime.IsZero() {
+		s.startTime = time.Now()
+	}
 	spiking := s.isSpiking
 	intensity := s.spikeIntensity
 	signalLoss := s.signalLoss
 	signalIntensity := s.signalIntensity
+	uptimeSeconds := int64(time.Since(s.startTime).Seconds())
+	rebootReason := s.rebootReason
 	s.mu.Unlock()
+
+	if rebootReason == "" {
+		rebootReason = DefaultRebootReason
+	}
 
 	// Base Simulation (Healthy state)
 	temp := 35.0 + s.randFloat64()*5.0
@@ -260,6 +277,8 @@ func (s *Sensor) generateData() SensorData {
 	rssi := -45.0 - s.randFloat64()*10.0
 	snr := 22.0 + s.randFloat64()*8.0
 	packetLoss := s.randFloat64() * 2.0
+	freeHeap := uint64(DefaultEmulatedHeapBytes) - uint64(64*1024+s.randFloat64()*32*1024)
+	loopTimeMS := 4.0 + s.randFloat64()*8.0
 
 	// Apply Dynamic Spike Logic
 	if spiking {
@@ -336,6 +355,10 @@ func (s *Sensor) generateData() SensorData {
 		RSSI:            rssi,
 		SNR:             snr,
 		PacketLoss:      packetLoss,
+		FreeHeap:        freeHeap,
+		LoopTimeMS:      loopTimeMS,
+		UptimeSeconds:   uptimeSeconds,
+		RebootReason:    rebootReason,
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
 }
