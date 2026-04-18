@@ -26,12 +26,19 @@ patches:
         path: /spec/template/spec/containers/0/env/1/value
         value: "dev-hardware-sim"
   - target:
-      kind: Deployment
+      kind: StatefulSet
       name: sensor-fleet
     patch: |-
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: Service
+      name: sensor-fleet
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: dev-hardware-sim
   # --- Simulation RBAC (dev-hardware-sim) ---
   - target:
       name: hw-.*

@@ -23,9 +23,20 @@ func main() {
 		sensorID = fmt.Sprintf("sensor-%d", rand.Intn(1000))
 	}
 
+	deviceID := os.Getenv("DEVICE_ID")
+	if deviceID == "" {
+		deviceID = sensorID
+	}
+
+	firmwareVersion := os.Getenv("FIRMWARE_VERSION")
+	telemetryTopic := os.Getenv("TELEMETRY_TOPIC")
+
 	s := &hardwaresim.Sensor{
-		ID:         sensorID,
-		MqttBroker: mqttBroker,
+		ID:              sensorID,
+		DeviceID:        deviceID,
+		FirmwareVersion: firmwareVersion,
+		MqttBroker:      mqttBroker,
+		TelemetryTopic:  telemetryTopic,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

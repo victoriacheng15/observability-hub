@@ -16,12 +16,20 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	DefaultThermalTelemetryTopic = "sensors/thermal"
+	DefaultFirmwareVersion       = "dev"
+)
+
 // SensorData represents the synthetic sensor payload.
 type SensorData struct {
-	SensorID    string  `json:"sensor_id"`
-	Temperature float64 `json:"temperature"`
-	PowerUsage  float64 `json:"power_usage"`
-	Timestamp   string  `json:"timestamp"`
+	SensorID        string  `json:"sensor_id"`
+	DeviceID        string  `json:"device_id"`
+	FirmwareVersion string  `json:"firmware_version"`
+	TelemetryTopic  string  `json:"telemetry_topic"`
+	Temperature     float64 `json:"temperature"`
+	PowerUsage      float64 `json:"power_usage"`
+	Timestamp       string  `json:"timestamp"`
 }
 
 // ChaosCommand represents the instruction sent to a sensor to simulate a failure.
@@ -110,8 +118,11 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 
 // Sensor represents a synthetic hardware sensor.
 type Sensor struct {
-	ID         string
-	MqttBroker string
+	ID              string
+	DeviceID        string
+	FirmwareVersion string
+	MqttBroker      string
+	TelemetryTopic  string
 
 	mu             sync.Mutex
 	isSpiking      bool
@@ -148,7 +159,8 @@ func (s *Sensor) Run(ctx context.Context) error {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
-	log.Printf("Sensor %s started publishing to sensors/thermal...", s.ID)
+	telemetryTopic := s.telemetryTopic()
+	log.Printf("Sensor %s started publishing to %s...", s.ID, telemetryTopic)
 
 	for {
 		select {
@@ -162,7 +174,7 @@ func (s *Sensor) Run(ctx context.Context) error {
 				continue
 			}
 
-			token := client.Publish("sensors/thermal", 1, false, payload)
+			token := client.Publish(telemetryTopic, 1, false, payload)
 			token.Wait()
 			if token.Error() != nil {
 				log.Printf("Error publishing to MQTT: %v", token.Error())
@@ -244,9 +256,33 @@ func (s *Sensor) generateData() SensorData {
 	}
 
 	return SensorData{
-		SensorID:    s.ID,
-		Temperature: temp,
-		PowerUsage:  power,
-		Timestamp:   time.Now().Format(time.RFC3339),
+		SensorID:        s.ID,
+		DeviceID:        s.deviceID(),
+		FirmwareVersion: s.firmwareVersion(),
+		TelemetryTopic:  s.telemetryTopic(),
+		Temperature:     temp,
+		PowerUsage:      power,
+		Timestamp:       time.Now().Format(time.RFC3339),
 	}
+}
+
+func (s *Sensor) deviceID() string {
+	if s.DeviceID != "" {
+		return s.DeviceID
+	}
+	return s.ID
+}
+
+func (s *Sensor) firmwareVersion() string {
+	if s.FirmwareVersion != "" {
+		return s.FirmwareVersion
+	}
+	return DefaultFirmwareVersion
+}
+
+func (s *Sensor) telemetryTopic() string {
+	if s.TelemetryTopic != "" {
+		return s.TelemetryTopic
+	}
+	return DefaultThermalTelemetryTopic
 }

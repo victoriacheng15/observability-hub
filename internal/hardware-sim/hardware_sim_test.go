@@ -93,7 +93,12 @@ func (m *fakeMessage) Payload() []byte   { return m.payload }
 func (m *fakeMessage) Ack()              {}
 
 func TestSensor_generateData_SpikeIncreasesPower(t *testing.T) {
-	s := &Sensor{ID: "sensor-1"}
+	s := &Sensor{
+		ID:              "sensor-1",
+		DeviceID:        "device-1",
+		FirmwareVersion: "2026.04.0",
+		TelemetryTopic:  "sensors/thermal",
+	}
 
 	rand.Seed(123)
 	base := s.generateData()
@@ -113,8 +118,33 @@ func TestSensor_generateData_SpikeIncreasesPower(t *testing.T) {
 	if spike.SensorID != "sensor-1" {
 		t.Fatalf("expected sensor_id to be set, got %q", spike.SensorID)
 	}
+	if spike.DeviceID != "device-1" {
+		t.Fatalf("expected device_id to be set, got %q", spike.DeviceID)
+	}
+	if spike.FirmwareVersion != "2026.04.0" {
+		t.Fatalf("expected firmware_version to be set, got %q", spike.FirmwareVersion)
+	}
+	if spike.TelemetryTopic != "sensors/thermal" {
+		t.Fatalf("expected telemetry_topic to be set, got %q", spike.TelemetryTopic)
+	}
 	if spike.Timestamp == "" {
 		t.Fatal("expected timestamp to be set")
+	}
+}
+
+func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	data := s.generateData()
+
+	if data.DeviceID != "sensor-1" {
+		t.Fatalf("expected device_id to default to sensor id, got %q", data.DeviceID)
+	}
+	if data.FirmwareVersion != DefaultFirmwareVersion {
+		t.Fatalf("expected default firmware version %q, got %q", DefaultFirmwareVersion, data.FirmwareVersion)
+	}
+	if data.TelemetryTopic != DefaultThermalTelemetryTopic {
+		t.Fatalf("expected default telemetry topic %q, got %q", DefaultThermalTelemetryTopic, data.TelemetryTopic)
 	}
 }
 
