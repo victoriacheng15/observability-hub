@@ -14,7 +14,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
 - **Logic**:
   - **Boot Sequence**: Emits serial-style logs to Loki mimicking a hardware bootloader.
-  - **Telemetry**: Generates synthetic `temperature`, `voltage`, `current`, and `power_usage` data.
+  - **Telemetry**: Generates synthetic `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, and `packet_loss_percent` data.
   - **Identity**: Uses the stable StatefulSet pod name as `device_id`, while `sensor_id` remains the runtime sensor identity.
   - **Firmware Metadata**: Publishes `firmware_version` with every telemetry payload.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
@@ -23,10 +23,11 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Current Baseline
 
-- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, and `timestamp`.
+- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, and `timestamp`.
 - Uses `sensors/thermal` as the configured thermal telemetry topic.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
 - Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
+- Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.
 - Does not yet publish explicit lifecycle state in telemetry.
 
 ### Device Lifecycle Model
@@ -43,7 +44,7 @@ The lifecycle model is the shared vocabulary for future sensor state reporting:
 | `rebooting` | Device is restarting because of a planned reset or simulated hardware-style fault. |
 | `failed` | Device cannot continue normal operation without an external restart or intervention. |
 
-In the current implementation, `running` is implied during normal telemetry publishing, and `degraded` is implied while a spike command is active.
+In the current implementation, `running` is implied during normal telemetry publishing, and `degraded` is implied while a spike or signal-loss command is active.
 
 ### Chaos Controller (`chaos-controller`)
 
@@ -51,7 +52,7 @@ In the current implementation, `running` is implied during normal telemetry publ
 - **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
-  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike") via MQTT.
+  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike" or "signal_loss") via MQTT.
   - **Parameters**: Randomizes the duration (10s-30s) and intensity (low, medium, high) of the failure.
 
 ## Data Flow & Orchestration
@@ -68,9 +69,9 @@ sequenceDiagram
     K8s-->>Chaos: [sensor-01, sensor-02, ...]
     
     Note over Chaos, Sensor: Chaos Injection Loop
-    Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike)
+    Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike or Signal Loss)
     Broker->>Sensor: Deliver Command
-    Sensor->>Sensor: Enter "Spiking" State
+    Sensor->>Sensor: Enter degraded behavior
 
     loop Every 2s
         Sensor->>Broker: Publish Telemetry (configured topic)

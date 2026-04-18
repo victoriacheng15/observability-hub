@@ -167,6 +167,42 @@ func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
 	if data.PowerUsage <= 0 {
 		t.Fatalf("expected default power_usage to be positive, got %v", data.PowerUsage)
 	}
+	if data.RSSI >= 0 {
+		t.Fatalf("expected default rssi to be negative dBm, got %v", data.RSSI)
+	}
+	if data.SNR <= 0 {
+		t.Fatalf("expected default snr to be positive, got %v", data.SNR)
+	}
+	if data.PacketLoss < 0 {
+		t.Fatalf("expected default packet loss to be non-negative, got %v", data.PacketLoss)
+	}
+}
+
+func TestSensor_generateData_SignalLossDegradesLinkQuality(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		randSource: rand.New(rand.NewSource(321)),
+	}
+
+	base := s.generateData()
+
+	s.mu.Lock()
+	s.signalLoss = true
+	s.signalIntensity = "high"
+	s.mu.Unlock()
+
+	s.randSource = rand.New(rand.NewSource(321))
+	degraded := s.generateData()
+
+	if degraded.RSSI >= base.RSSI {
+		t.Fatalf("expected signal loss to lower rssi, base=%v degraded=%v", base.RSSI, degraded.RSSI)
+	}
+	if degraded.SNR >= base.SNR {
+		t.Fatalf("expected signal loss to lower snr, base=%v degraded=%v", base.SNR, degraded.SNR)
+	}
+	if degraded.PacketLoss <= base.PacketLoss {
+		t.Fatalf("expected signal loss to increase packet loss, base=%v degraded=%v", base.PacketLoss, degraded.PacketLoss)
+	}
 }
 
 func TestSensor_handleChaos_SetsAndClearsSpike(t *testing.T) {
@@ -202,6 +238,42 @@ func TestSensor_handleChaos_SetsAndClearsSpike(t *testing.T) {
 
 	if spiking || intensity != "" {
 		t.Fatalf("expected spike to be cleared, spiking=%v intensity=%q", spiking, intensity)
+	}
+}
+
+func TestSensor_handleChaos_SetsAndClearsSignalLoss(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "signal_loss",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	signalLoss := s.signalLoss
+	intensity := s.signalIntensity
+	s.mu.Unlock()
+
+	if !signalLoss || intensity != "medium" {
+		t.Fatalf("expected signal loss to be active immediately, signalLoss=%v intensity=%q", signalLoss, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	signalLoss = s.signalLoss
+	intensity = s.signalIntensity
+	s.mu.Unlock()
+
+	if signalLoss || intensity != "" {
+		t.Fatalf("expected signal loss to be cleared, signalLoss=%v intensity=%q", signalLoss, intensity)
 	}
 }
 
@@ -271,7 +343,7 @@ func TestChaosController_injectChaos_PublishesToSensorTopic(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected string payload, got %T", pub.payload)
 	}
-	payloadRe := regexp.MustCompile(`^\{"command": "spike", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
+	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
 	if !payloadRe.MatchString(payload) {
 		t.Fatalf("unexpected payload %q", payload)
 	}
