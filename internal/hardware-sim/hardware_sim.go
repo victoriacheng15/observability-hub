@@ -21,6 +21,10 @@ const (
 	DefaultFirmwareVersion       = "dev"
 	DefaultEmulatedHeapBytes     = 320 * 1024
 	DefaultRebootReason          = "power_on"
+	BrownoutRebootReason         = "brownout"
+	MemoryLeakRebootReason       = "memory_leak"
+	BrownoutVoltageThreshold     = 3.3
+	MemoryLeakRebootHeapBytes    = 32 * 1024
 )
 
 // SensorData represents the synthetic sensor payload.
@@ -115,7 +119,7 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 	targetPod := pods.Items[c.randIntn(len(pods.Items))]
 
 	// Randomize chaos parameters
-	command := []string{"spike", "signal_loss"}[c.randIntn(2)]
+	command := []string{"spike", "signal_loss", "brownout", "memory_leak"}[c.randIntn(4)]
 	durationSec := 10 + c.randIntn(21) // 10s to 30s
 	intensity := []string{"low", "medium", "high"}[c.randIntn(3)]
 
@@ -139,15 +143,21 @@ type Sensor struct {
 	MqttBroker      string
 	TelemetryTopic  string
 
-	mu              sync.Mutex
-	isSpiking       bool
-	spikeIntensity  string
-	signalLoss      bool
-	signalIntensity string
-	startTime       time.Time
-	rebootReason    string
-	randMu          sync.Mutex
-	randSource      *rand.Rand
+	mu                  sync.Mutex
+	isSpiking           bool
+	spikeIntensity      string
+	signalLoss          bool
+	signalIntensity     string
+	brownout            bool
+	brownoutRebooted    bool
+	brownoutIntensity   string
+	memoryLeak          bool
+	memoryLeakIntensity string
+	memoryLeakBytes     uint64
+	startTime           time.Time
+	rebootReason        string
+	randMu              sync.Mutex
+	randSource          *rand.Rand
 }
 
 // Run starts the sensor data generation and chaos subscription loop.
@@ -213,10 +223,7 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 
 	switch cmd.Command {
 	case "spike":
-		duration, _ := time.ParseDuration(cmd.Duration)
-		if duration == 0 {
-			duration = 10 * time.Second
-		}
+		duration := chaosDuration(cmd.Duration)
 
 		log.Printf("!!! Chaos Spike Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
 		s.mu.Lock()
@@ -232,10 +239,7 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 			log.Println("Chaos Spike Ended.")
 		})
 	case "signal_loss":
-		duration, _ := time.ParseDuration(cmd.Duration)
-		if duration == 0 {
-			duration = 10 * time.Second
-		}
+		duration := chaosDuration(cmd.Duration)
 
 		log.Printf("!!! Signal Loss Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
 		s.mu.Lock()
@@ -250,6 +254,42 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 			s.mu.Unlock()
 			log.Println("Signal Loss Ended.")
 		})
+	case "brownout":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Brownout Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.brownout = true
+		s.brownoutRebooted = false
+		s.brownoutIntensity = cmd.Intensity
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.brownout = false
+			s.brownoutRebooted = false
+			s.brownoutIntensity = ""
+			s.mu.Unlock()
+			log.Println("Brownout Ended.")
+		})
+	case "memory_leak":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Memory Leak Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.memoryLeak = true
+		s.memoryLeakIntensity = cmd.Intensity
+		s.memoryLeakBytes = 0
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.memoryLeak = false
+			s.memoryLeakIntensity = ""
+			s.memoryLeakBytes = 0
+			s.mu.Unlock()
+			log.Println("Memory Leak Ended.")
+		})
 	}
 }
 
@@ -262,6 +302,12 @@ func (s *Sensor) generateData() SensorData {
 	intensity := s.spikeIntensity
 	signalLoss := s.signalLoss
 	signalIntensity := s.signalIntensity
+	brownout := s.brownout
+	brownoutRebooted := s.brownoutRebooted
+	brownoutIntensity := s.brownoutIntensity
+	memoryLeak := s.memoryLeak
+	memoryLeakIntensity := s.memoryLeakIntensity
+	memoryLeakBytes := s.memoryLeakBytes
 	uptimeSeconds := int64(time.Since(s.startTime).Seconds())
 	rebootReason := s.rebootReason
 	s.mu.Unlock()
@@ -331,6 +377,40 @@ func (s *Sensor) generateData() SensorData {
 		packetLoss += packetLossAdd
 	}
 
+	if brownout {
+		voltage -= brownoutVoltageSag(brownoutIntensity)
+		if voltage < BrownoutVoltageThreshold && !brownoutRebooted {
+			rebootReason = BrownoutRebootReason
+			uptimeSeconds = 0
+			s.mu.Lock()
+			s.rebootReason = BrownoutRebootReason
+			s.startTime = time.Now()
+			s.brownoutRebooted = true
+			s.mu.Unlock()
+		}
+	}
+
+	if memoryLeak {
+		memoryLeakBytes += memoryLeakStepBytes(memoryLeakIntensity)
+		if memoryLeakBytes >= freeHeap-MemoryLeakRebootHeapBytes {
+			rebootReason = MemoryLeakRebootReason
+			uptimeSeconds = 0
+			memoryLeakBytes = 0
+			s.mu.Lock()
+			s.rebootReason = MemoryLeakRebootReason
+			s.startTime = time.Now()
+			s.memoryLeak = false
+			s.memoryLeakIntensity = ""
+			s.memoryLeakBytes = 0
+			s.mu.Unlock()
+		} else {
+			freeHeap -= memoryLeakBytes
+			s.mu.Lock()
+			s.memoryLeakBytes = memoryLeakBytes
+			s.mu.Unlock()
+		}
+	}
+
 	// Try to read actual temperature if available (HostPath mount)
 	if b, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp"); err == nil {
 		var t int
@@ -382,6 +462,40 @@ func (s *Sensor) telemetryTopic() string {
 		return s.TelemetryTopic
 	}
 	return DefaultThermalTelemetryTopic
+}
+
+func chaosDuration(raw string) time.Duration {
+	duration, _ := time.ParseDuration(raw)
+	if duration == 0 {
+		return 10 * time.Second
+	}
+	return duration
+}
+
+func brownoutVoltageSag(intensity string) float64 {
+	switch intensity {
+	case "low":
+		return 1.2
+	case "medium":
+		return 1.8
+	case "high":
+		return 2.4
+	default:
+		return 1.5
+	}
+}
+
+func memoryLeakStepBytes(intensity string) uint64 {
+	switch intensity {
+	case "low":
+		return 24 * 1024
+	case "medium":
+		return 64 * 1024
+	case "high":
+		return 128 * 1024
+	default:
+		return 48 * 1024
+	}
 }
 
 func (c *ChaosController) randIntn(n int) int {
