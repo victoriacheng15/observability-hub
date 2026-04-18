@@ -92,15 +92,15 @@ func (m *fakeMessage) MessageID() uint16 { return 0 }
 func (m *fakeMessage) Payload() []byte   { return m.payload }
 func (m *fakeMessage) Ack()              {}
 
-func TestSensor_generateData_SpikeIncreasesPower(t *testing.T) {
+func TestSensor_generateData_SpikeIncreasesPowerAndSagsVoltage(t *testing.T) {
 	s := &Sensor{
 		ID:              "sensor-1",
 		DeviceID:        "device-1",
 		FirmwareVersion: "2026.04.0",
 		TelemetryTopic:  "sensors/thermal",
+		randSource:      rand.New(rand.NewSource(123)),
 	}
 
-	rand.Seed(123)
 	base := s.generateData()
 
 	s.mu.Lock()
@@ -108,12 +108,18 @@ func TestSensor_generateData_SpikeIncreasesPower(t *testing.T) {
 	s.spikeIntensity = "high"
 	s.mu.Unlock()
 
-	rand.Seed(123)
+	s.randSource = rand.New(rand.NewSource(123))
 	spike := s.generateData()
 
 	// High intensity adds at least 25W, regardless of host temperature override logic.
 	if spike.PowerUsage <= base.PowerUsage+20 {
 		t.Fatalf("expected spike power to be significantly higher, base=%v spike=%v", base.PowerUsage, spike.PowerUsage)
+	}
+	if spike.Current <= base.Current {
+		t.Fatalf("expected spike current to increase, base=%v spike=%v", base.Current, spike.Current)
+	}
+	if spike.Voltage >= base.Voltage {
+		t.Fatalf("expected spike voltage to sag, base=%v spike=%v", base.Voltage, spike.Voltage)
 	}
 	if spike.SensorID != "sensor-1" {
 		t.Fatalf("expected sensor_id to be set, got %q", spike.SensorID)
@@ -126,6 +132,12 @@ func TestSensor_generateData_SpikeIncreasesPower(t *testing.T) {
 	}
 	if spike.TelemetryTopic != "sensors/thermal" {
 		t.Fatalf("expected telemetry_topic to be set, got %q", spike.TelemetryTopic)
+	}
+	if spike.Voltage <= 0 {
+		t.Fatalf("expected voltage to be positive, got %v", spike.Voltage)
+	}
+	if spike.Current <= 0 {
+		t.Fatalf("expected current to be positive, got %v", spike.Current)
 	}
 	if spike.Timestamp == "" {
 		t.Fatal("expected timestamp to be set")
@@ -145,6 +157,15 @@ func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
 	}
 	if data.TelemetryTopic != DefaultThermalTelemetryTopic {
 		t.Fatalf("expected default telemetry topic %q, got %q", DefaultThermalTelemetryTopic, data.TelemetryTopic)
+	}
+	if data.Voltage <= 0 {
+		t.Fatalf("expected default voltage to be positive, got %v", data.Voltage)
+	}
+	if data.Current <= 0 {
+		t.Fatalf("expected default current to be positive, got %v", data.Current)
+	}
+	if data.PowerUsage <= 0 {
+		t.Fatalf("expected default power_usage to be positive, got %v", data.PowerUsage)
 	}
 }
 
@@ -189,9 +210,11 @@ func TestChaosController_injectChaos_NoPods_NoPublish(t *testing.T) {
 	k8s := fake.NewSimpleClientset()
 
 	mq := &fakeMQTTClient{}
-	c := &ChaosController{Namespace: "default"}
+	c := &ChaosController{
+		Namespace:  "default",
+		randSource: rand.New(rand.NewSource(1)),
+	}
 
-	rand.Seed(1)
 	c.injectChaos(ctx, k8s, mq)
 
 	if got := len(mq.Publishes()); got != 0 {
@@ -219,9 +242,11 @@ func TestChaosController_injectChaos_PublishesToSensorTopic(t *testing.T) {
 	k8s := fake.NewSimpleClientset(p1, p2)
 
 	mq := &fakeMQTTClient{}
-	c := &ChaosController{Namespace: "default"}
+	c := &ChaosController{
+		Namespace:  "default",
+		randSource: rand.New(rand.NewSource(2)),
+	}
 
-	rand.Seed(2)
 	c.injectChaos(ctx, k8s, mq)
 
 	pubs := mq.Publishes()

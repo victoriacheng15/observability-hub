@@ -14,7 +14,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
 - **Logic**:
   - **Boot Sequence**: Emits serial-style logs to Loki mimicking a hardware bootloader.
-  - **Telemetry**: Generates synthetic `temperature` and `power_usage` data.
+  - **Telemetry**: Generates synthetic `temperature`, `voltage`, `current`, and `power_usage` data.
   - **Identity**: Uses the stable StatefulSet pod name as `device_id`, while `sensor_id` remains the runtime sensor identity.
   - **Firmware Metadata**: Publishes `firmware_version` with every telemetry payload.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
@@ -23,10 +23,10 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Current Baseline
 
-- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `power_usage`, and `timestamp`.
+- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, and `timestamp`.
 - Uses `sensors/thermal` as the configured thermal telemetry topic.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
-- Supports the current `spike` chaos command for temporary thermal and power changes.
+- Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
 - Does not yet publish explicit lifecycle state in telemetry.
 
 ### Device Lifecycle Model
@@ -86,11 +86,3 @@ The simulation uses the platform's observability stack as a learning surface:
 - **Metrics**: EMQX stats are scraped by Prometheus, providing visibility into the message throughput and client connectivity of the simulation fleet.
 - **Visualization**: Grafana dashboards track the relationship between simulated sensor behavior, pod health, network traffic, and resource consumption.
 - **Agentic Audit**: AI agents (via MCP) can use pod, log, metric, and network tools to inspect what happened during an experiment.
-
-## Future Roadmap
-
-As outlined in `plan-hardware-sim.md`, the simulation will evolve to include:
-
-- **Voltage Sag**: Emulating battery drops during high-throughput MQTT bursts.
-- **Signal Multi-path**: Simulating radio interference through RSSI and SNR fluctuations.
-- **Link Quality**: Correlating network latency with simulated weak-signal or obstacle scenarios.
