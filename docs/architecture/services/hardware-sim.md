@@ -1,14 +1,14 @@
-# Hardware Simulation & Chaos Engineering Architecture
+# Hardware Simulation Learning Lab
 
-The Hardware Simulation domain (`cmd/sensor`, `cmd/chaos-controller`) provides a high-fidelity emulation layer for IoT and hardware-centric observability. It simulates a fleet of sensors (e.g., ESP32 or Drone Flight Controllers) to test platform resilience, telemetry correlation, and chaos engineering practices.
+The Hardware Simulation domain (`cmd/sensor`, `cmd/chaos-controller`) is an exploratory learning lab for hardware-style telemetry. It is not a production robotics stack or a serious hardware-control system. It simulates a small fleet of sensor-like workloads so the project can explore how data from sensors, drones, robots, or other edge devices might be collected, transported, monitored, and diagnosed.
 
-## 🎯 Objective
+## Objective
 
-To build operational intuition for hardware failure modes and real-time telemetry. By simulating "physical" signals like temperature spikes, power sags, and network jitter, the platform enables the testing of SRE principles (Alerting, Incident Response, Chaos) in a controlled, cloud-native environment.
+To build practical intuition for hardware monitoring. By simulating physical-ish signals like temperature, power usage, power sag, weak radio links, and delayed messages, the project can practice the monitoring loop without needing real hardware on day one.
 
-## 🧩 Component Details
+## Component Details
 
-### 📡 Sensor Fleet (`sensor`)
+### Sensor Fleet (`sensor`)
 
 - **Type**: Kubernetes Deployment (`hardware-sim` namespace).
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
@@ -17,18 +17,42 @@ To build operational intuition for hardware failure modes and real-time telemetr
   - **Telemetry**: Generates synthetic `temperature` and `power_usage` data.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
   - **Communication**: Publishes JSON payloads to the `sensors/thermal` topic on the EMQX broker.
-- **Resilience**: Subscribes to its own chaos topic (`sensors/<pod-name>/chaos`) to receive failure instructions.
+- **Failure Hooks**: Subscribes to its own chaos topic (`sensors/<pod-name>/chaos`) to receive simulated failure instructions.
 
-### 🌪️ Chaos Controller (`chaos-controller`)
+### Current Baseline
+
+- Publishes sensor telemetry with `sensor_id`, `temperature`, `power_usage`, and `timestamp`.
+- Uses `sensors/thermal` as the telemetry topic.
+- Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
+- Supports the current `spike` chaos command for temporary thermal and power changes.
+- Does not yet publish explicit lifecycle state in telemetry.
+
+### Device Lifecycle Model
+
+The lifecycle model is the shared vocabulary for future sensor state reporting:
+
+| State | Meaning |
+| :--- | :--- |
+| `booting` | Device process has started and is preparing local runtime state. |
+| `connecting` | Device is trying to connect to MQTT or another telemetry transport. |
+| `running` | Device is healthy enough to publish normal telemetry. |
+| `degraded` | Device is still running, but readings or delivery are affected by a simulated fault. |
+| `sleeping` | Device is intentionally quiet or publishing less often to model low-power behavior. |
+| `rebooting` | Device is restarting because of a planned reset or simulated hardware-style fault. |
+| `failed` | Device cannot continue normal operation without an external restart or intervention. |
+
+In the current implementation, `running` is implied during normal telemetry publishing, and `degraded` is implied while a spike command is active.
+
+### Chaos Controller (`chaos-controller`)
 
 - **Type**: Kubernetes Deployment.
-- **Role**: The "Adversary" that injects periodic failure modes into the sensor fleet.
+- **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
   - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike") via MQTT.
   - **Parameters**: Randomizes the duration (10s-30s) and intensity (low, medium, high) of the failure.
 
-## ⚙️ Data Flow & Orchestration
+## Data Flow & Orchestration
 
 ```mermaid
 sequenceDiagram
@@ -41,12 +65,10 @@ sequenceDiagram
     Chaos->>K8s: List Pods (app=sensor-fleet)
     K8s-->>Chaos: [sensor-01, sensor-02, ...]
     
-    rect rgb(200, 150, 150)
-        Note over Chaos, Sensor: Chaos Injection Loop
-        Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike)
-        Broker->>Sensor: Deliver Command
-        Sensor->>Sensor: Enter "Spiking" State
-    end
+    Note over Chaos, Sensor: Chaos Injection Loop
+    Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike)
+    Broker->>Sensor: Deliver Command
+    Sensor->>Sensor: Enter "Spiking" State
 
     loop Every 2s
         Sensor->>Broker: Publish Telemetry (sensors/thermal)
@@ -54,19 +76,19 @@ sequenceDiagram
     end
 ```
 
-## 🔭 Observability Implementation
+## Observability Implementation
 
-The simulation is fully integrated into the platform's observability stack:
+The simulation uses the platform's observability stack as a learning surface:
 
 - **Logs**: Boot sequences and chaos event transitions are emitted as structured logs and collected by Grafana Loki.
 - **Metrics**: EMQX stats are scraped by Prometheus, providing visibility into the message throughput and client connectivity of the simulation fleet.
-- **Visualization**: Specialized Grafana dashboards track the correlation between chaos injections (spikes) and system resource consumption (Kepler energy metrics).
-- **Agentic Audit**: AI agents (via MCP) can use the `delete_pod` tool to simulate further infrastructure chaos or use `query_logs` to diagnose emulated hardware crashes (e.g., "Brownout" or "OOM").
+- **Visualization**: Grafana dashboards track the relationship between simulated sensor behavior, pod health, network traffic, and resource consumption.
+- **Agentic Audit**: AI agents (via MCP) can use pod, log, metric, and network tools to inspect what happened during an experiment.
 
-## 🛡️ Future Roadmap
+## Future Roadmap
 
 As outlined in `plan-hardware-sim.md`, the simulation will evolve to include:
 
 - **Voltage Sag**: Emulating battery drops during high-throughput MQTT bursts.
 - **Signal Multi-path**: Simulating radio interference through RSSI and SNR fluctuations.
-- **Link Quality**: Correlating network latency with simulated "Physical Obstacles."
+- **Link Quality**: Correlating network latency with simulated weak-signal or obstacle scenarios.
