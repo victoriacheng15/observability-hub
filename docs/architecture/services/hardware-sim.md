@@ -29,6 +29,8 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
 - Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
 - Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.
+- Supports the current `brownout` chaos command for voltage drops that record `reboot_reason=brownout`.
+- Supports the current `memory_leak` chaos command for reducing emulated `free_heap` until a simulated restart records `reboot_reason=memory_leak`.
 - Does not yet publish explicit lifecycle state in telemetry.
 
 ### Device Lifecycle Model
@@ -45,7 +47,7 @@ The lifecycle model is the shared vocabulary for future sensor state reporting:
 | `rebooting` | Device is restarting because of a planned reset or simulated hardware-style fault. |
 | `failed` | Device cannot continue normal operation without an external restart or intervention. |
 
-In the current implementation, `running` is implied during normal telemetry publishing, and `degraded` is implied while a spike or signal-loss command is active.
+In the current implementation, `running` is implied during normal telemetry publishing, `degraded` is implied while a spike, signal-loss, brownout, or memory-leak command is active, and `rebooting` is represented by `reboot_reason` plus reset uptime after brownout or memory-leak restart behavior.
 
 ### Chaos Controller (`chaos-controller`)
 
@@ -53,7 +55,7 @@ In the current implementation, `running` is implied during normal telemetry publ
 - **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
-  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike" or "signal_loss") via MQTT.
+  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike", "signal_loss", "brownout", or "memory_leak") via MQTT.
   - **Parameters**: Randomizes the duration (10s-30s) and intensity (low, medium, high) of the failure.
 
 ## Data Flow & Orchestration
@@ -70,7 +72,7 @@ sequenceDiagram
     K8s-->>Chaos: [sensor-01, sensor-02, ...]
     
     Note over Chaos, Sensor: Chaos Injection Loop
-    Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike or Signal Loss)
+    Chaos->>Broker: Publish Chaos (Target: sensor-01, Command: Spike, Signal Loss, Brownout, or Memory Leak)
     Broker->>Sensor: Deliver Command
     Sensor->>Sensor: Enter degraded behavior
 

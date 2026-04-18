@@ -246,6 +246,75 @@ func TestSensor_generateData_ReportsRuntimeHealth(t *testing.T) {
 	}
 }
 
+func TestSensor_generateData_BrownoutDropsVoltageAndRecordsReboot(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		startTime:  time.Now().Add(-10 * time.Second),
+		randSource: rand.New(rand.NewSource(789)),
+	}
+
+	base := s.generateData()
+
+	s.mu.Lock()
+	s.brownout = true
+	s.brownoutIntensity = "high"
+	s.mu.Unlock()
+
+	s.randSource = rand.New(rand.NewSource(789))
+	brownout := s.generateData()
+
+	if brownout.Voltage >= base.Voltage {
+		t.Fatalf("expected brownout voltage to drop, base=%v brownout=%v", base.Voltage, brownout.Voltage)
+	}
+	if brownout.Voltage >= BrownoutVoltageThreshold {
+		t.Fatalf("expected brownout voltage below threshold %v, got %v", BrownoutVoltageThreshold, brownout.Voltage)
+	}
+	if brownout.RebootReason != BrownoutRebootReason {
+		t.Fatalf("expected reboot_reason %q, got %q", BrownoutRebootReason, brownout.RebootReason)
+	}
+	if brownout.UptimeSeconds != 0 {
+		t.Fatalf("expected brownout reboot to reset uptime, got %v", brownout.UptimeSeconds)
+	}
+}
+
+func TestSensor_generateData_MemoryLeakReducesHeapThenRecordsReboot(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		startTime:  time.Now().Add(-10 * time.Second),
+		randSource: rand.New(rand.NewSource(987)),
+	}
+
+	base := s.generateData()
+
+	s.mu.Lock()
+	s.memoryLeak = true
+	s.memoryLeakIntensity = "low"
+	s.mu.Unlock()
+
+	s.randSource = rand.New(rand.NewSource(987))
+	leaking := s.generateData()
+
+	if leaking.FreeHeap >= base.FreeHeap {
+		t.Fatalf("expected memory leak to reduce free_heap, base=%v leaking=%v", base.FreeHeap, leaking.FreeHeap)
+	}
+	if leaking.RebootReason != DefaultRebootReason {
+		t.Fatalf("expected first leak sample to keep reboot_reason %q, got %q", DefaultRebootReason, leaking.RebootReason)
+	}
+
+	s.mu.Lock()
+	s.memoryLeakBytes = DefaultEmulatedHeapBytes
+	s.mu.Unlock()
+
+	restarted := s.generateData()
+
+	if restarted.RebootReason != MemoryLeakRebootReason {
+		t.Fatalf("expected reboot_reason %q, got %q", MemoryLeakRebootReason, restarted.RebootReason)
+	}
+	if restarted.UptimeSeconds != 0 {
+		t.Fatalf("expected memory leak reboot to reset uptime, got %v", restarted.UptimeSeconds)
+	}
+}
+
 func TestSensor_handleChaos_SetsAndClearsSpike(t *testing.T) {
 	s := &Sensor{ID: "sensor-1"}
 
@@ -318,6 +387,78 @@ func TestSensor_handleChaos_SetsAndClearsSignalLoss(t *testing.T) {
 	}
 }
 
+func TestSensor_handleChaos_SetsAndClearsBrownout(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "brownout",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	brownout := s.brownout
+	intensity := s.brownoutIntensity
+	s.mu.Unlock()
+
+	if !brownout || intensity != "medium" {
+		t.Fatalf("expected brownout to be active immediately, brownout=%v intensity=%q", brownout, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	brownout = s.brownout
+	intensity = s.brownoutIntensity
+	s.mu.Unlock()
+
+	if brownout || intensity != "" {
+		t.Fatalf("expected brownout to be cleared, brownout=%v intensity=%q", brownout, intensity)
+	}
+}
+
+func TestSensor_handleChaos_SetsAndClearsMemoryLeak(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "memory_leak",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	memoryLeak := s.memoryLeak
+	intensity := s.memoryLeakIntensity
+	s.mu.Unlock()
+
+	if !memoryLeak || intensity != "medium" {
+		t.Fatalf("expected memory leak to be active immediately, memoryLeak=%v intensity=%q", memoryLeak, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	memoryLeak = s.memoryLeak
+	intensity = s.memoryLeakIntensity
+	s.mu.Unlock()
+
+	if memoryLeak || intensity != "" {
+		t.Fatalf("expected memory leak to be cleared, memoryLeak=%v intensity=%q", memoryLeak, intensity)
+	}
+}
+
 func TestChaosController_injectChaos_NoPods_NoPublish(t *testing.T) {
 	ctx := context.Background()
 	k8s := fake.NewSimpleClientset()
@@ -384,7 +525,7 @@ func TestChaosController_injectChaos_PublishesToSensorTopic(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected string payload, got %T", pub.payload)
 	}
-	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
+	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss|brownout|memory_leak)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
 	if !payloadRe.MatchString(payload) {
 		t.Fatalf("unexpected payload %q", payload)
 	}
