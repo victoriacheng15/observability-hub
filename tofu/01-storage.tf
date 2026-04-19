@@ -5,15 +5,9 @@ data "azurerm_storage_account" "hub" {
   resource_group_name = var.azurerm_resource_group_name
 }
 
-resource "azurerm_storage_container" "terraform_state" {
-  name                  = "terraform-state"
-  storage_account_id    = data.azurerm_storage_account.hub.id
-  container_access_type = "private"
-
-  # Prevent accidental deletion via Tofu
-  lifecycle {
-    prevent_destroy = true
-  }
+data "azurerm_storage_container" "terraform_state" {
+  name               = "terraform-state"
+  storage_account_id = data.azurerm_storage_account.hub.id
 }
 
 resource "azurerm_storage_container" "pg_backup" {
