@@ -1,29 +1,45 @@
 # Observability Hub
 
-## What is this?
+Observability Hub is a self-hosted platform engineering lab built with Kubernetes, Argo CD, OpenTofu (Terraform-compatible), OpenTelemetry, Grafana, Loki, Tempo, Prometheus, Cilium/Hubble, OpenBao, and Go services.
 
-Observability Hub is an end-to-end infrastructure platform for a self-hosted Kubernetes environment.
+It proves an end-to-end platform ownership loop: declarative infrastructure runs host and cluster services, telemetry exposes behavior, operators and agents diagnose issues, bounded remediation applies fixes, and ADRs/RCAs preserve operational memory.
 
-The project is designed from source of truth to runtime operations: infrastructure definition, deployment automation, runtime observability, incident diagnosis, safe remediation, and operational memory.
+[Project Portal](https://victoriacheng15.github.io/observability-hub/) | [Full Documentation](./docs/README.md)
 
-Git and infrastructure definitions describe the intended state. Host and cluster runtimes execute that state. Telemetry systems expose behavior. MCP tools and dashboards support diagnosis. Remediation flows apply controlled fixes. ADRs, RCAs, and notes preserve what was learned.
+---
 
-- provision infrastructure declaratively
-- deploy services through GitOps
-- collect logs, metrics, traces, and network signals
-- diagnose failures with dashboards, runbooks, and MCP tools
-- analyze resource utilization, capacity pressure, and efficiency trends
-- remediate safely through bounded operational paths
-- preserve decisions and incidents as operational memory
+## Highlights
 
-The core loop is:
+| Area | What it demonstrates |
+| :--- | :--- |
+| Platform orchestration | Systemd handles host-tier control while Kubernetes runs scalable data services |
+| GitOps delivery | Argo CD reconciles cluster manifests and Proxy webhooks trigger host sync |
+| Observability | OpenTelemetry, Grafana, Loki, Tempo, Prometheus, and Hubble correlate logs, metrics, traces, and network flows |
+| Agent operations | MCP tools expose telemetry queries, pod inspection, host health, network flows, and bounded repair actions |
+| Data durability | CloudNativePG, MinIO, and Azure backup paths support persistent platform state |
+| Security | OpenBao, Trivy checks, Kubernetes security contexts, and Cilium policies reduce secret and workload risk |
+| Operational memory | ADRs, incident reports, notes, workflows, and ownership docs preserve decisions and recovery paths |
+
+---
+
+## Architecture
+
+The main system flow starts from declarative source, runs through host and cluster runtimes, emits telemetry, drives diagnosis, and feeds remediations and lessons back into source control.
+
+| Path | Use case | Flow |
+| :--- | :--- | :--- |
+| Platform reconciliation | Keep host and cluster state aligned with Git | Git/Terraform/Kustomize/systemd -> Argo CD/Proxy -> Kubernetes/systemd runtime |
+| Telemetry pipeline | Capture behavior across services and infrastructure | Go services/Kubernetes/Cilium -> OpenTelemetry/Prometheus/Loki/Tempo/Hubble -> Grafana/MCP |
+| Agent diagnosis | Let operators query and repair live systems through bounded tools | MCP Hub -> telemetry/pod/host/network providers -> diagnosis or controlled remediation |
+| Batch analytics | Convert runtime metrics and ingestion inputs into stored operational insight | Worker CronJobs -> Prometheus/Postgres/OpenBao -> analytics and ingestion records |
+| Operational memory | Preserve the reasoning behind decisions and failures | Workflows/incidents -> ADRs/RCAs/notes -> future source changes |
 
 ```mermaid
 flowchart TB
-    Source["Source of Truth<br/>Git, OpenTofu, Kustomize, systemd"]
-    Runtime["Runtime<br/>K3s, host services, databases"]
+    Source["Source of Truth<br/>Git, Terraform, Kustomize, systemd"]
+    Runtime["Runtime<br/>Kubernetes, host services, databases"]
     Signals["Signals<br/>OTel, Prometheus, Loki, Tempo, Hubble"]
-    Decisions["Decisions<br/>Grafana, MCP tools, runbooks"]
+    Decisions["Decisions<br/>Grafana, MCP tools, workflows"]
     Actions["Actions<br/>GitOps sync, pod repair, service restart"]
     Memory["Memory<br/>ADRs, RCAs, notes, workflows"]
 
@@ -36,192 +52,56 @@ flowchart TB
     Memory --> Source
 ```
 
-- 🌐 [Project Portal](https://victoriacheng15.github.io/observability-hub/)  
-
 ---
 
-## 🔍 What This Builds (Quick Proof)
+## Tech Stack
 
-- Kubernetes (K3s) homelab running 10+ platform components
-- GitOps deployment using Argo CD (App-of-Apps pattern)
-- Full observability: logs, metrics, traces (OpenTelemetry + Grafana stack)
-- Agent-readable operations through MCP tools for telemetry, pods, host health, and network flows
-- High-availability PostgreSQL with automated failover (CloudNativePG)
-- Centralized dashboards for monitoring and debugging
-- Secrets management without hardcoding credentials
-- Trivy-backed container and Kubernetes manifest hardening
-- Infrastructure as Code using OpenTofu (layered architecture)
-- Resource and capacity analysis using Kubernetes, host, and telemetry signals
-- Data ingestion pipeline with worker-based processing
-- eBPF-based networking and visibility using Cilium
-- Backup and storage integration with Azure Blob Storage + MinIO
-
----
-
-## 📦 Platform Projects
-
-This platform is built as connected ownership domains:
-
-| Domain | What It Proves |
+| Layer | Tools |
 | :--- | :--- |
-| GitOps Deployment | Declarative cluster management with Argo CD self-healing |
-| Observability Stack | Prometheus, Grafana, Loki, Tempo dashboards and alerts |
-| Telemetry Pipeline | OpenTelemetry logs, metrics, and traces across services |
-| High Availability Database | PostgreSQL failover with Azure Blob Storage backups |
-| Secrets Management | Dynamic secrets and policy management with OpenBao |
-| Workload Security | Trivy-scanned Dockerfiles and Kubernetes security contexts |
-| Infrastructure as Code | Layered OpenTofu architecture for infrastructure ownership |
-| Networking | Cilium eBPF visibility, policy control, and flow debugging |
-| CI/CD | GitHub Actions, image publication, and GitOps reconciliation |
-| Incident Response | Diagnostics, bounded repair actions, RCAs, and runbooks |
-| Resource Efficiency | Kubernetes and host telemetry used for capacity and cost-aware analysis |
-| Data Ingestion | Worker-based batch processing and analytics jobs |
+| Language | Go |
+| Infrastructure | Kubernetes, Terraform, Helm, Docker, systemd, Argo CD |
+| Data stores | PostgreSQL/CloudNativePG, MinIO, Azure Blob Storage |
+| Observability | OpenTelemetry, Grafana, Loki, Tempo, Prometheus, Cilium/Hubble |
+| Security | OpenBao, Trivy, Tailscale |
+| Testing | Go `testing` package, table-driven tests |
+| CI/CD | GitHub Actions, Argo CD, GitOps webhook reconciliation |
 
 ---
 
-## 🧠 Problems Solved
+## Documentation
 
-| Problem | Solution |
-| :--- | :--- |
-| Manual deployments | GitOps automation with Argo CD and webhook-triggered reconciliation |
-| No visibility into systems | Logs, metrics, traces, network flows, and Grafana dashboards |
-| Secrets stored in code | Dynamic secret management with OpenBao |
-| Containers running with weak defaults | Non-root images, read-only root filesystems, dropped capabilities, and Trivy scans |
-| Single point of failure | High-availability PostgreSQL and backup paths |
-| Hard-to-debug issues | MCP diagnostics, dashboards, runbooks, and incident reports |
-| Infrastructure drift | Declarative source of truth with OpenTofu, Kustomize, and GitOps |
-| Unclear resource pressure | Kubernetes, host, and workload telemetry correlated for capacity decisions |
-| Operational knowledge loss | Versioned ADRs, RCAs, notes, and workflow docs |
+- [Architecture](./docs/architecture/README.md)
+- [Ownership Model](./docs/architecture/ownership.md)
+- [Deployment](./docs/architecture/infrastructure/deployment.md)
+- [Observability](./docs/architecture/core-concepts/observability.md)
+- [Security](./docs/architecture/infrastructure/security.md)
+- [Decisions](./docs/decisions/README.md)
+- [Incidents](./docs/incidents/README.md)
+- [Operations and CI/CD](./docs/workflows.md)
 
 ---
 
-## Documentation Map
-
-| Area | Purpose |
-| :--- | :--- |
-| [Full Documentation](./docs/README.md) | Central docs index |
-| [Architecture](./docs/architecture/README.md) | System design and service boundaries |
-| [Ownership Model](./docs/architecture/ownership.md) | End-to-end operating model for the platform |
-| [ADRs](./docs/decisions/README.md) | Architecture decisions and tradeoffs |
-| [RCAs](./docs/incidents/README.md) | Incidents, failures, and recovery notes |
-| [Operations Notes](./docs/notes/README.md) | Runbooks and implementation notes |
-| [Workflows](./docs/workflows.md) | CI/CD and GitOps workflow reality |
-| [Visual Gallery](./docs/visual/README.md) | Dashboards and platform screenshots |
-
----
-
-## 🛠️ Tech Stack
-
-### Platform & Infrastructure
-
-- Kubernetes (K3s), Helm, Docker
-- Argo CD (GitOps)
-- OpenTofu (Terraform alternative)
-
-### Observability
-
-- OpenTelemetry
-- Prometheus, Grafana
-- Loki (logs), Tempo (traces), Thanos (metrics scaling)
-
-### Data & Storage
-
-- PostgreSQL (CloudNativePG)
-- MinIO (S3-compatible)
-- Azure Blob Storage
-
-### Networking & Security
-
-- Cilium (eBPF networking)
-- OpenBao (Secrets Management)
-- Tailscale
-- Trivy (container and Kubernetes misconfiguration scanning)
-
-### Languages
-
-- Go (backend services)
-
----
-
-## ⚠️ Challenges
-
-One challenge was debugging service communication with Cilium networking.
-
-- **Problem:** Services were unreachable even though pods were running  
-- **Cause:** Incorrect network policies blocking traffic  
-- **Fix:** Used logs and metrics to identify dropped packets and corrected policies  
-
----
-
-## 🚀 Project Evolution
-
-This platform evolved through multiple phases:
-
-- **Foundations:** Docker, Go services, host-level visibility  
-- **Kubernetes Migration:** Moved workloads to K3s + GitOps  
-- **SRE Maturity:** Full observability (logs, metrics, traces)  
-- **Infrastructure:** OpenTofu layered architecture  
-- **Advanced Networking:** Cilium (eBPF)  
-- **Operational Maturity:** Argo CD orchestration + HA systems  
-
-👉 [View Full Evolution Log](https://victoriacheng15.github.io/observability-hub/evolution.html)
-
----
-
-## 🚀 Getting Started
-
-<details>
-<summary><b>Local Setup</b></summary>
-
-### Prerequisites
-
-- Go
-- K3s
-- Helm
-- Make
-- Nix
-
-### Setup
+## Local Setup
 
 ```bash
 cp .env.example .env
+make web-build
+make proxy-build
+make mcp-build
 ```
 
-### Deploy Infrastructure
+Run checks:
+
+```bash
+make test
+make lint
+make lint-configs
+```
+
+Plan infrastructure:
 
 ```bash
 cd tofu
 tofu init
-tofu apply
+tofu plan
 ```
-
-### Run Services
-
-```bash
-make proxy-build
-make mcp-build
-make install-services
-```
-
-### Verify
-
-- Grafana: <http://localhost:30000>  
-- Check logs via Loki  
-
-</details>
-
----
-
-## 📌 Summary
-
-This project demonstrates how to build a production-like DevOps platform using:
-
-- Kubernetes + GitOps  
-- Full observability (logs, metrics, traces)  
-- Infrastructure as Code  
-- Trivy-verified workload hardening
-- High availability systems  
-- Capacity and cost-aware infrastructure analysis  
-- Real-world debugging and failure handling  
-
-It reflects practical infrastructure ownership: designing the system, running it, observing it, debugging it, and using telemetry to make better operational and cost-aware decisions.
