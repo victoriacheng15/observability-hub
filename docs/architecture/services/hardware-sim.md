@@ -23,7 +23,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Current Baseline
 
-- Publishes sensor telemetry with `sensor_id`, `device_id`, `firmware_version`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, `free_heap`, `loop_time_ms`, `uptime_seconds`, `reboot_reason`, and `timestamp`.
+- Publishes sensor telemetry with `sensor_id`, `schema_version`, `device_id`, `firmware_version`, `device_state`, `sequence_number`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, `free_heap`, `loop_time_ms`, `uptime_seconds`, `reboot_reason`, and `timestamp`.
 - Reports baseline runtime health through emulated heap, loop timing, uptime, and last reboot reason.
 - Uses `sensors/thermal` as the configured thermal telemetry topic.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
@@ -31,7 +31,8 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.
 - Supports the current `brownout` chaos command for voltage drops that record `reboot_reason=brownout`.
 - Supports the current `memory_leak` chaos command for reducing emulated `free_heap` until a simulated restart records `reboot_reason=memory_leak`.
-- Does not yet publish explicit lifecycle state in telemetry.
+- Publishes explicit lifecycle state in telemetry for `running`, `degraded`, and
+  short-lived `rebooting` samples.
 
 ### Device Lifecycle Model
 
@@ -47,7 +48,7 @@ The lifecycle model is the shared vocabulary for future sensor state reporting:
 | `rebooting` | Device is restarting because of a planned reset or simulated hardware-style fault. |
 | `failed` | Device cannot continue normal operation without an external restart or intervention. |
 
-In the current implementation, `running` is implied during normal telemetry publishing, `degraded` is implied while a spike, signal-loss, brownout, or memory-leak command is active, and `rebooting` is represented by `reboot_reason` plus reset uptime after brownout or memory-leak restart behavior.
+In the current implementation, `running` is published during normal telemetry, `degraded` is published while a spike, signal-loss, brownout, or memory-leak command is active, and `rebooting` is published on the sample that records a brownout or memory-leak restart.
 
 ### Chaos Controller (`chaos-controller`)
 

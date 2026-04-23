@@ -18,9 +18,13 @@ import (
 
 const (
 	DefaultThermalTelemetryTopic = "sensors/thermal"
+	DefaultSchemaVersion         = "1"
 	DefaultFirmwareVersion       = "dev"
 	DefaultEmulatedHeapBytes     = 320 * 1024
 	DefaultRebootReason          = "power_on"
+	DeviceStateRunning           = "running"
+	DeviceStateDegraded          = "degraded"
+	DeviceStateRebooting         = "rebooting"
 	BrownoutRebootReason         = "brownout"
 	MemoryLeakRebootReason       = "memory_leak"
 	BrownoutVoltageThreshold     = 3.3
@@ -30,8 +34,11 @@ const (
 // SensorData represents the synthetic sensor payload.
 type SensorData struct {
 	SensorID        string  `json:"sensor_id"`
+	SchemaVersion   string  `json:"schema_version"`
 	DeviceID        string  `json:"device_id"`
 	FirmwareVersion string  `json:"firmware_version"`
+	DeviceState     string  `json:"device_state"`
+	SequenceNumber  uint64  `json:"sequence_number"`
 	TelemetryTopic  string  `json:"telemetry_topic"`
 	Temperature     float64 `json:"temperature"`
 	Voltage         float64 `json:"voltage"`
@@ -156,6 +163,7 @@ type Sensor struct {
 	memoryLeakBytes     uint64
 	startTime           time.Time
 	rebootReason        string
+	sequenceNumber      uint64
 	randMu              sync.Mutex
 	randSource          *rand.Rand
 }
@@ -310,11 +318,15 @@ func (s *Sensor) generateData() SensorData {
 	memoryLeakBytes := s.memoryLeakBytes
 	uptimeSeconds := int64(time.Since(s.startTime).Seconds())
 	rebootReason := s.rebootReason
+	s.sequenceNumber++
+	sequenceNumber := s.sequenceNumber
 	s.mu.Unlock()
 
 	if rebootReason == "" {
 		rebootReason = DefaultRebootReason
 	}
+
+	deviceState := sensorState(spiking, signalLoss, brownout, memoryLeak)
 
 	// Base Simulation (Healthy state)
 	temp := 35.0 + s.randFloat64()*5.0
@@ -382,6 +394,7 @@ func (s *Sensor) generateData() SensorData {
 		if voltage < BrownoutVoltageThreshold && !brownoutRebooted {
 			rebootReason = BrownoutRebootReason
 			uptimeSeconds = 0
+			deviceState = DeviceStateRebooting
 			s.mu.Lock()
 			s.rebootReason = BrownoutRebootReason
 			s.startTime = time.Now()
@@ -395,6 +408,7 @@ func (s *Sensor) generateData() SensorData {
 		if memoryLeakBytes >= freeHeap-MemoryLeakRebootHeapBytes {
 			rebootReason = MemoryLeakRebootReason
 			uptimeSeconds = 0
+			deviceState = DeviceStateRebooting
 			memoryLeakBytes = 0
 			s.mu.Lock()
 			s.rebootReason = MemoryLeakRebootReason
@@ -425,8 +439,11 @@ func (s *Sensor) generateData() SensorData {
 
 	return SensorData{
 		SensorID:        s.ID,
+		SchemaVersion:   DefaultSchemaVersion,
 		DeviceID:        s.deviceID(),
 		FirmwareVersion: s.firmwareVersion(),
+		DeviceState:     deviceState,
+		SequenceNumber:  sequenceNumber,
 		TelemetryTopic:  s.telemetryTopic(),
 		Temperature:     temp,
 		Voltage:         voltage,
@@ -441,6 +458,13 @@ func (s *Sensor) generateData() SensorData {
 		RebootReason:    rebootReason,
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
+}
+
+func sensorState(spiking, signalLoss, brownout, memoryLeak bool) string {
+	if spiking || signalLoss || brownout || memoryLeak {
+		return DeviceStateDegraded
+	}
+	return DeviceStateRunning
 }
 
 func (s *Sensor) deviceID() string {

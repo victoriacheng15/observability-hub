@@ -124,11 +124,20 @@ func TestSensor_generateData_SpikeIncreasesPowerAndSagsVoltage(t *testing.T) {
 	if spike.SensorID != "sensor-1" {
 		t.Fatalf("expected sensor_id to be set, got %q", spike.SensorID)
 	}
+	if spike.SchemaVersion != DefaultSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %q", DefaultSchemaVersion, spike.SchemaVersion)
+	}
 	if spike.DeviceID != "device-1" {
 		t.Fatalf("expected device_id to be set, got %q", spike.DeviceID)
 	}
 	if spike.FirmwareVersion != "2026.04.0" {
 		t.Fatalf("expected firmware_version to be set, got %q", spike.FirmwareVersion)
+	}
+	if spike.DeviceState != DeviceStateDegraded {
+		t.Fatalf("expected device_state %q, got %q", DeviceStateDegraded, spike.DeviceState)
+	}
+	if spike.SequenceNumber != 2 {
+		t.Fatalf("expected sequence_number 2, got %d", spike.SequenceNumber)
 	}
 	if spike.TelemetryTopic != "sensors/thermal" {
 		t.Fatalf("expected telemetry_topic to be set, got %q", spike.TelemetryTopic)
@@ -152,8 +161,17 @@ func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
 	if data.DeviceID != "sensor-1" {
 		t.Fatalf("expected device_id to default to sensor id, got %q", data.DeviceID)
 	}
+	if data.SchemaVersion != DefaultSchemaVersion {
+		t.Fatalf("expected schema_version %q, got %q", DefaultSchemaVersion, data.SchemaVersion)
+	}
 	if data.FirmwareVersion != DefaultFirmwareVersion {
 		t.Fatalf("expected default firmware version %q, got %q", DefaultFirmwareVersion, data.FirmwareVersion)
+	}
+	if data.DeviceState != DeviceStateRunning {
+		t.Fatalf("expected default device_state %q, got %q", DeviceStateRunning, data.DeviceState)
+	}
+	if data.SequenceNumber != 1 {
+		t.Fatalf("expected first sequence_number to be 1, got %d", data.SequenceNumber)
 	}
 	if data.TelemetryTopic != DefaultThermalTelemetryTopic {
 		t.Fatalf("expected default telemetry topic %q, got %q", DefaultThermalTelemetryTopic, data.TelemetryTopic)
@@ -218,6 +236,27 @@ func TestSensor_generateData_SignalLossDegradesLinkQuality(t *testing.T) {
 	if degraded.PacketLoss <= base.PacketLoss {
 		t.Fatalf("expected signal loss to increase packet loss, base=%v degraded=%v", base.PacketLoss, degraded.PacketLoss)
 	}
+	if degraded.DeviceState != DeviceStateDegraded {
+		t.Fatalf("expected device_state %q, got %q", DeviceStateDegraded, degraded.DeviceState)
+	}
+}
+
+func TestSensor_generateData_IncrementsSequenceNumber(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	first := s.generateData()
+	second := s.generateData()
+	third := s.generateData()
+
+	if first.SequenceNumber != 1 {
+		t.Fatalf("expected first sequence_number 1, got %d", first.SequenceNumber)
+	}
+	if second.SequenceNumber != 2 {
+		t.Fatalf("expected second sequence_number 2, got %d", second.SequenceNumber)
+	}
+	if third.SequenceNumber != 3 {
+		t.Fatalf("expected third sequence_number 3, got %d", third.SequenceNumber)
+	}
 }
 
 func TestSensor_generateData_ReportsRuntimeHealth(t *testing.T) {
@@ -275,6 +314,9 @@ func TestSensor_generateData_BrownoutDropsVoltageAndRecordsReboot(t *testing.T) 
 	if brownout.UptimeSeconds != 0 {
 		t.Fatalf("expected brownout reboot to reset uptime, got %v", brownout.UptimeSeconds)
 	}
+	if brownout.DeviceState != DeviceStateRebooting {
+		t.Fatalf("expected device_state %q, got %q", DeviceStateRebooting, brownout.DeviceState)
+	}
 }
 
 func TestSensor_generateData_MemoryLeakReducesHeapThenRecordsReboot(t *testing.T) {
@@ -300,6 +342,9 @@ func TestSensor_generateData_MemoryLeakReducesHeapThenRecordsReboot(t *testing.T
 	if leaking.RebootReason != DefaultRebootReason {
 		t.Fatalf("expected first leak sample to keep reboot_reason %q, got %q", DefaultRebootReason, leaking.RebootReason)
 	}
+	if leaking.DeviceState != DeviceStateDegraded {
+		t.Fatalf("expected leaking device_state %q, got %q", DeviceStateDegraded, leaking.DeviceState)
+	}
 
 	s.mu.Lock()
 	s.memoryLeakBytes = DefaultEmulatedHeapBytes
@@ -312,6 +357,9 @@ func TestSensor_generateData_MemoryLeakReducesHeapThenRecordsReboot(t *testing.T
 	}
 	if restarted.UptimeSeconds != 0 {
 		t.Fatalf("expected memory leak reboot to reset uptime, got %v", restarted.UptimeSeconds)
+	}
+	if restarted.DeviceState != DeviceStateRebooting {
+		t.Fatalf("expected device_state %q, got %q", DeviceStateRebooting, restarted.DeviceState)
 	}
 }
 
