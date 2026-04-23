@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-ingestor
+  namespace: hardware-sim
+  labels:
+    app: mqtt-ingestor
+    feature: simulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-ingestor
+  template:
+    metadata:
+      labels:
+        app: mqtt-ingestor
+    spec:
+      serviceAccountName: hw-mqtt-ingestor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-auth
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - mqtt-ingestor
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: mqtt-ingestor
+        image: ghcr.io/victoriacheng15/observability-hub/mqtt-ingestor
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: MQTT_BROKER
+          value: "tcp://emqx.observability.svc.cluster.local:1883"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "opentelemetry.observability.svc.cluster.local:4317"
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "128Mi"
+          limits:
+            cpu: "100m"
+            memory: "256Mi"
