@@ -42,6 +42,18 @@ func NewInt64Histogram(meter metricapi.Meter, name, description, unit string) (m
 	return meter.Int64Histogram(name, opts...)
 }
 
+// NewFloat64Histogram creates a float64 histogram with optional description and unit.
+func NewFloat64Histogram(meter metricapi.Meter, name, description, unit string) (metricapi.Float64Histogram, error) {
+	opts := []metricapi.Float64HistogramOption{}
+	if description != "" {
+		opts = append(opts, metricapi.WithDescription(description))
+	}
+	if unit != "" {
+		opts = append(opts, metricapi.WithUnit(unit))
+	}
+	return meter.Float64Histogram(name, opts...)
+}
+
 // AddInt64Counter adds a value to an int64 counter with optional attributes.
 func AddInt64Counter(ctx context.Context, counter metricapi.Int64Counter, value int64, attrs ...Attribute) {
 	counter.Add(ctx, value, metricapi.WithAttributes(attrs...))
@@ -49,6 +61,11 @@ func AddInt64Counter(ctx context.Context, counter metricapi.Int64Counter, value 
 
 // RecordInt64Histogram records a value in an int64 histogram with optional attributes.
 func RecordInt64Histogram(ctx context.Context, histogram metricapi.Int64Histogram, value int64, attrs ...Attribute) {
+	histogram.Record(ctx, value, metricapi.WithAttributes(attrs...))
+}
+
+// RecordFloat64Histogram records a value in a float64 histogram with optional attributes.
+func RecordFloat64Histogram(ctx context.Context, histogram metricapi.Float64Histogram, value float64, attrs ...Attribute) {
 	histogram.Record(ctx, value, metricapi.WithAttributes(attrs...))
 }
 

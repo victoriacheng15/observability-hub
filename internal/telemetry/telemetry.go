@@ -24,18 +24,19 @@ import (
 
 // Re-export common OTel types to centralize dependency management
 type (
-	Span            = trace.Span
-	Tracer          = trace.Tracer
-	Attribute       = attribute.KeyValue
-	Code            = codes.Code
-	MeterProvider   = metricapi.MeterProvider
-	Meter           = metricapi.Meter
-	Int64Counter    = metricapi.Int64Counter
-	Int64Histogram  = metricapi.Int64Histogram
-	Int64Observer   = metricapi.Int64Observer
-	Float64Observer = metricapi.Float64Observer
-	LoggerProvider  = otellog.LoggerProvider
-	Logger          = otellog.Logger
+	Span             = trace.Span
+	Tracer           = trace.Tracer
+	Attribute        = attribute.KeyValue
+	Code             = codes.Code
+	MeterProvider    = metricapi.MeterProvider
+	Meter            = metricapi.Meter
+	Int64Counter     = metricapi.Int64Counter
+	Int64Histogram   = metricapi.Int64Histogram
+	Float64Histogram = metricapi.Float64Histogram
+	Int64Observer    = metricapi.Int64Observer
+	Float64Observer  = metricapi.Float64Observer
+	LoggerProvider   = otellog.LoggerProvider
+	Logger           = otellog.Logger
 )
 
 const (

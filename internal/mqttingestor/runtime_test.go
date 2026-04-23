@@ -52,6 +52,9 @@ func TestRuntimeConfigDefaults(t *testing.T) {
 	if runtime.config.ClientID != DefaultClientID {
 		t.Fatalf("expected default client ID %q, got %q", DefaultClientID, runtime.config.ClientID)
 	}
+	if runtime.config.Environment != "unknown" {
+		t.Fatalf("expected default environment %q, got %q", "unknown", runtime.config.Environment)
+	}
 	if runtime.config.StaleAfter != DefaultStaleAfter {
 		t.Fatalf("expected default stale threshold %s, got %s", DefaultStaleAfter, runtime.config.StaleAfter)
 	}
@@ -64,7 +67,7 @@ func TestRuntimeEvaluateMessage(t *testing.T) {
 	telemetry.SilenceLogs()
 
 	now := time.Date(2026, 4, 23, 12, 0, 0, 0, time.UTC)
-	runtime, err := NewRuntime(RuntimeConfig{StaleAfter: 2 * time.Minute})
+	runtime, err := NewRuntime(RuntimeConfig{StaleAfter: 2 * time.Minute, Environment: "dev"})
 	if err != nil {
 		t.Fatalf("NewRuntime failed: %v", err)
 	}
@@ -94,6 +97,19 @@ func TestRuntimeEvaluateMessage(t *testing.T) {
 		t.Fatalf("expected malformed payload error, got %v", invalid.err)
 	}
 	assertContainsEvent(t, eventNames(invalid.events), "mqtt_payload_invalid")
+}
+
+func TestRuntimeWithExplicitEnvironment(t *testing.T) {
+	telemetry.SilenceLogs()
+
+	runtime, err := NewRuntime(RuntimeConfig{Environment: "prod"})
+	if err != nil {
+		t.Fatalf("NewRuntime failed: %v", err)
+	}
+
+	if runtime.config.Environment != "prod" {
+		t.Fatalf("expected environment prod, got %q", runtime.config.Environment)
+	}
 }
 
 func TestRuntimeRunSubscribesToBothTopics(t *testing.T) {

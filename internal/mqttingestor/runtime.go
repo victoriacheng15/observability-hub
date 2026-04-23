@@ -32,6 +32,7 @@ type client interface {
 type RuntimeConfig struct {
 	BrokerURL             string
 	ClientID              string
+	Environment           string
 	ExpectedSchemaVersion string
 	StaleAfter            time.Duration
 	Topics                []string
@@ -52,6 +53,16 @@ type runtimeMetrics struct {
 	duplicatesTotal      telemetry.Int64Counter
 	messageAge           telemetry.Int64Histogram
 	rebootTotal          telemetry.Int64Counter
+	temperature          telemetry.Float64Histogram
+	voltage              telemetry.Float64Histogram
+	current              telemetry.Float64Histogram
+	power                telemetry.Float64Histogram
+	rssi                 telemetry.Float64Histogram
+	snr                  telemetry.Float64Histogram
+	packetLoss           telemetry.Float64Histogram
+	freeHeap             telemetry.Int64Histogram
+	loopTime             telemetry.Float64Histogram
+	uptime               telemetry.Int64Histogram
 }
 
 type messageEvent struct {
@@ -231,19 +242,31 @@ func (r *Runtime) recordResult(ctx context.Context, result messageResult) {
 	}
 
 	if result.invalid {
-		telemetry.AddInt64Counter(ctx, r.metrics.invalidMessagesTotal, 1)
+		telemetry.AddInt64Counter(ctx, r.metrics.invalidMessagesTotal, 1, telemetry.StringAttribute("environment", r.config.Environment))
 		return
 	}
 
 	analysis := result.analysis
 	commonAttrs := []telemetry.Attribute{
+		telemetry.StringAttribute("environment", r.config.Environment),
 		telemetry.StringAttribute("device_id", analysis.Message.DeviceID),
+		telemetry.StringAttribute("firmware_version", analysis.Message.FirmwareVersion),
 		telemetry.StringAttribute("device_state", analysis.Message.DeviceState),
 		telemetry.StringAttribute("topic", analysis.Message.TelemetryTopic),
 	}
 
 	telemetry.AddInt64Counter(ctx, r.metrics.messagesTotal, 1, commonAttrs...)
 	telemetry.RecordInt64Histogram(ctx, r.metrics.messageAge, analysis.MessageAge.Milliseconds(), commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.temperature, analysis.Message.Temperature, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.voltage, analysis.Message.Voltage, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.current, analysis.Message.Current, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.power, analysis.Message.PowerUsage, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.rssi, analysis.Message.RSSI, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.snr, analysis.Message.SNR, commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.packetLoss, analysis.Message.PacketLoss, commonAttrs...)
+	telemetry.RecordInt64Histogram(ctx, r.metrics.freeHeap, int64(analysis.Message.FreeHeap), commonAttrs...)
+	telemetry.RecordFloat64Histogram(ctx, r.metrics.loopTime, analysis.Message.LoopTimeMS, commonAttrs...)
+	telemetry.RecordInt64Histogram(ctx, r.metrics.uptime, analysis.Message.UptimeSeconds, append(commonAttrs, telemetry.StringAttribute("reboot_reason", analysis.Message.RebootReason))...)
 
 	if analysis.SequenceGap > 0 {
 		telemetry.AddInt64Counter(ctx, r.metrics.sequenceGapTotal, int64(analysis.SequenceGap), commonAttrs...)
@@ -275,6 +298,9 @@ func (cfg RuntimeConfig) withDefaults() RuntimeConfig {
 	}
 	if cfg.ClientID == "" {
 		cfg.ClientID = DefaultClientID
+	}
+	if cfg.Environment == "" {
+		cfg.Environment = "unknown"
 	}
 	if cfg.StaleAfter <= 0 {
 		cfg.StaleAfter = DefaultStaleAfter
@@ -312,6 +338,46 @@ func newRuntimeMetrics() (runtimeMetrics, error) {
 	if err != nil {
 		return runtimeMetrics{}, fmt.Errorf("create reboot counter: %w", err)
 	}
+	temperature, err := telemetry.NewFloat64Histogram(meter, "hardware.sensor.temperature", defaultMetricDescription, "C")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create temperature histogram: %w", err)
+	}
+	voltage, err := telemetry.NewFloat64Histogram(meter, "hardware.sensor.voltage", defaultMetricDescription, "V")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create voltage histogram: %w", err)
+	}
+	current, err := telemetry.NewFloat64Histogram(meter, "hardware.sensor.current", defaultMetricDescription, "A")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create current histogram: %w", err)
+	}
+	power, err := telemetry.NewFloat64Histogram(meter, "hardware.sensor.power", defaultMetricDescription, "W")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create power histogram: %w", err)
+	}
+	rssi, err := telemetry.NewFloat64Histogram(meter, "hardware.radio.rssi", defaultMetricDescription, "dBm")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create rssi histogram: %w", err)
+	}
+	snr, err := telemetry.NewFloat64Histogram(meter, "hardware.radio.snr", defaultMetricDescription, "dB")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create snr histogram: %w", err)
+	}
+	packetLoss, err := telemetry.NewFloat64Histogram(meter, "hardware.radio.packet_loss", defaultMetricDescription, "%")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create packet loss histogram: %w", err)
+	}
+	freeHeap, err := telemetry.NewInt64Histogram(meter, "hardware.runtime.free_heap", defaultMetricDescription, "By")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create free heap histogram: %w", err)
+	}
+	loopTime, err := telemetry.NewFloat64Histogram(meter, "hardware.runtime.loop_time", defaultMetricDescription, "ms")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create loop time histogram: %w", err)
+	}
+	uptime, err := telemetry.NewInt64Histogram(meter, "hardware.runtime.uptime", defaultMetricDescription, "s")
+	if err != nil {
+		return runtimeMetrics{}, fmt.Errorf("create uptime histogram: %w", err)
+	}
 
 	return runtimeMetrics{
 		messagesTotal:        messagesTotal,
@@ -320,5 +386,15 @@ func newRuntimeMetrics() (runtimeMetrics, error) {
 		duplicatesTotal:      duplicatesTotal,
 		messageAge:           messageAge,
 		rebootTotal:          rebootTotal,
+		temperature:          temperature,
+		voltage:              voltage,
+		current:              current,
+		power:                power,
+		rssi:                 rssi,
+		snr:                  snr,
+		packetLoss:           packetLoss,
+		freeHeap:             freeHeap,
+		loopTime:             loopTime,
+		uptime:               uptime,
 	}, nil
 }
