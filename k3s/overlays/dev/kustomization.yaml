@@ -59,6 +59,9 @@ patches:
         path: /metadata/namespace
         value: dev-hardware-sim
       - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "dev"
+      - op: replace
         path: /spec/template/spec/containers/0/imagePullPolicy
         value: Always
   - target:

@@ -37,6 +37,7 @@ func main() {
 	runtime, err := mqttingestor.NewRuntime(mqttingestor.RuntimeConfig{
 		BrokerURL:             os.Getenv("MQTT_BROKER"),
 		ClientID:              os.Getenv("MQTT_CLIENT_ID"),
+		Environment:           os.Getenv("SIMULATION_ENV"),
 		ExpectedSchemaVersion: os.Getenv("MQTT_SCHEMA_VERSION"),
 		StaleAfter:            staleAfter,
 	})

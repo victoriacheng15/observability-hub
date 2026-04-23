@@ -262,6 +262,12 @@ func TestMetrics(t *testing.T) {
 					t.Fatalf("Failed to create histogram: %v", err)
 				}
 				RecordInt64Histogram(ctx, h, 100, StringAttribute("tag", "val"))
+
+				fh, err := NewFloat64Histogram(meter, "test-float-histogram", "desc", "v")
+				if err != nil {
+					t.Fatalf("Failed to create float histogram: %v", err)
+				}
+				RecordFloat64Histogram(ctx, fh, 3.14, StringAttribute("tag", "val"))
 			},
 		},
 		{
