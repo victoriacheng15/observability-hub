@@ -163,6 +163,27 @@ func TestProcessorProcess(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:      "device state changes are detected",
+			processor: NewProcessor(Config{}),
+			payloads: []string{
+				payloadJSON("device-1", 1, "running", "power_on", 100, now.Add(-2*time.Second)),
+				payloadJSON("device-1", 2, "degraded", "power_on", 101, now.Add(-1*time.Second)),
+			},
+			received: []time.Time{now, now},
+			check: func(t *testing.T, analyses []Analysis, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				if !analyses[1].StateChanged {
+					t.Fatal("expected state change flag")
+				}
+				if analyses[1].PreviousDeviceState != "running" {
+					t.Fatalf("expected previous state running, got %q", analyses[1].PreviousDeviceState)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
