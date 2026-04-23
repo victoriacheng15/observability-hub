@@ -8,13 +8,16 @@ resources:
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
     newTag: sha-428eb8b
+  - name: ghcr.io/victoriacheng15/observability-hub/mqtt-ingestor
+    newTag: canary
   - name: ghcr.io/victoriacheng15/observability-hub/sensor
     newTag: sha-428eb8b
 
 patches:
   # --- Simulation Fleet (hardware-sim) ---
   - target:
-      labelSelector: "feature=simulation"
+      kind: Deployment
+      name: chaos-controller
     patch: |-
       - op: replace
         path: /metadata/namespace
@@ -30,8 +33,14 @@ patches:
       name: sensor-fleet
     patch: |-
       - op: replace
+        path: /metadata/namespace
+        value: hardware-sim
+      - op: replace
         path: /spec/replicas
         value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "hardware-sim"
   - target:
       kind: Service
       name: sensor-fleet
