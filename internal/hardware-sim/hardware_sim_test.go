@@ -42,13 +42,17 @@ type published struct {
 type fakeMQTTClient struct {
 	mu        sync.Mutex
 	published []published
+	subs      []string
 }
 
 func (c *fakeMQTTClient) IsConnected() bool      { return true }
 func (c *fakeMQTTClient) IsConnectionOpen() bool { return true }
 func (c *fakeMQTTClient) Connect() mqtt.Token    { return newFakeToken(nil) }
 func (c *fakeMQTTClient) Disconnect(uint)        {}
-func (c *fakeMQTTClient) Subscribe(string, byte, mqtt.MessageHandler) mqtt.Token {
+func (c *fakeMQTTClient) Subscribe(topic string, qos byte, handler mqtt.MessageHandler) mqtt.Token {
+	c.mu.Lock()
+	c.subs = append(c.subs, topic)
+	c.mu.Unlock()
 	return newFakeToken(nil)
 }
 func (c *fakeMQTTClient) SubscribeMultiple(map[string]byte, mqtt.MessageHandler) mqtt.Token {
@@ -77,6 +81,14 @@ func (c *fakeMQTTClient) Publishes() []published {
 	defer c.mu.Unlock()
 	out := make([]published, len(c.published))
 	copy(out, c.published)
+	return out
+}
+
+func (c *fakeMQTTClient) Subscriptions() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]string, len(c.subs))
+	copy(out, c.subs)
 	return out
 }
 
@@ -248,6 +260,53 @@ func TestSensor_telemetryTopic_UsesPerDeviceTopicWhenEnabled(t *testing.T) {
 	want := "devices/esp32-lab-001/telemetry"
 	if got != want {
 		t.Fatalf("expected per-device telemetry topic %q, got %q", want, got)
+	}
+}
+
+func TestSensor_commandTopics_IncludeLegacyAndPerDevice(t *testing.T) {
+	s := &Sensor{
+		ID:       "sensor-1",
+		DeviceID: "esp32-lab-001",
+	}
+
+	got := s.commandTopics()
+	want := []string{
+		"sensors/sensor-1/chaos",
+		"devices/esp32-lab-001/commands",
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("expected %d command topics, got %d", len(want), len(got))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected command topic %q at index %d, got %q", want[i], i, got[i])
+		}
+	}
+}
+
+func TestSensor_subscribeCommandTopics_SubscribesToBothTopics(t *testing.T) {
+	s := &Sensor{
+		ID:       "sensor-1",
+		DeviceID: "esp32-lab-001",
+	}
+	mq := &fakeMQTTClient{}
+
+	s.subscribeCommandTopics(mq)
+
+	got := mq.Subscriptions()
+	want := []string{
+		"sensors/sensor-1/chaos",
+		"devices/esp32-lab-001/commands",
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("expected %d subscriptions, got %d", len(want), len(got))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected subscription %q at index %d, got %q", want[i], i, got[i])
+		}
 	}
 }
 
@@ -616,6 +675,36 @@ func TestChaosController_injectChaos_PublishesToSensorTopic(t *testing.T) {
 	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss|brownout|memory_leak)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
 	if !payloadRe.MatchString(payload) {
 		t.Fatalf("unexpected payload %q", payload)
+	}
+}
+
+func TestChaosController_injectChaos_PublishesToPerDeviceCommandTopicWhenEnabled(t *testing.T) {
+	ctx := context.Background()
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "esp32-lab-001",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "sensor-fleet"},
+		},
+	}
+	k8s := fake.NewSimpleClientset(pod)
+
+	mq := &fakeMQTTClient{}
+	c := &ChaosController{
+		Namespace:        "default",
+		CommandTopicMode: CommandTopicModePerDevice,
+		randSource:       rand.New(rand.NewSource(2)),
+	}
+
+	c.injectChaos(ctx, k8s, mq)
+
+	pubs := mq.Publishes()
+	if len(pubs) != 1 {
+		t.Fatalf("expected 1 publish call, got %d", len(pubs))
+	}
+	if got, want := pubs[0].topic, "devices/esp32-lab-001/commands"; got != want {
+		t.Fatalf("expected command topic %q, got %q", want, got)
 	}
 }
 

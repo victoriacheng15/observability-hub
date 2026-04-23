@@ -22,6 +22,8 @@ const (
 	DefaultFirmwareVersion       = "dev"
 	TelemetryTopicModeShared     = "shared"
 	TelemetryTopicModePerDevice  = "per-device"
+	CommandTopicModeLegacy       = "legacy"
+	CommandTopicModePerDevice    = "per-device"
 	DefaultEmulatedHeapBytes     = 320 * 1024
 	DefaultRebootReason          = "power_on"
 	DeviceStateRunning           = "running"
@@ -65,8 +67,9 @@ type ChaosCommand struct {
 
 // ChaosController handles the periodic injection of chaos into the sensor fleet.
 type ChaosController struct {
-	MqttBroker string
-	Namespace  string
+	MqttBroker       string
+	Namespace        string
+	CommandTopicMode string
 
 	randMu     sync.Mutex
 	randSource *rand.Rand
@@ -134,7 +137,7 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 
 	log.Printf("Injecting Chaos into %s: Command=%s, Intensity=%s, Duration=%ds", targetPod.Name, command, intensity, durationSec)
 
-	topic := fmt.Sprintf("sensors/%s/chaos", targetPod.Name)
+	topic := c.commandTopic(targetPod.Name)
 	payload := fmt.Sprintf(`{"command": "%s", "duration": "%ds", "intensity": "%s"}`, command, durationSec, intensity)
 
 	token := mqttClient.Publish(topic, 1, false, payload)
@@ -184,12 +187,7 @@ func (s *Sensor) Run(ctx context.Context) error {
 	// --- Chaos Subscription Logic ---
 	opts.SetOnConnectHandler(func(c mqtt.Client) {
 		log.Printf("Connected to MQTT broker at %s", s.MqttBroker)
-		topic := fmt.Sprintf("sensors/%s/chaos", s.ID)
-		if token := c.Subscribe(topic, 1, s.handleChaos); token.Wait() && token.Error() != nil {
-			log.Printf("Error subscribing to chaos topic: %v", token.Error())
-		} else {
-			log.Printf("Subscribed to chaos topic: %s", topic)
-		}
+		s.subscribeCommandTopics(c)
 	})
 
 	client := mqtt.NewClient(opts)
@@ -499,6 +497,38 @@ func (s *Sensor) telemetryTopicMode() string {
 		return s.TelemetryMode
 	}
 	return TelemetryTopicModeShared
+}
+
+func (c *ChaosController) commandTopic(deviceID string) string {
+	if c.commandTopicMode() == CommandTopicModePerDevice {
+		return fmt.Sprintf("devices/%s/commands", deviceID)
+	}
+	return fmt.Sprintf("sensors/%s/chaos", deviceID)
+}
+
+func (c *ChaosController) commandTopicMode() string {
+	if c.CommandTopicMode != "" {
+		return c.CommandTopicMode
+	}
+	return CommandTopicModeLegacy
+}
+
+func (s *Sensor) commandTopics() []string {
+	deviceID := s.deviceID()
+	return []string{
+		fmt.Sprintf("sensors/%s/chaos", s.ID),
+		fmt.Sprintf("devices/%s/commands", deviceID),
+	}
+}
+
+func (s *Sensor) subscribeCommandTopics(c mqtt.Client) {
+	for _, topic := range s.commandTopics() {
+		if token := c.Subscribe(topic, 1, s.handleChaos); token.Wait() && token.Error() != nil {
+			log.Printf("Error subscribing to command topic %s: %v", topic, token.Error())
+		} else {
+			log.Printf("Subscribed to command topic: %s", topic)
+		}
+	}
 }
 
 func chaosDuration(raw string) time.Duration {

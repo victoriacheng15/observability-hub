@@ -21,9 +21,12 @@ func main() {
 		namespace = "hardware-sim"
 	}
 
+	commandTopicMode := os.Getenv("COMMAND_TOPIC_MODE")
+
 	controller := &hardwaresim.ChaosController{
-		MqttBroker: mqttBroker,
-		Namespace:  namespace,
+		MqttBroker:       mqttBroker,
+		Namespace:        namespace,
+		CommandTopicMode: commandTopicMode,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

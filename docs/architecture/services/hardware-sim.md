@@ -19,7 +19,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
   - **Firmware Metadata**: Publishes `firmware_version` with every telemetry payload.
   - **Hardware Integration**: If available, reads the physical host temperature via `hostPath` mount (`/sys/class/thermal`).
   - **Communication**: Publishes JSON payloads to the configured telemetry topic, currently `sensors/thermal`, on the EMQX broker.
-- **Failure Hooks**: Subscribes to its own chaos topic (`sensors/<pod-name>/chaos`) to receive simulated failure instructions.
+- **Failure Hooks**: Subscribes to both the legacy chaos topic (`sensors/<pod-name>/chaos`) and the target command topic (`devices/<device_id>/commands`) to receive simulated failure instructions.
 
 ### Current Baseline
 
@@ -29,7 +29,8 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - Supports opt-in per-device telemetry topics in the form
   `devices/<device_id>/telemetry` while keeping `sensors/thermal` as the
   default path.
-- Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
+- Uses `sensors/<pod-name>/chaos` as the legacy per-sensor chaos topic.
+- Supports `devices/<device_id>/commands` as the target per-device command topic.
 - Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
 - Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.
 - Supports the current `brownout` chaos command for voltage drops that record `reboot_reason=brownout`.
@@ -59,7 +60,7 @@ In the current implementation, `running` is published during normal telemetry, `
 - **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
-  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike", "signal_loss", "brownout", or "memory_leak") via MQTT.
+  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike", "signal_loss", "brownout", or "memory_leak") via MQTT, using the legacy chaos topic by default with opt-in per-device command topic support.
   - **Parameters**: Randomizes the duration (10s-30s) and intensity (low, medium, high) of the failure.
 
 ## Data Flow & Orchestration
