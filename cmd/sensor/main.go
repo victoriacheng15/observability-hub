@@ -30,6 +30,7 @@ func main() {
 
 	firmwareVersion := os.Getenv("FIRMWARE_VERSION")
 	telemetryTopic := os.Getenv("TELEMETRY_TOPIC")
+	telemetryTopicMode := os.Getenv("TELEMETRY_TOPIC_MODE")
 
 	s := &hardwaresim.Sensor{
 		ID:              sensorID,
@@ -37,6 +38,7 @@ func main() {
 		FirmwareVersion: firmwareVersion,
 		MqttBroker:      mqttBroker,
 		TelemetryTopic:  telemetryTopic,
+		TelemetryMode:   telemetryTopicMode,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

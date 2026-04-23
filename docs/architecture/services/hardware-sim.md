@@ -26,6 +26,9 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - Publishes sensor telemetry with `sensor_id`, `schema_version`, `device_id`, `firmware_version`, `device_state`, `sequence_number`, `telemetry_topic`, `temperature`, `voltage`, `current`, `power_usage`, `rssi`, `snr`, `packet_loss_percent`, `free_heap`, `loop_time_ms`, `uptime_seconds`, `reboot_reason`, and `timestamp`.
 - Reports baseline runtime health through emulated heap, loop timing, uptime, and last reboot reason.
 - Uses `sensors/thermal` as the configured thermal telemetry topic.
+- Supports opt-in per-device telemetry topics in the form
+  `devices/<device_id>/telemetry` while keeping `sensors/thermal` as the
+  default path.
 - Uses `sensors/<pod-name>/chaos` as the per-sensor chaos topic.
 - Supports the current `spike` chaos command for temporary thermal load, current draw, power increase, and voltage sag.
 - Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.

@@ -20,6 +20,8 @@ const (
 	DefaultThermalTelemetryTopic = "sensors/thermal"
 	DefaultSchemaVersion         = "1"
 	DefaultFirmwareVersion       = "dev"
+	TelemetryTopicModeShared     = "shared"
+	TelemetryTopicModePerDevice  = "per-device"
 	DefaultEmulatedHeapBytes     = 320 * 1024
 	DefaultRebootReason          = "power_on"
 	DeviceStateRunning           = "running"
@@ -149,6 +151,7 @@ type Sensor struct {
 	FirmwareVersion string
 	MqttBroker      string
 	TelemetryTopic  string
+	TelemetryMode   string
 
 	mu                  sync.Mutex
 	isSpiking           bool
@@ -485,7 +488,17 @@ func (s *Sensor) telemetryTopic() string {
 	if s.TelemetryTopic != "" {
 		return s.TelemetryTopic
 	}
+	if s.telemetryTopicMode() == TelemetryTopicModePerDevice {
+		return fmt.Sprintf("devices/%s/telemetry", s.deviceID())
+	}
 	return DefaultThermalTelemetryTopic
+}
+
+func (s *Sensor) telemetryTopicMode() string {
+	if s.TelemetryMode != "" {
+		return s.TelemetryMode
+	}
+	return TelemetryTopicModeShared
 }
 
 func chaosDuration(raw string) time.Duration {

@@ -211,6 +211,46 @@ func TestSensor_generateData_DefaultsDeviceMetadata(t *testing.T) {
 	}
 }
 
+func TestSensor_telemetryTopic_DefaultsToSharedTopic(t *testing.T) {
+	s := &Sensor{ID: "sensor-1", DeviceID: "device-1"}
+
+	got := s.telemetryTopic()
+
+	if got != DefaultThermalTelemetryTopic {
+		t.Fatalf("expected default telemetry topic %q, got %q", DefaultThermalTelemetryTopic, got)
+	}
+}
+
+func TestSensor_telemetryTopic_UsesExplicitOverride(t *testing.T) {
+	s := &Sensor{
+		ID:             "sensor-1",
+		DeviceID:       "device-1",
+		TelemetryTopic: "custom/topic",
+		TelemetryMode:  TelemetryTopicModePerDevice,
+	}
+
+	got := s.telemetryTopic()
+
+	if got != "custom/topic" {
+		t.Fatalf("expected explicit telemetry topic override, got %q", got)
+	}
+}
+
+func TestSensor_telemetryTopic_UsesPerDeviceTopicWhenEnabled(t *testing.T) {
+	s := &Sensor{
+		ID:            "sensor-1",
+		DeviceID:      "esp32-lab-001",
+		TelemetryMode: TelemetryTopicModePerDevice,
+	}
+
+	got := s.telemetryTopic()
+
+	want := "devices/esp32-lab-001/telemetry"
+	if got != want {
+		t.Fatalf("expected per-device telemetry topic %q, got %q", want, got)
+	}
+}
+
 func TestSensor_generateData_SignalLossDegradesLinkQuality(t *testing.T) {
 	s := &Sensor{
 		ID:         "sensor-1",
