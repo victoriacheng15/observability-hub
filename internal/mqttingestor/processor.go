@@ -43,21 +43,24 @@ type TelemetryMessage struct {
 }
 
 type Analysis struct {
-	Message       TelemetryMessage
-	ReceivedAt    time.Time
-	DeviceTime    time.Time
-	MessageAge    time.Duration
-	IsStale       bool
-	IsDuplicate   bool
-	IsReboot      bool
-	SequenceGap   uint64
-	PreviousFound bool
+	Message             TelemetryMessage
+	ReceivedAt          time.Time
+	DeviceTime          time.Time
+	MessageAge          time.Duration
+	IsStale             bool
+	IsDuplicate         bool
+	IsReboot            bool
+	StateChanged        bool
+	SequenceGap         uint64
+	PreviousFound       bool
+	PreviousDeviceState string
 }
 
 type deviceState struct {
 	SequenceNumber uint64
 	UptimeSeconds  int64
 	RebootReason   string
+	DeviceState    string
 }
 
 type Processor struct {
@@ -105,6 +108,9 @@ func (p *Processor) Process(payload []byte, receivedAt time.Time) (Analysis, err
 	analysis.PreviousFound = ok
 
 	if ok {
+		analysis.PreviousDeviceState = previous.DeviceState
+		analysis.StateChanged = previous.DeviceState != "" && msg.DeviceState != previous.DeviceState
+
 		switch {
 		case msg.SequenceNumber == previous.SequenceNumber:
 			analysis.IsDuplicate = true
@@ -121,6 +127,7 @@ func (p *Processor) Process(payload []byte, receivedAt time.Time) (Analysis, err
 		SequenceNumber: msg.SequenceNumber,
 		UptimeSeconds:  msg.UptimeSeconds,
 		RebootReason:   msg.RebootReason,
+		DeviceState:    msg.DeviceState,
 	}
 
 	return analysis, nil
