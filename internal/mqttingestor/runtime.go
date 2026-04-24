@@ -275,7 +275,12 @@ func (r *Runtime) recordResult(ctx context.Context, result messageResult) {
 		telemetry.AddInt64Counter(ctx, r.metrics.duplicatesTotal, 1, commonAttrs...)
 	}
 	if analysis.IsReboot {
-		telemetry.AddInt64Counter(ctx, r.metrics.rebootTotal, 1, commonAttrs...)
+		telemetry.AddInt64Counter(
+			ctx,
+			r.metrics.rebootTotal,
+			1,
+			append(commonAttrs, telemetry.StringAttribute("reboot_reason", analysis.Message.RebootReason))...,
+		)
 	}
 }
 

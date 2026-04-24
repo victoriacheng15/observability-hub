@@ -44,13 +44,14 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -69,17 +70,18 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "count(container_start_time_seconds{namespace=\"dev-hardware-sim\", container=\"sensor\"})",
+          "expr": "sum by (environment) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[5m])) > bool 0))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
-      "title": "Dev-Hub Sensors",
+      "title": "Active Devices (5m)",
       "type": "stat"
     },
     {
@@ -92,190 +94,6 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "blue",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 8,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "count(container_start_time_seconds{namespace=\"hardware-sim\", container=\"sensor\"})",
-          "refId": "A"
-        }
-      ],
-      "title": "Hub Sensors",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "id": 15,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "count(kube_pod_container_status_running{namespace=\"dev-hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
-          "refId": "A"
-        }
-      ],
-      "title": "Dev-Hub Controller",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 16,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "count(kube_pod_container_status_running{namespace=\"hardware-sim\", container=\"chaos-controller\"}) or vector(0)",
-          "refId": "A"
-        }
-      ],
-      "title": "Hub Controller",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 8,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -283,18 +101,22 @@
               {
                 "color": "green",
                 "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
               }
             ]
           },
-          "unit": "CAD"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 4
+        "w": 4,
+        "x": 4,
+        "y": 0
       },
       "id": 2,
       "options": {
@@ -311,17 +133,18 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
+          "expr": "sum by (environment) (((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[3h])) > bool 0)) unless on(environment, device_id) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[5m])) > bool 0)))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
-      "title": "Real-time Burn Rate",
+      "title": "Stale Devices (5m no data)",
       "type": "stat"
     },
     {
@@ -334,66 +157,6 @@
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 8,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "cyan",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "CAD"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 4
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000",
-          "refId": "A"
-        }
-      ],
-      "title": "Actual Spend (1h)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 4,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -401,79 +164,24 @@
               {
                 "color": "green",
                 "value": 0
-              }
-            ]
-          },
-          "unit": "massg"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 4
-      },
-      "id": 11,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "sum(increase(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1h]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $carbon_intensity_kwh / 3600000",
-          "refId": "A"
-        }
-      ],
-      "title": "CO2 Emissions (1h)",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 8,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+              },
               {
-                "color": "orange",
-                "value": 0
+                "color": "red",
+                "value": 1
               }
             ]
           },
-          "unit": "CAD"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 4
+        "w": 4,
+        "x": 8,
+        "y": 0
       },
-      "id": 7,
+      "id": 3,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -488,17 +196,207 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "(sum(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\"))) * $energy_cost_kwh / 3600000) / ignoring(cluster, instance, job) (rate(emqx_messages_received{job=\"emqx\"}[1m]) * 3600 / 1000 + 0.0001)",
+          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"$simulation_environment\"}[1h]))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
-      "title": "Efficiency (1k Msg)",
+      "title": "Invalid Payloads (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 120000
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (environment, le) (rate(hardware_telemetry_message_age_milliseconds_bucket{environment=~\"$simulation_environment\"}[5m])))",
+          "legendFormat": "{{environment}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Message Age P95",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (namespace) (count(container_start_time_seconds{namespace=~\"$simulation_namespace\", container=\"sensor\"}))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sensor Pods",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (namespace) (count(kube_pod_container_status_running{namespace=~\"$simulation_namespace\", container=\"chaos-controller\"}))",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Chaos Controllers",
       "type": "stat"
     },
     {
@@ -515,27 +413,358 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "msg/s",
+            "axisLabel": "messages",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 4
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (environment, device_state) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[15m]))",
+          "legendFormat": "{{environment}} / {{device_state}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Lifecycle State Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events / 5m",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 4
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (environment) (increase(hardware_telemetry_sequence_gap_total{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} gaps",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (environment) (increase(hardware_telemetry_duplicates_total{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} duplicates",
+          "refId": "B"
+        },
+        {
+          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} invalid",
+          "refId": "C"
+        }
+      ],
+      "title": "Sequence And Payload Health",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "reboots / 1h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (reboot_reason) (count_over_time({service_name=\"mqtt-ingestor\"} |= \"device_reboot_detected\" | json | reboot_reason!=\"\" [1h]))",
+          "legendFormat": "{{reboot_reason}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Reboots By Reason",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "dBm / dB",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (environment) (rate(hardware_radio_rssi_dBm_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_rssi_dBm_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} RSSI",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (environment) (rate(hardware_radio_snr_dB_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_snr_dB_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} SNR",
+          "refId": "B"
+        }
+      ],
+      "title": "Radio Quality",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "%",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -554,8 +783,183 @@
                 "value": 0
               },
               {
+                "color": "orange",
+                "value": 5
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 20
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (environment) (rate(hardware_radio_packet_loss_percent_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_packet_loss_percent_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Packet Loss",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "V / bytes / ms",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (environment) (rate(hardware_sensor_voltage_volts_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_sensor_voltage_volts_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} voltage",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (environment) (rate(hardware_runtime_free_heap_bytes_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_runtime_free_heap_bytes_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} free heap",
+          "refId": "B"
+        },
+        {
+          "expr": "sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_count{environment=~\"$simulation_environment\"}[5m]))",
+          "legendFormat": "{{environment}} loop time",
+          "refId": "C"
+        }
+      ],
+      "title": "Voltage, Free Heap, And Loop Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "msg/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -565,11 +969,11 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
-        "y": 8
+        "y": 20
       },
-      "id": 3,
+      "id": 13,
       "options": {
         "legend": {
           "calcs": [],
@@ -608,27 +1012,19 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "watt",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -645,55 +1041,20 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
           "unit": "watt"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "dev-hardware-sim"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "hardware-sim"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "green",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 16
+        "x": 12,
+        "y": 20
       },
-      "id": 4,
+      "id": 14,
       "options": {
         "legend": {
           "calcs": [],
@@ -703,7 +1064,7 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -732,27 +1093,19 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "watt",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -769,10 +1122,6 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -783,10 +1132,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 16
+        "x": 0,
+        "y": 28
       },
-      "id": 5,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [],
@@ -828,24 +1177,16 @@
             "axisLabel": "B/s",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -862,10 +1203,6 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -875,11 +1212,11 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 24
+        "w": 12,
+        "x": 12,
+        "y": 28
       },
-      "id": 9,
+      "id": 16,
       "options": {
         "legend": {
           "calcs": [],
@@ -923,27 +1260,19 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "restarts / 30m",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "auto",
-            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -971,7 +1300,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 36
       },
       "id": 17,
       "options": {
@@ -1006,7 +1335,8 @@
   "schemaVersion": 42,
   "tags": [
     "simulation",
-    "finops"
+    "hardware",
+    "mqtt"
   ],
   "templating": {
     "list": [
@@ -1033,6 +1363,31 @@
           }
         ],
         "query": "hardware-sim,dev-hardware-sim",
+        "type": "custom"
+      },
+      {
+        "allValue": "dev|prod",
+        "current": {
+          "text": "$__all",
+          "value": "$__all"
+        },
+        "includeAll": true,
+        "label": "Simulation Environment",
+        "multi": true,
+        "name": "simulation_environment",
+        "options": [
+          {
+            "selected": false,
+            "text": "dev",
+            "value": "dev"
+          },
+          {
+            "selected": false,
+            "text": "prod",
+            "value": "prod"
+          }
+        ],
+        "query": "dev,prod",
         "type": "custom"
       },
       {
@@ -1077,7 +1432,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Edge Simulation: Chaos & FinOps",
+  "title": "Edge Simulation: Sensor Health",
   "uid": "edge-sim-finops-v1",
-  "version": 1
+  "version": 2
 }
