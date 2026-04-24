@@ -519,6 +519,8 @@ spec:
             protocol: TCP
           - port: "587"
             protocol: TCP
+          - port: "11434"
+            protocol: TCP
     # 7. Allow MongoDB Atlas replica set traffic for worker ingestion
     - toFQDNs:
       - matchPattern: "*.mongodb.net"
