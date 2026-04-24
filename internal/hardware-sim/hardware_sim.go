@@ -28,6 +28,7 @@ const (
 	DefaultRebootReason          = "power_on"
 	DeviceStateRunning           = "running"
 	DeviceStateDegraded          = "degraded"
+	DeviceStateSleeping          = "sleeping"
 	DeviceStateRebooting         = "rebooting"
 	BrownoutRebootReason         = "brownout"
 	MemoryLeakRebootReason       = "memory_leak"
@@ -131,7 +132,7 @@ func (c *ChaosController) injectChaos(ctx context.Context, k8s kubernetes.Interf
 	targetPod := pods.Items[c.randIntn(len(pods.Items))]
 
 	// Randomize chaos parameters
-	command := []string{"spike", "signal_loss", "brownout", "memory_leak"}[c.randIntn(4)]
+	command := []string{"spike", "signal_loss", "brownout", "memory_leak", "slow_loop", "sleep_mode", "malformed_payload", "sequence_gap"}[c.randIntn(8)]
 	durationSec := 10 + c.randIntn(21) // 10s to 30s
 	intensity := []string{"low", "medium", "high"}[c.randIntn(3)]
 
@@ -156,22 +157,31 @@ type Sensor struct {
 	TelemetryTopic  string
 	TelemetryMode   string
 
-	mu                  sync.Mutex
-	isSpiking           bool
-	spikeIntensity      string
-	signalLoss          bool
-	signalIntensity     string
-	brownout            bool
-	brownoutRebooted    bool
-	brownoutIntensity   string
-	memoryLeak          bool
-	memoryLeakIntensity string
-	memoryLeakBytes     uint64
-	startTime           time.Time
-	rebootReason        string
-	sequenceNumber      uint64
-	randMu              sync.Mutex
-	randSource          *rand.Rand
+	mu                   sync.Mutex
+	isSpiking            bool
+	spikeIntensity       string
+	signalLoss           bool
+	signalIntensity      string
+	slowLoop             bool
+	slowLoopIntensity    string
+	sleepMode            bool
+	sleepModeIntensity   string
+	malformedPayload     bool
+	malformedIntensity   string
+	malformedRemaining   int
+	sequenceGap          bool
+	sequenceGapIntensity string
+	brownout             bool
+	brownoutRebooted     bool
+	brownoutIntensity    string
+	memoryLeak           bool
+	memoryLeakIntensity  string
+	memoryLeakBytes      uint64
+	startTime            time.Time
+	rebootReason         string
+	sequenceNumber       uint64
+	randMu               sync.Mutex
+	randSource           *rand.Rand
 }
 
 // Run starts the sensor data generation and chaos subscription loop.
@@ -196,21 +206,19 @@ func (s *Sensor) Run(ctx context.Context) error {
 	}
 	defer client.Disconnect(250)
 
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
 	telemetryTopic := s.telemetryTopic()
 	log.Printf("Sensor %s started publishing to %s...", s.ID, telemetryTopic)
 
 	for {
+		timer := time.NewTimer(s.publishInterval())
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return nil
-		case <-ticker.C:
-			data := s.generateData()
-			payload, err := json.Marshal(data)
+		case <-timer.C:
+			payload, err := s.publishPayload()
 			if err != nil {
-				log.Printf("Error marshaling data: %v", err)
+				log.Printf("Error building payload: %v", err)
 				continue
 			}
 
@@ -299,6 +307,72 @@ func (s *Sensor) handleChaos(client mqtt.Client, msg mqtt.Message) {
 			s.mu.Unlock()
 			log.Println("Memory Leak Ended.")
 		})
+	case "slow_loop":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Slow Loop Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.slowLoop = true
+		s.slowLoopIntensity = cmd.Intensity
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.slowLoop = false
+			s.slowLoopIntensity = ""
+			s.mu.Unlock()
+			log.Println("Slow Loop Ended.")
+		})
+	case "sleep_mode":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Sleep Mode Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.sleepMode = true
+		s.sleepModeIntensity = cmd.Intensity
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.sleepMode = false
+			s.sleepModeIntensity = ""
+			s.mu.Unlock()
+			log.Println("Sleep Mode Ended.")
+		})
+	case "malformed_payload":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Malformed Payload Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.malformedPayload = true
+		s.malformedIntensity = cmd.Intensity
+		s.malformedRemaining = malformedPublishCount(cmd.Intensity)
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.malformedPayload = false
+			s.malformedIntensity = ""
+			s.malformedRemaining = 0
+			s.mu.Unlock()
+			log.Println("Malformed Payload Ended.")
+		})
+	case "sequence_gap":
+		duration := chaosDuration(cmd.Duration)
+
+		log.Printf("!!! Sequence Gap Started: %s duration (Intensity: %s) !!!", duration, cmd.Intensity)
+		s.mu.Lock()
+		s.sequenceGap = true
+		s.sequenceGapIntensity = cmd.Intensity
+		s.mu.Unlock()
+
+		time.AfterFunc(duration, func() {
+			s.mu.Lock()
+			s.sequenceGap = false
+			s.sequenceGapIntensity = ""
+			s.mu.Unlock()
+			log.Println("Sequence Gap Ended.")
+		})
 	}
 }
 
@@ -311,6 +385,9 @@ func (s *Sensor) generateData() SensorData {
 	intensity := s.spikeIntensity
 	signalLoss := s.signalLoss
 	signalIntensity := s.signalIntensity
+	slowLoop := s.slowLoop
+	slowLoopIntensity := s.slowLoopIntensity
+	sleepMode := s.sleepMode
 	brownout := s.brownout
 	brownoutRebooted := s.brownoutRebooted
 	brownoutIntensity := s.brownoutIntensity
@@ -319,7 +396,7 @@ func (s *Sensor) generateData() SensorData {
 	memoryLeakBytes := s.memoryLeakBytes
 	uptimeSeconds := int64(time.Since(s.startTime).Seconds())
 	rebootReason := s.rebootReason
-	s.sequenceNumber++
+	s.sequenceNumber += 1 + sequenceGapStep(s.sequenceGap, s.sequenceGapIntensity)
 	sequenceNumber := s.sequenceNumber
 	s.mu.Unlock()
 
@@ -327,7 +404,7 @@ func (s *Sensor) generateData() SensorData {
 		rebootReason = DefaultRebootReason
 	}
 
-	deviceState := sensorState(spiking, signalLoss, brownout, memoryLeak)
+	deviceState := sensorState(spiking, signalLoss, slowLoop, sleepMode, brownout, memoryLeak)
 
 	// Base Simulation (Healthy state)
 	temp := 35.0 + s.randFloat64()*5.0
@@ -338,6 +415,16 @@ func (s *Sensor) generateData() SensorData {
 	packetLoss := s.randFloat64() * 2.0
 	freeHeap := uint64(DefaultEmulatedHeapBytes) - uint64(64*1024+s.randFloat64()*32*1024)
 	loopTimeMS := 4.0 + s.randFloat64()*8.0
+
+	if slowLoop {
+		loopTimeMS += slowLoopLatencyAdd(slowLoopIntensity)
+	}
+
+	if sleepMode {
+		deviceState = DeviceStateSleeping
+		current *= 0.35
+		packetLoss *= 0.5
+	}
 
 	// Apply Dynamic Spike Logic
 	if spiking {
@@ -461,11 +548,120 @@ func (s *Sensor) generateData() SensorData {
 	}
 }
 
-func sensorState(spiking, signalLoss, brownout, memoryLeak bool) string {
-	if spiking || signalLoss || brownout || memoryLeak {
+func (s *Sensor) publishPayload() ([]byte, error) {
+	s.mu.Lock()
+	if s.malformedPayload && s.malformedRemaining > 0 {
+		s.malformedRemaining--
+		if s.malformedRemaining == 0 {
+			s.malformedPayload = false
+			s.malformedIntensity = ""
+		}
+		s.mu.Unlock()
+		return []byte(`{"schema_version":`), nil
+	}
+	s.mu.Unlock()
+
+	data := s.generateData()
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+func sensorState(spiking, signalLoss, slowLoop, sleepMode, brownout, memoryLeak bool) string {
+	if sleepMode {
+		return DeviceStateSleeping
+	}
+	if spiking || signalLoss || slowLoop || brownout || memoryLeak {
 		return DeviceStateDegraded
 	}
 	return DeviceStateRunning
+}
+
+func (s *Sensor) publishInterval() time.Duration {
+	s.mu.Lock()
+	sleepMode := s.sleepMode
+	sleepIntensity := s.sleepModeIntensity
+	slowLoop := s.slowLoop
+	slowIntensity := s.slowLoopIntensity
+	s.mu.Unlock()
+
+	if sleepMode {
+		return sleepModeInterval(sleepIntensity)
+	}
+	if slowLoop {
+		return slowLoopInterval(slowIntensity)
+	}
+	return 2 * time.Second
+}
+
+func sleepModeInterval(intensity string) time.Duration {
+	switch intensity {
+	case "low":
+		return 5 * time.Second
+	case "medium":
+		return 8 * time.Second
+	case "high":
+		return 12 * time.Second
+	default:
+		return 6 * time.Second
+	}
+}
+
+func slowLoopInterval(intensity string) time.Duration {
+	switch intensity {
+	case "low":
+		return 3 * time.Second
+	case "medium":
+		return 5 * time.Second
+	case "high":
+		return 7 * time.Second
+	default:
+		return 4 * time.Second
+	}
+}
+
+func slowLoopLatencyAdd(intensity string) float64 {
+	switch intensity {
+	case "low":
+		return 18.0
+	case "medium":
+		return 35.0
+	case "high":
+		return 60.0
+	default:
+		return 24.0
+	}
+}
+
+func malformedPublishCount(intensity string) int {
+	switch intensity {
+	case "low":
+		return 1
+	case "medium":
+		return 2
+	case "high":
+		return 3
+	default:
+		return 1
+	}
+}
+
+func sequenceGapStep(enabled bool, intensity string) uint64 {
+	if !enabled {
+		return 0
+	}
+	switch intensity {
+	case "low":
+		return 1
+	case "medium":
+		return 2
+	case "high":
+		return 4
+	default:
+		return 1
+	}
 }
 
 func (s *Sensor) deviceID() string {

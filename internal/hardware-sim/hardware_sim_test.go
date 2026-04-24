@@ -384,6 +384,74 @@ func TestSensor_generateData_ReportsRuntimeHealth(t *testing.T) {
 	}
 }
 
+func TestSensor_generateData_SlowLoopIncreasesLoopTime(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		randSource: rand.New(rand.NewSource(654)),
+	}
+
+	base := s.generateData()
+
+	s.mu.Lock()
+	s.slowLoop = true
+	s.slowLoopIntensity = "high"
+	s.mu.Unlock()
+
+	s.randSource = rand.New(rand.NewSource(654))
+	slow := s.generateData()
+
+	if slow.LoopTimeMS <= base.LoopTimeMS {
+		t.Fatalf("expected slow loop to increase loop_time_ms, base=%v slow=%v", base.LoopTimeMS, slow.LoopTimeMS)
+	}
+	if slow.DeviceState != DeviceStateDegraded {
+		t.Fatalf("expected slow loop device_state %q, got %q", DeviceStateDegraded, slow.DeviceState)
+	}
+}
+
+func TestSensor_generateData_SleepModeReportsSleepingState(t *testing.T) {
+	s := &Sensor{
+		ID:         "sensor-1",
+		randSource: rand.New(rand.NewSource(777)),
+	}
+
+	base := s.generateData()
+
+	s.mu.Lock()
+	s.sleepMode = true
+	s.sleepModeIntensity = "medium"
+	s.mu.Unlock()
+
+	s.randSource = rand.New(rand.NewSource(777))
+	sleeping := s.generateData()
+
+	if sleeping.DeviceState != DeviceStateSleeping {
+		t.Fatalf("expected sleep mode device_state %q, got %q", DeviceStateSleeping, sleeping.DeviceState)
+	}
+	if sleeping.Current >= base.Current {
+		t.Fatalf("expected sleep mode to reduce current draw, base=%v sleeping=%v", base.Current, sleeping.Current)
+	}
+}
+
+func TestSensor_generateData_SequenceGapSkipsNumbers(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	first := s.generateData()
+
+	s.mu.Lock()
+	s.sequenceGap = true
+	s.sequenceGapIntensity = "medium"
+	s.mu.Unlock()
+
+	second := s.generateData()
+
+	if first.SequenceNumber != 1 {
+		t.Fatalf("expected first sequence_number 1, got %d", first.SequenceNumber)
+	}
+	if second.SequenceNumber != 4 {
+		t.Fatalf("expected sequence gap to skip to 4, got %d", second.SequenceNumber)
+	}
+}
+
 func TestSensor_generateData_BrownoutDropsVoltageAndRecordsReboot(t *testing.T) {
 	s := &Sensor{
 		ID:         "sensor-1",
@@ -606,6 +674,178 @@ func TestSensor_handleChaos_SetsAndClearsMemoryLeak(t *testing.T) {
 	}
 }
 
+func TestSensor_handleChaos_SetsAndClearsSlowLoop(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "slow_loop",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	active := s.slowLoop
+	intensity := s.slowLoopIntensity
+	s.mu.Unlock()
+
+	if !active || intensity != "medium" {
+		t.Fatalf("expected slow loop to be active immediately, active=%v intensity=%q", active, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	active = s.slowLoop
+	intensity = s.slowLoopIntensity
+	s.mu.Unlock()
+
+	if active || intensity != "" {
+		t.Fatalf("expected slow loop to be cleared, active=%v intensity=%q", active, intensity)
+	}
+}
+
+func TestSensor_handleChaos_SetsAndClearsSleepMode(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "sleep_mode",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	active := s.sleepMode
+	intensity := s.sleepModeIntensity
+	s.mu.Unlock()
+
+	if !active || intensity != "medium" {
+		t.Fatalf("expected sleep mode to be active immediately, active=%v intensity=%q", active, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	active = s.sleepMode
+	intensity = s.sleepModeIntensity
+	s.mu.Unlock()
+
+	if active || intensity != "" {
+		t.Fatalf("expected sleep mode to be cleared, active=%v intensity=%q", active, intensity)
+	}
+}
+
+func TestSensor_handleChaos_SetsAndClearsMalformedPayload(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "malformed_payload",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	active := s.malformedPayload
+	intensity := s.malformedIntensity
+	remaining := s.malformedRemaining
+	s.mu.Unlock()
+
+	if !active || intensity != "medium" || remaining != 2 {
+		t.Fatalf("expected malformed payload to be active immediately, active=%v intensity=%q remaining=%d", active, intensity, remaining)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	active = s.malformedPayload
+	intensity = s.malformedIntensity
+	remaining = s.malformedRemaining
+	s.mu.Unlock()
+
+	if active || intensity != "" || remaining != 0 {
+		t.Fatalf("expected malformed payload to be cleared, active=%v intensity=%q remaining=%d", active, intensity, remaining)
+	}
+}
+
+func TestSensor_handleChaos_SetsAndClearsSequenceGap(t *testing.T) {
+	s := &Sensor{ID: "sensor-1"}
+
+	cmd := ChaosCommand{
+		Command:   "sequence_gap",
+		Duration:  "5ms",
+		Intensity: "medium",
+	}
+	b, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("marshal chaos command: %v", err)
+	}
+
+	s.handleChaos(nil, &fakeMessage{payload: b})
+
+	s.mu.Lock()
+	active := s.sequenceGap
+	intensity := s.sequenceGapIntensity
+	s.mu.Unlock()
+
+	if !active || intensity != "medium" {
+		t.Fatalf("expected sequence gap to be active immediately, active=%v intensity=%q", active, intensity)
+	}
+
+	time.Sleep(20 * time.Millisecond)
+
+	s.mu.Lock()
+	active = s.sequenceGap
+	intensity = s.sequenceGapIntensity
+	s.mu.Unlock()
+
+	if active || intensity != "" {
+		t.Fatalf("expected sequence gap to be cleared, active=%v intensity=%q", active, intensity)
+	}
+}
+
+func TestSensor_publishPayload_ProducesBoundedMalformedPayload(t *testing.T) {
+	s := &Sensor{
+		ID:                 "sensor-1",
+		malformedPayload:   true,
+		malformedIntensity: "low",
+		malformedRemaining: 1,
+	}
+
+	payload, err := s.publishPayload()
+	if err != nil {
+		t.Fatalf("publishPayload returned error: %v", err)
+	}
+	if string(payload) != `{"schema_version":` {
+		t.Fatalf("expected malformed payload, got %q", string(payload))
+	}
+
+	s.mu.Lock()
+	active := s.malformedPayload
+	remaining := s.malformedRemaining
+	s.mu.Unlock()
+
+	if active || remaining != 0 {
+		t.Fatalf("expected malformed state to clear after bounded publish, active=%v remaining=%d", active, remaining)
+	}
+}
+
 func TestChaosController_injectChaos_NoPods_NoPublish(t *testing.T) {
 	ctx := context.Background()
 	k8s := fake.NewSimpleClientset()
@@ -672,7 +912,7 @@ func TestChaosController_injectChaos_PublishesToSensorTopic(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected string payload, got %T", pub.payload)
 	}
-	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss|brownout|memory_leak)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
+	payloadRe := regexp.MustCompile(`^\{"command": "(spike|signal_loss|brownout|memory_leak|slow_loop|sleep_mode|malformed_payload|sequence_gap)", "duration": "\d+s", "intensity": "(low|medium|high)"\}$`)
 	if !payloadRe.MatchString(payload) {
 		t.Fatalf("unexpected payload %q", payload)
 	}
