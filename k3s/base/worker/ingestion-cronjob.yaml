@@ -27,7 +27,7 @@ spec:
             - name: ghcr-auth
           containers:
           - name: worker
-            image: ghcr.io/victoriacheng15/observability-hub/worker:sha-f8b2a4a
+            image: ghcr.io/victoriacheng15/observability-hub/worker
             imagePullPolicy: Always
             securityContext:
               allowPrivilegeEscalation: false

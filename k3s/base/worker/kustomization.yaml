@@ -4,3 +4,7 @@ kind: Kustomization
 resources:
   - analytics-cronjob.yaml
   - ingestion-cronjob.yaml
+
+images:
+  - name: ghcr.io/victoriacheng15/observability-hub/worker
+    newTag: sha-ed80fc1
