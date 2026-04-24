@@ -7,11 +7,11 @@ resources:
 
 images:
   - name: ghcr.io/victoriacheng15/observability-hub/chaos-controller
-    newTag: sha-428eb8b
+    newTag: sha-a92c34d
   - name: ghcr.io/victoriacheng15/observability-hub/mqtt-ingestor
-    newTag: canary
+    newTag: sha-12e1e24
   - name: ghcr.io/victoriacheng15/observability-hub/sensor
-    newTag: sha-428eb8b
+    newTag: sha-a92c34d
 
 patches:
   # --- Simulation Fleet (hardware-sim) ---
