@@ -35,6 +35,10 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 - Supports the current `signal_loss` chaos command for temporary RSSI, SNR, and packet-loss degradation.
 - Supports the current `brownout` chaos command for voltage drops that record `reboot_reason=brownout`.
 - Supports the current `memory_leak` chaos command for reducing emulated `free_heap` until a simulated restart records `reboot_reason=memory_leak`.
+- Supports `slow_loop` for elevated `loop_time_ms` and slower publish cadence.
+- Supports `sleep_mode` for slower publish cadence with `device_state=sleeping`.
+- Supports `malformed_payload` for bounded invalid MQTT publishes.
+- Supports `sequence_gap` for intentional sequence-number jumps.
 - Publishes explicit lifecycle state in telemetry for `running`, `degraded`, and
   short-lived `rebooting` samples.
 
@@ -52,7 +56,7 @@ The lifecycle model is the shared vocabulary for future sensor state reporting:
 | `rebooting` | Device is restarting because of a planned reset or simulated hardware-style fault. |
 | `failed` | Device cannot continue normal operation without an external restart or intervention. |
 
-In the current implementation, `running` is published during normal telemetry, `degraded` is published while a spike, signal-loss, brownout, or memory-leak command is active, and `rebooting` is published on the sample that records a brownout or memory-leak restart.
+In the current implementation, `running` is published during normal telemetry, `degraded` is published while a spike, signal-loss, slow-loop, brownout, or memory-leak command is active, `sleeping` is published during sleep-mode cadence reduction, and `rebooting` is published on the sample that records a brownout or memory-leak restart.
 
 ### Chaos Controller (`chaos-controller`)
 
@@ -60,7 +64,7 @@ In the current implementation, `running` is published during normal telemetry, `
 - **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
-  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike", "signal_loss", "brownout", or "memory_leak") via MQTT, using the legacy chaos topic by default with opt-in per-device command topic support.
+  - **Injection**: Randomly selects a target pod and publishes a `ChaosCommand` (e.g., "spike", "signal_loss", "slow_loop", "sleep_mode", "malformed_payload", "sequence_gap", "brownout", or "memory_leak") via MQTT, using the legacy chaos topic by default with opt-in per-device command topic support.
   - **Parameters**: Randomizes the duration (10s-30s) and intensity (low, medium, high) of the failure.
 
 ## Data Flow & Orchestration
