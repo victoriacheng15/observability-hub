@@ -54,6 +54,10 @@ spec:
         env:
         - name: MQTT_BROKER
           value: "tcp://emqx.observability.svc.cluster.local:1883"
+        - name: MQTT_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: SIMULATION_ENV
           value: "prod"
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
