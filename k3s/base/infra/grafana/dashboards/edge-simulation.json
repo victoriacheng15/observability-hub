@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": 0,
   "links": [],
   "panels": [
     {
@@ -51,7 +51,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -76,7 +76,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[5m])) > bool 0))",
+          "expr": "sum by (environment) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"dev|prod\"}[5m])) > bool 0))",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -114,8 +114,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "id": 2,
@@ -139,7 +139,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[3h])) > bool 0)) unless on(environment, device_id) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[5m])) > bool 0)))",
+          "expr": "sum by (environment) (((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"dev|prod\"}[3h])) > bool 0)) unless on(environment, device_id) ((sum by (environment, device_id) (increase(hardware_telemetry_messages_total{environment=~\"dev|prod\"}[5m])) > bool 0)))",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -177,8 +177,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
+        "w": 6,
+        "x": 12,
         "y": 0
       },
       "id": 3,
@@ -202,7 +202,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"$simulation_environment\"}[1h]))",
+          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"dev|prod\"}[1h]))",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -240,8 +240,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
+        "w": 6,
+        "x": 18,
         "y": 0
       },
       "id": 4,
@@ -265,7 +265,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (environment, le) (rate(hardware_telemetry_message_age_milliseconds_bucket{environment=~\"$simulation_environment\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (environment, le) (rate(hardware_telemetry_message_age_milliseconds_bucket{environment=~\"dev|prod\"}[5m])))",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -303,9 +303,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 0
+        "w": 6,
+        "x": 6,
+        "y": 4
       },
       "id": 5,
       "options": {
@@ -328,8 +328,8 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace) (count(container_start_time_seconds{namespace=~\"$simulation_namespace\", container=\"sensor\"}))",
-          "legendFormat": "{{namespace}}",
+          "expr": "sum by (environment) (label_replace(label_replace(count by (namespace) (container_start_time_seconds{namespace=~\"hardware-sim|dev-hardware-sim\", container=\"sensor\"}), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
@@ -366,9 +366,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 0
+        "w": 6,
+        "x": 12,
+        "y": 4
       },
       "id": 6,
       "options": {
@@ -391,8 +391,8 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace) (count(kube_pod_container_status_running{namespace=~\"$simulation_namespace\", container=\"chaos-controller\"}))",
-          "legendFormat": "{{namespace}}",
+          "expr": "sum by (environment) (label_replace(label_replace(count by (namespace) (kube_pod_container_status_running{namespace=~\"hardware-sim|dev-hardware-sim\", container=\"chaos-controller\"}), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
@@ -416,9 +416,16 @@
             "axisLabel": "messages",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -426,6 +433,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -451,9 +459,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 12,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "id": 7,
       "options": {
@@ -472,7 +480,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment, device_state) (increase(hardware_telemetry_messages_total{environment=~\"$simulation_environment\"}[15m]))",
+          "expr": "sum by (environment, device_state) (increase(hardware_telemetry_messages_total{environment=~\"dev|prod\"}[15m]))",
           "legendFormat": "{{environment}} / {{device_state}}",
           "refId": "A"
         }
@@ -497,9 +505,16 @@
             "axisLabel": "events / 5m",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -507,6 +522,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -532,9 +548,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 4
+        "w": 12,
+        "x": 12,
+        "y": 8
       },
       "id": 8,
       "options": {
@@ -553,104 +569,22 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (increase(hardware_telemetry_sequence_gap_total{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (increase(hardware_telemetry_sequence_gap_total{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} gaps",
           "refId": "A"
         },
         {
-          "expr": "sum by (environment) (increase(hardware_telemetry_duplicates_total{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (increase(hardware_telemetry_duplicates_total{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} duplicates",
           "refId": "B"
         },
         {
-          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (increase(hardware_telemetry_invalid_messages_total{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} invalid",
           "refId": "C"
         }
       ],
       "title": "Sequence And Payload Health",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "reboots / 1h",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 4,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 4
-      },
-      "id": 9,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "sum by (reboot_reason) (count_over_time({service_name=\"mqtt-ingestor\"} |= \"device_reboot_detected\" | json | reboot_reason!=\"\" [1h]))",
-          "legendFormat": "{{reboot_reason}}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Reboots By Reason",
       "type": "timeseries"
     },
     {
@@ -670,9 +604,16 @@
             "axisLabel": "dBm / dB",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -680,6 +621,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -704,9 +646,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 12,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "id": 10,
       "options": {
@@ -725,17 +667,107 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (rate(hardware_radio_rssi_dBm_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_rssi_dBm_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_radio_rssi_dBm_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_radio_rssi_dBm_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} RSSI",
           "refId": "A"
         },
         {
-          "expr": "sum by (environment) (rate(hardware_radio_snr_dB_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_snr_dB_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_radio_snr_dB_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_radio_snr_dB_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} SNR",
           "refId": "B"
         }
       ],
       "title": "Radio Quality",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "reboots / 1h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "sum by (reboot_reason) (count_over_time({service_name=\"mqtt-ingestor\"} | json | __error__ = \"\" | message = \"device_reboot_detected\" | reboot_reason != \"\" [1h]))",
+          "legendFormat": "{{reboot_reason}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Reboots By Reason",
       "type": "timeseries"
     },
     {
@@ -755,9 +787,16 @@
             "axisLabel": "%",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -765,6 +804,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -798,9 +838,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 12
+        "w": 12,
+        "x": 0,
+        "y": 24
       },
       "id": 11,
       "options": {
@@ -819,7 +859,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (rate(hardware_radio_packet_loss_percent_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_radio_packet_loss_percent_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_radio_packet_loss_percent_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_radio_packet_loss_percent_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -844,9 +884,16 @@
             "axisLabel": "V / bytes / ms",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -854,6 +901,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -878,9 +926,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 12
+        "w": 12,
+        "x": 12,
+        "y": 24
       },
       "id": 12,
       "options": {
@@ -899,17 +947,17 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (environment) (rate(hardware_sensor_voltage_volts_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_sensor_voltage_volts_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_sensor_voltage_volts_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_sensor_voltage_volts_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} voltage",
           "refId": "A"
         },
         {
-          "expr": "sum by (environment) (rate(hardware_runtime_free_heap_bytes_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_runtime_free_heap_bytes_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_runtime_free_heap_bytes_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_runtime_free_heap_bytes_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} free heap",
           "refId": "B"
         },
         {
-          "expr": "sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_sum{environment=~\"$simulation_environment\"}[5m])) / sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_count{environment=~\"$simulation_environment\"}[5m]))",
+          "expr": "sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_sum{environment=~\"dev|prod\"}[5m])) / sum by (environment) (rate(hardware_runtime_loop_time_milliseconds_count{environment=~\"dev|prod\"}[5m]))",
           "legendFormat": "{{environment}} loop time",
           "refId": "C"
         }
@@ -934,9 +982,16 @@
             "axisLabel": "msg/s",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -944,6 +999,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -971,7 +1027,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 32
       },
       "id": 13,
       "options": {
@@ -1015,9 +1071,16 @@
             "axisLabel": "watt",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 4,
@@ -1025,6 +1088,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1052,7 +1116,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 32
       },
       "id": 14,
       "options": {
@@ -1071,8 +1135,8 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
-          "legendFormat": "{{namespace}}",
+          "expr": "sum by (environment) (label_replace(label_replace(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"hardware-sim|dev-hardware-sim\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "{{environment}}",
           "refId": "A"
         }
       ],
@@ -1096,9 +1160,16 @@
             "axisLabel": "watt",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 4,
@@ -1106,6 +1177,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1133,7 +1205,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 40
       },
       "id": 15,
       "options": {
@@ -1152,8 +1224,8 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace, pod) (irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")))",
-          "legendFormat": "{{namespace}} / {{pod}}",
+          "expr": "sum by (environment, pod) (label_replace(label_replace(irate(kepler_container_cpu_joules_total{container_name=\"sensor\", pod_id!=\"\", zone=\"package\"}[1m]) * on(pod_id) group_left(namespace, pod) max by (pod_id, namespace, pod) (label_replace(kube_pod_info{namespace=~\"hardware-sim|dev-hardware-sim\", pod=~\"sensor-fleet-.*\"}, \"pod_id\", \"$1\", \"uid\", \"(.*)\")), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "{{environment}} / {{pod}}",
           "refId": "A"
         }
       ],
@@ -1177,9 +1249,16 @@
             "axisLabel": "B/s",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 4,
@@ -1187,6 +1266,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1214,7 +1294,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 40
       },
       "id": 16,
       "options": {
@@ -1233,13 +1313,13 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace, pod) (irate(container_network_transmit_bytes_total{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}[1m]))",
-          "legendFormat": "TX: {{namespace}} / {{pod}}",
+          "expr": "sum by (environment, pod) (label_replace(label_replace(irate(container_network_transmit_bytes_total{namespace=~\"hardware-sim|dev-hardware-sim\", pod=~\"sensor-fleet-.*\"}[1m]), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "TX: {{environment}} / {{pod}}",
           "refId": "A"
         },
         {
-          "expr": "sum by (namespace, pod) (irate(container_network_receive_bytes_total{namespace=~\"$simulation_namespace\", pod=~\"sensor-fleet-.*\"}[1m]))",
-          "legendFormat": "RX: {{namespace}} / {{pod}}",
+          "expr": "sum by (environment, pod) (label_replace(label_replace(irate(container_network_receive_bytes_total{namespace=~\"hardware-sim|dev-hardware-sim\", pod=~\"sensor-fleet-.*\"}[1m]), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "RX: {{environment}} / {{pod}}",
           "refId": "B"
         }
       ],
@@ -1263,9 +1343,16 @@
             "axisLabel": "restarts / 30m",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
             "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 4,
@@ -1273,6 +1360,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -1300,7 +1388,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 48
       },
       "id": 17,
       "options": {
@@ -1321,8 +1409,8 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "expr": "sum by (namespace, pod) (changes(container_start_time_seconds{namespace=~\"$simulation_namespace\", container=\"sensor\", pod=~\"sensor-fleet-.*\"}[30m]))",
-          "legendFormat": "{{namespace}} / {{pod}}",
+          "expr": "sum by (environment, pod) (label_replace(label_replace(changes(container_start_time_seconds{namespace=~\"hardware-sim|dev-hardware-sim\", container=\"sensor\", pod=~\"sensor-fleet-.*\"}[30m]), \"environment\", \"dev\", \"namespace\", \"^dev-hardware-sim$\"), \"environment\", \"prod\", \"namespace\", \"^hardware-sim$\"))",
+          "legendFormat": "{{environment}} / {{pod}}",
           "refId": "A"
         }
       ],
@@ -1340,56 +1428,6 @@
   ],
   "templating": {
     "list": [
-      {
-        "allValue": "hardware-sim|dev-hardware-sim",
-        "current": {
-          "text": "$__all",
-          "value": "$__all"
-        },
-        "includeAll": true,
-        "label": "Simulation Namespace",
-        "multi": true,
-        "name": "simulation_namespace",
-        "options": [
-          {
-            "selected": false,
-            "text": "hardware-sim",
-            "value": "hardware-sim"
-          },
-          {
-            "selected": false,
-            "text": "dev-hardware-sim",
-            "value": "dev-hardware-sim"
-          }
-        ],
-        "query": "hardware-sim,dev-hardware-sim",
-        "type": "custom"
-      },
-      {
-        "allValue": "dev|prod",
-        "current": {
-          "text": "$__all",
-          "value": "$__all"
-        },
-        "includeAll": true,
-        "label": "Simulation Environment",
-        "multi": true,
-        "name": "simulation_environment",
-        "options": [
-          {
-            "selected": false,
-            "text": "dev",
-            "value": "dev"
-          },
-          {
-            "selected": false,
-            "text": "prod",
-            "value": "prod"
-          }
-        ],
-        "query": "dev,prod",
-        "type": "custom"
-      },
       {
         "current": {
           "text": "0.15",
@@ -1434,5 +1472,5 @@
   "timezone": "",
   "title": "Edge Simulation: Sensor Health",
   "uid": "edge-sim-finops-v1",
-  "version": 2
+  "version": 22
 }
