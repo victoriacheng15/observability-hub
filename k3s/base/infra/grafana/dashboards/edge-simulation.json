@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 12,
   "links": [],
   "panels": [
     {
@@ -51,7 +51,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 8,
         "x": 0,
         "y": 0
       },
@@ -114,8 +114,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 0
       },
       "id": 2,
@@ -177,8 +177,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 3,
@@ -225,69 +225,6 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 120000
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "id": 4,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value_and_name",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum by (environment, le) (rate(hardware_telemetry_message_age_milliseconds_bucket{environment=~\"dev|prod\"}[5m])))",
-          "legendFormat": "{{environment}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Message Age P95",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-provisioned"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
                 "color": "red",
                 "value": 0
               },
@@ -303,8 +240,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 0,
         "y": 4
       },
       "id": 5,
@@ -366,8 +303,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 8,
+        "x": 8,
         "y": 4
       },
       "id": 6,
@@ -397,6 +334,69 @@
         }
       ],
       "title": "Chaos Controllers",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-provisioned"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 120000
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (environment, le) (rate(hardware_telemetry_message_age_milliseconds_bucket{environment=~\"dev|prod\"}[5m])))",
+          "legendFormat": "{{environment}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Message Age P95",
       "type": "stat"
     },
     {
@@ -1472,5 +1472,5 @@
   "timezone": "",
   "title": "Edge Simulation: Sensor Health",
   "uid": "edge-sim-finops-v1",
-  "version": 22
+  "version": 23
 }
