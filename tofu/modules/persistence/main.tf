@@ -1,67 +1,36 @@
-# --- Object Storage (MinIO) ---
+# --- Shared Standards ---
 
-resource "helm_release" "minio" {
-  name       = "minio"
-  repository = "https://charts.min.io/"
-  chart      = "minio"
-  version    = var.minio_chart_version
-  namespace  = kubernetes_namespace_v1.databases.metadata[0].name
+locals {
+  standards = yamldecode(file("${path.module}/../../../k3s/_standards.yaml")).homelab
+}
+
+# --- MQTT Broker (EMQX) ---
+
+resource "helm_release" "emqx" {
+  name       = "emqx"
+  repository = "https://repos.emqx.io/charts"
+  chart      = "emqx"
+  version    = var.emqx_chart_version
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/minio/values.yaml"),
     yamlencode({
-      persistence = {
-        storageClass = local.standards.persistence.storage_class
-        size         = local.standards.persistence.size
+      # Single-node optimizations
+      replicaCount = 1
+
+      emqxConfig = {
+        "listeners.tcp.default.bind" = "0.0.0.0:1883"
       }
-      resources = local.standards.resources.large
-      securityContext = {
-        enabled      = true
-        runAsNonRoot = local.standards.security.pod.run_as_non_root
-        fsGroup      = local.standards.security.pod.fs_group
-        runAsUser    = local.standards.security.pod.run_as_user
-        runAsGroup   = local.standards.security.pod.run_as_group
-      }
-      containerSecurityContext = {
-        readOnlyRootFilesystem   = local.standards.security.container.read_only_root_fs
-        allowPrivilegeEscalation = local.standards.security.container.allow_privilege_escalation
-        capabilities = {
-          drop = local.standards.security.container.capabilities_drop
-        }
-      }
-      postJob = {
-        securityContext = {
-          enabled      = true
-          runAsNonRoot = local.standards.security.pod.run_as_non_root
-          fsGroup      = local.standards.security.pod.fs_group
-          runAsUser    = local.standards.security.pod.run_as_user
-          runAsGroup   = local.standards.security.pod.run_as_group
-        }
-      }
-      makeBucketJob = {
-        securityContext = {
-          enabled      = true
-          runAsNonRoot = local.standards.security.pod.run_as_non_root
-          runAsUser    = local.standards.security.pod.run_as_user
-        }
-        containerSecurityContext = {
-          readOnlyRootFilesystem = local.standards.exceptions.minio.make_bucket_job_read_only_root_fs
-        }
-      }
-      makeUserJob = {
-        securityContext = {
-          enabled      = true
-          runAsNonRoot = local.standards.security.pod.run_as_non_root
-          runAsUser    = local.standards.security.pod.run_as_user
-        }
-        containerSecurityContext = {
-          readOnlyRootFilesystem = local.standards.exceptions.minio.make_user_job_read_only_root_fs
-        }
+
+      # Standard Resource Limits & Standards
+      resources            = local.standards.resources.medium
+      revisionHistoryLimit = local.standards.deployment.revision_history_limit
+
+      service = {
+        type = "ClusterIP"
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.databases]
 }
 
 # --- CloudNativePG Operator (Control Plane) ---
@@ -75,7 +44,6 @@ resource "helm_release" "cnpg_operator" {
   create_namespace = true
 }
 
-
 # --- CloudNativePG Cluster (Data Plane) ---
 
 resource "kubernetes_manifest" "postgres_cluster" {
@@ -84,28 +52,24 @@ resource "kubernetes_manifest" "postgres_cluster" {
     kind       = "Cluster"
     metadata = {
       name      = "postgres-hub"
-      namespace = kubernetes_namespace_v1.databases.metadata[0].name
+      namespace = var.databases_namespace
     }
     spec = {
       instances       = 3
-      imageName       = var.postgres_image
+      imageName       = var.postgres_config.image
       imagePullPolicy = "IfNotPresent"
 
-      # Resource management
       resources = local.standards.resources.standard
 
-      # Permanent database and user identity
       bootstrap = {
         initdb = {
-          database = var.postgres_database
-          owner    = var.postgres_owner
+          database = var.postgres_config.database
+          owner    = var.postgres_config.owner
           secret = {
             name = "postgres-secret"
           }
         }
       }
-
-      # Correct schema for label propagation to pods
 
       inheritedMetadata = {
         labels = {
@@ -113,8 +77,6 @@ resource "kubernetes_manifest" "postgres_cluster" {
         }
       }
 
-
-      # Standard 2026 PostgreSQL parameters
       postgresql = {
         shared_preload_libraries = ["timescaledb", "pg_stat_statements"]
         parameters = {
@@ -144,10 +106,9 @@ resource "kubernetes_manifest" "postgres_cluster" {
         }
       }
 
-      # Enterprise Backup (Azure streaming)
       backup = {
         barmanObjectStore = {
-          destinationPath = "https://${data.azurerm_storage_account.hub.name}.blob.core.windows.net/pg-backup/"
+          destinationPath = "https://${var.azure_storage_account_name}.blob.core.windows.net/pg-backup/"
           azureCredentials = {
             connectionString = {
               name = "azure-creds"
@@ -158,8 +119,8 @@ resource "kubernetes_manifest" "postgres_cluster" {
       }
 
       storage = {
-        size         = var.postgres_storage_size
-        storageClass = kubernetes_storage_class_v1.local_path_retain.metadata[0].name
+        size         = var.postgres_config.storage_size
+        storageClass = var.local_path_storage_class_name
       }
 
       monitoring = {
@@ -168,7 +129,7 @@ resource "kubernetes_manifest" "postgres_cluster" {
     }
   }
 
-  depends_on = [helm_release.cnpg_operator, azurerm_storage_container.pg_backup, kubernetes_namespace_v1.databases]
+  depends_on = [helm_release.cnpg_operator]
 }
 
 # --- Postgres: Automated Backup Schedule ---
@@ -179,10 +140,10 @@ resource "kubernetes_manifest" "postgres_backup_schedule" {
     kind       = "ScheduledBackup"
     metadata = {
       name      = "postgres-daily-backup"
-      namespace = kubernetes_namespace_v1.databases.metadata[0].name
+      namespace = var.databases_namespace
     }
     spec = {
-      schedule             = var.postgres_backup_schedule
+      schedule             = var.postgres_config.backup_schedule
       backupOwnerReference = "self"
       cluster = {
         name = "postgres-hub"
@@ -198,7 +159,7 @@ resource "kubernetes_manifest" "postgres_backup_schedule" {
 resource "kubernetes_service_v1" "postgres_nodeport" {
   metadata {
     name      = "postgres-host-access"
-    namespace = kubernetes_namespace_v1.databases.metadata[0].name
+    namespace = var.databases_namespace
   }
   spec {
     selector = {

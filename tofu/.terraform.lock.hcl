@@ -3,7 +3,7 @@
 
 provider "registry.opentofu.org/grafana/grafana" {
   version     = "4.29.1"
-  constraints = "~> 4.27"
+  constraints = ">= 4.27.0, ~> 4.27"
   hashes = [
     "h1:a/OZ6e/CEzd2xHZrdfAIVwWJMqfbgDpRRDq1zGOkDiw=",
     "zh:0bce5770fcf130478c48225c9425a99e74e7df752554662ea7dc25897b213c64",
@@ -53,7 +53,7 @@ provider "registry.opentofu.org/hashicorp/azurerm" {
 
 provider "registry.opentofu.org/hashicorp/helm" {
   version     = "3.1.1"
-  constraints = "~> 3.1"
+  constraints = ">= 3.1.0, ~> 3.1"
   hashes = [
     "h1:8SOQHxpTUK0rYBsCoxqrvDRc75KZl9hBt1m7QLrs+QM=",
     "zh:09b38905e234c2e0b185332819614224660050b7e4b25e9e858b593ab01adafe",
