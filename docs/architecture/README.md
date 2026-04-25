@@ -71,7 +71,9 @@ The runtime environment and foundational deployment strategies.
 
 Deep dives into the logic and implementation of specific system components.
 
-- **[Hardware Simulation](./services/hardware-sim.md)**: Fleet of synthetic sensors and chaos injection engine.
+- **[Hardware Simulation](./services/hardware-sim.md)**: External synthetic
+  workload repo observed by this platform through shared MQTT and
+  observability interfaces.
 - **[MCP Servers](./services/mcp-servers.md)**: The "Agentic Interface" suite for autonomous operations.
 - **[Proxy Service](./services/proxy.md)**: The API Gateway and GitOps listener.
 - **[Tailscale Gate](./services/tailscale-gate.md)**: Logic for the automated funnel gatekeeper.

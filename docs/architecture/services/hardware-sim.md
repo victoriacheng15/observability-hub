@@ -1,6 +1,21 @@
 # Hardware Simulation Learning Lab
 
-The Hardware Simulation domain (`cmd/sensor`, `cmd/chaos-controller`) is an exploratory learning lab for hardware-style telemetry. It is not a production robotics stack or a serious hardware-control system. It simulates a small fleet of sensor-like workloads so the project can explore how data from sensors, drones, robots, or other edge devices might be collected, transported, monitored, and diagnosed.
+The Hardware Simulation domain now lives in the public `hardware-sim-lab` repo.
+It remains an exploratory learning lab for hardware-style telemetry rather than
+production robotics or hardware control. The purpose is still the same:
+simulate a small fleet of sensor-like workloads so the platform can explore how
+data from sensors, drones, robots, or other edge devices might be collected,
+transported, monitored, and diagnosed.
+
+Within `observability-hub`, hardware simulation is now treated as an external
+workload domain:
+
+- `hardware-sim-lab` owns the sensor, chaos, and MQTT-ingestor code, images,
+  and Kubernetes manifests
+- `observability-hub` owns the shared MQTT, OpenTelemetry, Prometheus, and
+  Grafana environment that receives and visualizes that telemetry
+- Argo CD child applications in this repo point at `hardware-sim-lab` for
+  `dev` and `prod` overlays
 
 ## Objective
 
@@ -10,7 +25,7 @@ To build practical intuition for hardware monitoring. By simulating physical-ish
 
 ### Sensor Fleet (`sensor`)
 
-- **Type**: Kubernetes StatefulSet (`hardware-sim` namespace).
+- **Type**: Kubernetes StatefulSet in `hardware-sim-lab`.
 - **Role**: Simulates an individual hardware device emitting real-time telemetry.
 - **Logic**:
   - **Boot Sequence**: Emits serial-style logs to Loki mimicking a hardware bootloader.
@@ -60,7 +75,7 @@ In the current implementation, `running` is published during normal telemetry, `
 
 ### Chaos Controller (`chaos-controller`)
 
-- **Type**: Kubernetes Deployment.
+- **Type**: Kubernetes Deployment in `hardware-sim-lab`.
 - **Role**: A small experiment driver that injects periodic failure modes into the sensor fleet.
 - **Logic**:
   - **Discovery**: Queries the Kubernetes API to identify active `sensor-fleet` pods.
@@ -91,9 +106,10 @@ sequenceDiagram
     end
 ```
 
-## Observability Implementation
+## Platform Integration
 
-The simulation uses the platform's observability stack as a learning surface:
+The simulation uses the platform's shared observability environment as a
+learning surface:
 
 - **Logs**: Boot sequences and chaos event transitions are emitted as structured logs and collected by Grafana Loki.
 - **Metrics**: EMQX stats are scraped by Prometheus, providing visibility into the message throughput and client connectivity of the simulation fleet.

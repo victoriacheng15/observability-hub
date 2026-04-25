@@ -5,7 +5,9 @@ This directory contains technical "cheat sheets" and operational guides for main
 ## 📂 Available Notes
 
 - **[Cilium & Hubble](./cilium-networking.md)**: Breakdown of L3/L4/L7 visibility and policy-driven network observability.
-- **[Hardware Simulation Validation](./hardware-sim-validation.md)**: End-to-end validation steps for the synthetic sensor, MQTT, ingestor, and Grafana flow.
+- **[Hardware Simulation Validation](./hardware-sim-validation.md)**: End-to-end
+  validation steps for the synthetic sensor, MQTT, ingestor, and Grafana flow
+  now sourced from `hardware-sim-lab`.
 - **[k3s Operations Guide](./k3s-operations.md)**: Procedures for deployment, image management, and data migration in the cluster.
 - **[MCP Gateway](./mcp-gateway-deployment.md)**: Unified agentic execution guide for autonomous platform operations.
 - **[Network Flow Baseline](./network-flow-baseline.md)**: Current reference matrix for required in-cluster and external traffic paths.

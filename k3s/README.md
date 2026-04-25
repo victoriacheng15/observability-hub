@@ -9,16 +9,15 @@ For detailed operational procedures, including deployment commands, image sidelo
 ## 📂 Directory Structure
 
 - **base/**: Shared Kustomize base for cluster workloads and infrastructure.
-- **base/hardware-sim/**: Synthetic hardware simulation workloads such as
-  `sensor-fleet`, `chaos-controller`, and `mqtt-ingestor`.
-- **base/hub-apps/**: Hub application workloads managed in-cluster.
+- **base/hub-apps/**: Hub-managed application objects, including Argo CD child
+  apps that point at external workload repos such as `hardware-sim-lab`.
 - **base/infra/**: Helm values and provisioned assets for Grafana, Loki, MinIO,
   OpenTelemetry, Prometheus, Tempo, and Thanos.
-- **base/rbac/**: Shared service accounts, roles, and bindings.
+- **base/rbac/**: Shared platform service accounts, roles, and bindings.
 - **base/worker/**: Worker CronJobs and their base image/tag configuration.
 - **bootstrap/**: Cluster bootstrap assets.
 - **cilium-policies/**: Network policy definitions for Cilium.
-- **overlays/dev/**: Development overlay for namespace, image, and rollout
-  overrides.
-- **overlays/prod/**: Production overlay for namespace, image, and rollout
-  overrides.
+
+Hardware simulation workloads no longer live directly in this tree. They are
+managed from the public `hardware-sim-lab` repo through Argo CD child
+applications declared under `base/hub-apps/`.

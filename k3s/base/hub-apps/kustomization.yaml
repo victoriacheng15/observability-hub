@@ -3,3 +3,5 @@ kind: Kustomization
 
 resources:
   - automation.yaml
+  - hardware-sim-lab-dev.yaml
+  - hardware-sim-lab-prod.yaml
