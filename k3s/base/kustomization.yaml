@@ -4,5 +4,3 @@ kind: Kustomization
 resources:
   - worker
   - hub-apps
-  - hardware-sim
-  - rbac
