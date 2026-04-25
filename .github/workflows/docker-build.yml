@@ -40,26 +40,6 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            sensor:
-              - "cmd/sensor/**"
-              - "internal/hardware-sim/**"
-              - "docker/sensor/**"
-              - "go.mod"
-              - "go.sum"
-            chaos-controller:
-              - "cmd/chaos-controller/**"
-              - "internal/hardware-sim/**"
-              - "docker/chaos-controller/**"
-              - "go.mod"
-              - "go.sum"
-            mqtt-ingestor:
-              - "cmd/mqtt-ingestor/**"
-              - "internal/env/**"
-              - "internal/mqttingestor/**"
-              - "internal/telemetry/**"
-              - "docker/mqtt-ingestor/**"
-              - "go.mod"
-              - "go.sum"
             postgres-cnpg:
               - "docker/postgres-cnpg/**"
             worker:
@@ -80,7 +60,7 @@ jobs:
           CHANGED_SERVICES: ${{ steps.filter.outputs.changes }}
         run: |
           if [ "$FULL_BUILD" = "true" ]; then
-            echo 'services=["sensor","chaos-controller","mqtt-ingestor","postgres-cnpg","worker"]' >> "$GITHUB_OUTPUT"
+            echo 'services=["postgres-cnpg","worker"]' >> "$GITHUB_OUTPUT"
           else
             echo "services=${CHANGED_SERVICES:-[]}" >> "$GITHUB_OUTPUT"
           fi
