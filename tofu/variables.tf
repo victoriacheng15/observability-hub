@@ -41,7 +41,7 @@ variable "hardware_sim_namespace" {
 variable "argocd_chart_version" {
   description = "Helm chart version for ArgoCD."
   type        = string
-  default     = "9.4.17"
+  default     = "9.5.4"
 }
 
 # --- Azure Storage ---
