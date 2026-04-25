@@ -42,7 +42,8 @@ Handles the automated build and hosting of the public-facing portfolio web.
 Automates the containerization and delivery of Hub services to the GitHub Container Registry (GHCR).
 
 - **Trigger**: Pushes to the main branch or manual trigger.
-- **Responsibility**: Builds Docker images for core services (`worker`, `sensor`, `chaos-controller`, `postgres-cnpg`) using a matrix strategy.
+- **Responsibility**: Builds Docker images for platform-owned services
+  (`worker`, `postgres-cnpg`) using a matrix strategy.
 - **Key Feature**: Tags images with both `latest` and short-SHA for precise GitOps referencing and rollbacks.
 
 ### 🧪 [Go Lint & Test](../.github/workflows/go-ci.yml)
