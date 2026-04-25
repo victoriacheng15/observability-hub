@@ -1,3 +1,22 @@
+terraform {
+  required_providers {
+    grafana = {
+      source  = "grafana/grafana"
+      version = ">= 4.27"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 3.1"
+    }
+  }
+}
+
+# --- Shared Standards ---
+
+locals {
+  standards = yamldecode(file("${path.module}/../../../k3s/_standards.yaml")).homelab
+}
+
 # --- Visualization (Grafana) ---
 
 resource "helm_release" "grafana" {
@@ -5,10 +24,10 @@ resource "helm_release" "grafana" {
   repository = "https://grafana.github.io/helm-charts"
   chart      = "grafana"
   version    = var.grafana_chart_version
-  namespace  = kubernetes_namespace_v1.hub.metadata[0].name
+  namespace  = var.hub_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/grafana/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/grafana/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       persistence = {
@@ -46,8 +65,6 @@ resource "helm_release" "grafana" {
       resources = local.standards.resources.medium
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.hub]
 }
 
 resource "grafana_folder" "observability" {
@@ -55,10 +72,10 @@ resource "grafana_folder" "observability" {
 }
 
 resource "grafana_dashboard" "dashboards" {
-  for_each = fileset("${path.module}/../k3s/base/infra/grafana/dashboards", "*.json")
+  for_each = fileset("${path.module}/../../../k3s/base/infra/grafana/dashboards", "*.json")
 
   folder      = grafana_folder.observability.id
-  config_json = file("${path.module}/../k3s/base/infra/grafana/dashboards/${each.value}")
+  config_json = file("${path.module}/../../../k3s/base/infra/grafana/dashboards/${each.value}")
   overwrite   = true
 }
 
@@ -187,4 +204,65 @@ resource "grafana_rule_group" "loki_log_errors" {
       })
     }
   }
+}
+
+# --- ArgoCD GitOps Controller ---
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = var.argocd_chart_version
+  namespace  = var.argocd_namespace
+
+  values = [
+    yamlencode({
+      global = {
+        domain               = "argocd.observability-hub.home"
+        revisionHistoryLimit = local.standards.deployment.revision_history_limit
+        image = {
+          imagePullPolicy = local.standards.deployment.image_pull_policy
+        }
+      }
+      configs = {
+        cm = {
+          "application.instanceLabelKey"       = "argocd.argoproj.io/instance"
+          "application.resourceTrackingMethod" = "annotation+label"
+        }
+      }
+      server = {
+        extraArgs = ["--insecure"]
+        service = {
+          type          = "NodePort"
+          nodePortHttp  = 30088
+          nodePortHttps = 30443
+        }
+        resources = local.standards.resources.standard
+      }
+      controller = {
+        resources = local.standards.resources.large
+      }
+      repoServer = {
+        resources = local.standards.resources.medium
+      }
+      applicationSet = {
+        resources = local.standards.resources.small
+      }
+      redis = {
+        resources = local.standards.resources.small
+        persistence = {
+          enabled      = true
+          storageClass = local.standards.persistence.storage_class
+          size         = "2Gi"
+        }
+        serviceAccount = {
+          create = false
+          name   = "argocd-redis"
+        }
+        automountServiceAccountToken = false
+      }
+      notifications = { enabled = false }
+      dex           = { enabled = false }
+    })
+  ]
 }

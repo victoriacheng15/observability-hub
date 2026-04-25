@@ -1,6 +1,24 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 3.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 3.1"
+    }
+  }
+}
+
+# --- Shared Standards ---
+
+locals {
+  standards = yamldecode(file("${path.module}/../../../k3s/_standards.yaml")).homelab
+}
+
 # --- Metrics (Prometheus) ---
 
-# Fetch kube-dns service IP for nginx resolver configuration
 data "kubernetes_service_v1" "kube_dns" {
   metadata {
     name      = "kube-dns"
@@ -13,10 +31,10 @@ resource "helm_release" "prometheus" {
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus"
   version    = var.prometheus_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/prometheus/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/prometheus/values.yaml"),
     yamlencode({
       server = {
         revisionHistoryLimit = local.standards.deployment.revision_history_limit
@@ -69,8 +87,6 @@ resource "helm_release" "prometheus" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }
 
 # --- Energy Auditing (Kepler Native) ---
@@ -78,7 +94,7 @@ resource "helm_release" "prometheus" {
 resource "kubernetes_service_account_v1" "kepler" {
   metadata {
     name      = "kepler"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
     labels = {
       "app.kubernetes.io/name" = "kepler"
     }
@@ -117,14 +133,14 @@ resource "kubernetes_cluster_role_binding_v1" "kepler" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account_v1.kepler.metadata[0].name
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
   }
 }
 
 resource "kubernetes_config_map_v1" "kepler" {
   metadata {
     name      = "kepler"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
   }
 
   data = {
@@ -154,7 +170,7 @@ resource "kubernetes_config_map_v1" "kepler" {
 resource "kubernetes_service_v1" "kepler" {
   metadata {
     name      = "kepler"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
     labels = {
       "app.kubernetes.io/name" = "kepler"
     }
@@ -178,7 +194,7 @@ resource "kubernetes_service_v1" "kepler" {
 resource "kubernetes_daemon_set_v1" "kepler" {
   metadata {
     name      = "kepler"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
     labels = {
       "app.kubernetes.io/name" = "kepler"
     }
@@ -283,14 +299,12 @@ resource "kubernetes_daemon_set_v1" "kepler" {
       }
     }
   }
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }
 
 resource "kubernetes_service_v1" "prometheus_thanos_grpc" {
   metadata {
     name      = "prometheus-thanos-grpc"
-    namespace = kubernetes_namespace_v1.observability.metadata[0].name
+    namespace = var.observability_namespace
     labels = {
       "app.kubernetes.io/name"      = "prometheus"
       "app.kubernetes.io/component" = "thanos-sidecar"
@@ -311,7 +325,7 @@ resource "kubernetes_service_v1" "prometheus_thanos_grpc" {
     }
 
     type       = "ClusterIP"
-    cluster_ip = "None" # Headless service for SRV discovery
+    cluster_ip = "None"
   }
 }
 
@@ -322,10 +336,10 @@ resource "helm_release" "thanos" {
   repository = "oci://registry-1.docker.io/bitnamicharts"
   chart      = "thanos"
   version    = var.thanos_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/thanos/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/thanos/values.yaml"),
     yamlencode({
       query = {
         serviceAccount = {
@@ -333,7 +347,7 @@ resource "helm_release" "thanos" {
           name   = "thanos-query"
         }
         automountServiceAccountToken = false
-        extraFlags                   = ["--endpoint=prometheus-thanos-grpc.observability.svc.cluster.local:10901"]
+        extraFlags                   = ["--endpoint=prometheus-thanos-grpc.${var.observability_namespace}.svc.cluster.local:10901"]
       }
       storegateway = {
         serviceAccount = {
@@ -343,7 +357,7 @@ resource "helm_release" "thanos" {
         automountServiceAccountToken = false
         persistence = {
           storageClass = local.standards.persistence.storage_class
-          size         = "2Gi" # Preserve existing override
+          size         = "2Gi"
         }
         resources = local.standards.resources.medium
         podSecurityContext = {
@@ -370,7 +384,7 @@ resource "helm_release" "thanos" {
         automountServiceAccountToken = false
         persistence = {
           storageClass = local.standards.persistence.storage_class
-          size         = "2Gi" # Preserve existing override
+          size         = "2Gi"
         }
         resources = local.standards.resources.medium
         podSecurityContext = {
@@ -391,9 +405,8 @@ resource "helm_release" "thanos" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }
+
 # --- Logs (Loki) ---
 
 resource "helm_release" "loki" {
@@ -401,10 +414,10 @@ resource "helm_release" "loki" {
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
   version    = var.loki_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/loki/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/loki/values.yaml"),
     yamlencode({
       loki = {
         persistence = {
@@ -439,8 +452,6 @@ resource "helm_release" "loki" {
         affinity  = null
         resources = local.standards.resources.medium
         nginxConfig = {
-          # Use kube-dns ClusterIP directly to avoid DNS resolution timeout
-          # The default "kube-dns.kube-system.svc.cluster.local." causes circular dependency
           resolver = data.kubernetes_service_v1.kube_dns.spec[0].cluster_ip
         }
         containerSecurityContext = {
@@ -453,8 +464,6 @@ resource "helm_release" "loki" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }
 
 # --- Traces (Tempo) ---
@@ -464,10 +473,10 @@ resource "helm_release" "tempo" {
   repository = "https://grafana-community.github.io/helm-charts"
   chart      = "tempo"
   version    = var.tempo_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/tempo/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/tempo/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       serviceAccount = {
@@ -487,8 +496,6 @@ resource "helm_release" "tempo" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }
 
 # --- Signal Processing (OpenTelemetry) ---
@@ -498,10 +505,10 @@ resource "helm_release" "opentelemetry_collector" {
   repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
   chart      = "opentelemetry-collector"
   version    = var.otel_collector_chart_version
-  namespace  = kubernetes_namespace_v1.observability.metadata[0].name
+  namespace  = var.observability_namespace
 
   values = [
-    file("${path.module}/../k3s/base/infra/opentelemetry/values.yaml"),
+    file("${path.module}/../../../k3s/base/infra/opentelemetry/values.yaml"),
     yamlencode({
       revisionHistoryLimit = local.standards.deployment.revision_history_limit
       resources            = local.standards.resources.medium
@@ -520,6 +527,4 @@ resource "helm_release" "opentelemetry_collector" {
       }
     })
   ]
-
-  depends_on = [kubernetes_namespace_v1.observability]
 }

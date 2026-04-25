@@ -1,4 +1,4 @@
-# --- Environment ---
+# --- Global Environment ---
 
 variable "kubeconfig_path" {
   description = "Path to the kubeconfig file."
@@ -6,7 +6,17 @@ variable "kubeconfig_path" {
   default     = "~/.kube/config"
 }
 
-# --- Namespaces ---
+variable "tags" {
+  description = "Common tags for all project resources."
+  type        = map(string)
+  default = {
+    project       = "observability-hub"
+    observability = "enabled"
+    managed_by    = "opentofu"
+  }
+}
+
+# --- Shared Namespaces ---
 
 variable "observability_namespace" {
   description = "Namespace for all observability services."
@@ -38,13 +48,13 @@ variable "hardware_sim_namespace" {
   default     = "hardware-sim"
 }
 
+# --- Module Specific Versions (Kept at root for easier lifecycle management) ---
+
 variable "argocd_chart_version" {
   description = "Helm chart version for ArgoCD."
   type        = string
   default     = "9.5.4"
 }
-
-# --- Azure Storage ---
 
 variable "azurerm_storage_account_name" {
   description = "Name of the Azure Storage Account."
@@ -58,8 +68,6 @@ variable "azurerm_resource_group_name" {
   default     = "observability-rg"
 }
 
-# --- Databases & Persistence (infrastructure.tf) ---
-
 variable "minio_chart_version" {
   description = "Helm chart version for MinIO."
   type        = string
@@ -72,34 +80,22 @@ variable "cnpg_operator_chart_version" {
   default     = "0.27.1"
 }
 
-variable "postgres_image" {
-  description = "PostgreSQL image to use in the cluster."
-  type        = string
-  default     = "localhost/postgres-cnpg:17"
-}
-
-variable "postgres_database" {
-  description = "Default database name for the PostgreSQL cluster."
-  type        = string
-  default     = "homelab"
-}
-
-variable "postgres_owner" {
-  description = "Default owner for the PostgreSQL database."
-  type        = string
-  default     = "server"
-}
-
-variable "postgres_storage_size" {
-  description = "Storage size for the PostgreSQL cluster."
-  type        = string
-  default     = "10Gi"
-}
-
-variable "postgres_backup_schedule" {
-  description = "Cron schedule for automated PostgreSQL backups."
-  type        = string
-  default     = "0 0 2 * * *"
+variable "postgres_config" {
+  description = "PostgreSQL cluster configuration."
+  type = object({
+    image           = string
+    database        = string
+    owner           = string
+    storage_size    = string
+    backup_schedule = string
+  })
+  default = {
+    image           = "localhost/postgres-cnpg:17"
+    database        = "homelab"
+    owner           = "server"
+    storage_size    = "10Gi"
+    backup_schedule = "0 0 2 * * *"
+  }
 }
 
 variable "postgres_node_port" {
@@ -107,8 +103,6 @@ variable "postgres_node_port" {
   type        = number
   default     = 30432
 }
-
-# --- Observability Stack (observability.tf) ---
 
 variable "prometheus_chart_version" {
   description = "Helm chart version for Prometheus."
