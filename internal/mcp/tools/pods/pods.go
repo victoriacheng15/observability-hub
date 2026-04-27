@@ -2,8 +2,16 @@ package pods
 
 import (
 	"context"
+	"fmt"
+
+	toolvalidation "observability-hub/internal/mcp/tools"
 
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	maxLogTailLines       int64 = 1000
+	maxDeleteGraceSeconds int64 = 3600
 )
 
 // PodsInput is the common input for pod-related tools.
@@ -31,6 +39,10 @@ func NewInspectPodsHandler(listFn func(ctx context.Context, namespace string) (*
 }
 
 func (h *InspectPodsHandler) Execute(ctx context.Context, input PodsInput) (interface{}, error) {
+	if err := toolvalidation.OptionalDNS1123Label("namespace", input.Namespace); err != nil {
+		return nil, err
+	}
+
 	pods, err := h.listFn(ctx, input.Namespace)
 	if err != nil {
 		return nil, err
@@ -60,6 +72,9 @@ func NewDescribePodHandler(getFn func(ctx context.Context, namespace, name strin
 }
 
 func (h *DescribePodHandler) Execute(ctx context.Context, input PodsInput) (interface{}, error) {
+	if err := validatePodTarget(input.Namespace, input.Name); err != nil {
+		return nil, err
+	}
 	return h.getFn(ctx, input.Namespace, input.Name)
 }
 
@@ -73,6 +88,9 @@ func NewListPodEventsHandler(listEventsFn func(ctx context.Context, namespace, n
 }
 
 func (h *ListPodEventsHandler) Execute(ctx context.Context, input PodsInput) (interface{}, error) {
+	if err := validatePodTarget(input.Namespace, input.Name); err != nil {
+		return nil, err
+	}
 	return h.listEventsFn(ctx, input.Namespace, input.Name)
 }
 
@@ -95,6 +113,15 @@ func NewGetPodLogsHandler(getLogsFn func(ctx context.Context, namespace, name, c
 }
 
 func (h *GetPodLogsHandler) Execute(ctx context.Context, input PodLogsInput) (interface{}, error) {
+	if err := validatePodTarget(input.Namespace, input.Name); err != nil {
+		return nil, err
+	}
+	if err := toolvalidation.OptionalDNS1123Label("container", input.Container); err != nil {
+		return nil, err
+	}
+	if input.TailLines < 0 || input.TailLines > maxLogTailLines {
+		return nil, fmt.Errorf("tail_lines must be between 0 and %d", maxLogTailLines)
+	}
 	return h.getLogsFn(ctx, input.Namespace, input.Name, input.Container, input.TailLines, input.Previous)
 }
 
@@ -115,9 +142,26 @@ func NewDeletePodHandler(deleteFn func(ctx context.Context, namespace, name stri
 }
 
 func (h *DeletePodHandler) Execute(ctx context.Context, input DeletePodInput) (interface{}, error) {
+	if err := validatePodTarget(input.Namespace, input.Name); err != nil {
+		return nil, err
+	}
+	if input.GraceSeconds != nil && (*input.GraceSeconds < 0 || *input.GraceSeconds > maxDeleteGraceSeconds) {
+		return nil, fmt.Errorf("grace_seconds must be between 0 and %d", maxDeleteGraceSeconds)
+	}
+
 	err := h.deleteFn(ctx, input.Namespace, input.Name, input.GraceSeconds)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]string{"status": "deleted", "pod": input.Name, "namespace": input.Namespace}, nil
+}
+
+func validatePodTarget(namespace, name string) error {
+	if err := toolvalidation.DNS1123Label("namespace", namespace); err != nil {
+		return err
+	}
+	if err := toolvalidation.DNS1123Subdomain("name", name); err != nil {
+		return err
+	}
+	return nil
 }

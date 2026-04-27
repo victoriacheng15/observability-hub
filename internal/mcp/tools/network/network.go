@@ -1,6 +1,18 @@
 package network
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	toolvalidation "observability-hub/internal/mcp/tools"
+)
+
+const (
+	maxFlowsLast       = 100
+	maxHTTPPathLength  = 256
+	maxHTTPStatusToken = 16
+	maxNetworkTokenLen = 32
+)
 
 // ObserveNetworkFlowsInput is the input for the observe_network_flows tool.
 type ObserveNetworkFlowsInput struct {
@@ -42,6 +54,9 @@ func NewObserveNetworkFlowsHandler(fn func(ctx context.Context, namespace, pod, 
 }
 
 func (h *ObserveNetworkFlowsHandler) Execute(ctx context.Context, input ObserveNetworkFlowsInput) (interface{}, error) {
+	if err := validateObserveNetworkFlowsInput(input); err != nil {
+		return nil, err
+	}
 	return h.queryFn(ctx,
 		input.Namespace,
 		input.Pod,
@@ -57,4 +72,47 @@ func (h *ObserveNetworkFlowsHandler) Execute(ctx context.Context, input ObserveN
 		input.ToPort,
 		input.Last,
 	)
+}
+
+func validateObserveNetworkFlowsInput(input ObserveNetworkFlowsInput) error {
+	if err := toolvalidation.OptionalDNS1123Label("namespace", input.Namespace); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalPodRef("pod", input.Pod); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalPodRef("from_pod", input.FromPod); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalPodRef("to_pod", input.ToPod); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalSafeToken("protocol", input.Protocol, maxNetworkTokenLen); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalSafeToken("verdict", input.Verdict, maxNetworkTokenLen); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalSafeToken("http_status", input.HTTPStatus, maxHTTPStatusToken); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalSafeToken("http_method", input.HTTPMethod, maxNetworkTokenLen); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalTextFilter("http_path", input.HTTPPath, maxHTTPPathLength); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalSafeToken("reserved", input.Reserved, maxNetworkTokenLen); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalPort("port", input.Port); err != nil {
+		return err
+	}
+	if err := toolvalidation.OptionalPort("to_port", input.ToPort); err != nil {
+		return err
+	}
+	if input.Last < 0 || input.Last > maxFlowsLast {
+		return fmt.Errorf("last must be between 0 and %d", maxFlowsLast)
+	}
+	return nil
 }
