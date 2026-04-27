@@ -1,6 +1,6 @@
 # ADR 018: Domain-Isolated MCP Architecture
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 026](./026-unified-mcp-gateway-with-capability-accounting.md)
 - **Date:** 2026-03-11
 - **Author:** Victoria Cheng
 

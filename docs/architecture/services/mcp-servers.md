@@ -34,22 +34,23 @@ The gateway consolidates capabilities into a single binary (`mcp_obs_hub`) while
 | **Telemetry** | `mcp.telemetry` | **Health Brain**: Bridges the LGTM stack for autonomous observability. | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
 | **Kubernetes**| `mcp.pods` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
 | **Network**   | `mcp.network` | **Traffic Brain**: Real-time eBPF flow analysis and packet-level auditing. | `observe_network_flows` |
+| **Diagnostics** | `mcp.diagnostics` | **Capability Map**: Reports which MCP domains registered successfully at startup. | `mcp_capabilities` |
 
 ## ⚙️ Architectural Standards
 
 The MCP gateway adheres to a consistent, consolidated architectural standard:
 
 - **Protocol**: Model Context Protocol (MCP) over Stdio for seamless integration with local agent runtimes.
-- **Fat Binary Architecture**: Multi-domain logic is collapsed into a single high-performance binary to minimize management overhead and streamline the build/deploy pipeline.
-- **Soft-Fail Initialization**: Providers initialize sequentially; the gateway remains operational even if specific backends (e.g., a specific database or cluster API) are temporarily unreachable.
+- **Unified Gateway Architecture**: Multi-domain logic is consolidated into a single binary per [ADR 026](../../decisions/026-unified-mcp-gateway-with-capability-accounting.md), with domain isolation maintained through provider and tool package boundaries.
+- **Soft-Fail Initialization**: Providers initialize sequentially; the gateway remains operational even if specific backends (e.g., a specific database or cluster API) are temporarily unreachable. Startup logs and `mcp_capabilities` report the actual available domains and skipped-provider reasons.
 - **Guided Investigation**: Every tool metadata includes a direct link to a domain-specific `SKILL.md`. This ensures agents follow local "Standard Operating Procedures" (SOPs) rather than speculative missions.
 - **Unified Instrumentation**: The gateway is instrumented with the platform's Go SDK, emitting logs, metrics, and traces via OTLP to the central OpenTelemetry Collector using the `mcp.service` attribute as a domain discriminator.
 - **Decoupled Logic**: Tool handlers are decoupled into `internal/mcp/tools`, while domain access is abstracted into `internal/mcp/providers`, ensuring clean architectural boundaries.
 
 ## 🔭 Logic & Data Flow
 
-1. **Initialization**: The gateway initializes the OTel SDK and sequentially registers the Network, Pods, and Telemetry providers.
-2. **Registration**: 10 specialized tools are registered with the MCP SDK, defining strict JSON schemas for intent-based inputs.
+1. **Initialization**: The gateway initializes the OTel SDK and sequentially registers the Network, Pods, Telemetry, and Diagnostics providers.
+2. **Registration**: Available provider tools are registered with the MCP SDK, defining strict JSON schemas for intent-based inputs. The final tool count is computed from actual registered capabilities.
 3. **Execution**: When an agent invokes a tool, the gateway routes the request to the appropriate provider, captures results, and returns structured content.
 4. **Tracing**: Every tool invocation generates a trace span, correlating the agent's intent with the underlying system operations (e.g., `mcp.tool.query_metrics`).
 

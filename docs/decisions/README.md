@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **026** | [Unified MCP Gateway With Capability Accounting](./026-unified-mcp-gateway-with-capability-accounting.md) | 🔵 Accepted |
 | **025** | [Decouple Hardware Simulation](./025-decouple-hardware-simulation.md) | 🔵 Accepted |
 | **024** | [Trivy-Verified Workload Hardening](./024-trivy-verified-workload-hardening.md) | 🔵 Accepted |
 | **023** | [Benchmark-Validated Rust Obs Processor](./023-benchmark-rust-obs-processor.md) | 🔵 Accepted |
@@ -15,7 +16,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 | **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |
 | **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🔵 Accepted |
 | **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🔵 Accepted |
-| **018** | [Domain-Isolated MCP Architecture](./018-domain-isolated-mcp-architecture.md) | 🔵 Accepted |
+| **018** | [Domain-Isolated MCP Architecture](./018-domain-isolated-mcp-architecture.md) | 🟡 Superseded |
 | **017** | [Agentic Interface via MCP](./017-agentic-interface-mcp.md) | 🔵 Accepted |
 | **016** | [OpenTofu for K3s Service Management](./016-opentofu-k3s-migration.md) | 🔵 Accepted |
 | **015** | [Unified Host Telemetry Collectors](./015-unified-host-telemetry-collectors.md) | 🔵 Accepted |
