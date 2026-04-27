@@ -3,33 +3,20 @@ package providers
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"strings"
 
+	mcpcommand "observability-hub/internal/mcp/command"
 	"observability-hub/internal/telemetry"
 )
 
-// CommandRunner defines the interface for executing external commands.
-type CommandRunner interface {
-	Run(ctx context.Context, name string, arg ...string) ([]byte, error)
-}
-
-// RealCommandRunner is the production command runner.
-type RealCommandRunner struct{}
-
-func (r *RealCommandRunner) Run(ctx context.Context, name string, arg ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, name, arg...)
-	return cmd.CombinedOutput()
-}
-
 // NetworkProvider provides network observability tools backed by Cilium Hubble.
 type NetworkProvider struct {
-	runner CommandRunner
+	runner mcpcommand.Runner
 }
 
 // NewNetworkProvider creates a NetworkProvider.
 func NewNetworkProvider() *NetworkProvider {
-	return &NetworkProvider{runner: &RealCommandRunner{}}
+	return &NetworkProvider{runner: mcpcommand.NewExecutor([]string{"kubectl"})}
 }
 
 // QueryHubbleFlows retrieves real-time flow data from Hubble Relay.
@@ -84,13 +71,14 @@ func (p *NetworkProvider) QueryHubbleFlows(ctx context.Context, namespace, pod, 
 	args := []string{"-n", "kube-system", "exec", "ds/cilium", "--", "hubble", "--server", "unix:///var/run/cilium/hubble.sock"}
 	args = append(args, hubbleArgs...)
 
-	out, err := p.runner.Run(ctx, "kubectl", args...)
+	result, err := p.runner.Run(ctx, mcpcommand.Request{Name: "kubectl", Args: args})
 	if err != nil {
-		telemetry.Error("hubble observe via kubectl failed", "error", err, "output", string(out))
+		output := string(result.Stdout) + string(result.Stderr)
+		telemetry.Error("hubble observe via kubectl failed", "error", err, "output", output)
 		return "", fmt.Errorf("hubble observe failed: %w", err)
 	}
 
-	lines := strings.Split(string(out), "\n")
+	lines := strings.Split(string(result.Stdout), "\n")
 	cleaned := make([]string, 0, len(lines))
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
