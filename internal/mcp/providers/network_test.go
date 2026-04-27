@@ -6,18 +6,20 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	mcpcommand "observability-hub/internal/mcp/command"
 )
 
-// MockCommandRunner satisfies the CommandRunner interface for testing.
+// MockCommandRunner satisfies the command runner interface for testing.
 type MockCommandRunner struct {
-	RunFn func(ctx context.Context, name string, arg ...string) ([]byte, error)
+	RunFn func(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error)
 }
 
-func (m *MockCommandRunner) Run(ctx context.Context, name string, arg ...string) ([]byte, error) {
+func (m *MockCommandRunner) Run(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error) {
 	if m.RunFn != nil {
-		return m.RunFn(ctx, name, arg...)
+		return m.RunFn(ctx, req)
 	}
-	return nil, nil
+	return mcpcommand.Result{}, nil
 }
 
 func TestNetworkProvider_QueryHubbleFlows(t *testing.T) {
@@ -82,14 +84,14 @@ func TestNetworkProvider_QueryHubbleFlows(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &MockCommandRunner{
-				RunFn: func(ctx context.Context, name string, arg ...string) ([]byte, error) {
-					if name != "kubectl" {
-						t.Errorf("expected kubectl command, got %s", name)
+				RunFn: func(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error) {
+					if req.Name != "kubectl" {
+						t.Errorf("expected kubectl command, got %s", req.Name)
 					}
-					if tt.wantArgs != nil && !reflect.DeepEqual(arg, tt.wantArgs) {
-						t.Errorf("got args %v, want %v", arg, tt.wantArgs)
+					if tt.wantArgs != nil && !reflect.DeepEqual(req.Args, tt.wantArgs) {
+						t.Errorf("got args %v, want %v", req.Args, tt.wantArgs)
 					}
-					return []byte(tt.mockOutput), tt.mockErr
+					return mcpcommand.Result{Stdout: []byte(tt.mockOutput)}, tt.mockErr
 				},
 			}
 			p := &NetworkProvider{runner: mock}

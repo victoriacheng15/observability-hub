@@ -4,7 +4,18 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
+
+	mcpcommand "observability-hub/internal/mcp/command"
 )
+
+type mockCommandRunner struct {
+	runFn func(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error)
+}
+
+func (m mockCommandRunner) Run(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error) {
+	return m.runFn(ctx, req)
+}
 
 func TestQueryMetricsHandler_Execute(t *testing.T) {
 	mockQuery := func(ctx context.Context, query string) (interface{}, error) {
@@ -92,6 +103,41 @@ func TestQueryMetricsHandler_Execute(t *testing.T) {
 	}
 }
 
+func TestQueryMetricsHandler_ExecuteSummarizesWithCommandRunner(t *testing.T) {
+	mockQuery := func(ctx context.Context, query string) (interface{}, error) {
+		return map[string]interface{}{"status": "success"}, nil
+	}
+
+	handler := NewQueryMetricsHandler(mockQuery)
+	handler.runner = mockCommandRunner{
+		runFn: func(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error) {
+			if req.Name != "/usr/local/bin/obs-processor" {
+				t.Fatalf("got command %q, want obs-processor", req.Name)
+			}
+			if strings.Join(req.Args, " ") != "--type metrics" {
+				t.Fatalf("got args %v, want metrics processor args", req.Args)
+			}
+			if len(req.Stdin) == 0 {
+				t.Fatal("expected raw query result on stdin")
+			}
+			if req.Timeout != 5*time.Second {
+				t.Fatalf("got timeout %s, want 5s", req.Timeout)
+			}
+			return mcpcommand.Result{Stdout: []byte(`{"summarized_count":1}`)}, nil
+		},
+	}
+
+	result, err := handler.Execute(context.Background(), QueryMetricsInput{Query: "up"})
+	if err != nil {
+		t.Fatalf("Execute() unexpected error: %v", err)
+	}
+
+	summarized := result.(map[string]interface{})
+	if summarized["summarized_count"].(float64) != 1 {
+		t.Fatalf("got %v, want summarized result", summarized)
+	}
+}
+
 func TestQueryLogsHandler_Execute(t *testing.T) {
 	mockQuery := func(ctx context.Context, query string, limit int, hours int) (interface{}, error) {
 		return map[string]interface{}{"streams": []interface{}{}}, nil
@@ -163,6 +209,41 @@ func TestQueryLogsHandler_Execute(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestQueryLogsHandler_ExecuteSummarizesWithCommandRunner(t *testing.T) {
+	mockQuery := func(ctx context.Context, query string, limit int, hours int) (interface{}, error) {
+		return map[string]interface{}{"streams": []interface{}{}}, nil
+	}
+
+	handler := NewQueryLogsHandler(mockQuery)
+	handler.runner = mockCommandRunner{
+		runFn: func(ctx context.Context, req mcpcommand.Request) (mcpcommand.Result, error) {
+			if req.Name != "/usr/local/bin/obs-processor" {
+				t.Fatalf("got command %q, want obs-processor", req.Name)
+			}
+			if strings.Join(req.Args, " ") != "--type logs" {
+				t.Fatalf("got args %v, want logs processor args", req.Args)
+			}
+			if len(req.Stdin) == 0 {
+				t.Fatal("expected raw query result on stdin")
+			}
+			if req.Timeout != 5*time.Second {
+				t.Fatalf("got timeout %s, want 5s", req.Timeout)
+			}
+			return mcpcommand.Result{Stdout: []byte(`{"summarized_count":1}`)}, nil
+		},
+	}
+
+	result, err := handler.Execute(context.Background(), QueryLogsInput{Query: `{service="proxy"}`})
+	if err != nil {
+		t.Fatalf("Execute() unexpected error: %v", err)
+	}
+
+	summarized := result.(map[string]interface{})
+	if summarized["summarized_count"].(float64) != 1 {
+		t.Fatalf("got %v, want summarized result", summarized)
 	}
 }
 

@@ -1,15 +1,14 @@
 package telemetry
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
+	mcpcommand "observability-hub/internal/mcp/command"
 	libtelemetry "observability-hub/internal/telemetry"
 )
 
@@ -35,6 +34,7 @@ type QueryMetricsInput struct {
 type QueryMetricsHandler struct {
 	queryFunc     func(ctx context.Context, query string) (interface{}, error)
 	processorPath string
+	runner        mcpcommand.Runner
 }
 
 // NewQueryMetricsHandler creates a new query metrics handler.
@@ -42,6 +42,7 @@ func NewQueryMetricsHandler(queryFunc func(ctx context.Context, query string) (i
 	return &QueryMetricsHandler{
 		queryFunc:     queryFunc,
 		processorPath: "/usr/local/bin/obs-processor",
+		runner:        mcpcommand.NewExecutor([]string{"/usr/local/bin/obs-processor"}),
 	}
 }
 
@@ -79,22 +80,18 @@ func (h *QueryMetricsHandler) summarizeMetrics(ctx context.Context, raw interfac
 		return nil, fmt.Errorf("failed to marshal raw metrics: %w", err)
 	}
 
-	// Create command with 5s timeout to prevent hanging the MCP server
-	childCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(childCtx, h.processorPath, "--type", "metrics")
-	cmd.Stdin = bytes.NewReader(rawJSON)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	if err := cmd.Run(); err != nil {
+	result, err := h.runner.Run(ctx, mcpcommand.Request{
+		Name:    h.processorPath,
+		Args:    []string{"--type", "metrics"},
+		Stdin:   rawJSON,
+		Timeout: 5 * time.Second,
+	})
+	if err != nil {
 		return nil, fmt.Errorf("rust processor execution failed: %w", err)
 	}
 
 	var summarized interface{}
-	if err := json.Unmarshal(out.Bytes(), &summarized); err != nil {
+	if err := json.Unmarshal(result.Stdout, &summarized); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal summarized metrics: %w", err)
 	}
 
@@ -138,6 +135,7 @@ type QueryLogsInput struct {
 type QueryLogsHandler struct {
 	queryFunc        func(ctx context.Context, query string, limit int, hours int) (interface{}, error)
 	logProcessorPath string
+	runner           mcpcommand.Runner
 }
 
 // NewQueryLogsHandler creates a new query logs handler.
@@ -145,6 +143,7 @@ func NewQueryLogsHandler(queryFunc func(ctx context.Context, query string, limit
 	return &QueryLogsHandler{
 		queryFunc:        queryFunc,
 		logProcessorPath: "/usr/local/bin/obs-processor",
+		runner:           mcpcommand.NewExecutor([]string{"/usr/local/bin/obs-processor"}),
 	}
 }
 
@@ -180,22 +179,18 @@ func (h *QueryLogsHandler) summarizeLogs(ctx context.Context, raw interface{}) (
 		return nil, fmt.Errorf("failed to marshal raw logs: %w", err)
 	}
 
-	// Create command with 5s timeout to prevent hanging the MCP server
-	childCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(childCtx, h.logProcessorPath, "--type", "logs")
-	cmd.Stdin = bytes.NewReader(rawJSON)
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	if err := cmd.Run(); err != nil {
+	result, err := h.runner.Run(ctx, mcpcommand.Request{
+		Name:    h.logProcessorPath,
+		Args:    []string{"--type", "logs"},
+		Stdin:   rawJSON,
+		Timeout: 5 * time.Second,
+	})
+	if err != nil {
 		return nil, fmt.Errorf("rust processor execution failed: %w", err)
 	}
 
 	var summarized interface{}
-	if err := json.Unmarshal(out.Bytes(), &summarized); err != nil {
+	if err := json.Unmarshal(result.Stdout, &summarized); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal summarized logs: %w", err)
 	}
 
