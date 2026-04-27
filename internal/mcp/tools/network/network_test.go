@@ -1,4 +1,4 @@
-package hub
+package network
 
 import (
 	"context"
@@ -32,7 +32,6 @@ func TestObserveNetworkFlowsHandler_Execute(t *testing.T) {
 				Last:       5,
 			},
 			mockOutput: `{"flow":{"verdict":"FORWARDED"}}`,
-			wantErr:    false,
 		},
 		{
 			name: "Provider Error",
