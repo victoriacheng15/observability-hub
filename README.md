@@ -15,7 +15,7 @@ It proves an end-to-end platform ownership loop: declarative infrastructure runs
 | Platform orchestration | Systemd handles host-tier control while Kubernetes runs scalable data services |
 | GitOps delivery | Argo CD reconciles cluster manifests and Proxy webhooks trigger host sync |
 | Observability | OpenTelemetry, Grafana, Loki, Tempo, Prometheus, and Hubble correlate logs, metrics, traces, and network flows |
-| Agent operations | MCP tools expose telemetry queries, pod inspection, host health, network flows, and bounded repair actions |
+| Agent operations | MCP tools expose telemetry queries, pod inspection, network flows, and bounded repair actions |
 | Data durability | CloudNativePG, MinIO, and Azure backup paths support persistent platform state |
 | Security | OpenBao, Trivy checks, Kubernetes security contexts, and Cilium policies reduce secret and workload risk |
 | Operational memory | ADRs, incident reports, notes, workflows, and ownership docs preserve decisions and recovery paths |
@@ -30,7 +30,7 @@ The main system flow starts from declarative source, runs through host and clust
 | :--- | :--- | :--- |
 | Platform reconciliation | Keep host and cluster state aligned with Git | Git/Terraform/Kustomize/systemd -> Argo CD/Proxy -> Kubernetes/systemd runtime |
 | Telemetry pipeline | Capture behavior across services and infrastructure | Go services/Kubernetes/Cilium -> OpenTelemetry/Prometheus/Loki/Tempo/Hubble -> Grafana/MCP |
-| Agent diagnosis | Let operators query and repair live systems through bounded tools | MCP Hub -> telemetry/pod/host/network providers -> diagnosis or controlled remediation |
+| Agent diagnosis | Let operators query and repair live systems through bounded tools | MCP Hub -> telemetry/pod/network providers -> diagnosis or controlled remediation |
 | Batch analytics | Convert runtime metrics and ingestion inputs into stored operational insight | Worker CronJobs -> Prometheus/Postgres/OpenBao -> analytics and ingestion records |
 | Operational memory | Preserve the reasoning behind decisions and failures | Workflows/incidents -> ADRs/RCAs/notes -> future source changes |
 

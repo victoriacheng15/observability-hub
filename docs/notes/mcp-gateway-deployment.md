@@ -1,6 +1,6 @@
 # MCP Gateway: Unified Agentic Execution Guide
 
-The `mcp_obs_hub` gateway provides a unified **Model Context Protocol (MCP)** interface for autonomous platform operations. It consolidates the Telemetry (LGTM), Kubernetes (Pods), and Host (Hub) domains into a single authoritative binary, enabling AI agents to correlate system-wide state through a single reasoning loop.
+The `mcp_obs_hub` gateway provides a unified **Model Context Protocol (MCP)** interface for autonomous platform operations. It consolidates the Telemetry (LGTM), Kubernetes (Pods), and Network (Hubble) domains into a single authoritative binary, enabling AI agents to correlate system-wide state through a single reasoning loop.
 
 ---
 
@@ -115,10 +115,10 @@ Add to `~/.gemini/settings.json` under the `mcpServers` key:
 
 ---
 
-## Consolidated Toolset (13 Tools)
+## Consolidated Toolset (10 Tools)
 
 | Domain | Key Tools |
 | :--- | :--- |
 | **Telemetry** | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
 | **Kubernetes**| `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
-| **Host/Hub** | `hub_inspect_platform`, `hub_inspect_host`, `hub_list_host_services`, `hub_query_service_logs` |
+| **Network** | `observe_network_flows` |

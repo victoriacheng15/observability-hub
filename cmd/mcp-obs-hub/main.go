@@ -41,14 +41,13 @@ func main() {
 
 	// 3. Sequential Provider Initialization (Soft-Fail Pattern)
 
-	// --- Hub Provider ---
-	hubProv := providers.NewHubProvider()
-	if hubProv != nil {
-		internalmcp.RegisterHubTools(server, hubProv, "mcp.hub")
-		internalmcp.RegisterNetworkTools(server, hubProv, "mcp.network")
-		telemetry.Info("registered hub and network tools")
+	// --- Network Provider ---
+	networkProv := providers.NewNetworkProvider()
+	if networkProv != nil {
+		internalmcp.RegisterNetworkTools(server, networkProv, "mcp.network")
+		telemetry.Info("registered network tools")
 	} else {
-		telemetry.Warn("mcp_hub_init_failed_skipping_tools")
+		telemetry.Warn("mcp_network_init_failed_skipping_tools")
 	}
 
 	// --- Pods Provider ---
@@ -76,7 +75,7 @@ func main() {
 	}
 
 	// 4. Run Server (Stdio transport)
-	telemetry.Info("mcp-obs-hub ready, unified 14 tools available")
+	telemetry.Info("mcp-obs-hub ready, unified 10 tools available")
 
 	transport := &mcp.StdioTransport{}
 	if err := server.Run(ctx, transport); err != nil {

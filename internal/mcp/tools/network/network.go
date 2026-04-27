@@ -1,8 +1,6 @@
-package hub
+package network
 
-import (
-	"context"
-)
+import "context"
 
 // ObserveNetworkFlowsInput is the input for the observe_network_flows tool.
 type ObserveNetworkFlowsInput struct {
@@ -36,7 +34,6 @@ type ObserveNetworkFlowsInput struct {
 
 // ObserveNetworkFlowsHandler handles real-time network flow observation via Hubble.
 type ObserveNetworkFlowsHandler struct {
-	// queryFn is decoupled from the Input struct to prevent import cycles.
 	queryFn func(ctx context.Context, namespace, pod, fromPod, toPod, protocol, verdict, httpStatus, httpMethod, httpPath, reserved string, port, toPort, last int) (string, error)
 }
 

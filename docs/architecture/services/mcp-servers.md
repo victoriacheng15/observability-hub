@@ -1,6 +1,6 @@
 # MCP Gateway Architecture
 
-The Observability Hub implements a unified **Model Context Protocol (MCP)** gateway to bridge the gap between AI agents and the platform's specialized domains. This "Agentic Interface" allows LLM-based tools (Gemini CLI, GitHub Copilot) to autonomously interact with system telemetry, Kubernetes infrastructure, and host-level automation through a single authoritative entry point.
+The Observability Hub implements a unified **Model Context Protocol (MCP)** gateway to bridge the gap between AI agents and the platform's specialized domains. This "Agentic Interface" allows LLM-based tools (Gemini CLI, GitHub Copilot) to autonomously interact with system telemetry, Kubernetes infrastructure, and network flow data through a single authoritative entry point.
 
 This is an advanced capability of the platform, not a prerequisite for understanding the rest of the system. The core observability story still begins with services, telemetry, and Grafana. The MCP gateway sits on top of that foundation and exposes it as a controlled interface for AI-assisted operations.
 
@@ -9,7 +9,7 @@ In plain language, this component turns the platform into something an agent can
 ## Operational Role
 
 - It extends the platform beyond dashboards into AI-assisted operations
-- It unifies telemetry, Kubernetes state, network visibility, and host intelligence behind one interface
+- It unifies telemetry, Kubernetes state, and network visibility behind one interface
 - It connects observability data to autonomous tooling, not just human-facing dashboards
 
 ## Example Workflow
@@ -34,7 +34,6 @@ The gateway consolidates capabilities into a single binary (`mcp_obs_hub`) while
 | **Telemetry** | `mcp.telemetry` | **Health Brain**: Bridges the LGTM stack for autonomous observability. | `query_metrics`, `query_logs`, `query_traces`, `investigate_incident` |
 | **Kubernetes**| `mcp.pods` | **Infrastructure Brain**: Provides high-fidelity cluster state for pod and event analysis. | `inspect_pods`, `describe_pod`, `list_pod_events`, `get_pod_logs`, `delete_pod` |
 | **Network**   | `mcp.network` | **Traffic Brain**: Real-time eBPF flow analysis and packet-level auditing. | `observe_network_flows` |
-| **Host/Hub** | `mcp.hub` | **System Brain**: Direct host-level intelligence for systemd and hardware state. | `hub_inspect_platform`, `hub_inspect_host`, `hub_list_host_services`, `hub_query_service_logs` |
 
 ## ⚙️ Architectural Standards
 
@@ -49,8 +48,8 @@ The MCP gateway adheres to a consistent, consolidated architectural standard:
 
 ## 🔭 Logic & Data Flow
 
-1. **Initialization**: The gateway initializes the OTel SDK and sequentially registers the Hub, Network, Pods, and Telemetry providers.
-2. **Registration**: 14 specialized tools are registered with the MCP SDK, defining strict JSON schemas for intent-based inputs.
+1. **Initialization**: The gateway initializes the OTel SDK and sequentially registers the Network, Pods, and Telemetry providers.
+2. **Registration**: 10 specialized tools are registered with the MCP SDK, defining strict JSON schemas for intent-based inputs.
 3. **Execution**: When an agent invokes a tool, the gateway routes the request to the appropriate provider, captures results, and returns structured content.
 4. **Tracing**: Every tool invocation generates a trace span, correlating the agent's intent with the underlying system operations (e.g., `mcp.tool.query_metrics`).
 
@@ -61,5 +60,4 @@ The MCP gateway adheres to a consistent, consolidated architectural standard:
 | **Agent Inbound** | MCP (Stdio) | Local Process | Unified reasoning interface |
 | **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access (Thanos/Loki/Tempo) |
 | **Cluster Outbound**| HTTPS | `K3s API` | Infrastructure state access |
-| **Host Outbound** | D-Bus/Systemd| Local Socket | System management access |
 | **Self-Observability** | OTLP (gRPC) | `localhost:30317` | Telemetry pipeline (OTLP) |

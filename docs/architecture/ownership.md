@@ -25,7 +25,7 @@ This page explains how the project connects infrastructure definition, deploymen
 
 | Domain | Source of Truth | Runtime | Signals | Diagnostic Path | Remediation Path | Memory |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Host Tier | `systemd/`, `scripts/`, `makefiles/systemd.mk` | `proxy`, OpenBao, host automation | systemd logs, host metrics | `hub_*` MCP tools, journal logs | service restart, unit update, script fix | `docs/notes/`, `docs/incidents/` |
+| Host Tier | `systemd/`, `scripts/`, `makefiles/systemd.mk` | `proxy`, OpenBao, host automation | systemd logs, host metrics | journal logs, systemd runbooks | service restart, unit update, script fix | `docs/notes/`, `docs/incidents/` |
 | Cluster Tier | `k3s/`, `tofu/` | K3s workloads and namespaces | pod status, events, kube metrics | pod MCP tools, kube events | GitOps sync, rollout, pod deletion | `docs/workflows.md`, incident reports |
 | Delivery | `.github/workflows/`, image tags, ArgoCD manifests | GitHub Actions, GHCR, ArgoCD | workflow status, image tags, sync state | workflow logs, proxy logs, ArgoCD state | PR fix, image retag, reconciliation | `docs/workflows.md` |
 | Observability | `k3s/base/infra/`, telemetry config | OpenTelemetry, Loki, Tempo, Prometheus, Grafana | logs, metrics, traces, dashboards | telemetry MCP tools, Grafana queries | config patch, collector restart, datasource fix | observability docs, RCAs |
@@ -33,7 +33,7 @@ This page explains how the project connects infrastructure definition, deploymen
 | Data | `tofu/`, database manifests, backup config | Postgres, MinIO, object storage backups | DB health, PVC state, backup status | DB logs, dashboard panels, pod tools | failover, restore, storage fix | `docs/notes/postgres.md`, incidents |
 | Networking | Cilium policies, network docs | Cilium, Hubble, service networking | flows, drops, DNS behavior | network MCP tools, flow baseline | policy patch, DNS/service correction | `docs/notes/network-flow-baseline.md` |
 | Security | `config/openbao/`, secrets manifests | OpenBao, Kubernetes secrets, service accounts | auth failures, service logs, policy errors | host logs, pod logs, security docs | rotate secret, patch policy, tighten RBAC | security docs, ADRs |
-| Agentic Ops | `cmd/mcp-obs-hub`, `internal/mcp/`, `skills/` | MCP tools over telemetry, pods, host, network | tool metrics, traces, logs | MCP tool calls and provider logs | bounded tool action, provider fix | MCP architecture docs, ADRs |
+| Agentic Ops | `cmd/mcp-obs-hub`, `internal/mcp/`, `skills/` | MCP tools over telemetry, pods, and network | tool metrics, traces, logs | MCP tool calls and provider logs | bounded tool action, provider fix | MCP architecture docs, ADRs |
 | Documentation | `docs/`, `AGENTS.md` | Versioned project memory | ADRs, RCAs, notes, workflow docs | doc index, linked incidents | update doc, add ADR/RCA | docs tree |
 
 ## Component Standard

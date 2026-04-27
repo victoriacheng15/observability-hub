@@ -11,7 +11,7 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"observability-hub/internal/mcp/providers"
-	"observability-hub/internal/mcp/tools/hub"
+	"observability-hub/internal/mcp/tools/network"
 	"observability-hub/internal/mcp/tools/pods"
 	"observability-hub/internal/mcp/tools/telemetry"
 
@@ -149,8 +149,7 @@ func TestRegisterTools_DoesNotPanic(t *testing.T) {
 	srv := sdkmcp.NewServer(&sdkmcp.Implementation{Name: "test", Version: "0.0.0"}, nil)
 	RegisterTelemetryTools(srv, providers.NewTelemetryProvider("http://thanos", "http://loki", "http://tempo"), "svc")
 	RegisterPodsTools(srv, (*providers.PodsProvider)(nil), "svc")
-	RegisterHubTools(srv, (*providers.HubProvider)(nil), "svc")
-	RegisterNetworkTools(srv, (*providers.HubProvider)(nil), "svc")
+	RegisterNetworkTools(srv, (*providers.NetworkProvider)(nil), "svc")
 }
 
 func TestRegistry_PodHandlers(t *testing.T) {
@@ -245,8 +244,8 @@ func TestRegistry_PodHandlers(t *testing.T) {
 	}
 }
 
-func TestRegistry_HubHandlers(t *testing.T) {
-	hp := providers.NewHubProvider()
+func TestRegistry_NetworkHandlers(t *testing.T) {
+	np := providers.NewNetworkProvider()
 	ctx := context.Background()
 
 	tests := []struct {
@@ -255,37 +254,10 @@ func TestRegistry_HubHandlers(t *testing.T) {
 		want    string
 	}{
 		{
-			name: "hub_inspect_platform",
-			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
-				h := handleInspectPlatform(hp, "svc")
-				res, _, err := h(ctx, nil, hub.HubInput{})
-				return res, err
-			},
-			want: `"node":"server2"`,
-		},
-		{
-			name: "hub_inspect_host",
-			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
-				h := handleInspectHost(hp, "svc")
-				res, _, err := h(ctx, nil, hub.HubInput{})
-				return res, err
-			},
-			want: "cpu_usage",
-		},
-		{
-			name: "hub_list_host_services",
-			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
-				h := handleListHostServices(hp, "svc")
-				res, _, err := h(ctx, nil, hub.HubInput{})
-				return res, err
-			},
-			want: "proxy.service",
-		},
-		{
 			name: "observe_network_flows",
 			handler: func(ctx context.Context) (*sdkmcp.CallToolResult, error) {
-				h := handleObserveNetworkFlows(hp, "svc")
-				res, _, err := h(ctx, nil, hub.ObserveNetworkFlowsInput{Namespace: "default"})
+				h := handleObserveNetworkFlows(np, "svc")
+				res, _, err := h(ctx, nil, network.ObserveNetworkFlowsInput{Namespace: "default"})
 				return res, err
 			},
 			want: "", // Output might be empty in test but we verify the call
