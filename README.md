@@ -8,17 +8,14 @@ It proves an end-to-end platform ownership loop: declarative infrastructure runs
 
 ---
 
-## Highlights
+## Case Studies
 
-| Area | What it demonstrates |
-| :--- | :--- |
-| Platform orchestration | Systemd handles host-tier control while Kubernetes runs scalable data services |
-| GitOps delivery | Argo CD reconciles cluster manifests and Proxy webhooks trigger host sync |
-| Observability | OpenTelemetry, Grafana, Loki, Tempo, Prometheus, and Hubble correlate logs, metrics, traces, and network flows |
-| Agent operations | MCP tools expose telemetry queries, pod inspection, network flows, and bounded repair actions |
-| Data durability | CloudNativePG, MinIO, and Azure backup paths support persistent platform state |
-| Security | OpenBao, Trivy checks, Kubernetes security contexts, and Cilium policies reduce secret and workload risk |
-| Operational memory | ADRs, incident reports, notes, workflows, and ownership docs preserve decisions and recovery paths |
+| Case Study | Problem | How it was diagnosed | Result |
+| :--- | :--- | :--- | :--- |
+| [Rust Telemetry Summarization Processor](./docs/decisions/021-rust-telemetry-summarization-processor.md) | Raw logs and metrics returned too much data for agent workflows | Added a Rust `obs-processor` to summarize Loki and Prometheus responses before returning them through MCP | Reduced token load while preserving investigation pivots |
+| [Worker Ingestion Blocked from MongoDB Atlas](./docs/incidents/007-worker-ingestion-atlas-egress-block.md) | Scheduled ingestion could not reach Atlas | Used worker logs and Cilium policy review to identify blocked egress | Added Atlas egress policy and documented prevention |
+| [Loki Gateway DNS Timeout](./docs/incidents/006-loki-gateway-dns-timeout.md) | Grafana and agents could not reliably query logs | Traced the request path through gateway DNS resolution and Loki service routing | Fixed resolver config and added operational checks |
+| [SSH Lockout via Cilium IPAM Collision](./docs/incidents/004-ssh-lockout-cilium-ipam-collision.md) | Host access failed after networking drift | Correlated Cilium/IPAM state, pod readiness, and host reachability | Restored access and documented recovery path |
 
 ---
 
