@@ -41,6 +41,41 @@ func TestObserveNetworkFlowsHandler_Execute(t *testing.T) {
 			mockErr: errors.New("hubble unreachable"),
 			wantErr: true,
 		},
+		{
+			name: "Invalid Namespace",
+			input: ObserveNetworkFlowsInput{
+				Namespace: "Bad Namespace",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid Pod Reference",
+			input: ObserveNetworkFlowsInput{
+				FromPod: "default/frontend/extra",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid Port",
+			input: ObserveNetworkFlowsInput{
+				Port: 70000,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid Last",
+			input: ObserveNetworkFlowsInput{
+				Last: 101,
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid HTTP Path",
+			input: ObserveNetworkFlowsInput{
+				HTTPPath: "/api\nv1",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
