@@ -1,7 +1,7 @@
 # Go Project Configuration
 GO_PACKAGES = ./cmd/... ./internal/...
 
-.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build mcp-build obs-processor
+.PHONY: format test test-cov update vet vuln-scan setup-tailwind web-build proxy-build idp-build mcp-build obs-processor
 
 format:
 	@echo "Formatting Go code..." && \
@@ -47,6 +47,12 @@ proxy-build:
 	sudo install -m 755 ./bin/proxy_server /usr/local/bin/proxy_server && \
 	sudo systemctl restart proxy.service && \
 	rm ./bin/proxy_server
+
+idp-build:
+	@echo "Updating hub-cli..." && \
+	go build -o ./bin/hub-cli ./cmd/idp && \
+	sudo install -m 755 ./bin/hub-cli /usr/local/bin/hub-cli && \
+	rm ./bin/hub-cli
 
 obs-processor:
 	@echo "Building Rust observability processor..." && \

@@ -8,6 +8,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 
 | ADR | Title | Status |
 | :--- | :--- | :--- |
+| **027** | [Hub CLI Developer Experience](./027-hub-cli-developer-experience.md) | 🔵 Accepted |
 | **026** | [Unified MCP Gateway With Capability Accounting](./026-unified-mcp-gateway-with-capability-accounting.md) | 🔵 Accepted |
 | **025** | [Decouple Hardware Simulation](./025-decouple-hardware-simulation.md) | 🔵 Accepted |
 | **024** | [Trivy-Verified Workload Hardening](./024-trivy-verified-workload-hardening.md) | 🔵 Accepted |

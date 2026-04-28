@@ -22,6 +22,7 @@ help:
 	@echo "  make vuln-scan            - Run govulncheck for security vulnerabilities"
 	@echo "  make web-build            - Build the GitHub Page"
 	@echo "  make proxy-build          - Build and restart the go proxy server"
+	@echo "  make idp-build            - Build and install the Hub IDP CLI"
 	@echo "  make obs-processor        - Build the standalone Rust observability processor"
 	@echo "  make mcp-build            - Build and install the mcp-obs-hub server"
 	@echo ""
