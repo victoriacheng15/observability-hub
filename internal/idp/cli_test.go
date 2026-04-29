@@ -92,6 +92,16 @@ func TestRunServiceCommands(t *testing.T) {
 		traces: []idpservice.Trace{
 			{Name: "grafana", Namespace: "observability", Kind: "Deployment", TraceID: "abc123", RootServiceName: "grafana", StartTime: "2026-04-28T12:00:00Z", Duration: "25ms"},
 		},
+		ownership: []idpservice.Ownership{
+			{
+				Summary:      idpservice.Summary{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "1/1", Age: "2h"},
+				Owner:        "platform",
+				Tier:         "frontend",
+				Source:       "https://github.com/example/grafana",
+				Docs:         []string{"runbook=docs/runbooks/grafana.md"},
+				SourceObject: "Deployment observability/grafana",
+			},
+		},
 	}
 	restore := stubService(t, fake)
 	defer restore()
@@ -107,6 +117,7 @@ func TestRunServiceCommands(t *testing.T) {
 		wantEvts []idpservice.EventsOptions
 		wantMets []idpservice.MetricsOptions
 		wantTrcs []idpservice.TracesOptions
+		wantOwn  []idpservice.OwnershipOptions
 	}{
 		{
 			name: "service list",
@@ -175,6 +186,13 @@ func TestRunServiceCommands(t *testing.T) {
 				"grafana  observability  Deployment  abc123    grafana       2026-04-28T12:00:00Z  25ms\n",
 			wantTrcs: []idpservice.TracesOptions{{Name: "grafana", Namespace: "observability", Hours: 2, Limit: 5}},
 		},
+		{
+			name: "service ownership",
+			args: []string{"service", "ownership", "grafana", "-n", "observability"},
+			want: "NAME     NAMESPACE      KIND        OWNER     TIER      SOURCE                              DOCS                              SOURCE_OBJECT\n" +
+				"grafana  observability  Deployment  platform  frontend  https://github.com/example/grafana  runbook=docs/runbooks/grafana.md  Deployment observability/grafana\n",
+			wantOwn: []idpservice.OwnershipOptions{{Name: "grafana", Namespace: "observability"}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -186,6 +204,7 @@ func TestRunServiceCommands(t *testing.T) {
 			fake.eventsOpts = nil
 			fake.metricsOpts = nil
 			fake.tracesOpts = nil
+			fake.ownershipOpts = nil
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
@@ -206,6 +225,7 @@ func TestRunServiceCommands(t *testing.T) {
 			assertServiceEventsOptions(t, fake.eventsOpts, tt.wantEvts)
 			assertServiceMetricsOptions(t, fake.metricsOpts, tt.wantMets)
 			assertServiceTracesOptions(t, fake.tracesOpts, tt.wantTrcs)
+			assertServiceOwnershipOptions(t, fake.ownershipOpts, tt.wantOwn)
 		})
 	}
 }
@@ -276,6 +296,11 @@ func TestRunServiceOptionErrors(t *testing.T) {
 			name: "unknown traces option",
 			args: []string{"service", "traces", "grafana", "--window", "5m"},
 			want: "unknown service traces option: --window",
+		},
+		{
+			name: "unknown ownership option",
+			args: []string{"service", "ownership", "grafana", "--owner", "platform"},
+			want: "unknown service ownership option: --owner",
 		},
 	}
 
@@ -679,20 +704,22 @@ func (f *fakeEnv) Describe(_ context.Context, opts idpenv.DescribeOptions) ([]id
 }
 
 type fakeService struct {
-	summaries    []idpservice.Summary
-	details      []idpservice.Details
-	health       []idpservice.Health
-	logs         []idpservice.LogLine
-	events       []idpservice.Event
-	metrics      []idpservice.Metric
-	traces       []idpservice.Trace
-	listOpts     []idpservice.ListOptions
-	describeOpts []idpservice.DescribeOptions
-	healthOpts   []idpservice.HealthOptions
-	logsOpts     []idpservice.LogsOptions
-	eventsOpts   []idpservice.EventsOptions
-	metricsOpts  []idpservice.MetricsOptions
-	tracesOpts   []idpservice.TracesOptions
+	summaries     []idpservice.Summary
+	details       []idpservice.Details
+	health        []idpservice.Health
+	logs          []idpservice.LogLine
+	events        []idpservice.Event
+	metrics       []idpservice.Metric
+	traces        []idpservice.Trace
+	ownership     []idpservice.Ownership
+	listOpts      []idpservice.ListOptions
+	describeOpts  []idpservice.DescribeOptions
+	healthOpts    []idpservice.HealthOptions
+	logsOpts      []idpservice.LogsOptions
+	eventsOpts    []idpservice.EventsOptions
+	metricsOpts   []idpservice.MetricsOptions
+	tracesOpts    []idpservice.TracesOptions
+	ownershipOpts []idpservice.OwnershipOptions
 }
 
 func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]idpservice.Summary, error) {
@@ -728,6 +755,11 @@ func (f *fakeService) Metrics(_ context.Context, opts idpservice.MetricsOptions)
 func (f *fakeService) Traces(_ context.Context, opts idpservice.TracesOptions) ([]idpservice.Trace, error) {
 	f.tracesOpts = append(f.tracesOpts, opts)
 	return f.traces, nil
+}
+
+func (f *fakeService) Ownership(_ context.Context, opts idpservice.OwnershipOptions) ([]idpservice.Ownership, error) {
+	f.ownershipOpts = append(f.ownershipOpts, opts)
+	return f.ownership, nil
 }
 
 type fakeCluster struct {
@@ -898,6 +930,19 @@ func assertServiceMetricsOptions(t *testing.T, got []idpservice.MetricsOptions, 
 }
 
 func assertServiceTracesOptions(t *testing.T, got []idpservice.TracesOptions, want []idpservice.TracesOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceOwnershipOptions(t *testing.T, got []idpservice.OwnershipOptions, want []idpservice.OwnershipOptions) {
 	t.Helper()
 
 	if len(got) != len(want) {
