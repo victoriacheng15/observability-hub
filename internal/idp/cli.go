@@ -1,10 +1,24 @@
 package idp
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
+	"text/tabwriter"
+
+	"observability-hub/internal/idp/catalog"
 )
+
+type catalogClient interface {
+	List(context.Context, catalog.ListOptions) ([]catalog.Entry, error)
+	Validate(context.Context, catalog.ListOptions) (catalog.Validation, error)
+}
+
+var newCatalog = func() (catalogClient, error) {
+	return catalog.NewKubernetesCatalog()
+}
 
 const helpText = `Hub CLI (IDP)
 
@@ -103,8 +117,18 @@ func runCatalog(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	switch args[0] {
-	case "list", "validate":
-		return printCalled(stdout, "idp catalog "+args[0])
+	case "list":
+		opts, ok := parseCatalogOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return listCatalog(opts, stdout, stderr)
+	case "validate":
+		opts, ok := parseCatalogOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return validateCatalog(opts, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown catalog command: %s\n\n", args[0])
 		fmt.Fprint(stderr, catalogHelpText())
@@ -139,6 +163,76 @@ func printCalled(stdout io.Writer, command string) int {
 	return 0
 }
 
+func listCatalog(opts catalog.ListOptions, stdout io.Writer, stderr io.Writer) int {
+	catalogClient, err := newCatalog()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	entries, err := catalogClient.List(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tSTATUS\tAGE")
+	for _, entry := range entries {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", entry.Name, entry.Namespace, entry.Kind, entry.Status, entry.Age)
+	}
+	writer.Flush()
+	return 0
+}
+
+func validateCatalog(opts catalog.ListOptions, stdout io.Writer, stderr io.Writer) int {
+	catalogClient, err := newCatalog()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	validation, err := catalogClient.Validate(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	fmt.Fprintf(stdout, "catalog valid: discovered %d resources across %d namespaces\n", validation.ResourceCount, validation.NamespaceCount)
+	for _, kind := range sortedKinds(validation.KindCounts) {
+		fmt.Fprintf(stdout, "- %s: %d\n", kind, validation.KindCounts[kind])
+	}
+	return 0
+}
+
+func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
+	var opts catalog.ListOptions
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown catalog option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
+func sortedKinds(counts map[string]int) []string {
+	kinds := make([]string, 0, len(counts))
+	for kind := range counts {
+		kinds = append(kinds, kind)
+	}
+	sort.Strings(kinds)
+	return kinds
+}
+
 func isHelp(arg string) bool {
 	return arg == "-h" || arg == "--help" || arg == "help"
 }
@@ -164,8 +258,8 @@ func clusterHelpText() string {
 
 func catalogHelpText() string {
 	return strings.TrimSpace(`Usage:
-  hub-cli catalog list
-  hub-cli catalog validate`) + "\n"
+  hub-cli catalog list [--namespace <namespace>]
+  hub-cli catalog validate [--namespace <namespace>]`) + "\n"
 }
 
 func envHelpText() string {
