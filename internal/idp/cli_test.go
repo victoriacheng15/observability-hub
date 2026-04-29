@@ -86,6 +86,12 @@ func TestRunServiceCommands(t *testing.T) {
 		events: []idpservice.Event{
 			{Type: "Warning", Reason: "BackOff", Age: "1m", Object: "Pod/grafana-0", Message: "back-off restarting failed container"},
 		},
+		metrics: []idpservice.Metric{
+			{Name: "grafana", Namespace: "observability", Kind: "Deployment", Signal: "cpu_cores", Value: "0.12"},
+		},
+		traces: []idpservice.Trace{
+			{Name: "grafana", Namespace: "observability", Kind: "Deployment", TraceID: "abc123", RootServiceName: "grafana", StartTime: "2026-04-28T12:00:00Z", Duration: "25ms"},
+		},
 	}
 	restore := stubService(t, fake)
 	defer restore()
@@ -99,6 +105,8 @@ func TestRunServiceCommands(t *testing.T) {
 		wantHeal []idpservice.HealthOptions
 		wantLogs []idpservice.LogsOptions
 		wantEvts []idpservice.EventsOptions
+		wantMets []idpservice.MetricsOptions
+		wantTrcs []idpservice.TracesOptions
 	}{
 		{
 			name: "service list",
@@ -153,6 +161,20 @@ func TestRunServiceCommands(t *testing.T) {
 				"Warning  BackOff  1m   Pod/grafana-0  back-off restarting failed container\n",
 			wantEvts: []idpservice.EventsOptions{{Name: "grafana", Namespace: "observability", Tail: 5, Since: 10 * time.Minute}},
 		},
+		{
+			name: "service metrics",
+			args: []string{"service", "metrics", "grafana", "-n", "observability", "--window", "10m"},
+			want: "NAME     NAMESPACE      KIND        SIGNAL     VALUE\n" +
+				"grafana  observability  Deployment  cpu_cores  0.12\n",
+			wantMets: []idpservice.MetricsOptions{{Name: "grafana", Namespace: "observability", Window: 10 * time.Minute}},
+		},
+		{
+			name: "service traces",
+			args: []string{"service", "traces", "grafana", "-n", "observability", "--hours", "2", "--limit", "5"},
+			want: "NAME     NAMESPACE      KIND        TRACE_ID  ROOT_SERVICE  START                 DURATION\n" +
+				"grafana  observability  Deployment  abc123    grafana       2026-04-28T12:00:00Z  25ms\n",
+			wantTrcs: []idpservice.TracesOptions{{Name: "grafana", Namespace: "observability", Hours: 2, Limit: 5}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -162,6 +184,8 @@ func TestRunServiceCommands(t *testing.T) {
 			fake.healthOpts = nil
 			fake.logsOpts = nil
 			fake.eventsOpts = nil
+			fake.metricsOpts = nil
+			fake.tracesOpts = nil
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
@@ -180,6 +204,8 @@ func TestRunServiceCommands(t *testing.T) {
 			assertServiceHealthOptions(t, fake.healthOpts, tt.wantHeal)
 			assertServiceLogsOptions(t, fake.logsOpts, tt.wantLogs)
 			assertServiceEventsOptions(t, fake.eventsOpts, tt.wantEvts)
+			assertServiceMetricsOptions(t, fake.metricsOpts, tt.wantMets)
+			assertServiceTracesOptions(t, fake.tracesOpts, tt.wantTrcs)
 		})
 	}
 }
@@ -240,6 +266,16 @@ func TestRunServiceOptionErrors(t *testing.T) {
 			name: "unknown events option",
 			args: []string{"service", "events", "grafana", "--container", "app"},
 			want: "unknown service events option: --container",
+		},
+		{
+			name: "invalid metrics window",
+			args: []string{"service", "metrics", "grafana", "--window", "soon"},
+			want: "invalid window for --window: soon",
+		},
+		{
+			name: "unknown traces option",
+			args: []string{"service", "traces", "grafana", "--window", "5m"},
+			want: "unknown service traces option: --window",
 		},
 	}
 
@@ -648,11 +684,15 @@ type fakeService struct {
 	health       []idpservice.Health
 	logs         []idpservice.LogLine
 	events       []idpservice.Event
+	metrics      []idpservice.Metric
+	traces       []idpservice.Trace
 	listOpts     []idpservice.ListOptions
 	describeOpts []idpservice.DescribeOptions
 	healthOpts   []idpservice.HealthOptions
 	logsOpts     []idpservice.LogsOptions
 	eventsOpts   []idpservice.EventsOptions
+	metricsOpts  []idpservice.MetricsOptions
+	tracesOpts   []idpservice.TracesOptions
 }
 
 func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]idpservice.Summary, error) {
@@ -678,6 +718,16 @@ func (f *fakeService) Logs(_ context.Context, opts idpservice.LogsOptions) ([]id
 func (f *fakeService) Events(_ context.Context, opts idpservice.EventsOptions) ([]idpservice.Event, error) {
 	f.eventsOpts = append(f.eventsOpts, opts)
 	return f.events, nil
+}
+
+func (f *fakeService) Metrics(_ context.Context, opts idpservice.MetricsOptions) ([]idpservice.Metric, error) {
+	f.metricsOpts = append(f.metricsOpts, opts)
+	return f.metrics, nil
+}
+
+func (f *fakeService) Traces(_ context.Context, opts idpservice.TracesOptions) ([]idpservice.Trace, error) {
+	f.tracesOpts = append(f.tracesOpts, opts)
+	return f.traces, nil
 }
 
 type fakeCluster struct {
@@ -822,6 +872,32 @@ func assertServiceLogsOptions(t *testing.T, got []idpservice.LogsOptions, want [
 }
 
 func assertServiceEventsOptions(t *testing.T, got []idpservice.EventsOptions, want []idpservice.EventsOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceMetricsOptions(t *testing.T, got []idpservice.MetricsOptions, want []idpservice.MetricsOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceTracesOptions(t *testing.T, got []idpservice.TracesOptions, want []idpservice.TracesOptions) {
 	t.Helper()
 
 	if len(got) != len(want) {
