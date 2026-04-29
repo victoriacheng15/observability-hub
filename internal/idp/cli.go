@@ -10,6 +10,7 @@ import (
 
 	"observability-hub/internal/idp/catalog"
 	"observability-hub/internal/idp/cluster"
+	idpenv "observability-hub/internal/idp/env"
 )
 
 type catalogClient interface {
@@ -23,12 +24,21 @@ type clusterClient interface {
 	Workloads(context.Context, cluster.WorkloadOptions) ([]cluster.Workload, error)
 }
 
+type envClient interface {
+	List(context.Context, idpenv.ListOptions) ([]idpenv.Resource, error)
+	Describe(context.Context, idpenv.DescribeOptions) ([]idpenv.Details, error)
+}
+
 var newCatalog = func() (catalogClient, error) {
 	return catalog.NewKubernetesCatalog()
 }
 
 var newCluster = func() (clusterClient, error) {
 	return cluster.NewKubernetesCluster()
+}
+
+var newEnv = func() (envClient, error) {
+	return idpenv.NewKubernetesEnvironment()
 }
 
 const helpText = `Hub CLI (IDP)
@@ -57,7 +67,7 @@ Catalog commands:
 
 Environment commands:
   env list
-  env describe <env>
+  env describe <name>
 `
 
 // Run executes the local IDP CLI command dispatcher.
@@ -163,13 +173,21 @@ func runEnv(args []string, stdout io.Writer, stderr io.Writer) int {
 
 	switch args[0] {
 	case "list":
-		return printCalled(stdout, "idp env list")
+		opts, ok := parseEnvListOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return listEnvironments(opts, stdout, stderr)
 	case "describe":
 		if len(args) < 2 {
 			fmt.Fprint(stderr, "missing environment name for idp env describe\n")
 			return 1
 		}
-		return printCalled(stdout, "idp env describe for "+args[1])
+		opts, ok := parseEnvDescribeOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return describeEnvironment(opts, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown env command: %s\n\n", args[0])
 		fmt.Fprint(stderr, envHelpText())
@@ -243,6 +261,57 @@ func listClusterWorkloads(opts cluster.WorkloadOptions, stdout io.Writer, stderr
 		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", workload.Name, workload.Namespace, workload.Kind, workload.Ready, workload.Age)
 	}
 	writer.Flush()
+	return 0
+}
+
+func listEnvironments(opts idpenv.ListOptions, stdout io.Writer, stderr io.Writer) int {
+	envClient, err := newEnv()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	resources, err := envClient.List(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tTYPE\tKEYS\tAGE")
+	for _, resource := range resources {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%d\t%s\n", resource.Name, resource.Namespace, resource.Kind, resource.Type, resource.DataCount, resource.Age)
+	}
+	writer.Flush()
+	return 0
+}
+
+func describeEnvironment(opts idpenv.DescribeOptions, stdout io.Writer, stderr io.Writer) int {
+	envClient, err := newEnv()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	details, err := envClient.Describe(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	for i, detail := range details {
+		if i > 0 {
+			fmt.Fprintln(stdout)
+		}
+		fmt.Fprintf(stdout, "Name: %s\n", detail.Name)
+		fmt.Fprintf(stdout, "Namespace: %s\n", detail.Namespace)
+		fmt.Fprintf(stdout, "Kind: %s\n", detail.Kind)
+		fmt.Fprintf(stdout, "Type: %s\n", detail.Type)
+		fmt.Fprintf(stdout, "Keys: %d\n", detail.DataCount)
+		for _, key := range detail.Keys {
+			fmt.Fprintf(stdout, "- %s\n", key)
+		}
+	}
 	return 0
 }
 
@@ -326,6 +395,51 @@ func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, 
 	return opts, true
 }
 
+func parseEnvListOptions(args []string, stderr io.Writer) (idpenv.ListOptions, bool) {
+	var opts idpenv.ListOptions
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown env list option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
+func parseEnvDescribeOptions(args []string, stderr io.Writer) (idpenv.DescribeOptions, bool) {
+	opts := idpenv.DescribeOptions{Name: args[0]}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		case "--kind":
+			if i+1 >= len(args) {
+				fmt.Fprint(stderr, "missing kind for --kind\n")
+				return opts, false
+			}
+			opts.Kind = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown env describe option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 func sortedKinds(counts map[string]int) []string {
 	kinds := make([]string, 0, len(counts))
 	for kind := range counts {
@@ -366,6 +480,6 @@ func catalogHelpText() string {
 
 func envHelpText() string {
 	return strings.TrimSpace(`Usage:
-  hub-cli env list
-  hub-cli env describe <env>`) + "\n"
+  hub-cli env list [--namespace <namespace>]
+  hub-cli env describe <name> [--namespace <namespace>] [--kind <ConfigMap|Secret>]`) + "\n"
 }
