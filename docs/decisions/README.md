@@ -16,7 +16,7 @@ This directory serves as the **Institutional Memory** for the Observability Hub.
 | **022** | [Structured Summaries for Obs Processor](./022-obs-processor-structured-summaries.md) | 🔵 Accepted |
 | **021** | [Rust Telemetry Summarization Processor](./021-rust-telemetry-summarization-processor.md) | 🔵 Accepted |
 | **020** | [Cilium eBPF Foundation](./020-cilium-ebpf-foundation.md) | 🔵 Accepted |
-| **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🔵 Accepted |
+| **019** | [Hybrid Host-MCP Intelligence Layer](./019-hybrid-host-mcp-intelligence.md) | 🟡 Superseded |
 | **018** | [Domain-Isolated MCP Architecture](./018-domain-isolated-mcp-architecture.md) | 🟡 Superseded |
 | **017** | [Agentic Interface via MCP](./017-agentic-interface-mcp.md) | 🔵 Accepted |
 | **016** | [OpenTofu for K3s Service Management](./016-opentofu-k3s-migration.md) | 🔵 Accepted |

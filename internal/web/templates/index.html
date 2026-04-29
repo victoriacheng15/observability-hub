@@ -39,11 +39,14 @@
 <div class="grid gap-16">
     <section class="grid gap-6">
         <h2 class="text-2xl font-bold text-white border-l-4 border-cyan-400 pl-4">{{ .Landing.WhatIs.Title }}</h2>
-        <div class="grid gap-4 text-slate-300 leading-relaxed">
+        <ul class="grid gap-4">
             {{range .Landing.WhatIs.Content}}
-            <p>{{ . }}</p>
+            <li class="flex gap-3 text-slate-300 leading-relaxed">
+                <span class="text-cyan-400">▹</span>
+                <span>{{ . }}</span>
+            </li>
             {{end}}
-        </div>
+        </ul>
     </section>
 
     <section class="grid gap-8" aria-label="Key Features">

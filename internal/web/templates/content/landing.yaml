@@ -3,18 +3,18 @@ header:
   site_url: "https://victoriacheng15.github.io/observability-hub"
 
 system_specification:
-  objective: "A self-hosted observability hub orchestrated via OpenTofu (Terraform) and ArgoCD (GitOps), demonstrating SRE and Platform Engineering principles through Go, eBPF-native Kubernetes (K3s/Cilium), and OpenTelemetry."
-  stack: "Go, OpenTelemetry, Model Context Protocol (MCP), Cilium (eBPF), Kepler (Energy Monitoring), ArgoCD (GitOps), Kubernetes (K3s), Helm, OpenTofu (Terraform), Grafana, Loki, Prometheus, Tempo, OpenBao, PostgreSQL, Azure Blob Storage"
+  objective: "A self-hosted observability hub orchestrated via Terraform and ArgoCD, demonstrating SRE and platform engineering principles through Go, eBPF-native Kubernetes (K3s/Cilium), OpenTelemetry, Model Context Protocol (MCP), and an internal Hub CLI."
+  stack: "Kubernetes (K3s), Go, Rust, Terraform, Prometheus, Grafana, OpenTelemetry, ArgoCD, Cilium (eBPF), PostgreSQL, Kepler, Azure Blob Storage, Model Context Protocol (MCP), Hub CLI"
   pattern: "Pure Wrapper / Hybrid Orchestration (Kubernetes + Systemd)"
   entry_point: "cmd/web/main.go"
   persistence_strategy: "PostgreSQL (CNPG) and tfstate on Azure Blob Storage; Logs, Metrics, and Traces on MinIO S3"
-  observability: "OpenTelemetry (OTLP/gRPC), eBPF (Cilium/Hubble/Kepler), and Agentic Intelligence (MCP) with Prometheus, Tempo, and Loki"
+  observability: "OpenTelemetry (OTLP/gRPC), eBPF (Cilium/Kepler), MCP-backed telemetry, pod, and network access, and Hub CLI inspection with Prometheus, Tempo, and Loki"
   machine_registry: "/api/evolution-registry.json"
 
 hero:
   headline: "A Laboratory for Observability"
   sub_headline: "Exploring SRE and Platform Engineering through a self-hosted telemetry stack."
-  brief_description: "Designed to eliminate configuration drift and optimize performance on a single-node rig using modern SRE principles."
+  brief_description: "A self-hosted platform engineering lab for Kubernetes operations, observability, and GitOps reliability."
   cta_text: "Explore on GitHub"
   cta_link: "https://github.com/victoriacheng15/observability-hub"
   secondary_cta_text: "See the Evolution"
@@ -27,38 +27,33 @@ hero:
 what_is_observability_hub:
   title: "Observability as an Engineering Discipline"
   content:
-    - "Explain the transition from passive monitoring to active observability using OpenTelemetry."
-    - "Position the hub as a blueprint for self-hosting critical telemetry infrastructure without the overhead of enterprise SaaS."
-    - "Highlight the integration of GitOps and Infrastructure-as-Code to maintain a reliable and reproducible environment."
-    - "Showcase the integration of Model Context Protocol (MCP) as a standardized gateway for AI agents to interact with telemetry data."
+    - "Observability Hub is a self-hosted platform engineering lab for operating Kubernetes services with clear visibility into health, traffic, and infrastructure state."
+    - "It demonstrates practical SRE work: service health, telemetry, GitOps, infrastructure-as-code, and RCA-backed improvement."
+    - "The project favors owned infrastructure and reproducible operations over black-box managed tooling."
 
 key_features:
-  title: "Core Principles"
+  title: "Platform Signals"
   features:
-    - name: "Signals over Noise"
-      description: "Standardizing on OpenTelemetry and eBPF (Cilium/Kepler) to provide immediate, high-fidelity clarity on service, network, and energy behavior across the entire stack."
-      icon: "chart-line"
-    - name: "Logic over Plumbing"
-      description: "Enforcing strict project encapsulation in the internal/ namespace to isolate core domain logic from infrastructure boilerplate."
-      icon: "layers-half"
-    - name: "Config as the Truth"
-      description: "Leveraging ArgoCD to ensure version control remains the ultimate source of truth, with an automated GitOps reconciliation loop."
-      icon: "shield-check"
-    - name: "Pragmatic Orchestration"
-      description: "Leveraging Kubernetes for the data platform, managed declaratively via OpenTofu (Terraform) to ensure consistent and scalable deployments."
+    - name: "Kubernetes Operations"
+      description: "Runs and inspects platform services on K3s with service health, workload state, logs, events, and network visibility."
       icon: "cpu"
-    - name: "Agentic Intelligence"
-      description: "Exposing system state via the Model Context Protocol (MCP) to enable autonomous diagnostics and AI-native operations."
-      icon: "robot"
+    - name: "Observability Stack"
+      description: "Uses Prometheus, Grafana, OpenTelemetry, and eBPF visibility to connect service behavior with operational signals."
+      icon: "chart-line"
+    - name: "Infrastructure as Code"
+      description: "Manages platform services declaratively with Terraform and GitOps workflows."
+      icon: "shield-check"
+    - name: "Go Platform Tooling"
+      description: "Keeps service entry points thin and moves reusable platform logic into internal Go packages."
+      icon: "layers-half"
 
 why_it_matters:
-  title: "Mastering the OpenTelemetry Stack"
+  title: "Why It Matters"
   points:
-    - "Full Ownership: Complete control over data retention and privacy through self-hosting."
-    - "Operational Excellence: Demonstrates real-world SRE practices in a constrained environment."
-    - "Cost Efficiency: Optimized for single-node performance, reducing infrastructure overhead."
-    - "Modern Tooling: Leverages industry standards like OpenTelemetry and OpenTofu."
-    - "Educational Value: Serves as a living laboratory for testing new observability patterns."
+    - "Shows hands-on ownership of Kubernetes, observability, infrastructure-as-code, and GitOps."
+    - "Demonstrates SRE judgment through incident reviews, operational hardening, and measurable platform improvements."
+    - "Uses Go to build platform tooling around real operational workflows."
+    - "Keeps the project understandable through ADRs, evolution history, and reproducible infrastructure."
 
 footer:
   author: "Victoria Cheng"

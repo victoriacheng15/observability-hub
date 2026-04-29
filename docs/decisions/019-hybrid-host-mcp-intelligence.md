@@ -1,6 +1,6 @@
 # ADR 019: Hybrid Host-MCP Intelligence Layer
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 026](./026-unified-mcp-gateway-with-capability-accounting.md)
 - **Date:** 2026-03-12
 - **Author:** Victoria Cheng
 

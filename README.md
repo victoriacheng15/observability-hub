@@ -12,7 +12,7 @@ It proves an end-to-end platform ownership loop: declarative infrastructure runs
 
 | Case Study | Problem | How it was diagnosed | Result |
 | :--- | :--- | :--- | :--- |
-| [Rust Telemetry Summarization Processor](./docs/decisions/021-rust-telemetry-summarization-processor.md) | Raw logs and metrics returned too much data for agent workflows | Added a Rust `obs-processor` to summarize Loki and Prometheus responses before returning them through MCP | Reduced token load while preserving investigation pivots |
+| [Rust Telemetry Summarization Processor](./docs/decisions/021-rust-telemetry-summarization-processor.md) | Raw logs and metrics returned too much data for agent workflows | Added a Rust `obs-processor` and validated the language choice with [ADR 023 benchmark evidence](./docs/decisions/023-benchmark-rust-obs-processor.md) | Reduced token load while preserving investigation pivots |
 | [Worker Ingestion Blocked from MongoDB Atlas](./docs/incidents/007-worker-ingestion-atlas-egress-block.md) | Scheduled ingestion could not reach Atlas | Used worker logs and Cilium policy review to identify blocked egress | Added Atlas egress policy and documented prevention |
 | [Loki Gateway DNS Timeout](./docs/incidents/006-loki-gateway-dns-timeout.md) | Grafana and agents could not reliably query logs | Traced the request path through gateway DNS resolution and Loki service routing | Fixed resolver config and added operational checks |
 | [SSH Lockout via Cilium IPAM Collision](./docs/incidents/004-ssh-lockout-cilium-ipam-collision.md) | Host access failed after networking drift | Correlated Cilium/IPAM state, pod readiness, and host reachability | Restored access and documented recovery path |
