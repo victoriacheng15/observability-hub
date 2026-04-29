@@ -9,6 +9,7 @@ import (
 	"observability-hub/internal/idp/catalog"
 	"observability-hub/internal/idp/cluster"
 	idpenv "observability-hub/internal/idp/env"
+	idpservice "observability-hub/internal/idp/service"
 )
 
 func TestRunPlaceholderCommands(t *testing.T) {
@@ -17,16 +18,6 @@ func TestRunPlaceholderCommands(t *testing.T) {
 		args []string
 		want string
 	}{
-		{
-			name: "service list",
-			args: []string{"service", "list"},
-			want: "called idp service list\n",
-		},
-		{
-			name: "service describe",
-			args: []string{"service", "describe", "loki"},
-			want: "called idp service describe for loki\n",
-		},
 		{
 			name: "service health",
 			args: []string{"service", "health", "tempo"},
@@ -66,6 +57,131 @@ func TestRunHelp(t *testing.T) {
 	}
 	if got := stderr.String(); got != "" {
 		t.Fatalf("stderr = %q, want empty", got)
+	}
+}
+
+func TestRunServiceCommands(t *testing.T) {
+	fake := &fakeService{
+		summaries: []idpservice.Summary{
+			{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "1/1", Age: "2h"},
+			{Name: "loki", Namespace: "observability", Kind: "StatefulSet", Ready: "1/1", Age: "2h"},
+		},
+		details: []idpservice.Details{
+			{
+				Summary:  idpservice.Summary{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "1/1", Age: "2h"},
+				Images:   []string{"grafana/grafana:latest"},
+				Labels:   map[string]string{"app.kubernetes.io/name": "grafana", "tier": "frontend"},
+				Selector: map[string]string{"app.kubernetes.io/name": "grafana"},
+			},
+		},
+	}
+	restore := stubService(t, fake)
+	defer restore()
+
+	tests := []struct {
+		name     string
+		args     []string
+		want     string
+		wantList []idpservice.ListOptions
+		wantDesc []idpservice.DescribeOptions
+	}{
+		{
+			name: "service list",
+			args: []string{"service", "list"},
+			want: "NAME     NAMESPACE      KIND         READY  AGE\n" +
+				"grafana  observability  Deployment   1/1    2h\n" +
+				"loki     observability  StatefulSet  1/1    2h\n",
+			wantList: []idpservice.ListOptions{{}},
+		},
+		{
+			name: "service list namespace",
+			args: []string{"service", "list", "-n", "observability"},
+			want: "NAME     NAMESPACE      KIND         READY  AGE\n" +
+				"grafana  observability  Deployment   1/1    2h\n" +
+				"loki     observability  StatefulSet  1/1    2h\n",
+			wantList: []idpservice.ListOptions{{Namespace: "observability"}},
+		},
+		{
+			name: "service describe",
+			args: []string{"service", "describe", "grafana", "--namespace", "observability"},
+			want: "Name: grafana\n" +
+				"Namespace: observability\n" +
+				"Kind: Deployment\n" +
+				"Ready: 1/1\n" +
+				"Age: 2h\n" +
+				"Images:\n" +
+				"- grafana/grafana:latest\n" +
+				"Labels:\n" +
+				"- app.kubernetes.io/name=grafana\n" +
+				"- tier=frontend\n" +
+				"Selectors:\n" +
+				"- app.kubernetes.io/name=grafana\n",
+			wantDesc: []idpservice.DescribeOptions{{Name: "grafana", Namespace: "observability"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake.listOpts = nil
+			fake.describeOpts = nil
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 0 {
+				t.Fatalf("Run() code = %d, want 0; stderr = %q", code, stderr.String())
+			}
+			if got := stdout.String(); got != tt.want {
+				t.Fatalf("stdout = %q, want %q", got, tt.want)
+			}
+			if got := stderr.String(); got != "" {
+				t.Fatalf("stderr = %q, want empty", got)
+			}
+			assertServiceListOptions(t, fake.listOpts, tt.wantList)
+			assertServiceDescribeOptions(t, fake.describeOpts, tt.wantDesc)
+		})
+	}
+}
+
+func TestRunServiceOptionErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "missing namespace",
+			args: []string{"service", "list", "--namespace"},
+			want: "missing namespace for --namespace",
+		},
+		{
+			name: "unknown list option",
+			args: []string{"service", "list", "--team", "payments"},
+			want: "unknown service list option: --team",
+		},
+		{
+			name: "unknown describe option",
+			args: []string{"service", "describe", "grafana", "--team", "payments"},
+			want: "unknown service describe option: --team",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 1 {
+				t.Fatalf("Run() code = %d, want 1", code)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty", got)
+			}
+			if got := stderr.String(); !strings.Contains(got, tt.want) {
+				t.Fatalf("stderr = %q, want containing %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -449,6 +565,23 @@ func (f *fakeEnv) Describe(_ context.Context, opts idpenv.DescribeOptions) ([]id
 	return f.details, nil
 }
 
+type fakeService struct {
+	summaries    []idpservice.Summary
+	details      []idpservice.Details
+	listOpts     []idpservice.ListOptions
+	describeOpts []idpservice.DescribeOptions
+}
+
+func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]idpservice.Summary, error) {
+	f.listOpts = append(f.listOpts, opts)
+	return f.summaries, nil
+}
+
+func (f *fakeService) Describe(_ context.Context, opts idpservice.DescribeOptions) ([]idpservice.Details, error) {
+	f.describeOpts = append(f.describeOpts, opts)
+	return f.details, nil
+}
+
 type fakeCluster struct {
 	status       cluster.Status
 	namespaces   []cluster.Namespace
@@ -535,6 +668,44 @@ func assertEnvDescribeOptions(t *testing.T, got []idpenv.DescribeOptions, want [
 		if got[i] != want[i] {
 			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
 		}
+	}
+}
+
+func assertServiceListOptions(t *testing.T, got []idpservice.ListOptions, want []idpservice.ListOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceDescribeOptions(t *testing.T, got []idpservice.DescribeOptions, want []idpservice.DescribeOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func stubService(t *testing.T, fake *fakeService) func() {
+	t.Helper()
+
+	original := newService
+	newService = func() (serviceClient, error) {
+		return fake, nil
+	}
+	return func() {
+		newService = original
 	}
 }
 
