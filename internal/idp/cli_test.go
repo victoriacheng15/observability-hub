@@ -17,13 +17,7 @@ func TestRunPlaceholderCommands(t *testing.T) {
 		name string
 		args []string
 		want string
-	}{
-		{
-			name: "service health",
-			args: []string{"service", "health", "tempo"},
-			want: "called idp service health for tempo\n",
-		},
-	}
+	}{}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -74,6 +68,17 @@ func TestRunServiceCommands(t *testing.T) {
 				Selector: map[string]string{"app.kubernetes.io/name": "grafana"},
 			},
 		},
+		health: []idpservice.Health{
+			{
+				Summary:           idpservice.Summary{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "1/1", Age: "2h"},
+				Status:            "healthy",
+				ReadyPods:         2,
+				PodCount:          2,
+				ReadyServices:     1,
+				ServiceCount:      1,
+				WarningEventCount: 0,
+			},
+		},
 	}
 	restore := stubService(t, fake)
 	defer restore()
@@ -84,6 +89,7 @@ func TestRunServiceCommands(t *testing.T) {
 		want     string
 		wantList []idpservice.ListOptions
 		wantDesc []idpservice.DescribeOptions
+		wantHeal []idpservice.HealthOptions
 	}{
 		{
 			name: "service list",
@@ -118,12 +124,20 @@ func TestRunServiceCommands(t *testing.T) {
 				"- app.kubernetes.io/name=grafana\n",
 			wantDesc: []idpservice.DescribeOptions{{Name: "grafana", Namespace: "observability"}},
 		},
+		{
+			name: "service health",
+			args: []string{"service", "health", "grafana", "-n", "observability"},
+			want: "NAME     NAMESPACE      KIND        STATUS   READY  PODS  RESTARTS  SERVICES  WARNINGS\n" +
+				"grafana  observability  Deployment  healthy  1/1    2/2   0         1/1       0\n",
+			wantHeal: []idpservice.HealthOptions{{Name: "grafana", Namespace: "observability"}},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fake.listOpts = nil
 			fake.describeOpts = nil
+			fake.healthOpts = nil
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
@@ -139,6 +153,7 @@ func TestRunServiceCommands(t *testing.T) {
 			}
 			assertServiceListOptions(t, fake.listOpts, tt.wantList)
 			assertServiceDescribeOptions(t, fake.describeOpts, tt.wantDesc)
+			assertServiceHealthOptions(t, fake.healthOpts, tt.wantHeal)
 		})
 	}
 }
@@ -163,6 +178,11 @@ func TestRunServiceOptionErrors(t *testing.T) {
 			name: "unknown describe option",
 			args: []string{"service", "describe", "grafana", "--team", "payments"},
 			want: "unknown service describe option: --team",
+		},
+		{
+			name: "unknown health option",
+			args: []string{"service", "health", "grafana", "--team", "payments"},
+			want: "unknown service health option: --team",
 		},
 	}
 
@@ -568,8 +588,10 @@ func (f *fakeEnv) Describe(_ context.Context, opts idpenv.DescribeOptions) ([]id
 type fakeService struct {
 	summaries    []idpservice.Summary
 	details      []idpservice.Details
+	health       []idpservice.Health
 	listOpts     []idpservice.ListOptions
 	describeOpts []idpservice.DescribeOptions
+	healthOpts   []idpservice.HealthOptions
 }
 
 func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]idpservice.Summary, error) {
@@ -580,6 +602,11 @@ func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]id
 func (f *fakeService) Describe(_ context.Context, opts idpservice.DescribeOptions) ([]idpservice.Details, error) {
 	f.describeOpts = append(f.describeOpts, opts)
 	return f.details, nil
+}
+
+func (f *fakeService) Health(_ context.Context, opts idpservice.HealthOptions) ([]idpservice.Health, error) {
+	f.healthOpts = append(f.healthOpts, opts)
+	return f.health, nil
 }
 
 type fakeCluster struct {
@@ -685,6 +712,19 @@ func assertServiceListOptions(t *testing.T, got []idpservice.ListOptions, want [
 }
 
 func assertServiceDescribeOptions(t *testing.T, got []idpservice.DescribeOptions, want []idpservice.DescribeOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceHealthOptions(t *testing.T, got []idpservice.HealthOptions, want []idpservice.HealthOptions) {
 	t.Helper()
 
 	if len(got) != len(want) {

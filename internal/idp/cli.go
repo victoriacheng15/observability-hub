@@ -33,6 +33,7 @@ type envClient interface {
 type serviceClient interface {
 	List(context.Context, idpservice.ListOptions) ([]idpservice.Summary, error)
 	Describe(context.Context, idpservice.DescribeOptions) ([]idpservice.Details, error)
+	Health(context.Context, idpservice.HealthOptions) ([]idpservice.Health, error)
 }
 
 var newCatalog = func() (catalogClient, error) {
@@ -126,7 +127,17 @@ func runService(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 1
 		}
 		return describeService(opts, stdout, stderr)
-	case "health", "logs", "events", "metrics", "traces", "ownership":
+	case "health":
+		if len(args) < 2 {
+			fmt.Fprint(stderr, "missing service name for idp service health\n")
+			return 1
+		}
+		opts, ok := parseServiceHealthOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return healthService(opts, stdout, stderr)
+	case "logs", "events", "metrics", "traces", "ownership":
 		if len(args) < 2 {
 			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
 			return 1
@@ -281,6 +292,53 @@ func describeService(opts idpservice.DescribeOptions, stdout io.Writer, stderr i
 			fmt.Fprintf(stdout, "- %s\n", selector)
 		}
 	}
+	return 0
+}
+
+func healthService(opts idpservice.HealthOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	health, err := serviceClient.Health(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tSTATUS\tREADY\tPODS\tRESTARTS\tSERVICES\tWARNINGS")
+	for _, item := range health {
+		fmt.Fprintf(
+			writer,
+			"%s\t%s\t%s\t%s\t%s\t%d/%d\t%d\t%d/%d\t%d\n",
+			item.Name,
+			item.Namespace,
+			item.Kind,
+			item.Status,
+			item.Ready,
+			item.ReadyPods,
+			item.PodCount,
+			item.Restarts,
+			item.ReadyServices,
+			item.ServiceCount,
+			item.WarningEventCount,
+		)
+	}
+	writer.Flush()
+
+	for _, item := range health {
+		if len(item.WarningEventReasons) == 0 {
+			continue
+		}
+		fmt.Fprintf(stdout, "%s/%s warning events:\n", item.Namespace, item.Name)
+		for _, reason := range item.WarningEventReasons {
+			fmt.Fprintf(stdout, "- %s\n", reason)
+		}
+	}
+
 	return 0
 }
 
@@ -498,6 +556,25 @@ func parseServiceDescribeOptions(args []string, stderr io.Writer) (idpservice.De
 	return opts, true
 }
 
+func parseServiceHealthOptions(args []string, stderr io.Writer) (idpservice.HealthOptions, bool) {
+	opts := idpservice.HealthOptions{Name: args[0]}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown service health option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
 	var opts catalog.ListOptions
 	for i := 0; i < len(args); i++ {
@@ -579,7 +656,7 @@ func serviceHelpText() string {
 	return strings.TrimSpace(`Usage:
   hub-cli service list [--namespace <namespace>|-n <namespace>]
   hub-cli service describe <service> [--namespace <namespace>|-n <namespace>]
-  hub-cli service health <service>
+  hub-cli service health <service> [--namespace <namespace>|-n <namespace>]
   hub-cli service logs <service>
   hub-cli service events <service>
   hub-cli service metrics <service>

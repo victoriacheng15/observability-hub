@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -45,6 +46,23 @@ type ListOptions struct {
 type DescribeOptions struct {
 	Name      string
 	Namespace string
+}
+
+type HealthOptions struct {
+	Name      string
+	Namespace string
+}
+
+type Health struct {
+	Summary
+	Status              string
+	ReadyPods           int
+	PodCount            int
+	Restarts            int32
+	ReadyServices       int
+	ServiceCount        int
+	WarningEventCount   int
+	WarningEventReasons []string
 }
 
 func NewKubernetesService() (*KubernetesService, error) {
@@ -125,6 +143,25 @@ func (s *KubernetesService) Describe(ctx context.Context, opts DescribeOptions) 
 	return matches, nil
 }
 
+func (s *KubernetesService) Health(ctx context.Context, opts HealthOptions) ([]Health, error) {
+	details, err := s.Describe(ctx, DescribeOptions{Name: opts.Name, Namespace: opts.Namespace})
+	if err != nil {
+		return nil, err
+	}
+
+	health := make([]Health, 0, len(details))
+	for _, detail := range details {
+		result, err := s.health(ctx, detail)
+		if err != nil {
+			return nil, err
+		}
+		health = append(health, result)
+	}
+
+	sortHealth(health)
+	return health, nil
+}
+
 func (s *KubernetesService) workloads(ctx context.Context, namespace string) ([]Details, error) {
 	if namespace == "" {
 		namespace = metav1.NamespaceAll
@@ -174,6 +211,136 @@ func (s *KubernetesService) workloads(ctx context.Context, namespace string) ([]
 
 	sortDetails(workloads)
 	return workloads, nil
+}
+
+func (s *KubernetesService) health(ctx context.Context, detail Details) (Health, error) {
+	pods, err := s.podsFor(ctx, detail)
+	if err != nil {
+		return Health{}, err
+	}
+
+	readyPods := 0
+	var restarts int32
+	podNames := make(map[string]struct{}, len(pods))
+	for _, pod := range pods {
+		podNames[pod.Name] = struct{}{}
+		if podReady(pod) {
+			readyPods++
+		}
+		for _, status := range pod.Status.ContainerStatuses {
+			restarts += status.RestartCount
+		}
+	}
+
+	serviceCount, readyServices, err := s.serviceEndpointStatus(ctx, detail)
+	if err != nil {
+		return Health{}, err
+	}
+
+	warnings, err := s.warningEventReasons(ctx, detail, podNames)
+	if err != nil {
+		return Health{}, err
+	}
+
+	health := Health{
+		Summary:             detail.Summary,
+		ReadyPods:           readyPods,
+		PodCount:            len(pods),
+		Restarts:            restarts,
+		ReadyServices:       readyServices,
+		ServiceCount:        serviceCount,
+		WarningEventCount:   len(warnings),
+		WarningEventReasons: warnings,
+	}
+	health.Status = healthStatus(health)
+	return health, nil
+}
+
+func (s *KubernetesService) podsFor(ctx context.Context, detail Details) ([]corev1.Pod, error) {
+	if len(detail.Selector) == 0 {
+		return []corev1.Pod{}, nil
+	}
+
+	pods, err := s.clientset.CoreV1().Pods(detail.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelsSelector(detail.Selector),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list pods: %w", err)
+	}
+
+	return pods.Items, nil
+}
+
+func (s *KubernetesService) serviceEndpointStatus(ctx context.Context, detail Details) (int, int, error) {
+	if len(detail.Selector) == 0 {
+		return 0, 0, nil
+	}
+
+	services, err := s.clientset.CoreV1().Services(detail.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, fmt.Errorf("list services: %w", err)
+	}
+
+	serviceCount := 0
+	readyServices := 0
+	for _, service := range services.Items {
+		if !selectorCovers(detail.Selector, service.Spec.Selector) {
+			continue
+		}
+		serviceCount++
+		ready, err := s.serviceHasReadyEndpointSlice(ctx, detail.Namespace, service.Name)
+		if err != nil {
+			return 0, 0, err
+		}
+		if ready {
+			readyServices++
+		}
+	}
+
+	return serviceCount, readyServices, nil
+}
+
+func (s *KubernetesService) serviceHasReadyEndpointSlice(ctx context.Context, namespace string, serviceName string) (bool, error) {
+	endpointSlices, err := s.clientset.DiscoveryV1().EndpointSlices(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: discoveryv1.LabelServiceName + "=" + serviceName,
+	})
+	if err != nil {
+		return false, fmt.Errorf("list endpointslices: %w", err)
+	}
+
+	for _, endpointSlice := range endpointSlices.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func (s *KubernetesService) warningEventReasons(ctx context.Context, detail Details, podNames map[string]struct{}) ([]string, error) {
+	events, err := s.clientset.CoreV1().Events(detail.Namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list events: %w", err)
+	}
+
+	reasons := make([]string, 0)
+	for _, event := range events.Items {
+		if event.Type != corev1.EventTypeWarning {
+			continue
+		}
+		if event.InvolvedObject.Name == detail.Name {
+			reasons = append(reasons, event.Reason)
+			continue
+		}
+		if _, ok := podNames[event.InvolvedObject.Name]; ok {
+			reasons = append(reasons, event.Reason)
+		}
+	}
+
+	sort.Strings(reasons)
+	return reasons, nil
 }
 
 func (s *KubernetesService) deploymentDetails(deployment appsv1.Deployment) Details {
@@ -327,6 +494,18 @@ func sortDetails(details []Details) {
 	})
 }
 
+func sortHealth(health []Health) {
+	sort.Slice(health, func(i, j int) bool {
+		if health[i].Namespace == health[j].Namespace {
+			if health[i].Kind == health[j].Kind {
+				return health[i].Name < health[j].Name
+			}
+			return health[i].Kind < health[j].Kind
+		}
+		return health[i].Namespace < health[j].Namespace
+	})
+}
+
 func SortedMapEntries(values map[string]string) []string {
 	entries := make([]string, 0, len(values))
 	for key, value := range values {
@@ -334,6 +513,64 @@ func SortedMapEntries(values map[string]string) []string {
 	}
 	sort.Strings(entries)
 	return entries
+}
+
+func labelsSelector(values map[string]string) string {
+	parts := make([]string, 0, len(values))
+	for key, value := range values {
+		parts = append(parts, key+"="+value)
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ",")
+}
+
+func selectorCovers(workloadSelector map[string]string, serviceSelector map[string]string) bool {
+	if len(serviceSelector) == 0 {
+		return false
+	}
+	for key, value := range serviceSelector {
+		if workloadSelector[key] != value {
+			return false
+		}
+	}
+	return true
+}
+
+func podReady(pod corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady {
+			return condition.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+func healthStatus(health Health) string {
+	if health.WarningEventCount > 0 {
+		return "degraded"
+	}
+	if !readyRatioHealthy(health.Ready) {
+		return "degraded"
+	}
+	if health.PodCount > 0 && health.ReadyPods != health.PodCount {
+		return "degraded"
+	}
+	if health.ServiceCount > 0 && health.ReadyServices != health.ServiceCount {
+		return "degraded"
+	}
+	if health.PodCount == 0 && health.ServiceCount == 0 {
+		return "unknown"
+	}
+	return "healthy"
+}
+
+func readyRatioHealthy(ready string) bool {
+	var current int
+	var desired int
+	if _, err := fmt.Sscanf(ready, "%d/%d", &current, &desired); err != nil {
+		return true
+	}
+	return current == desired
 }
 
 func (s *KubernetesService) age(created time.Time) string {
