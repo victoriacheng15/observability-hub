@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -22,6 +23,7 @@ import (
 type KubernetesService struct {
 	clientset kubernetes.Interface
 	now       func() time.Time
+	podLogs   func(context.Context, corev1.Pod, string, LogsOptions) ([]string, error)
 }
 
 type Summary struct {
@@ -53,6 +55,22 @@ type HealthOptions struct {
 	Namespace string
 }
 
+type LogsOptions struct {
+	Name      string
+	Namespace string
+	Container string
+	Tail      int64
+	Since     time.Duration
+	Previous  bool
+}
+
+type EventsOptions struct {
+	Name      string
+	Namespace string
+	Tail      int
+	Since     time.Duration
+}
+
 type Health struct {
 	Summary
 	Status              string
@@ -63,6 +81,27 @@ type Health struct {
 	ServiceCount        int
 	WarningEventCount   int
 	WarningEventReasons []string
+}
+
+type LogLine struct {
+	Name      string
+	Namespace string
+	Kind      string
+	Pod       string
+	Container string
+	Line      string
+}
+
+type Event struct {
+	Name      string
+	Namespace string
+	Kind      string
+	Type      string
+	Reason    string
+	Message   string
+	Object    string
+	Age       string
+	Time      time.Time
 }
 
 func NewKubernetesService() (*KubernetesService, error) {
@@ -92,6 +131,7 @@ func NewKubernetesServiceWithClientset(clientset kubernetes.Interface) *Kubernet
 	return &KubernetesService{
 		clientset: clientset,
 		now:       time.Now,
+		podLogs:   defaultPodLogs(clientset),
 	}
 }
 
@@ -160,6 +200,119 @@ func (s *KubernetesService) Health(ctx context.Context, opts HealthOptions) ([]H
 
 	sortHealth(health)
 	return health, nil
+}
+
+func (s *KubernetesService) Logs(ctx context.Context, opts LogsOptions) ([]LogLine, error) {
+	details, err := s.Describe(ctx, DescribeOptions{Name: opts.Name, Namespace: opts.Namespace})
+	if err != nil {
+		if err.Error() != "service not found: "+opts.Name {
+			return nil, err
+		}
+		return s.logsForPodName(ctx, opts)
+	}
+
+	lines := make([]LogLine, 0)
+	for _, detail := range details {
+		pods, err := s.podsFor(ctx, detail)
+		if err != nil {
+			return nil, err
+		}
+		sortPods(pods)
+
+		for _, pod := range pods {
+			lines, err = appendPodLogs(ctx, s, lines, detail.Name, detail.Namespace, detail.Kind, pod, opts)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return lines, nil
+}
+
+func (s *KubernetesService) logsForPodName(ctx context.Context, opts LogsOptions) ([]LogLine, error) {
+	namespace := opts.Namespace
+	name := opts.Name
+	if strings.Contains(opts.Name, "/") {
+		parts := strings.SplitN(opts.Name, "/", 2)
+		namespace = parts[0]
+		name = parts[1]
+	}
+	if namespace == "" {
+		namespace = metav1.NamespaceAll
+	}
+
+	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list pods: %w", err)
+	}
+
+	matches := make([]corev1.Pod, 0)
+	for _, pod := range pods.Items {
+		if pod.Name == name {
+			matches = append(matches, pod)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("service not found: %s", opts.Name)
+	}
+	sortPods(matches)
+
+	lines := make([]LogLine, 0)
+	for _, pod := range matches {
+		var err error
+		lines, err = appendPodLogs(ctx, s, lines, pod.Name, pod.Namespace, "Pod", pod, opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return lines, nil
+}
+
+func (s *KubernetesService) Events(ctx context.Context, opts EventsOptions) ([]Event, error) {
+	details, err := s.Describe(ctx, DescribeOptions{Name: opts.Name, Namespace: opts.Namespace})
+	if err != nil {
+		return nil, err
+	}
+
+	events := make([]Event, 0)
+	for _, detail := range details {
+		pods, err := s.podsFor(ctx, detail)
+		if err != nil {
+			return nil, err
+		}
+		podNames := make(map[string]struct{}, len(pods))
+		for _, pod := range pods {
+			podNames[pod.Name] = struct{}{}
+		}
+
+		kubeEvents, err := s.clientset.CoreV1().Events(detail.Namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("list events: %w", err)
+		}
+		for _, event := range kubeEvents.Items {
+			if !eventMatches(detail, podNames, event) || eventOlderThan(event, opts.Since, s.now()) {
+				continue
+			}
+			events = append(events, Event{
+				Name:      detail.Name,
+				Namespace: detail.Namespace,
+				Kind:      detail.Kind,
+				Type:      event.Type,
+				Reason:    event.Reason,
+				Message:   event.Message,
+				Object:    event.InvolvedObject.Kind + "/" + event.InvolvedObject.Name,
+				Age:       s.age(eventTime(event)),
+				Time:      eventTime(event),
+			})
+		}
+	}
+
+	sortEvents(events)
+	if opts.Tail > 0 && len(events) > opts.Tail {
+		events = events[:opts.Tail]
+	}
+	return events, nil
 }
 
 func (s *KubernetesService) workloads(ctx context.Context, namespace string) ([]Details, error) {
@@ -317,6 +470,79 @@ func (s *KubernetesService) serviceHasReadyEndpointSlice(ctx context.Context, na
 	}
 
 	return false, nil
+}
+
+func appendPodLogs(ctx context.Context, service *KubernetesService, lines []LogLine, name string, namespace string, kind string, pod corev1.Pod, opts LogsOptions) ([]LogLine, error) {
+	for _, container := range logContainers(pod, opts.Container) {
+		podLines, err := service.podLogs(ctx, pod, container, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, line := range podLines {
+			lines = append(lines, LogLine{
+				Name:      name,
+				Namespace: namespace,
+				Kind:      kind,
+				Pod:       pod.Name,
+				Container: container,
+				Line:      line,
+			})
+		}
+	}
+	return lines, nil
+}
+
+func defaultPodLogs(clientset kubernetes.Interface) func(context.Context, corev1.Pod, string, LogsOptions) ([]string, error) {
+	return func(ctx context.Context, pod corev1.Pod, container string, opts LogsOptions) ([]string, error) {
+		return readPodLogs(ctx, clientset, pod, container, opts)
+	}
+}
+
+func readPodLogs(ctx context.Context, clientset kubernetes.Interface, pod corev1.Pod, container string, opts LogsOptions) ([]string, error) {
+	podLogOptions := &corev1.PodLogOptions{
+		Container: container,
+		Previous:  opts.Previous,
+	}
+	if opts.Tail > 0 {
+		podLogOptions.TailLines = &opts.Tail
+	}
+	if opts.Since > 0 {
+		sinceSeconds := int64(opts.Since.Seconds())
+		podLogOptions.SinceSeconds = &sinceSeconds
+	}
+
+	stream, err := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, podLogOptions).Stream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read logs for pod %s/%s: %w", pod.Namespace, pod.Name, err)
+	}
+	defer stream.Close()
+
+	lines := make([]string, 0)
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scan logs for pod %s/%s: %w", pod.Namespace, pod.Name, err)
+	}
+
+	return lines, nil
+}
+
+func logContainers(pod corev1.Pod, requested string) []string {
+	if requested != "" {
+		return []string{requested}
+	}
+
+	containers := make([]string, 0, len(pod.Spec.Containers))
+	for _, container := range pod.Spec.Containers {
+		containers = append(containers, container.Name)
+	}
+	if len(containers) == 0 {
+		return []string{""}
+	}
+	sort.Strings(containers)
+	return containers
 }
 
 func (s *KubernetesService) warningEventReasons(ctx context.Context, detail Details, podNames map[string]struct{}) ([]string, error) {
@@ -543,6 +769,49 @@ func podReady(pod corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func eventMatches(detail Details, podNames map[string]struct{}, event corev1.Event) bool {
+	if event.InvolvedObject.Namespace != "" && event.InvolvedObject.Namespace != detail.Namespace {
+		return false
+	}
+	if event.InvolvedObject.Name == detail.Name {
+		return true
+	}
+	_, ok := podNames[event.InvolvedObject.Name]
+	return ok
+}
+
+func eventOlderThan(event corev1.Event, since time.Duration, now time.Time) bool {
+	if since <= 0 {
+		return false
+	}
+	return now.Sub(eventTime(event)) > since
+}
+
+func eventTime(event corev1.Event) time.Time {
+	if !event.LastTimestamp.IsZero() {
+		return event.LastTimestamp.Time
+	}
+	if !event.EventTime.IsZero() {
+		return event.EventTime.Time
+	}
+	if !event.FirstTimestamp.IsZero() {
+		return event.FirstTimestamp.Time
+	}
+	return event.CreationTimestamp.Time
+}
+
+func sortEvents(events []Event) {
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Time.After(events[j].Time)
+	})
+}
+
+func sortPods(pods []corev1.Pod) {
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].Name < pods[j].Name
+	})
 }
 
 func healthStatus(health Health) string {

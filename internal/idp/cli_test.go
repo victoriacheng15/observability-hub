@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"observability-hub/internal/idp/catalog"
 	"observability-hub/internal/idp/cluster"
@@ -79,6 +80,12 @@ func TestRunServiceCommands(t *testing.T) {
 				WarningEventCount: 0,
 			},
 		},
+		logs: []idpservice.LogLine{
+			{Name: "grafana", Namespace: "observability", Kind: "Deployment", Pod: "grafana-0", Line: "ready"},
+		},
+		events: []idpservice.Event{
+			{Type: "Warning", Reason: "BackOff", Age: "1m", Object: "Pod/grafana-0", Message: "back-off restarting failed container"},
+		},
 	}
 	restore := stubService(t, fake)
 	defer restore()
@@ -90,6 +97,8 @@ func TestRunServiceCommands(t *testing.T) {
 		wantList []idpservice.ListOptions
 		wantDesc []idpservice.DescribeOptions
 		wantHeal []idpservice.HealthOptions
+		wantLogs []idpservice.LogsOptions
+		wantEvts []idpservice.EventsOptions
 	}{
 		{
 			name: "service list",
@@ -131,6 +140,19 @@ func TestRunServiceCommands(t *testing.T) {
 				"grafana  observability  Deployment  healthy  1/1    2/2   0         1/1       0\n",
 			wantHeal: []idpservice.HealthOptions{{Name: "grafana", Namespace: "observability"}},
 		},
+		{
+			name:     "service logs",
+			args:     []string{"service", "logs", "grafana", "-n", "observability", "--container", "app", "--tail", "10", "--since", "5m", "--previous"},
+			want:     "observability/grafana-0 grafana ready\n",
+			wantLogs: []idpservice.LogsOptions{{Name: "grafana", Namespace: "observability", Container: "app", Tail: 10, Since: 5 * time.Minute, Previous: true}},
+		},
+		{
+			name: "service events",
+			args: []string{"service", "events", "grafana", "-n", "observability", "--tail", "5", "--since", "10m"},
+			want: "TYPE     REASON   AGE  OBJECT         MESSAGE\n" +
+				"Warning  BackOff  1m   Pod/grafana-0  back-off restarting failed container\n",
+			wantEvts: []idpservice.EventsOptions{{Name: "grafana", Namespace: "observability", Tail: 5, Since: 10 * time.Minute}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -138,6 +160,8 @@ func TestRunServiceCommands(t *testing.T) {
 			fake.listOpts = nil
 			fake.describeOpts = nil
 			fake.healthOpts = nil
+			fake.logsOpts = nil
+			fake.eventsOpts = nil
 			var stdout bytes.Buffer
 			var stderr bytes.Buffer
 
@@ -154,8 +178,31 @@ func TestRunServiceCommands(t *testing.T) {
 			assertServiceListOptions(t, fake.listOpts, tt.wantList)
 			assertServiceDescribeOptions(t, fake.describeOpts, tt.wantDesc)
 			assertServiceHealthOptions(t, fake.healthOpts, tt.wantHeal)
+			assertServiceLogsOptions(t, fake.logsOpts, tt.wantLogs)
+			assertServiceEventsOptions(t, fake.eventsOpts, tt.wantEvts)
 		})
 	}
+}
+
+func TestRunServiceEventsEmpty(t *testing.T) {
+	fake := &fakeService{}
+	restore := stubService(t, fake)
+	defer restore()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := Run([]string{"service", "events", "grafana"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("Run() code = %d, want 0; stderr = %q", code, stderr.String())
+	}
+	if got := stdout.String(); got != "no events found for grafana\n" {
+		t.Fatalf("stdout = %q, want empty event message", got)
+	}
+	if got := stderr.String(); got != "" {
+		t.Fatalf("stderr = %q, want empty", got)
+	}
+	assertServiceEventsOptions(t, fake.eventsOpts, []idpservice.EventsOptions{{Name: "grafana", Tail: 25}})
 }
 
 func TestRunServiceOptionErrors(t *testing.T) {
@@ -183,6 +230,16 @@ func TestRunServiceOptionErrors(t *testing.T) {
 			name: "unknown health option",
 			args: []string{"service", "health", "grafana", "--team", "payments"},
 			want: "unknown service health option: --team",
+		},
+		{
+			name: "invalid logs tail",
+			args: []string{"service", "logs", "grafana", "--tail", "zero"},
+			want: "invalid tail for --tail: zero",
+		},
+		{
+			name: "unknown events option",
+			args: []string{"service", "events", "grafana", "--container", "app"},
+			want: "unknown service events option: --container",
 		},
 	}
 
@@ -589,9 +646,13 @@ type fakeService struct {
 	summaries    []idpservice.Summary
 	details      []idpservice.Details
 	health       []idpservice.Health
+	logs         []idpservice.LogLine
+	events       []idpservice.Event
 	listOpts     []idpservice.ListOptions
 	describeOpts []idpservice.DescribeOptions
 	healthOpts   []idpservice.HealthOptions
+	logsOpts     []idpservice.LogsOptions
+	eventsOpts   []idpservice.EventsOptions
 }
 
 func (f *fakeService) List(_ context.Context, opts idpservice.ListOptions) ([]idpservice.Summary, error) {
@@ -607,6 +668,16 @@ func (f *fakeService) Describe(_ context.Context, opts idpservice.DescribeOption
 func (f *fakeService) Health(_ context.Context, opts idpservice.HealthOptions) ([]idpservice.Health, error) {
 	f.healthOpts = append(f.healthOpts, opts)
 	return f.health, nil
+}
+
+func (f *fakeService) Logs(_ context.Context, opts idpservice.LogsOptions) ([]idpservice.LogLine, error) {
+	f.logsOpts = append(f.logsOpts, opts)
+	return f.logs, nil
+}
+
+func (f *fakeService) Events(_ context.Context, opts idpservice.EventsOptions) ([]idpservice.Event, error) {
+	f.eventsOpts = append(f.eventsOpts, opts)
+	return f.events, nil
 }
 
 type fakeCluster struct {
@@ -725,6 +796,32 @@ func assertServiceDescribeOptions(t *testing.T, got []idpservice.DescribeOptions
 }
 
 func assertServiceHealthOptions(t *testing.T, got []idpservice.HealthOptions, want []idpservice.HealthOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceLogsOptions(t *testing.T, got []idpservice.LogsOptions, want []idpservice.LogsOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertServiceEventsOptions(t *testing.T, got []idpservice.EventsOptions, want []idpservice.EventsOptions) {
 	t.Helper()
 
 	if len(got) != len(want) {
