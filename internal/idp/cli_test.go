@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"observability-hub/internal/idp/catalog"
+	"observability-hub/internal/idp/cluster"
 )
 
 func TestRunPlaceholderCommands(t *testing.T) {
@@ -29,11 +30,6 @@ func TestRunPlaceholderCommands(t *testing.T) {
 			name: "service health",
 			args: []string{"service", "health", "tempo"},
 			want: "called idp service health for tempo\n",
-		},
-		{
-			name: "cluster status",
-			args: []string{"cluster", "status"},
-			want: "called idp cluster status\n",
 		},
 		{
 			name: "env describe",
@@ -74,6 +70,121 @@ func TestRunHelp(t *testing.T) {
 	}
 	if got := stderr.String(); got != "" {
 		t.Fatalf("stderr = %q, want empty", got)
+	}
+}
+
+func TestRunClusterCommands(t *testing.T) {
+	fake := &fakeCluster{
+		status: cluster.Status{
+			ReadyNodes:     1,
+			NodeCount:      2,
+			NamespaceCount: 3,
+			WorkloadCount:  4,
+		},
+		namespaces: []cluster.Namespace{
+			{Name: "default", Phase: "Active", Age: "3d"},
+			{Name: "observability", Phase: "Active", Age: "2d"},
+		},
+		workloads: []cluster.Workload{
+			{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "1/1", Age: "2h"},
+			{Name: "loki", Namespace: "observability", Kind: "StatefulSet", Ready: "1/1", Age: "2h"},
+		},
+	}
+	restore := stubCluster(t, fake)
+	defer restore()
+
+	tests := []struct {
+		name     string
+		args     []string
+		want     string
+		wantWork []cluster.WorkloadOptions
+	}{
+		{
+			name: "cluster status",
+			args: []string{"cluster", "status"},
+			want: "READY_NODES  TOTAL_NODES  NAMESPACES  WORKLOADS\n" +
+				"1            2            3           4\n",
+		},
+		{
+			name: "cluster namespaces",
+			args: []string{"cluster", "namespaces"},
+			want: "NAME           PHASE   AGE\n" +
+				"default        Active  3d\n" +
+				"observability  Active  2d\n",
+		},
+		{
+			name: "cluster workloads",
+			args: []string{"cluster", "workloads"},
+			want: "NAME     NAMESPACE      KIND         READY  AGE\n" +
+				"grafana  observability  Deployment   1/1    2h\n" +
+				"loki     observability  StatefulSet  1/1    2h\n",
+			wantWork: []cluster.WorkloadOptions{{}},
+		},
+		{
+			name: "cluster workloads namespace",
+			args: []string{"cluster", "workloads", "-n", "payments"},
+			want: "NAME     NAMESPACE      KIND         READY  AGE\n" +
+				"grafana  observability  Deployment   1/1    2h\n" +
+				"loki     observability  StatefulSet  1/1    2h\n",
+			wantWork: []cluster.WorkloadOptions{{Namespace: "payments"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake.workloadOpts = nil
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 0 {
+				t.Fatalf("Run() code = %d, want 0; stderr = %q", code, stderr.String())
+			}
+			if got := stdout.String(); got != tt.want {
+				t.Fatalf("stdout = %q, want %q", got, tt.want)
+			}
+			if got := stderr.String(); got != "" {
+				t.Fatalf("stderr = %q, want empty", got)
+			}
+			assertWorkloadOptions(t, fake.workloadOpts, tt.wantWork)
+		})
+	}
+}
+
+func TestRunClusterWorkloadOptionErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "missing namespace",
+			args: []string{"cluster", "workloads", "--namespace"},
+			want: "missing namespace for --namespace",
+		},
+		{
+			name: "unknown option",
+			args: []string{"cluster", "workloads", "--team", "payments"},
+			want: "unknown cluster workloads option: --team",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 1 {
+				t.Fatalf("Run() code = %d, want 1", code)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty", got)
+			}
+			if got := stderr.String(); !strings.Contains(got, tt.want) {
+				t.Fatalf("stderr = %q, want containing %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -207,6 +318,26 @@ func TestRunMissingRequiredArgument(t *testing.T) {
 	}
 }
 
+type fakeCluster struct {
+	status       cluster.Status
+	namespaces   []cluster.Namespace
+	workloads    []cluster.Workload
+	workloadOpts []cluster.WorkloadOptions
+}
+
+func (f *fakeCluster) Status(_ context.Context) (cluster.Status, error) {
+	return f.status, nil
+}
+
+func (f *fakeCluster) Namespaces(_ context.Context) ([]cluster.Namespace, error) {
+	return f.namespaces, nil
+}
+
+func (f *fakeCluster) Workloads(_ context.Context, opts cluster.WorkloadOptions) ([]cluster.Workload, error) {
+	f.workloadOpts = append(f.workloadOpts, opts)
+	return f.workloads, nil
+}
+
 type fakeCatalog struct {
 	entries    []catalog.Entry
 	validation catalog.Validation
@@ -234,6 +365,31 @@ func assertListOptions(t *testing.T, got []catalog.ListOptions, want []catalog.L
 		if got[i] != want[i] {
 			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
 		}
+	}
+}
+
+func assertWorkloadOptions(t *testing.T, got []cluster.WorkloadOptions, want []cluster.WorkloadOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func stubCluster(t *testing.T, fake *fakeCluster) func() {
+	t.Helper()
+
+	original := newCluster
+	newCluster = func() (clusterClient, error) {
+		return fake, nil
+	}
+	return func() {
+		newCluster = original
 	}
 }
 

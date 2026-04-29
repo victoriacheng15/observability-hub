@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"observability-hub/internal/idp/catalog"
+	"observability-hub/internal/idp/cluster"
 )
 
 type catalogClient interface {
@@ -16,8 +17,18 @@ type catalogClient interface {
 	Validate(context.Context, catalog.ListOptions) (catalog.Validation, error)
 }
 
+type clusterClient interface {
+	Status(context.Context) (cluster.Status, error)
+	Namespaces(context.Context) ([]cluster.Namespace, error)
+	Workloads(context.Context, cluster.WorkloadOptions) ([]cluster.Workload, error)
+}
+
 var newCatalog = func() (catalogClient, error) {
 	return catalog.NewKubernetesCatalog()
+}
+
+var newCluster = func() (clusterClient, error) {
+	return cluster.NewKubernetesCluster()
 }
 
 const helpText = `Hub CLI (IDP)
@@ -101,8 +112,16 @@ func runCluster(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	switch args[0] {
-	case "status", "namespaces", "workloads":
-		return printCalled(stdout, "idp cluster "+args[0])
+	case "status":
+		return statusCluster(stdout, stderr)
+	case "namespaces":
+		return listClusterNamespaces(stdout, stderr)
+	case "workloads":
+		opts, ok := parseClusterWorkloadOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return listClusterWorkloads(opts, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown cluster command: %s\n\n", args[0])
 		fmt.Fprint(stderr, clusterHelpText())
@@ -163,6 +182,70 @@ func printCalled(stdout io.Writer, command string) int {
 	return 0
 }
 
+func statusCluster(stdout io.Writer, stderr io.Writer) int {
+	clusterClient, err := newCluster()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	status, err := clusterClient.Status(context.Background())
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "READY_NODES\tTOTAL_NODES\tNAMESPACES\tWORKLOADS")
+	fmt.Fprintf(writer, "%d\t%d\t%d\t%d\n", status.ReadyNodes, status.NodeCount, status.NamespaceCount, status.WorkloadCount)
+	writer.Flush()
+	return 0
+}
+
+func listClusterNamespaces(stdout io.Writer, stderr io.Writer) int {
+	clusterClient, err := newCluster()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	namespaces, err := clusterClient.Namespaces(context.Background())
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tPHASE\tAGE")
+	for _, namespace := range namespaces {
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", namespace.Name, namespace.Phase, namespace.Age)
+	}
+	writer.Flush()
+	return 0
+}
+
+func listClusterWorkloads(opts cluster.WorkloadOptions, stdout io.Writer, stderr io.Writer) int {
+	clusterClient, err := newCluster()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	workloads, err := clusterClient.Workloads(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tREADY\tAGE")
+	for _, workload := range workloads {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", workload.Name, workload.Namespace, workload.Kind, workload.Ready, workload.Age)
+	}
+	writer.Flush()
+	return 0
+}
+
 func listCatalog(opts catalog.ListOptions, stdout io.Writer, stderr io.Writer) int {
 	catalogClient, err := newCatalog()
 	if err != nil {
@@ -203,6 +286,25 @@ func validateCatalog(opts catalog.ListOptions, stdout io.Writer, stderr io.Write
 		fmt.Fprintf(stdout, "- %s: %d\n", kind, validation.KindCounts[kind])
 	}
 	return 0
+}
+
+func parseClusterWorkloadOptions(args []string, stderr io.Writer) (cluster.WorkloadOptions, bool) {
+	var opts cluster.WorkloadOptions
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown cluster workloads option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
 }
 
 func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
@@ -253,7 +355,7 @@ func clusterHelpText() string {
 	return strings.TrimSpace(`Usage:
   hub-cli cluster status
   hub-cli cluster namespaces
-  hub-cli cluster workloads`) + "\n"
+  hub-cli cluster workloads [--namespace <namespace>]`) + "\n"
 }
 
 func catalogHelpText() string {
