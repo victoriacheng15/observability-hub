@@ -608,6 +608,78 @@ func TestKubernetesServiceTraces(t *testing.T) {
 	}
 }
 
+func TestKubernetesServiceOwnership(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC))
+	replicas := int32(2)
+
+	tests := []struct {
+		name    string
+		objects []runtime.Object
+		opts    OwnershipOptions
+		want    []Ownership
+		wantErr string
+	}{
+		{
+			name: "reads ownership metadata from labels and annotations",
+			objects: []runtime.Object{
+				ownedDeployment("grafana", "observability", created, replicas),
+			},
+			opts: OwnershipOptions{Name: "grafana", Namespace: "observability"},
+			want: []Ownership{
+				{
+					Summary:      Summary{Name: "grafana", Namespace: "observability", Kind: "Deployment", Ready: "2/2", Age: "2h"},
+					Owner:        "platform",
+					Tier:         "frontend",
+					Source:       "https://github.com/example/grafana",
+					Docs:         []string{"platform.observability-hub.io/dashboard=https://grafana.example/d/grafana", "platform.observability-hub.io/runbook=docs/runbooks/grafana.md"},
+					SourceObject: "Deployment observability/grafana",
+				},
+			},
+		},
+		{
+			name: "returns unknown ownership when metadata is absent",
+			objects: []runtime.Object{
+				statefulSet("loki", "observability", created, replicas, 2),
+			},
+			opts: OwnershipOptions{Name: "loki", Namespace: "observability"},
+			want: []Ownership{
+				{
+					Summary:      Summary{Name: "loki", Namespace: "observability", Kind: "StatefulSet", Ready: "2/2", Age: "2h"},
+					Owner:        "unknown",
+					Tier:         "unknown",
+					Source:       "unknown",
+					Docs:         []string{"unknown"},
+					SourceObject: "StatefulSet observability/loki",
+				},
+			},
+		},
+		{
+			name:    "missing service",
+			opts:    OwnershipOptions{Name: "missing"},
+			wantErr: "service not found: missing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := newTestService(tt.objects...)
+
+			ownership, err := service.Ownership(context.Background(), tt.opts)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("Ownership() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Ownership() error = %v", err)
+			}
+
+			assertOwnership(t, ownership, tt.want)
+		})
+	}
+}
+
 func deployment(name string, namespace string, created metav1.Time, replicas int32, ready int32) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -629,6 +701,18 @@ func deployment(name string, namespace string, created metav1.Time, replicas int
 		},
 		Status: appsv1.DeploymentStatus{ReadyReplicas: ready},
 	}
+}
+
+func ownedDeployment(name string, namespace string, created metav1.Time, replicas int32) *appsv1.Deployment {
+	deployment := deployment(name, namespace, created, replicas, replicas)
+	deployment.Labels["app.kubernetes.io/owner"] = "platform"
+	deployment.Labels["tier"] = "frontend"
+	deployment.Annotations = map[string]string{
+		"platform.observability-hub.io/repo":      "https://github.com/example/grafana",
+		"platform.observability-hub.io/runbook":   "docs/runbooks/grafana.md",
+		"platform.observability-hub.io/dashboard": "https://grafana.example/d/grafana",
+	}
+	return deployment
 }
 
 func statefulSet(name string, namespace string, created metav1.Time, replicas int32, ready int32) *appsv1.StatefulSet {
@@ -824,6 +908,24 @@ func assertTraces(t *testing.T, got []Trace, want []Trace) {
 		if got[i] != want[i] {
 			t.Fatalf("traces[%d] = %#v, want %#v", i, got[i], want[i])
 		}
+	}
+}
+
+func assertOwnership(t *testing.T, got []Ownership, want []Ownership) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(ownership) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i].Summary != want[i].Summary ||
+			got[i].Owner != want[i].Owner ||
+			got[i].Tier != want[i].Tier ||
+			got[i].Source != want[i].Source ||
+			got[i].SourceObject != want[i].SourceObject {
+			t.Fatalf("ownership[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+		assertStringSlice(t, got[i].Docs, want[i].Docs)
 	}
 }
 

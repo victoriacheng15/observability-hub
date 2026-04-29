@@ -40,6 +40,7 @@ type serviceClient interface {
 	Events(context.Context, idpservice.EventsOptions) ([]idpservice.Event, error)
 	Metrics(context.Context, idpservice.MetricsOptions) ([]idpservice.Metric, error)
 	Traces(context.Context, idpservice.TracesOptions) ([]idpservice.Trace, error)
+	Ownership(context.Context, idpservice.OwnershipOptions) ([]idpservice.Ownership, error)
 }
 
 var newCatalog = func() (catalogClient, error) {
@@ -188,7 +189,11 @@ func runService(args []string, stdout io.Writer, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
 			return 1
 		}
-		return printCalled(stdout, "idp service "+args[0]+" for "+args[1])
+		opts, ok := parseServiceOwnershipOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return ownershipService(opts, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown service command: %s\n\n", args[0])
 		fmt.Fprint(stderr, serviceHelpText())
@@ -484,6 +489,28 @@ func tracesService(opts idpservice.TracesOptions, stdout io.Writer, stderr io.Wr
 	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tTRACE_ID\tROOT_SERVICE\tSTART\tDURATION")
 	for _, trace := range traces {
 		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", trace.Name, trace.Namespace, trace.Kind, trace.TraceID, trace.RootServiceName, trace.StartTime, trace.Duration)
+	}
+	writer.Flush()
+	return 0
+}
+
+func ownershipService(opts idpservice.OwnershipOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	ownership, err := serviceClient.Ownership(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tOWNER\tTIER\tSOURCE\tDOCS\tSOURCE_OBJECT")
+	for _, item := range ownership {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", item.Name, item.Namespace, item.Kind, item.Owner, item.Tier, item.Source, strings.Join(item.Docs, ","), item.SourceObject)
 	}
 	writer.Flush()
 	return 0
@@ -856,6 +883,25 @@ func parseServiceTracesOptions(args []string, stderr io.Writer) (idpservice.Trac
 	return opts, true
 }
 
+func parseServiceOwnershipOptions(args []string, stderr io.Writer) (idpservice.OwnershipOptions, bool) {
+	opts := idpservice.OwnershipOptions{Name: args[0]}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown service ownership option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
 	var opts catalog.ListOptions
 	for i := 0; i < len(args); i++ {
@@ -973,7 +1019,7 @@ func serviceHelpText() string {
   hub-cli service events <service> [--namespace <namespace>|-n <namespace>] [--tail <count>] [--since <duration>]
   hub-cli service metrics <service> [--namespace <namespace>|-n <namespace>] [--window <duration>]
   hub-cli service traces <service> [--namespace <namespace>|-n <namespace>] [--hours <hours>] [--limit <count>]
-  hub-cli service ownership <service>`) + "\n"
+  hub-cli service ownership <service> [--namespace <namespace>|-n <namespace>]`) + "\n"
 }
 
 func clusterHelpText() string {

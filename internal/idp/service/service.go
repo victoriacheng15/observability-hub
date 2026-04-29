@@ -45,9 +45,10 @@ type Summary struct {
 
 type Details struct {
 	Summary
-	Images   []string
-	Labels   map[string]string
-	Selector map[string]string
+	Images      []string
+	Labels      map[string]string
+	Annotations map[string]string
+	Selector    map[string]string
 }
 
 type ListOptions struct {
@@ -91,6 +92,11 @@ type TracesOptions struct {
 	Namespace string
 	Hours     int
 	Limit     int
+}
+
+type OwnershipOptions struct {
+	Name      string
+	Namespace string
 }
 
 type Health struct {
@@ -142,6 +148,15 @@ type Trace struct {
 	RootServiceName string
 	StartTime       string
 	Duration        string
+}
+
+type Ownership struct {
+	Summary
+	Owner        string
+	Tier         string
+	Source       string
+	Docs         []string
+	SourceObject string
 }
 
 func NewKubernetesService() (*KubernetesService, error) {
@@ -457,6 +472,21 @@ func (s *KubernetesService) Traces(ctx context.Context, opts TracesOptions) ([]T
 	return traces, nil
 }
 
+func (s *KubernetesService) Ownership(ctx context.Context, opts OwnershipOptions) ([]Ownership, error) {
+	details, err := s.Describe(ctx, DescribeOptions{Name: opts.Name, Namespace: opts.Namespace})
+	if err != nil {
+		return nil, err
+	}
+
+	ownership := make([]Ownership, 0, len(details))
+	for _, detail := range details {
+		ownership = append(ownership, ownershipFor(detail))
+	}
+
+	sortOwnership(ownership)
+	return ownership, nil
+}
+
 func (s *KubernetesService) workloads(ctx context.Context, namespace string) ([]Details, error) {
 	if namespace == "" {
 		namespace = metav1.NamespaceAll
@@ -741,9 +771,10 @@ func (s *KubernetesService) deploymentDetails(deployment appsv1.Deployment) Deta
 			Ready:     fmt.Sprintf("%d/%d", deployment.Status.ReadyReplicas, desired),
 			Age:       s.age(deployment.CreationTimestamp.Time),
 		},
-		Images:   containerImages(deployment.Spec.Template.Spec),
-		Labels:   copyMap(deployment.Labels),
-		Selector: deployment.Spec.Selector.MatchLabels,
+		Images:      containerImages(deployment.Spec.Template.Spec),
+		Labels:      copyMap(deployment.Labels),
+		Annotations: copyMap(deployment.Annotations),
+		Selector:    deployment.Spec.Selector.MatchLabels,
 	}
 }
 
@@ -761,9 +792,10 @@ func (s *KubernetesService) statefulSetDetails(statefulSet appsv1.StatefulSet) D
 			Ready:     fmt.Sprintf("%d/%d", statefulSet.Status.ReadyReplicas, desired),
 			Age:       s.age(statefulSet.CreationTimestamp.Time),
 		},
-		Images:   containerImages(statefulSet.Spec.Template.Spec),
-		Labels:   copyMap(statefulSet.Labels),
-		Selector: statefulSet.Spec.Selector.MatchLabels,
+		Images:      containerImages(statefulSet.Spec.Template.Spec),
+		Labels:      copyMap(statefulSet.Labels),
+		Annotations: copyMap(statefulSet.Annotations),
+		Selector:    statefulSet.Spec.Selector.MatchLabels,
 	}
 }
 
@@ -776,9 +808,10 @@ func (s *KubernetesService) daemonSetDetails(daemonSet appsv1.DaemonSet) Details
 			Ready:     fmt.Sprintf("%d/%d", daemonSet.Status.NumberReady, daemonSet.Status.DesiredNumberScheduled),
 			Age:       s.age(daemonSet.CreationTimestamp.Time),
 		},
-		Images:   containerImages(daemonSet.Spec.Template.Spec),
-		Labels:   copyMap(daemonSet.Labels),
-		Selector: daemonSet.Spec.Selector.MatchLabels,
+		Images:      containerImages(daemonSet.Spec.Template.Spec),
+		Labels:      copyMap(daemonSet.Labels),
+		Annotations: copyMap(daemonSet.Annotations),
+		Selector:    daemonSet.Spec.Selector.MatchLabels,
 	}
 }
 
@@ -796,9 +829,10 @@ func (s *KubernetesService) jobDetails(job batchv1.Job) Details {
 			Ready:     fmt.Sprintf("%d/%d", job.Status.Succeeded, desired),
 			Age:       s.age(job.CreationTimestamp.Time),
 		},
-		Images:   containerImages(job.Spec.Template.Spec),
-		Labels:   copyMap(job.Labels),
-		Selector: map[string]string{},
+		Images:      containerImages(job.Spec.Template.Spec),
+		Labels:      copyMap(job.Labels),
+		Annotations: copyMap(job.Annotations),
+		Selector:    map[string]string{},
 	}
 }
 
@@ -811,9 +845,10 @@ func (s *KubernetesService) cronJobDetails(cronJob batchv1.CronJob) Details {
 			Ready:     fmt.Sprintf("active:%d", len(cronJob.Status.Active)),
 			Age:       s.age(cronJob.CreationTimestamp.Time),
 		},
-		Images:   containerImages(cronJob.Spec.JobTemplate.Spec.Template.Spec),
-		Labels:   copyMap(cronJob.Labels),
-		Selector: map[string]string{},
+		Images:      containerImages(cronJob.Spec.JobTemplate.Spec.Template.Spec),
+		Labels:      copyMap(cronJob.Labels),
+		Annotations: copyMap(cronJob.Annotations),
+		Selector:    map[string]string{},
 	}
 }
 
@@ -908,6 +943,18 @@ func sortTraces(traces []Trace) {
 	})
 }
 
+func sortOwnership(ownership []Ownership) {
+	sort.Slice(ownership, func(i, j int) bool {
+		if ownership[i].Namespace == ownership[j].Namespace {
+			if ownership[i].Kind == ownership[j].Kind {
+				return ownership[i].Name < ownership[j].Name
+			}
+			return ownership[i].Kind < ownership[j].Kind
+		}
+		return ownership[i].Namespace < ownership[j].Namespace
+	})
+}
+
 func SortedMapEntries(values map[string]string) []string {
 	entries := make([]string, 0, len(values))
 	for key, value := range values {
@@ -988,6 +1035,46 @@ func sortPods(pods []corev1.Pod) {
 	sort.Slice(pods, func(i, j int) bool {
 		return pods[i].Name < pods[j].Name
 	})
+}
+
+func ownershipFor(detail Details) Ownership {
+	return Ownership{
+		Summary:      detail.Summary,
+		Owner:        metadataValue(detail, []string{"platform.observability-hub.io/owner", "app.kubernetes.io/owner", "owner", "team"}),
+		Tier:         metadataValue(detail, []string{"platform.observability-hub.io/tier", "tier", "app.kubernetes.io/component", "app.kubernetes.io/part-of"}),
+		Source:       metadataValue(detail, []string{"platform.observability-hub.io/source", "platform.observability-hub.io/repo", "app.kubernetes.io/source", "repository", "repo", "source"}),
+		Docs:         metadataValues(detail, []string{"platform.observability-hub.io/docs", "platform.observability-hub.io/runbook", "platform.observability-hub.io/dashboard", "docs", "documentation", "runbook", "dashboard"}),
+		SourceObject: detail.Kind + " " + detail.Namespace + "/" + detail.Name,
+	}
+}
+
+func metadataValue(detail Details, keys []string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(detail.Labels[key]); value != "" {
+			return value
+		}
+		if value := strings.TrimSpace(detail.Annotations[key]); value != "" {
+			return value
+		}
+	}
+	return "unknown"
+}
+
+func metadataValues(detail Details, keys []string) []string {
+	values := make([]string, 0)
+	for _, key := range keys {
+		if value := strings.TrimSpace(detail.Labels[key]); value != "" {
+			values = append(values, key+"="+value)
+		}
+		if value := strings.TrimSpace(detail.Annotations[key]); value != "" {
+			values = append(values, key+"="+value)
+		}
+	}
+	if len(values) == 0 {
+		return []string{"unknown"}
+	}
+	sort.Strings(values)
+	return values
 }
 
 func healthStatus(health Health) string {
