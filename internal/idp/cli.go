@@ -38,6 +38,8 @@ type serviceClient interface {
 	Health(context.Context, idpservice.HealthOptions) ([]idpservice.Health, error)
 	Logs(context.Context, idpservice.LogsOptions) ([]idpservice.LogLine, error)
 	Events(context.Context, idpservice.EventsOptions) ([]idpservice.Event, error)
+	Metrics(context.Context, idpservice.MetricsOptions) ([]idpservice.Metric, error)
+	Traces(context.Context, idpservice.TracesOptions) ([]idpservice.Trace, error)
 }
 
 var newCatalog = func() (catalogClient, error) {
@@ -161,7 +163,27 @@ func runService(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 1
 		}
 		return eventsService(opts, stdout, stderr)
-	case "metrics", "traces", "ownership":
+	case "metrics":
+		if len(args) < 2 {
+			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
+			return 1
+		}
+		opts, ok := parseServiceMetricsOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return metricsService(opts, stdout, stderr)
+	case "traces":
+		if len(args) < 2 {
+			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
+			return 1
+		}
+		opts, ok := parseServiceTracesOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return tracesService(opts, stdout, stderr)
+	case "ownership":
 		if len(args) < 2 {
 			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
 			return 1
@@ -410,6 +432,58 @@ func eventsService(opts idpservice.EventsOptions, stdout io.Writer, stderr io.Wr
 	fmt.Fprintln(writer, "TYPE\tREASON\tAGE\tOBJECT\tMESSAGE")
 	for _, event := range events {
 		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", event.Type, event.Reason, event.Age, event.Object, event.Message)
+	}
+	writer.Flush()
+	return 0
+}
+
+func metricsService(opts idpservice.MetricsOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	metrics, err := serviceClient.Metrics(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+	if len(metrics) == 0 {
+		fmt.Fprintf(stdout, "no metrics found for %s\n", opts.Name)
+		return 0
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tSIGNAL\tVALUE")
+	for _, metric := range metrics {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", metric.Name, metric.Namespace, metric.Kind, metric.Signal, metric.Value)
+	}
+	writer.Flush()
+	return 0
+}
+
+func tracesService(opts idpservice.TracesOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	traces, err := serviceClient.Traces(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+	if len(traces) == 0 {
+		fmt.Fprintf(stdout, "no traces found for %s\n", opts.Name)
+		return 0
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "NAME\tNAMESPACE\tKIND\tTRACE_ID\tROOT_SERVICE\tSTART\tDURATION")
+	for _, trace := range traces {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", trace.Name, trace.Namespace, trace.Kind, trace.TraceID, trace.RootServiceName, trace.StartTime, trace.Duration)
 	}
 	writer.Flush()
 	return 0
@@ -723,6 +797,65 @@ func parseServiceEventsOptions(args []string, stderr io.Writer) (idpservice.Even
 	return opts, true
 }
 
+func parseServiceMetricsOptions(args []string, stderr io.Writer) (idpservice.MetricsOptions, bool) {
+	opts := idpservice.MetricsOptions{Name: args[0], Window: 5 * time.Minute}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		case "--window":
+			window, ok := parseDurationOption(args, i, "window", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Window = window
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown service metrics option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
+func parseServiceTracesOptions(args []string, stderr io.Writer) (idpservice.TracesOptions, bool) {
+	opts := idpservice.TracesOptions{Name: args[0], Hours: 1, Limit: 20}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		case "--hours":
+			hours, ok := parsePositiveInt(args, i, "hours", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Hours = hours
+			i++
+		case "--limit":
+			limit, ok := parsePositiveInt(args, i, "limit", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Limit = limit
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown service traces option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
 	var opts catalog.ListOptions
 	for i := 0; i < len(args); i++ {
@@ -838,8 +971,8 @@ func serviceHelpText() string {
   hub-cli service health <service> [--namespace <namespace>|-n <namespace>]
   hub-cli service logs <service> [--namespace <namespace>|-n <namespace>] [--container <container>|-c <container>] [--tail <lines>] [--since <duration>] [--previous]
   hub-cli service events <service> [--namespace <namespace>|-n <namespace>] [--tail <count>] [--since <duration>]
-  hub-cli service metrics <service>
-  hub-cli service traces <service>
+  hub-cli service metrics <service> [--namespace <namespace>|-n <namespace>] [--window <duration>]
+  hub-cli service traces <service> [--namespace <namespace>|-n <namespace>] [--hours <hours>] [--limit <count>]
   hub-cli service ownership <service>`) + "\n"
 }
 

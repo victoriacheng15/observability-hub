@@ -2,6 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -452,6 +456,158 @@ func TestKubernetesServiceEvents(t *testing.T) {
 	}
 }
 
+func TestKubernetesServiceMetrics(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC))
+	replicas := int32(2)
+
+	tests := []struct {
+		name        string
+		objects     []runtime.Object
+		opts        MetricsOptions
+		handler     http.Handler
+		thanosURL   string
+		want        []Metric
+		wantErr     string
+		wantQueries int
+	}{
+		{
+			name: "queries service metrics for resolved pods",
+			objects: []runtime.Object{
+				deployment("grafana", "observability", created, replicas, 2),
+				pod("grafana-0", "observability", true, 0),
+				pod("grafana-1", "observability", true, 0),
+			},
+			opts:      MetricsOptions{Name: "grafana", Namespace: "observability", Window: 10 * time.Minute},
+			thanosURL: "http://thanos",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/v1/query" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				query := r.URL.Query().Get("query")
+				value := "0"
+				switch {
+				case strings.Contains(query, "container_cpu_usage_seconds_total"):
+					value = "0.12"
+				case strings.Contains(query, "container_memory_working_set_bytes"):
+					value = "1048576"
+				case strings.Contains(query, "kube_pod_container_status_restarts_total"):
+					value = "1"
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"status":"success","data":{"result":[{"value":[1714291200,"` + value + `"]}]}}`))
+			}),
+			want: []Metric{
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Signal: "cpu_cores", Value: "0.12"},
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Signal: "memory_bytes", Value: "1048576"},
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Signal: "restarts", Value: "1"},
+			},
+			wantQueries: 3,
+		},
+		{
+			name:    "requires thanos url",
+			opts:    MetricsOptions{Name: "grafana"},
+			wantErr: "THANOS_URL is required for service metrics",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := newTestService(tt.objects...)
+			var client *http.Client
+			if tt.handler != nil {
+				client = newInMemoryHTTPClient(tt.handler)
+			}
+			service.signals = newSignalClient(tt.thanosURL, "http://tempo", client)
+
+			metrics, err := service.Metrics(context.Background(), tt.opts)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("Metrics() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Metrics() error = %v", err)
+			}
+
+			assertMetrics(t, metrics, tt.want)
+		})
+	}
+}
+
+func TestKubernetesServiceTraces(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC))
+	replicas := int32(2)
+	start := time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC).UnixNano()
+
+	tests := []struct {
+		name     string
+		objects  []runtime.Object
+		opts     TracesOptions
+		handler  http.Handler
+		tempoURL string
+		want     []Trace
+		wantErr  string
+	}{
+		{
+			name: "searches traces for resolved service",
+			objects: []runtime.Object{
+				deployment("grafana", "observability", created, replicas, 2),
+			},
+			opts:     TracesOptions{Name: "grafana", Namespace: "observability", Hours: 2, Limit: 5},
+			tempoURL: "http://tempo",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/search" {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				if r.URL.Query().Get("q") != `{resource.service.name="grafana"}` {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(fmt.Sprintf(`{"traces":[{"traceID":"abc123","rootServiceName":"grafana","startTimeUnixNano":"%d","durationMs":25}]}`, start)))
+			}),
+			want: []Trace{
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", TraceID: "abc123", RootServiceName: "grafana", StartTime: "2026-04-28T11:59:00Z", Duration: "25ms"},
+			},
+		},
+		{
+			name:    "requires tempo url",
+			opts:    TracesOptions{Name: "grafana"},
+			wantErr: "TEMPO_URL is required for service traces",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := newTestService(tt.objects...)
+			var client *http.Client
+			if tt.handler != nil {
+				client = newInMemoryHTTPClient(tt.handler)
+			}
+			service.signals = newSignalClient("http://thanos", tt.tempoURL, client)
+			service.signals.now = func() time.Time {
+				return time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
+			}
+
+			traces, err := service.Traces(context.Background(), tt.opts)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("Traces() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Traces() error = %v", err)
+			}
+
+			assertTraces(t, traces, tt.want)
+		})
+	}
+}
+
 func deployment(name string, namespace string, created metav1.Time, replicas int32, ready int32) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -645,6 +801,32 @@ func assertEvents(t *testing.T, got []Event, want []Event) {
 	}
 }
 
+func assertMetrics(t *testing.T, got []Metric, want []Metric) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(metrics) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("metrics[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertTraces(t *testing.T, got []Trace, want []Trace) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(traces) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("traces[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
 func assertDetails(t *testing.T, got []Details, want []Details) {
 	t.Helper()
 
@@ -693,4 +875,24 @@ func newTestService(objects ...runtime.Object) *KubernetesService {
 		return time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
 	}
 	return service
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+func newInMemoryHTTPClient(handler http.Handler) *http.Client {
+	return &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			recorder := httptest.NewRecorder()
+			cloned := req.Clone(req.Context())
+			cloned.RequestURI = cloned.URL.RequestURI()
+			handler.ServeHTTP(recorder, cloned)
+			response := recorder.Result()
+			response.Request = req
+			return response, nil
+		}),
+	}
 }
