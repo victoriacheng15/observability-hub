@@ -282,6 +282,176 @@ func TestKubernetesServiceHealth(t *testing.T) {
 	}
 }
 
+func TestKubernetesServiceLogs(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC))
+	replicas := int32(2)
+
+	tests := []struct {
+		name    string
+		objects []runtime.Object
+		opts    LogsOptions
+		logs    map[string][]string
+		want    []LogLine
+		wantErr string
+	}{
+		{
+			name: "reads logs for resolved service pods",
+			objects: []runtime.Object{
+				deployment("grafana", "observability", created, replicas, 2),
+				pod("grafana-0", "observability", true, 0),
+				pod("grafana-1", "observability", true, 0),
+			},
+			opts: LogsOptions{Name: "grafana", Namespace: "observability", Container: "app", Tail: 10, Since: time.Minute},
+			logs: map[string][]string{
+				"observability/grafana-0/app": {"ready"},
+				"observability/grafana-1/app": {"serving"},
+			},
+			want: []LogLine{
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Pod: "grafana-0", Container: "app", Line: "ready"},
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Pod: "grafana-1", Container: "app", Line: "serving"},
+			},
+		},
+		{
+			name: "reads logs for pod name fallback",
+			objects: []runtime.Object{
+				pod("loki-0", "observability", true, 0),
+			},
+			opts: LogsOptions{Name: "loki-0", Tail: 5},
+			logs: map[string][]string{
+				"observability/loki-0": {"compactor ready"},
+			},
+			want: []LogLine{
+				{Name: "loki-0", Namespace: "observability", Kind: "Pod", Pod: "loki-0", Line: "compactor ready"},
+			},
+		},
+		{
+			name: "reads all pod containers when container is not provided",
+			objects: []runtime.Object{
+				multiContainerPod("loki-0", "observability", "loki", "loki-sc-rules"),
+			},
+			opts: LogsOptions{Name: "loki-0", Tail: 5},
+			logs: map[string][]string{
+				"observability/loki-0/loki":          {"loki ready"},
+				"observability/loki-0/loki-sc-rules": {"rules ready"},
+			},
+			want: []LogLine{
+				{Name: "loki-0", Namespace: "observability", Kind: "Pod", Pod: "loki-0", Container: "loki", Line: "loki ready"},
+				{Name: "loki-0", Namespace: "observability", Kind: "Pod", Pod: "loki-0", Container: "loki-sc-rules", Line: "rules ready"},
+			},
+		},
+		{
+			name: "reads logs for namespace qualified pod name fallback",
+			objects: []runtime.Object{
+				pod("loki-0", "observability", true, 0),
+				pod("loki-0", "logging", true, 0),
+			},
+			opts: LogsOptions{Name: "logging/loki-0", Tail: 5},
+			logs: map[string][]string{
+				"logging/loki-0": {"querier ready"},
+			},
+			want: []LogLine{
+				{Name: "loki-0", Namespace: "logging", Kind: "Pod", Pod: "loki-0", Line: "querier ready"},
+			},
+		},
+		{
+			name:    "missing service",
+			opts:    LogsOptions{Name: "missing"},
+			wantErr: "service not found: missing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := newTestService(tt.objects...)
+			service.podLogs = func(_ context.Context, pod corev1.Pod, container string, _ LogsOptions) ([]string, error) {
+				if container == "" {
+					return tt.logs[pod.Namespace+"/"+pod.Name], nil
+				}
+				return tt.logs[pod.Namespace+"/"+pod.Name+"/"+container], nil
+			}
+
+			logs, err := service.Logs(context.Background(), tt.opts)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("Logs() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Logs() error = %v", err)
+			}
+
+			assertLogLines(t, logs, tt.want)
+		})
+	}
+}
+
+func TestKubernetesServiceEvents(t *testing.T) {
+	created := metav1.NewTime(time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC))
+	replicas := int32(2)
+
+	tests := []struct {
+		name    string
+		objects []runtime.Object
+		opts    EventsOptions
+		want    []Event
+		wantErr string
+	}{
+		{
+			name: "returns recent workload and pod events",
+			objects: []runtime.Object{
+				deployment("grafana", "observability", created, replicas, 2),
+				pod("grafana-0", "observability", true, 0),
+				event("grafana", "Deployment", "observability", corev1.EventTypeNormal, "Scaled", "scaled up", time.Date(2026, 4, 28, 11, 55, 0, 0, time.UTC)),
+				event("grafana-0", "Pod", "observability", corev1.EventTypeWarning, "BackOff", "back-off restarting failed container", time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC)),
+				event("other", "Pod", "observability", corev1.EventTypeWarning, "Failed", "ignored", time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC)),
+			},
+			opts: EventsOptions{Name: "grafana", Namespace: "observability", Tail: 10, Since: 10 * time.Minute},
+			want: []Event{
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Type: corev1.EventTypeWarning, Reason: "BackOff", Message: "back-off restarting failed container", Object: "Pod/grafana-0", Age: "1m", Time: time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC)},
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Type: corev1.EventTypeNormal, Reason: "Scaled", Message: "scaled up", Object: "Deployment/grafana", Age: "5m", Time: time.Date(2026, 4, 28, 11, 55, 0, 0, time.UTC)},
+			},
+		},
+		{
+			name: "limits events",
+			objects: []runtime.Object{
+				deployment("grafana", "observability", created, replicas, 2),
+				pod("grafana-0", "observability", true, 0),
+				event("grafana", "Deployment", "observability", corev1.EventTypeNormal, "Old", "old", time.Date(2026, 4, 28, 11, 50, 0, 0, time.UTC)),
+				event("grafana-0", "Pod", "observability", corev1.EventTypeWarning, "New", "new", time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC)),
+			},
+			opts: EventsOptions{Name: "grafana", Namespace: "observability", Tail: 1},
+			want: []Event{
+				{Name: "grafana", Namespace: "observability", Kind: "Deployment", Type: corev1.EventTypeWarning, Reason: "New", Message: "new", Object: "Pod/grafana-0", Age: "1m", Time: time.Date(2026, 4, 28, 11, 59, 0, 0, time.UTC)},
+			},
+		},
+		{
+			name:    "missing service",
+			opts:    EventsOptions{Name: "missing"},
+			wantErr: "service not found: missing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := newTestService(tt.objects...)
+
+			events, err := service.Events(context.Background(), tt.opts)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("Events() error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Events() error = %v", err)
+			}
+
+			assertEvents(t, events, tt.want)
+		})
+	}
+}
+
 func deployment(name string, namespace string, created metav1.Time, replicas int32, ready int32) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -346,6 +516,15 @@ func pod(name string, namespace string, ready bool, restarts int32) *corev1.Pod 
 	}
 }
 
+func multiContainerPod(name string, namespace string, containers ...string) *corev1.Pod {
+	pod := pod(name, namespace, true, 0)
+	pod.Spec.Containers = make([]corev1.Container, 0, len(containers))
+	for _, container := range containers {
+		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: container})
+	}
+	return pod
+}
+
 func kubernetesService(name string, namespace string) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
@@ -389,6 +568,21 @@ func warningEvent(name string, namespace string, reason string) *corev1.Event {
 	}
 }
 
+func event(name string, kind string, namespace string, eventType string, reason string, message string, lastSeen time.Time) *corev1.Event {
+	return &corev1.Event{
+		ObjectMeta: metav1.ObjectMeta{Name: name + "." + reason, Namespace: namespace},
+		InvolvedObject: corev1.ObjectReference{
+			Kind:      kind,
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:          eventType,
+		Reason:        reason,
+		Message:       message,
+		LastTimestamp: metav1.NewTime(lastSeen),
+	}
+}
+
 func assertSummaries(t *testing.T, got []Summary, want []Summary) {
 	t.Helper()
 
@@ -422,6 +616,32 @@ func assertHealth(t *testing.T, got []Health, want []Health) {
 			t.Fatalf("health[%d] = %#v, want %#v", i, got[i], want[i])
 		}
 		assertStringSlice(t, got[i].WarningEventReasons, want[i].WarningEventReasons)
+	}
+}
+
+func assertLogLines(t *testing.T, got []LogLine, want []LogLine) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(logs) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("logs[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertEvents(t *testing.T, got []Event, want []Event) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(events) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("events[%d] = %#v, want %#v", i, got[i], want[i])
+		}
 	}
 }
 

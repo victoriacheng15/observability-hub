@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"observability-hub/internal/idp/catalog"
 	"observability-hub/internal/idp/cluster"
@@ -34,6 +36,8 @@ type serviceClient interface {
 	List(context.Context, idpservice.ListOptions) ([]idpservice.Summary, error)
 	Describe(context.Context, idpservice.DescribeOptions) ([]idpservice.Details, error)
 	Health(context.Context, idpservice.HealthOptions) ([]idpservice.Health, error)
+	Logs(context.Context, idpservice.LogsOptions) ([]idpservice.LogLine, error)
+	Events(context.Context, idpservice.EventsOptions) ([]idpservice.Event, error)
 }
 
 var newCatalog = func() (catalogClient, error) {
@@ -137,7 +141,27 @@ func runService(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 1
 		}
 		return healthService(opts, stdout, stderr)
-	case "logs", "events", "metrics", "traces", "ownership":
+	case "logs":
+		if len(args) < 2 {
+			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
+			return 1
+		}
+		opts, ok := parseServiceLogsOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return logsService(opts, stdout, stderr)
+	case "events":
+		if len(args) < 2 {
+			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
+			return 1
+		}
+		opts, ok := parseServiceEventsOptions(args[1:], stderr)
+		if !ok {
+			return 1
+		}
+		return eventsService(opts, stdout, stderr)
+	case "metrics", "traces", "ownership":
 		if len(args) < 2 {
 			fmt.Fprintf(stderr, "missing service name for idp service %s\n", args[0])
 			return 1
@@ -339,6 +363,55 @@ func healthService(opts idpservice.HealthOptions, stdout io.Writer, stderr io.Wr
 		}
 	}
 
+	return 0
+}
+
+func logsService(opts idpservice.LogsOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	logs, err := serviceClient.Logs(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+	if len(logs) == 0 {
+		fmt.Fprintf(stdout, "no logs found for %s\n", opts.Name)
+		return 0
+	}
+
+	for _, line := range logs {
+		fmt.Fprintf(stdout, "%s/%s %s %s\n", line.Namespace, line.Pod, line.Name, line.Line)
+	}
+	return 0
+}
+
+func eventsService(opts idpservice.EventsOptions, stdout io.Writer, stderr io.Writer) int {
+	serviceClient, err := newService()
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+
+	events, err := serviceClient.Events(context.Background(), opts)
+	if err != nil {
+		fmt.Fprintf(stderr, "%v\n", err)
+		return 1
+	}
+	if len(events) == 0 {
+		fmt.Fprintf(stdout, "no events found for %s\n", opts.Name)
+		return 0
+	}
+
+	writer := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(writer, "TYPE\tREASON\tAGE\tOBJECT\tMESSAGE")
+	for _, event := range events {
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", event.Type, event.Reason, event.Age, event.Object, event.Message)
+	}
+	writer.Flush()
 	return 0
 }
 
@@ -575,6 +648,81 @@ func parseServiceHealthOptions(args []string, stderr io.Writer) (idpservice.Heal
 	return opts, true
 }
 
+func parseServiceLogsOptions(args []string, stderr io.Writer) (idpservice.LogsOptions, bool) {
+	opts := idpservice.LogsOptions{Name: args[0], Tail: 100}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		case "--container", "-c":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing container for %s\n", args[i])
+				return opts, false
+			}
+			opts.Container = args[i+1]
+			i++
+		case "--tail":
+			tail, ok := parsePositiveInt64(args, i, "tail", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Tail = tail
+			i++
+		case "--since":
+			since, ok := parseDurationOption(args, i, "since", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Since = since
+			i++
+		case "--previous":
+			opts.Previous = true
+		default:
+			fmt.Fprintf(stderr, "unknown service logs option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
+func parseServiceEventsOptions(args []string, stderr io.Writer) (idpservice.EventsOptions, bool) {
+	opts := idpservice.EventsOptions{Name: args[0], Tail: 25}
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--namespace", "-n":
+			if i+1 >= len(args) {
+				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+				return opts, false
+			}
+			opts.Namespace = args[i+1]
+			i++
+		case "--tail":
+			tail, ok := parsePositiveInt(args, i, "tail", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Tail = tail
+			i++
+		case "--since":
+			since, ok := parseDurationOption(args, i, "since", stderr)
+			if !ok {
+				return opts, false
+			}
+			opts.Since = since
+			i++
+		default:
+			fmt.Fprintf(stderr, "unknown service events option: %s\n", args[i])
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, bool) {
 	var opts catalog.ListOptions
 	for i := 0; i < len(args); i++ {
@@ -652,13 +800,44 @@ func isHelp(arg string) bool {
 	return arg == "-h" || arg == "--help" || arg == "help"
 }
 
+func parsePositiveInt(args []string, index int, name string, stderr io.Writer) (int, bool) {
+	value, ok := parsePositiveInt64(args, index, name, stderr)
+	return int(value), ok
+}
+
+func parsePositiveInt64(args []string, index int, name string, stderr io.Writer) (int64, bool) {
+	if index+1 >= len(args) {
+		fmt.Fprintf(stderr, "missing %s for %s\n", name, args[index])
+		return 0, false
+	}
+	value, err := strconv.ParseInt(args[index+1], 10, 64)
+	if err != nil || value < 1 {
+		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], args[index+1])
+		return 0, false
+	}
+	return value, true
+}
+
+func parseDurationOption(args []string, index int, name string, stderr io.Writer) (time.Duration, bool) {
+	if index+1 >= len(args) {
+		fmt.Fprintf(stderr, "missing %s for %s\n", name, args[index])
+		return 0, false
+	}
+	value, err := time.ParseDuration(args[index+1])
+	if err != nil || value <= 0 {
+		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], args[index+1])
+		return 0, false
+	}
+	return value, true
+}
+
 func serviceHelpText() string {
 	return strings.TrimSpace(`Usage:
   hub-cli service list [--namespace <namespace>|-n <namespace>]
   hub-cli service describe <service> [--namespace <namespace>|-n <namespace>]
   hub-cli service health <service> [--namespace <namespace>|-n <namespace>]
-  hub-cli service logs <service>
-  hub-cli service events <service>
+  hub-cli service logs <service> [--namespace <namespace>|-n <namespace>] [--container <container>|-c <container>] [--tail <lines>] [--since <duration>] [--previous]
+  hub-cli service events <service> [--namespace <namespace>|-n <namespace>] [--tail <count>] [--since <duration>]
   hub-cli service metrics <service>
   hub-cli service traces <service>
   hub-cli service ownership <service>`) + "\n"
