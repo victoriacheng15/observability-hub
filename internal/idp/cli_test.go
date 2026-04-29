@@ -8,6 +8,7 @@ import (
 
 	"observability-hub/internal/idp/catalog"
 	"observability-hub/internal/idp/cluster"
+	idpenv "observability-hub/internal/idp/env"
 )
 
 func TestRunPlaceholderCommands(t *testing.T) {
@@ -30,11 +31,6 @@ func TestRunPlaceholderCommands(t *testing.T) {
 			name: "service health",
 			args: []string{"service", "health", "tempo"},
 			want: "called idp service health for tempo\n",
-		},
-		{
-			name: "env describe",
-			args: []string{"env", "describe", "local"},
-			want: "called idp env describe for local\n",
 		},
 	}
 
@@ -302,6 +298,124 @@ func TestRunCatalogNamespaceOptionErrors(t *testing.T) {
 	}
 }
 
+func TestRunEnvCommands(t *testing.T) {
+	fake := &fakeEnv{
+		resources: []idpenv.Resource{
+			{Name: "grafana-env", Namespace: "observability", Kind: "ConfigMap", Type: "-", DataCount: 2, Age: "2h"},
+			{Name: "grafana-admin", Namespace: "observability", Kind: "Secret", Type: "Opaque", DataCount: 2, Age: "2h"},
+		},
+		details: []idpenv.Details{
+			{
+				Resource: idpenv.Resource{Name: "grafana-admin", Namespace: "observability", Kind: "Secret", Type: "Opaque", DataCount: 2, Age: "2h"},
+				Keys:     []string{"password", "username"},
+			},
+		},
+	}
+	restore := stubEnv(t, fake)
+	defer restore()
+
+	tests := []struct {
+		name     string
+		args     []string
+		want     string
+		wantList []idpenv.ListOptions
+		wantDesc []idpenv.DescribeOptions
+	}{
+		{
+			name: "env list",
+			args: []string{"env", "list"},
+			want: "NAME           NAMESPACE      KIND       TYPE    KEYS  AGE\n" +
+				"grafana-env    observability  ConfigMap  -       2     2h\n" +
+				"grafana-admin  observability  Secret     Opaque  2     2h\n",
+			wantList: []idpenv.ListOptions{{}},
+		},
+		{
+			name: "env list namespace",
+			args: []string{"env", "list", "--namespace", "observability"},
+			want: "NAME           NAMESPACE      KIND       TYPE    KEYS  AGE\n" +
+				"grafana-env    observability  ConfigMap  -       2     2h\n" +
+				"grafana-admin  observability  Secret     Opaque  2     2h\n",
+			wantList: []idpenv.ListOptions{{Namespace: "observability"}},
+		},
+		{
+			name: "env describe",
+			args: []string{"env", "describe", "grafana-admin", "-n", "observability", "--kind", "Secret"},
+			want: "Name: grafana-admin\n" +
+				"Namespace: observability\n" +
+				"Kind: Secret\n" +
+				"Type: Opaque\n" +
+				"Keys: 2\n" +
+				"- password\n" +
+				"- username\n",
+			wantDesc: []idpenv.DescribeOptions{{Name: "grafana-admin", Namespace: "observability", Kind: "Secret"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake.listOpts = nil
+			fake.describeOpts = nil
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 0 {
+				t.Fatalf("Run() code = %d, want 0; stderr = %q", code, stderr.String())
+			}
+			if got := stdout.String(); got != tt.want {
+				t.Fatalf("stdout = %q, want %q", got, tt.want)
+			}
+			if got := stderr.String(); got != "" {
+				t.Fatalf("stderr = %q, want empty", got)
+			}
+			assertEnvListOptions(t, fake.listOpts, tt.wantList)
+			assertEnvDescribeOptions(t, fake.describeOpts, tt.wantDesc)
+		})
+	}
+}
+
+func TestRunEnvOptionErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "missing namespace",
+			args: []string{"env", "list", "--namespace"},
+			want: "missing namespace for --namespace",
+		},
+		{
+			name: "unknown list option",
+			args: []string{"env", "list", "--team", "payments"},
+			want: "unknown env list option: --team",
+		},
+		{
+			name: "missing kind",
+			args: []string{"env", "describe", "grafana-admin", "--kind"},
+			want: "missing kind for --kind",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+
+			code := Run(tt.args, &stdout, &stderr)
+			if code != 1 {
+				t.Fatalf("Run() code = %d, want 1", code)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("stdout = %q, want empty", got)
+			}
+			if got := stderr.String(); !strings.Contains(got, tt.want) {
+				t.Fatalf("stderr = %q, want containing %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRunMissingRequiredArgument(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -316,6 +430,23 @@ func TestRunMissingRequiredArgument(t *testing.T) {
 	if got := stderr.String(); !strings.Contains(got, "missing service name") {
 		t.Fatalf("stderr missing required argument message: %q", got)
 	}
+}
+
+type fakeEnv struct {
+	resources    []idpenv.Resource
+	details      []idpenv.Details
+	listOpts     []idpenv.ListOptions
+	describeOpts []idpenv.DescribeOptions
+}
+
+func (f *fakeEnv) List(_ context.Context, opts idpenv.ListOptions) ([]idpenv.Resource, error) {
+	f.listOpts = append(f.listOpts, opts)
+	return f.resources, nil
+}
+
+func (f *fakeEnv) Describe(_ context.Context, opts idpenv.DescribeOptions) ([]idpenv.Details, error) {
+	f.describeOpts = append(f.describeOpts, opts)
+	return f.details, nil
 }
 
 type fakeCluster struct {
@@ -378,6 +509,44 @@ func assertWorkloadOptions(t *testing.T, got []cluster.WorkloadOptions, want []c
 		if got[i] != want[i] {
 			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
 		}
+	}
+}
+
+func assertEnvListOptions(t *testing.T, got []idpenv.ListOptions, want []idpenv.ListOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func assertEnvDescribeOptions(t *testing.T, got []idpenv.DescribeOptions, want []idpenv.DescribeOptions) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("len(options) = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("options[%d] = %#v, want %#v", i, got[i], want[i])
+		}
+	}
+}
+
+func stubEnv(t *testing.T, fake *fakeEnv) func() {
+	t.Helper()
+
+	original := newEnv
+	newEnv = func() (envClient, error) {
+		return fake, nil
+	}
+	return func() {
+		newEnv = original
 	}
 }
 
