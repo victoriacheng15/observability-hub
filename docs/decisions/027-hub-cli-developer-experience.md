@@ -6,24 +6,31 @@
 
 ## Context and Problem Statement
 
-Observability Hub has operational surfaces across Kubernetes, telemetry, MCP
-tools, documentation, and host services. A local IDP CLI gives those surfaces a
-service-first developer interface for understanding runtime state, signals,
-ownership, and next steps.
+Observability Hub's active runtime surface is Kubernetes-backed: services map
+to pods, workloads, namespaces, logs, events, and health signals. A Hub
+internal developer platform CLI gives that surface a service-first interface
+for understanding runtime state, ownership, and service status.
 
-The first implementation should establish the command shape as a local Linux
-binary, with service-focused commands that can grow into Kubernetes service
-discovery, health summaries, logs, events, and developer helper commands.
+Without a shared command surface, the same investigation path can require
+switching between pod lists, workload status, service logs, cluster events, and
+ad hoc Kubernetes commands. The CLI should give those workflows a consistent
+vocabulary without hiding the underlying platform model.
+
+The first implementation should establish the command shape, with
+service-focused commands that cover Kubernetes service discovery, health
+summaries, logs, events, and developer helper commands.
 
 ## Decision Outcome
 
-Add a local Hub IDP CLI with the source entry point at `cmd/idp` and internal
-logic under `internal/idp`.
+Add a Hub internal developer platform CLI with the source entry point at
+`cmd/idp` and internal logic under `internal/idp`.
 
-- **Local Binary:** Build the CLI as a local Linux binary for day-to-day
-  development.
+- **CLI Entry Point:** Build the CLI as the repository's developer interface.
 - **Service-First UX:** Design commands around services before pods or raw
   Kubernetes objects.
+- **Workflow Vocabulary:** Use command groups that match recurring platform
+  workflows: service inspection, cluster state, Kubernetes catalog validation,
+  and environment discovery.
 - **Read-Only First:** Start with command routing and help text before adding
   Kubernetes access.
 
@@ -31,9 +38,9 @@ logic under `internal/idp`.
 
 ### Positive
 
-- **Fast Feedback:** The CLI shape can be tested locally as part of normal
+- **Fast Feedback:** The CLI shape can be tested as part of normal
   development.
-- **Simple Operations:** A single Linux binary keeps the local workflow direct.
+- **Simple Operations:** A single CLI keeps the developer workflow direct.
 - **Project Alignment:** The CLI follows the repository's `cmd/` and
   `internal/` boundaries.
 - **Clear Growth Path:** Catalog, Kubernetes, telemetry, and helper behavior
@@ -41,30 +48,30 @@ logic under `internal/idp`.
 
 ### Negative
 
-- **Linux-First Assumption:** The initial binary targets the local Linux
-  environment instead of proving cross-platform behavior.
+- **Implementation Scope:** The first version proves command routing before
+  deeper Kubernetes, telemetry, or remediation behavior.
 - **Command Names Become Sticky:** Once commands such as `service health` or
   `cluster status` are documented, changing them later can break habits,
   scripts, or notes.
 
 ## Verification
 
-- [ ] **Service Commands:**
-  - [ ] `service list` is routed.
-  - [ ] `service describe <service>` is routed.
-  - [ ] `service health <service>` is routed.
-  - [ ] `service logs <service>` is routed.
-  - [ ] `service events <service>` is routed.
-  - [ ] `service metrics <service>` is routed.
-  - [ ] `service traces <service>` is routed.
-  - [ ] `service ownership <service>` is routed.
-- [ ] **Cluster Commands:**
-  - [ ] `cluster status` is routed.
-  - [ ] `cluster namespaces` is routed.
-  - [ ] `cluster workloads` is routed.
-- [ ] **Catalog Commands:**
-  - [ ] `catalog list` is routed.
-  - [ ] `catalog validate` is routed.
-- [ ] **Environment Commands:**
-  - [ ] `env list` is routed.
-  - [ ] `env describe <env>` is routed.
+- [x] **Service Commands:**
+  - [x] `service list` is routed.
+  - [x] `service describe <service>` is routed.
+  - [x] `service health <service>` is routed.
+  - [x] `service logs <service>` is routed.
+  - [x] `service events <service>` is routed.
+  - [x] `service metrics <service>` is routed.
+  - [x] `service traces <service>` is routed.
+  - [x] `service ownership <service>` is routed.
+- [x] **Cluster Commands:**
+  - [x] `cluster status` is routed.
+  - [x] `cluster namespaces` is routed.
+  - [x] `cluster workloads` is routed.
+- [x] **Catalog Commands:**
+  - [x] `catalog list` is routed.
+  - [x] `catalog validate` is routed.
+- [x] **Environment Commands:**
+  - [x] `env list` is routed.
+  - [x] `env describe <env>` is routed.
