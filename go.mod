@@ -7,8 +7,8 @@ require (
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
-	github.com/modelcontextprotocol/go-sdk v1.5.0
-	go.mongodb.org/mongo-driver/v2 v2.5.1
+	github.com/modelcontextprotocol/go-sdk v1.6.0
+	go.mongodb.org/mongo-driver/v2 v2.6.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.18.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0
 	go.opentelemetry.io/otel v1.43.0
@@ -55,7 +55,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/jsonschema-go v0.4.2 // indirect
+	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
