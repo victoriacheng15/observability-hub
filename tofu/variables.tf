@@ -53,7 +53,7 @@ variable "hardware_sim_namespace" {
 variable "argocd_chart_version" {
   description = "Helm chart version for ArgoCD."
   type        = string
-  default     = "9.5.4"
+  default     = "9.5.11"
 }
 
 variable "azurerm_storage_account_name" {
@@ -107,7 +107,7 @@ variable "postgres_node_port" {
 variable "prometheus_chart_version" {
   description = "Helm chart version for Prometheus."
   type        = string
-  default     = "28.14.1"
+  default     = "29.5.0"
 }
 
 variable "thanos_chart_version" {
@@ -119,19 +119,19 @@ variable "thanos_chart_version" {
 variable "loki_chart_version" {
   description = "Helm chart version for Loki."
   type        = string
-  default     = "6.55.0"
+  default     = "7.0.0"
 }
 
 variable "tempo_chart_version" {
   description = "Helm chart version for Tempo."
   type        = string
-  default     = "2.0.0"
+  default     = "2.1.0"
 }
 
 variable "otel_collector_chart_version" {
   description = "Helm chart version for OpenTelemetry Collector."
   type        = string
-  default     = "0.147.1"
+  default     = "0.153.0"
 }
 
 variable "grafana_chart_version" {
