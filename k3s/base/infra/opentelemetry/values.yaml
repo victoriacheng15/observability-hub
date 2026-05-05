@@ -20,8 +20,13 @@ alternateConfig:
   receivers:
     otlp:
       protocols:
-        grpc: {}
-        http: {}
+        # Explicitly bind OTLP receivers on all interfaces. Recent collector
+        # defaults can fall back to localhost-only listeners, which breaks
+        # in-cluster exporters targeting the Service IP.
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
   processors:
     batch: {}
     resource:
