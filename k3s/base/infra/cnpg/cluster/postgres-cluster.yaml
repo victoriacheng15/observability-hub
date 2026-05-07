@@ -5,7 +5,11 @@ metadata:
   namespace: databases
 spec:
   instances: 3
-  imageName: ghcr.io/victoriacheng15/observability-hub/postgres-cnpg
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ImageCatalog
+    name: postgres-cnpg
+    major: 17
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: ghcr-auth
@@ -56,14 +60,6 @@ spec:
       wal_log_hints: "on"
       wal_receiver_timeout: 5s
       wal_sender_timeout: 5s
-
-  backup:
-    barmanObjectStore:
-      destinationPath: https://obshub.blob.core.windows.net/pg-backup/
-      azureCredentials:
-        connectionString:
-          name: azure-creds
-          key: AZURE_CONNECTION_STRING
 
   storage:
     size: 10Gi
