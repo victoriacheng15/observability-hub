@@ -7,22 +7,15 @@ loki:
   commonConfig:
     replication_factor: 1
   storage:
-    type: s3
-    bucketNames:
-      chunks: loki-chunks
-      ruler: loki-ruler
-      admin: loki-admin
-    s3:
-      endpoint: minio.databases.svc.cluster.local:9000
-      secretAccessKey: ${rootPassword}
-      accessKeyId: ${rootUser}
-      s3ForcePathStyle: true
-      insecure: true
+    type: filesystem
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
   schemaConfig:
     configs:
       - from: 2024-01-01
         store: tsdb
-        object_store: s3
+        object_store: filesystem
         schema: v13
         index:
           prefix: index_
@@ -39,9 +32,10 @@ loki:
     retention_enabled: true
     retention_delete_delay: 2h
     retention_delete_worker_count: 150
-    delete_request_store: s3
+    delete_request_store: filesystem
   persistence:
     enabled: true
+    storageClass: local-path-retain
   sidecar:
     rules:
       resources:
@@ -57,13 +51,9 @@ deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
-  extraArgs:
-    - -config.expand-env=true
-  extraEnvFrom:
-    - secretRef:
-        name: minio-secret
   persistence:
     enabled: true
+    storageClass: local-path-retain
 
 gateway:
   enabled: true

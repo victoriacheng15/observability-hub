@@ -1,26 +1,11 @@
 persistence:
   enabled: true
+  storageClassName: local-path-retain
 
 tempo:
   podLabels:
     app.kubernetes.io/feature: observability-traces
   replicas: 1
-
-  # Injected directly into the tempo container
-  extraEnv:
-    - name: rootUser
-      valueFrom:
-        secretKeyRef:
-          name: minio-secret
-          key: rootUser
-    - name: rootPassword
-      valueFrom:
-        secretKeyRef:
-          name: minio-secret
-          key: rootPassword
-
-  extraArgs:
-    config.expand-env: "true"
 
   multitenancy_enabled: false
 
@@ -73,14 +58,9 @@ config: |
     http_listen_port: 3200
   storage:
     trace:
-      backend: s3
-      s3:
-        bucket: tempo-traces
-        endpoint: minio.databases.svc.cluster.local:9000
-        access_key: ${rootUser}
-        secret_key: ${rootPassword}
-        insecure: true
-        forcepathstyle: true
+      backend: local
+      local:
+        path: /var/tempo/traces
       wal:
         path: /var/tempo/wal
   metrics_generator:
