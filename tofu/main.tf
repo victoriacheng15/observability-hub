@@ -39,7 +39,6 @@ module "observability" {
   source = "./modules/observability"
 
   prometheus_chart_version     = var.prometheus_chart_version
-  thanos_chart_version         = var.thanos_chart_version
   loki_chart_version           = var.loki_chart_version
   tempo_chart_version          = var.tempo_chart_version
   otel_collector_chart_version = var.otel_collector_chart_version

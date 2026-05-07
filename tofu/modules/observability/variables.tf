@@ -3,11 +3,6 @@ variable "prometheus_chart_version" {
   type        = string
 }
 
-variable "thanos_chart_version" {
-  description = "Helm chart version for Thanos."
-  type        = string
-}
-
 variable "loki_chart_version" {
   description = "Helm chart version for Loki."
   type        = string
