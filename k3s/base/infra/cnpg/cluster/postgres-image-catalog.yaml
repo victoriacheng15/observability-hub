@@ -1,9 +1,0 @@
-apiVersion: postgresql.cnpg.io/v1
-kind: ImageCatalog
-metadata:
-  name: postgres-cnpg
-  namespace: databases
-spec:
-  images:
-    - major: 17
-      image: ghcr.io/victoriacheng15/observability-hub/postgres-cnpg:sha-f8b2a4a

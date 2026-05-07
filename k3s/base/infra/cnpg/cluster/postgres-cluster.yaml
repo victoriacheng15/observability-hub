@@ -5,11 +5,7 @@ metadata:
   namespace: databases
 spec:
   instances: 3
-  imageCatalogRef:
-    apiGroup: postgresql.cnpg.io
-    kind: ImageCatalog
-    name: postgres-cnpg
-    major: 17
+  imageName: localhost/postgres-cnpg:17
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: ghcr-auth
