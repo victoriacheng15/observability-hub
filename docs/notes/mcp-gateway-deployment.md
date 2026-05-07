@@ -57,8 +57,6 @@ AI Agent (Gemini CLI / Copilot / obs)
 | `TEMPO_URL` | `http://localhost:30200` | Traces via Tempo |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `localhost:30317` | Service observability destination |
 
-`THANOS_URL` is still accepted as a temporary fallback for metrics during rollout, but new MCP configurations should use `PROMETHEUS_URL`.
-
 ---
 
 ## Troubleshooting

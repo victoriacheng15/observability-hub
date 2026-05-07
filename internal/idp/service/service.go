@@ -189,8 +189,12 @@ func NewKubernetesServiceWithClientset(clientset kubernetes.Interface) *Kubernet
 		clientset: clientset,
 		now:       time.Now,
 		podLogs:   defaultPodLogs(clientset),
-		signals:   newSignalClient(os.Getenv("THANOS_URL"), os.Getenv("TEMPO_URL"), nil),
+		signals:   newSignalClient(prometheusURLFromEnv(), os.Getenv("TEMPO_URL"), nil),
 	}
+}
+
+func prometheusURLFromEnv() string {
+	return os.Getenv("PROMETHEUS_URL")
 }
 
 func (s *KubernetesService) List(ctx context.Context, opts ListOptions) ([]Summary, error) {
@@ -374,8 +378,8 @@ func (s *KubernetesService) Events(ctx context.Context, opts EventsOptions) ([]E
 }
 
 func (s *KubernetesService) Metrics(ctx context.Context, opts MetricsOptions) ([]Metric, error) {
-	if s.signals == nil || s.signals.thanosURL == "" {
-		return nil, fmt.Errorf("THANOS_URL is required for service metrics")
+	if s.signals == nil || s.signals.prometheusURL == "" {
+		return nil, fmt.Errorf("PROMETHEUS_URL is required for service metrics")
 	}
 	if opts.Window <= 0 {
 		opts.Window = 5 * time.Minute
@@ -1097,10 +1101,10 @@ func healthStatus(health Health) string {
 }
 
 type signalClient struct {
-	thanosURL  string
-	tempoURL   string
-	httpClient *http.Client
-	now        func() time.Time
+	prometheusURL string
+	tempoURL      string
+	httpClient    *http.Client
+	now           func() time.Time
 }
 
 type promQueryResponse struct {
@@ -1123,15 +1127,15 @@ type tempoTrace struct {
 	DurationMs        int64  `json:"durationMs"`
 }
 
-func newSignalClient(thanosURL string, tempoURL string, httpClient *http.Client) *signalClient {
+func newSignalClient(prometheusURL string, tempoURL string, httpClient *http.Client) *signalClient {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 30 * time.Second}
 	}
 	return &signalClient{
-		thanosURL:  strings.TrimRight(thanosURL, "/"),
-		tempoURL:   strings.TrimRight(tempoURL, "/"),
-		httpClient: httpClient,
-		now:        time.Now,
+		prometheusURL: strings.TrimRight(prometheusURL, "/"),
+		tempoURL:      strings.TrimRight(tempoURL, "/"),
+		httpClient:    httpClient,
+		now:           time.Now,
 	}
 }
 
@@ -1139,7 +1143,7 @@ func (c *signalClient) queryMetric(ctx context.Context, query string) (string, e
 	params := url.Values{}
 	params.Set("query", query)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.thanosURL+"/api/v1/query?"+params.Encode(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.prometheusURL+"/api/v1/query?"+params.Encode(), nil)
 	if err != nil {
 		return "", fmt.Errorf("create metrics request: %w", err)
 	}

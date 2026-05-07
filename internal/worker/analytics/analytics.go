@@ -22,22 +22,22 @@ type Sample struct {
 	Payload   map[string]interface{} `json:"payload"`
 }
 
-// ThanosClient handles communication with the Thanos Query API for batch metric retrieval.
-type ThanosClient struct {
+// PrometheusClient handles communication with the Prometheus API for batch metric retrieval.
+type PrometheusClient struct {
 	BaseURL    string
 	HTTPClient *http.Client
 }
 
-// NewThanosClient creates a new client for querying Thanos.
-func NewThanosClient(baseURL string) *ThanosClient {
-	return &ThanosClient{
+// NewPrometheusClient creates a new client for querying Prometheus.
+func NewPrometheusClient(baseURL string) *PrometheusClient {
+	return &PrometheusClient{
 		BaseURL:    baseURL,
 		HTTPClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
 // QueryRange fetches a range of metrics for a given PromQL query.
-func (c *ThanosClient) QueryRange(ctx context.Context, query string, start, end time.Time, step string) ([]Sample, error) {
+func (c *PrometheusClient) QueryRange(ctx context.Context, query string, start, end time.Time, step string) ([]Sample, error) {
 	params := url.Values{}
 	params.Add("query", query)
 	params.Add("start", fmt.Sprintf("%d", start.Unix()))
@@ -57,7 +57,7 @@ func (c *ThanosClient) QueryRange(ctx context.Context, query string, start, end 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("thanos api returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("prometheus api returned status %d", resp.StatusCode)
 	}
 
 	var apiResp struct {
@@ -76,7 +76,7 @@ func (c *ThanosClient) QueryRange(ctx context.Context, query string, start, end 
 	}
 
 	if apiResp.Status != "success" {
-		return nil, fmt.Errorf("thanos api reported failure status: %s", apiResp.Status)
+		return nil, fmt.Errorf("prometheus api reported failure status: %s", apiResp.Status)
 	}
 
 	var samples []Sample
@@ -104,12 +104,12 @@ func (c *ThanosClient) QueryRange(ctx context.Context, query string, start, end 
 	return samples, nil
 }
 
-// ThanosResourceProvider implements ResourceProvider using Thanos.
-type ThanosResourceProvider struct {
-	Client *ThanosClient
+// PrometheusResourceProvider implements ResourceProvider using Prometheus.
+type PrometheusResourceProvider struct {
+	Client *PrometheusClient
 }
 
-func NewThanosResourceProvider(client *ThanosClient) *ThanosResourceProvider {
+func NewPrometheusResourceProvider(client *PrometheusClient) *PrometheusResourceProvider {
 	// Log initial factors on startup
 	carbon := os.Getenv("CARBON_INTENSITY_G_KWH")
 	if carbon == "" {
@@ -121,10 +121,10 @@ func NewThanosResourceProvider(client *ThanosClient) *ThanosResourceProvider {
 	}
 	telemetry.Info("analytics_factors_loaded", "carbon_intensity", carbon, "energy_cost", cost)
 
-	return &ThanosResourceProvider{Client: client}
+	return &PrometheusResourceProvider{Client: client}
 }
 
-func (p *ThanosResourceProvider) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
+func (p *PrometheusResourceProvider) GetEnergyJoules(ctx context.Context, start, end time.Time) (float64, error) {
 	// Query for node energy increase over the period
 	query := fmt.Sprintf("sum(increase(kepler_node_cpu_joules_total[%s]))", "15m")
 	samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
@@ -143,7 +143,7 @@ func (p *ThanosResourceProvider) GetEnergyJoules(ctx context.Context, start, end
 	return val, nil
 }
 
-func (p *ThanosResourceProvider) GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+func (p *PrometheusResourceProvider) GetContainerEnergy(ctx context.Context, start, end time.Time) (map[string]float64, error) {
 	// Query energy increase per container
 	query := fmt.Sprintf("sum(increase(kepler_container_cpu_joules_total[%s])) by (container_name)", "15m")
 	samples, err := p.Client.QueryRange(ctx, query, start, end, "1m")
@@ -168,7 +168,7 @@ func (p *ThanosResourceProvider) GetContainerEnergy(ctx context.Context, start, 
 	return features, nil
 }
 
-func (p *ThanosResourceProvider) GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+func (p *PrometheusResourceProvider) GetHostServiceCPU(ctx context.Context, start, end time.Time) (map[string]float64, error) {
 	// Query CPU usage for target systemd services
 	// Pattern: node_systemd_unit_cpu_usage_seconds_total{name=~"proxy.service|ingestion.service|mcp-.*"}
 	query := fmt.Sprintf("sum(rate(node_systemd_unit_cpu_usage_seconds_total{name=~\"proxy.service|ingestion.service|mcp-.*\"}[%s])) by (name)", "15m")
@@ -190,7 +190,7 @@ func (p *ThanosResourceProvider) GetHostServiceCPU(ctx context.Context, start, e
 	return serviceCPU, nil
 }
 
-func (p *ThanosResourceProvider) GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error) {
+func (p *PrometheusResourceProvider) GetValueUnits(ctx context.Context, start, end time.Time) (map[string]float64, error) {
 	// 1. Define queries for all business value counters
 	// In the future, this could be loaded from a config file.
 	queries := map[string]string{
@@ -213,7 +213,7 @@ func (p *ThanosResourceProvider) GetValueUnits(ctx context.Context, start, end t
 	return units, nil
 }
 
-func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
+func (p *PrometheusResourceProvider) GetCarbonIntensity(ctx context.Context) (float64, error) {
 	// Use environment variable if present, otherwise default to 150.0
 	valStr := os.Getenv("CARBON_INTENSITY_G_KWH")
 	if valStr == "" {
@@ -226,7 +226,7 @@ func (p *ThanosResourceProvider) GetCarbonIntensity(ctx context.Context) (float6
 	return val, nil
 }
 
-func (p *ThanosResourceProvider) GetCostFactor(ctx context.Context) (float64, error) {
+func (p *PrometheusResourceProvider) GetCostFactor(ctx context.Context) (float64, error) {
 	// Use environment variable if present, otherwise default to 0.15 CAD/kWh
 	valStr := os.Getenv("ENERGY_COST_CAD_KWH")
 	pricePerKWh := 0.15

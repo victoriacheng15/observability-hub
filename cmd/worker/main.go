@@ -82,12 +82,12 @@ func main() {
 
 func runAnalytics(ctx context.Context, deps *worker.Dependencies) error {
 	// 1. Setup Analytics specific clients
-	thanosClient := analytics.NewThanosClient(deps.GetThanosURL())
-	thanosProvider := analytics.NewThanosResourceProvider(thanosClient)
+	prometheusClient := analytics.NewPrometheusClient(deps.GetPrometheusURL())
+	prometheusProvider := analytics.NewPrometheusResourceProvider(prometheusClient)
 
 	service := &analytics.Service{
 		Store:     deps.Store,
-		Resources: thanosProvider,
+		Resources: prometheusProvider,
 	}
 
 	// 2. Execute one-shot batch

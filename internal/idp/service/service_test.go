@@ -461,14 +461,14 @@ func TestKubernetesServiceMetrics(t *testing.T) {
 	replicas := int32(2)
 
 	tests := []struct {
-		name        string
-		objects     []runtime.Object
-		opts        MetricsOptions
-		handler     http.Handler
-		thanosURL   string
-		want        []Metric
-		wantErr     string
-		wantQueries int
+		name          string
+		objects       []runtime.Object
+		opts          MetricsOptions
+		handler       http.Handler
+		prometheusURL string
+		want          []Metric
+		wantErr       string
+		wantQueries   int
 	}{
 		{
 			name: "queries service metrics for resolved pods",
@@ -477,8 +477,8 @@ func TestKubernetesServiceMetrics(t *testing.T) {
 				pod("grafana-0", "observability", true, 0),
 				pod("grafana-1", "observability", true, 0),
 			},
-			opts:      MetricsOptions{Name: "grafana", Namespace: "observability", Window: 10 * time.Minute},
-			thanosURL: "http://thanos",
+			opts:          MetricsOptions{Name: "grafana", Namespace: "observability", Window: 10 * time.Minute},
+			prometheusURL: "http://prometheus",
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path != "/api/v1/query" {
 					w.WriteHeader(http.StatusNotFound)
@@ -505,9 +505,9 @@ func TestKubernetesServiceMetrics(t *testing.T) {
 			wantQueries: 3,
 		},
 		{
-			name:    "requires thanos url",
+			name:    "requires prometheus url",
 			opts:    MetricsOptions{Name: "grafana"},
-			wantErr: "THANOS_URL is required for service metrics",
+			wantErr: "PROMETHEUS_URL is required for service metrics",
 		},
 	}
 
@@ -518,7 +518,7 @@ func TestKubernetesServiceMetrics(t *testing.T) {
 			if tt.handler != nil {
 				client = newInMemoryHTTPClient(tt.handler)
 			}
-			service.signals = newSignalClient(tt.thanosURL, "http://tempo", client)
+			service.signals = newSignalClient(tt.prometheusURL, "http://tempo", client)
 
 			metrics, err := service.Metrics(context.Background(), tt.opts)
 			if tt.wantErr != "" {
@@ -587,7 +587,7 @@ func TestKubernetesServiceTraces(t *testing.T) {
 			if tt.handler != nil {
 				client = newInMemoryHTTPClient(tt.handler)
 			}
-			service.signals = newSignalClient("http://thanos", tt.tempoURL, client)
+			service.signals = newSignalClient("http://prometheus", tt.tempoURL, client)
 			service.signals.now = func() time.Time {
 				return time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
 			}
