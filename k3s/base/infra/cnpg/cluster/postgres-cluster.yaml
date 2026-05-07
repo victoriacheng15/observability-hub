@@ -1,0 +1,73 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-hub
+  namespace: databases
+spec:
+  instances: 3
+  imageName: ghcr.io/victoriacheng15/observability-hub/postgres-cnpg
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: ghcr-auth
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  bootstrap:
+    initdb:
+      database: homelab
+      owner: server
+      secret:
+        name: postgres-secret
+
+  inheritedMetadata:
+    labels:
+      app.kubernetes.io/feature: database-core
+
+  postgresql:
+    shared_preload_libraries:
+      - timescaledb
+      - pg_stat_statements
+    parameters:
+      archive_mode: "on"
+      archive_timeout: 30min
+      dynamic_shared_memory_type: posix
+      full_page_writes: "on"
+      log_destination: csvlog
+      log_directory: /controller/log
+      log_filename: postgres
+      log_rotation_age: "0"
+      log_rotation_size: "0"
+      log_truncate_on_rotation: "false"
+      logging_collector: "on"
+      max_parallel_workers: "32"
+      max_replication_slots: "32"
+      max_worker_processes: "32"
+      shared_memory_type: mmap
+      ssl_max_protocol_version: TLSv1.3
+      ssl_min_protocol_version: TLSv1.3
+      wal_keep_size: 512MB
+      wal_level: logical
+      wal_log_hints: "on"
+      wal_receiver_timeout: 5s
+      wal_sender_timeout: 5s
+
+  backup:
+    barmanObjectStore:
+      destinationPath: https://obshub.blob.core.windows.net/pg-backup/
+      azureCredentials:
+        connectionString:
+          name: azure-creds
+          key: AZURE_CONNECTION_STRING
+
+  storage:
+    size: 10Gi
+    storageClass: local-path-retain
+
+  monitoring:
+    enablePodMonitor: true

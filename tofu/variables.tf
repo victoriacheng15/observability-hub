@@ -74,36 +74,6 @@ variable "minio_chart_version" {
   default     = "5.4.0"
 }
 
-variable "cnpg_operator_chart_version" {
-  description = "Helm chart version for CloudNativePG Operator."
-  type        = string
-  default     = "0.27.1"
-}
-
-variable "postgres_config" {
-  description = "PostgreSQL cluster configuration."
-  type = object({
-    image           = string
-    database        = string
-    owner           = string
-    storage_size    = string
-    backup_schedule = string
-  })
-  default = {
-    image           = "localhost/postgres-cnpg:17"
-    database        = "homelab"
-    owner           = "server"
-    storage_size    = "10Gi"
-    backup_schedule = "0 0 2 * * *"
-  }
-}
-
-variable "postgres_node_port" {
-  description = "NodePort for external PostgreSQL access."
-  type        = number
-  default     = 30432
-}
-
 variable "prometheus_chart_version" {
   description = "Helm chart version for Prometheus."
   type        = string

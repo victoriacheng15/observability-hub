@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-host-access
+  namespace: databases
+spec:
+  type: NodePort
+  selector:
+    cnpg.io/cluster: postgres-hub
+    role: primary
+  ports:
+    - port: 5432
+      targetPort: 5432
+      nodePort: 30432
