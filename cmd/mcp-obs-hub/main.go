@@ -72,16 +72,19 @@ func main() {
 	}
 
 	// --- Telemetry Provider ---
-	thanosURL := os.Getenv("THANOS_URL")
+	prometheusURL := os.Getenv("PROMETHEUS_URL")
+	if prometheusURL == "" {
+		prometheusURL = os.Getenv("THANOS_URL")
+	}
 	lokiURL := os.Getenv("LOKI_URL")
 	tempoURL := os.Getenv("TEMPO_URL")
 
-	if thanosURL == "" || lokiURL == "" || tempoURL == "" {
-		reason := "THANOS_URL, LOKI_URL, or TEMPO_URL is missing"
+	if prometheusURL == "" || lokiURL == "" || tempoURL == "" {
+		reason := "PROMETHEUS_URL, LOKI_URL, or TEMPO_URL is missing"
 		capabilities.AddSkipped("mcp.telemetry", reason)
 		telemetry.Warn("mcp_telemetry_init_failed_missing_env_skipping_tools", "reason", reason)
 	} else {
-		telemetryProv := providers.NewTelemetryProvider(thanosURL, lokiURL, tempoURL)
+		telemetryProv := providers.NewTelemetryProvider(prometheusURL, lokiURL, tempoURL)
 		if telemetryProv != nil {
 			defer telemetryProv.Close()
 			internalmcp.RegisterTelemetryTools(server, telemetryProv, "mcp.telemetry")

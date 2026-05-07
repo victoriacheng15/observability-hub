@@ -15,11 +15,11 @@ import (
 
 // --- Telemetry Tools ---
 
-// RegisterTelemetryTools registers all telemetry-related tools (Thanos, Loki, Tempo) to the MCP server.
+// RegisterTelemetryTools registers all telemetry-related tools (Prometheus, Loki, Tempo) to the MCP server.
 func RegisterTelemetryTools(server *mcp.Server, provider *providers.TelemetryProvider, serviceName string) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "query_metrics",
-		Description: "Execute PromQL queries against Thanos/Prometheus for metrics analysis (See skills/telemetry/SKILL.md for guidance)",
+		Description: "Execute PromQL queries against Prometheus for metrics analysis (See skills/telemetry/SKILL.md for guidance)",
 	}, handleQueryMetrics(provider, serviceName))
 
 	mcp.AddTool(server, &mcp.Tool{
