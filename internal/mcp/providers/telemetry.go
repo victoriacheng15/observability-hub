@@ -12,42 +12,42 @@ import (
 	"observability-hub/internal/telemetry"
 )
 
-// TelemetryProvider manages connections to Thanos, Loki, and Tempo and exposes telemetry tools.
+// TelemetryProvider manages connections to Prometheus, Loki, and Tempo and exposes telemetry tools.
 type TelemetryProvider struct {
-	thanosURL  string
-	lokiURL    string
-	tempoURL   string
-	httpClient *http.Client
+	prometheusURL string
+	lokiURL       string
+	tempoURL      string
+	httpClient    *http.Client
 }
 
-// NewTelemetryProvider creates a new telemetry provider connected to Thanos, Loki, and Tempo.
-func NewTelemetryProvider(thanosURL, lokiURL, tempoURL string) *TelemetryProvider {
-	return NewTelemetryProviderWithClient(thanosURL, lokiURL, tempoURL, nil)
+// NewTelemetryProvider creates a new telemetry provider connected to Prometheus, Loki, and Tempo.
+func NewTelemetryProvider(prometheusURL, lokiURL, tempoURL string) *TelemetryProvider {
+	return NewTelemetryProviderWithClient(prometheusURL, lokiURL, tempoURL, nil)
 }
 
 // NewTelemetryProviderWithClient creates a new telemetry provider, allowing injection of a custom HTTP client.
 // Passing a nil client will create a default client with a 30s timeout.
-func NewTelemetryProviderWithClient(thanosURL, lokiURL, tempoURL string, client *http.Client) *TelemetryProvider {
-	telemetry.Info("creating new telemetry provider", "thanos_url", thanosURL, "loki_url", lokiURL, "tempo_url", tempoURL)
+func NewTelemetryProviderWithClient(prometheusURL, lokiURL, tempoURL string, client *http.Client) *TelemetryProvider {
+	telemetry.Info("creating new telemetry provider", "prometheus_url", prometheusURL, "loki_url", lokiURL, "tempo_url", tempoURL)
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
 	}
 	return &TelemetryProvider{
-		thanosURL:  thanosURL,
-		lokiURL:    lokiURL,
-		tempoURL:   tempoURL,
-		httpClient: client,
+		prometheusURL: prometheusURL,
+		lokiURL:       lokiURL,
+		tempoURL:      tempoURL,
+		httpClient:    client,
 	}
 }
 
-// QueryMetrics executes a PromQL query against Thanos.
+// QueryMetrics executes a PromQL query against Prometheus.
 // Returns raw Prometheus API response (query result).
 //
 // Limits:
 //   - Uses instant query endpoint (/api/v1/query) — returns current value only, no time range.
 //   - Time windows are expressed inline in PromQL (e.g. rate(...[24h])), not as a parameter.
-//   - Query length: max 5,000 chars (our safety cap, not a Thanos limit).
-//   - No result count cap — Thanos returns all matching series.
+//   - Query length: max 5,000 chars (our safety cap, not a Prometheus limit).
+//   - No result count cap — Prometheus returns all matching series.
 func (tp *TelemetryProvider) QueryMetrics(ctx context.Context, query string) (interface{}, error) {
 	if query == "" {
 		telemetry.Error("query metrics called with empty query")
@@ -61,7 +61,7 @@ func (tp *TelemetryProvider) QueryMetrics(ctx context.Context, query string) (in
 	}
 
 	// Build URL with query parameters
-	endpoint := fmt.Sprintf("%s/api/v1/query", tp.thanosURL)
+	endpoint := fmt.Sprintf("%s/api/v1/query", tp.prometheusURL)
 	params := url.Values{}
 	params.Add("query", query)
 
@@ -74,14 +74,14 @@ func (tp *TelemetryProvider) QueryMetrics(ctx context.Context, query string) (in
 	telemetry.Info("executing PromQL query", "query", query[:min(len(query), 100)])
 	resp, err := tp.httpClient.Do(req)
 	if err != nil {
-		telemetry.Error("failed to query Thanos", "error", err)
-		return nil, fmt.Errorf("failed to query Thanos: %w", err)
+		telemetry.Error("failed to query Prometheus", "error", err)
+		return nil, fmt.Errorf("failed to query Prometheus: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		telemetry.Error("Thanos returned non-OK status", "status", resp.StatusCode)
-		return nil, fmt.Errorf("Thanos returned status %d", resp.StatusCode)
+		telemetry.Error("Prometheus returned non-OK status", "status", resp.StatusCode)
+		return nil, fmt.Errorf("Prometheus returned status %d", resp.StatusCode)
 	}
 
 	// Return raw body for now; in production, parse JSON and structure response

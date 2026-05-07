@@ -39,6 +39,9 @@ server:
   retention: null # Disable default chart retention to avoid argument duplication
   persistentVolume:
     enabled: true
+  service:
+    type: NodePort
+    nodePort: 30091
 
   extraServices:
     - name: prometheus-thanos-grpc

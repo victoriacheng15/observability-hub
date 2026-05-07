@@ -40,30 +40,30 @@ func newInMemoryHTTPClient(h http.Handler) *http.Client {
 
 func TestTelemetryProvider_NewAndInitialization(t *testing.T) {
 	tests := []struct {
-		name      string
-		thanosURL string
-		lokiURL   string
-		tempoURL  string
+		name          string
+		prometheusURL string
+		lokiURL       string
+		tempoURL      string
 	}{
 		{
-			name:      "valid localhost URLs",
-			thanosURL: "http://localhost:30090",
-			lokiURL:   "http://localhost:30100",
-			tempoURL:  "http://localhost:30200",
+			name:          "valid localhost URLs",
+			prometheusURL: "http://localhost:30091",
+			lokiURL:       "http://localhost:30100",
+			tempoURL:      "http://localhost:30200",
 		},
 		{
-			name:      "valid https URLs",
-			thanosURL: "https://thanos.example.com",
-			lokiURL:   "https://loki.example.com",
-			tempoURL:  "https://tempo.example.com",
+			name:          "valid https URLs",
+			prometheusURL: "https://prometheus.example.com",
+			lokiURL:       "https://loki.example.com",
+			tempoURL:      "https://tempo.example.com",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewTelemetryProvider(tt.thanosURL, tt.lokiURL, tt.tempoURL)
-			if provider.thanosURL != tt.thanosURL {
-				t.Errorf("expected thanosURL %q, got %q", tt.thanosURL, provider.thanosURL)
+			provider := NewTelemetryProvider(tt.prometheusURL, tt.lokiURL, tt.tempoURL)
+			if provider.prometheusURL != tt.prometheusURL {
+				t.Errorf("expected prometheusURL %q, got %q", tt.prometheusURL, provider.prometheusURL)
 			}
 			if provider.lokiURL != tt.lokiURL {
 				t.Errorf("expected lokiURL %q, got %q", tt.lokiURL, provider.lokiURL)
@@ -134,7 +134,7 @@ func TestTelemetryProvider_QueryMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider := NewTelemetryProvider("http://prometheus", "http://loki", "http://tempo")
 			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -177,7 +177,7 @@ func TestTelemetryProvider_RequestTimeout(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider := NewTelemetryProvider("http://prometheus", "http://loki", "http://tempo")
 			provider.httpClient = newInMemoryHTTPClient(h)
 			provider.httpClient.Timeout = tt.timeout
 			ctx := context.Background()
@@ -294,7 +294,7 @@ func TestTelemetryProvider_QueryLogs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider := NewTelemetryProvider("http://prometheus", "http://loki", "http://tempo")
 			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -383,7 +383,7 @@ func TestTelemetryProvider_QueryTraces(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := http.HandlerFunc(tt.setupServer)
 
-			provider := NewTelemetryProvider("http://thanos", "http://loki", "http://tempo")
+			provider := NewTelemetryProvider("http://prometheus", "http://loki", "http://tempo")
 			provider.httpClient = newInMemoryHTTPClient(h)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

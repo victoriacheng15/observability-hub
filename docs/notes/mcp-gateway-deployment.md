@@ -24,7 +24,7 @@ This command compiles `cmd/mcp-obs-hub` → `bin/mcp_obs_hub`
 AI Agent (Gemini CLI / Copilot / obs)
 └── Spawn Gateway (bin/mcp_obs_hub)
     └── Sequential Provider Initialization:
-        ├── Telemetry (Thanos, Loki, Tempo)
+        ├── Telemetry (Prometheus, Loki, Tempo)
         ├── Kubernetes (K3s API)
         └── Host (Systemd / D-Bus)
 ```
@@ -32,7 +32,7 @@ AI Agent (Gemini CLI / Copilot / obs)
 ### Service Lifecycle
 
 1. **Initialization**:
-   - Reads `.env` (loads `THANOS_URL`, `LOKI_URL`, `TEMPO_URL`).
+   - Reads `.env` (loads `PROMETHEUS_URL`, `LOKI_URL`, `TEMPO_URL`).
    - Initializes OTel telemetry (traces, metrics, logs → OTLP gRPC @ localhost:30317).
    - **Soft-Fail Registration**: Sequential initialization of Hub, Pods, and Telemetry providers. The gateway remains operational even if a specific backend is unreachable.
 
@@ -52,10 +52,12 @@ AI Agent (Gemini CLI / Copilot / obs)
 
 | Variable | Example | Purpose |
 | :--- | :--- | :--- |
-| `THANOS_URL` | `http://localhost:30090` | Metrics via Thanos Query |
+| `PROMETHEUS_URL` | `http://localhost:30091` | Metrics via Prometheus |
 | `LOKI_URL` | `http://localhost:30100` | Logs via Loki |
 | `TEMPO_URL` | `http://localhost:30200` | Traces via Tempo |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `localhost:30317` | Service observability destination |
+
+`THANOS_URL` is still accepted as a temporary fallback for metrics during rollout, but new MCP configurations should use `PROMETHEUS_URL`.
 
 ---
 
@@ -65,10 +67,10 @@ AI Agent (Gemini CLI / Copilot / obs)
 
 ```bash
 # Verify K3s services
-kubectl get svc -n observability | grep -E "loki|thanos|tempo"
+kubectl get svc -n observability | grep -E "prometheus-server|loki|tempo"
 
 # Test Telemetry Backends
-curl http://localhost:30090/api/v1/query?query=up
+curl http://localhost:30091/api/v1/query?query=up
 curl http://localhost:30100/loki/api/v1/query?query='{job="prometheus"}'
 curl http://localhost:30200/api/search
 ```
@@ -103,7 +105,7 @@ Add to `~/.gemini/settings.json` under the `mcpServers` key:
     "obs": {
       "command": "/[your path]/mcp_obs_hub",
       "env": {
-        "THANOS_URL": "http://localhost:30090",
+        "PROMETHEUS_URL": "http://localhost:30091",
         "LOKI_URL": "http://localhost:30100",
         "TEMPO_URL": "http://localhost:30200",
         "OTEL_EXPORTER_OTLP_ENDPOINT": "localhost:30317"

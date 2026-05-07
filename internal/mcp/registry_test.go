@@ -77,7 +77,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 		}
 	})
 
-	tp := providers.NewTelemetryProviderWithClient("http://thanos", "http://loki", "http://tempo", newInMemoryHTTPClient(h))
+	tp := providers.NewTelemetryProviderWithClient("http://prometheus", "http://loki", "http://tempo", newInMemoryHTTPClient(h))
 	ctx := context.Background()
 
 	tests := []struct {
@@ -147,7 +147,7 @@ func TestRegistryHandlers_Telemetry(t *testing.T) {
 
 func TestRegisterTools_DoesNotPanic(t *testing.T) {
 	srv := sdkmcp.NewServer(&sdkmcp.Implementation{Name: "test", Version: "0.0.0"}, nil)
-	RegisterTelemetryTools(srv, providers.NewTelemetryProvider("http://thanos", "http://loki", "http://tempo"), "svc")
+	RegisterTelemetryTools(srv, providers.NewTelemetryProvider("http://prometheus", "http://loki", "http://tempo"), "svc")
 	RegisterPodsTools(srv, (*providers.PodsProvider)(nil), "svc")
 	RegisterNetworkTools(srv, (*providers.NetworkProvider)(nil), "svc")
 }
