@@ -4,6 +4,8 @@
 - **Date:** 2026-03-05
 - **Author:** Victoria Cheng
 
+> **2026-05 update:** The telemetry MCP path now queries Prometheus directly for metrics. The NodePort bridge remains, but the active telemetry backends are Prometheus, Loki, and Tempo.
+
 ## Context and Problem Statement
 
 As the Observability Hub matures, the volume of telemetry data (Logs, Metrics, Traces) has outpaced the efficiency of human-centric dashboarding. Resolving complex incidents requires an engineer to manually correlate data across multiple distinct interfaces (Grafana, Tempo, Prometheus).
@@ -25,7 +27,7 @@ Adopt the Model Context Protocol (MCP) to implement a **dedicated telemetry cont
 
 - **MCP-Telemetry (The Health Brain):** A dedicated MCP server acting as the primary professional artifact. It will provide intent-based tools (`query_metrics`, `query_logs`, `query_traces`, `investigate_incident`) that abstract the underlying LGTM stack.
 
-To enable low-latency, direct-to-pod communication for this host-based MCP server, the implementation standardizes on a **NodePort (`localhost`) bridging strategy** for the internal cluster monitoring services (Loki, Thanos, Tempo).
+To enable low-latency, direct-to-pod communication for this host-based MCP server, the implementation standardizes on a **NodePort (`localhost`) bridging strategy** for the internal cluster monitoring services (Prometheus, Loki, Tempo).
 
 ## Consequences
 
@@ -42,7 +44,7 @@ To enable low-latency, direct-to-pod communication for this host-based MCP serve
 
 ## Verification
 
-- [x] **Level 0 (Infrastructure):** Verified Loki, Thanos, and Tempo are accessible via NodePort on `localhost`.
+- [x] **Level 0 (Infrastructure):** Verified Prometheus, Loki, and Tempo are accessible via NodePort on `localhost`.
 - [x] **Level 1 (Metrics Intelligence):** Verified `mcp-telemetry` provides service health analysis and performance baselining tools.
 - [x] **Level 2 (Semantic Logging):** Verified `mcp-telemetry` can correlate unstructured events with system failures via semantic LogQL filtering.
 - [x] **Level 3 (Trace Correlation):** Verified `mcp-telemetry` can reason over distributed request paths and parent/child span relationships.

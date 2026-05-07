@@ -55,7 +55,6 @@ The `observability-core` policy protects and enables shared platform traffic for
 - Loki
 - Tempo
 - Prometheus
-- Thanos
 - Kepler
 - kube-state-metrics
 - EMQX
@@ -132,7 +131,7 @@ Before tightening a policy:
 
 1. Document the expected traffic path first.
 2. Verify whether the flow is namespace-local, cross-namespace, or external.
-3. Confirm DNS, Kubernetes API, and storage dependencies.
+3. Confirm DNS, Kubernetes API, and database/retained-PVC dependencies.
 4. Apply the narrowest rule that preserves the known workflow.
 5. Watch Hubble for dropped flows immediately after rollout.
 
@@ -141,7 +140,7 @@ Minimum validation checklist:
 - Grafana can query Prometheus, Loki, and Tempo
 - n8n can reach Postgres and any required external APIs
 - ArgoCD can resolve DNS, reach the Kubernetes API, and sync repositories
-- Tempo, Loki, and Thanos can reach MinIO
+- Prometheus, Loki, and Tempo are healthy on retained local PVC storage
 
 ## What To Document Next
 

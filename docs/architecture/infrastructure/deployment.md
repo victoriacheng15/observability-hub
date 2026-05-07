@@ -17,14 +17,12 @@ Managed via **OpenTofu (IaC)** and **ArgoCD (GitOps)**.
 | **ArgoCD** | GitOps Orchestrator | Controller for declarative cluster state management and automated self-healing. |
 | **Unified Worker** | Batch Task Engine | CronJobs for collecting host and Kubernetes telemetry for resource analysis, plus synchronizing data sources. |
 | **Cilium & Hubble** | eBPF Networking | CNI with eBPF-native datapath for L7 visibility (MQTT) and network-level observability. |
-| **Grafana** | Visualization | Deployment for unified dashboarding UI. |
-| **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs. |
-| **MinIO** | Object Storage | Deployment for S3-compatible storage, serving as backup for Prometheus, Loki, and Tempo. |
 | **OpenTelemetry Collector** | Telemetry Hub | Deployment for receiving and processing traces, metrics, and logs. |
+| **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics with local PVC retention. |
+| **Grafana** | Visualization | Deployment for unified dashboarding UI. |
+| **Loki** | Log Aggregation | StatefulSet for indexing metadata-tagged logs with local PVC retention. |
+| **Tempo** | Trace Storage | StatefulSet for distributed tracing with local PVC retention. |
 | **HA PostgreSQL (CNPG)** | Primary Storage | StatefulSet orchestrated by CloudNativePG for High-Availability. Automated failover and streaming backups to Azure Blob Storage. |
-| **Prometheus** | Metrics Storage | Deployment for time-series infrastructure and service metrics. |
-| **Tempo** | Trace Storage | StatefulSet for high-scale distributed tracing persistence via MinIO. |
-| **Thanos** | Long-term Metrics | StatefulSet for querying historical metrics stored in MinIO. |
 
 ### 🚀 Core Services (Native Go)
 

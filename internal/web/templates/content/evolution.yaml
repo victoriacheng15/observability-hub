@@ -162,7 +162,7 @@ chapters:
       - date: "2026-02-13"
         title: "Storage Scalability & Security Hardening"
         description: |
-          - Moved telemetry storage to S3-compatible object storage with MinIO for better durability.
+          - Validated object-storage-backed telemetry retention as a platform learning milestone.
           - Established a safer default baseline across the core platform services.
 
   - title: "Platform Maturity & Reusability"
@@ -188,8 +188,6 @@ chapters:
         artifacts:
           - name: "ADR 015: Unified Host Telemetry Analytics"
             url: "docs/decisions/015-unified-host-telemetry-collectors.md"
-          - name: "RCA 003: Thanos Discovery and Retention Failure"
-            url: "docs/incidents/003-thanos-discovery-and-retention-failure.md"
         description: |
           - Deployed a resource-efficient Analytics service, centralizing host-level data collection and optimizing processing with batch processing.
           - Retired Alloy and cut idle resource usage significantly while freeing reserved CPU and memory.
@@ -207,7 +205,7 @@ chapters:
             url: "docs/incidents/006-loki-gateway-dns-timeout.md"
         description: |
           - Moved OpenTelemetry, Grafana, Prometheus, and the supporting K3s observability stack to OpenTofu.
-          - Brought MinIO, Thanos, Loki, and Tempo into the same declarative infrastructure workflow.
+          - Brought logs, metrics, traces, and supporting storage into the same declarative infrastructure workflow.
           - Improved drift detection, persistent workload recovery, and cross-service telemetry discovery.
 
   - title: "The MCP Era"

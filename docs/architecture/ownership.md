@@ -1,52 +1,60 @@
 # Platform Ownership Model
 
-Observability Hub is organized as a closed-loop platform ownership system.
-
-The operating model is:
+Observability Hub is organized around a closed-loop ownership model:
 
 ```text
 Source of Truth -> Runtime -> Signals -> Decisions -> Actions -> Memory
 ```
 
-This page explains how the project connects infrastructure definition, deployment, observability, diagnosis, remediation, resource analysis, and institutional memory into one system.
+The purpose of this page is routing. It should help an operator decide where a responsibility lives, how to diagnose it, and where a durable change should be made.
 
 ## Ownership Loop
 
 | Stage | Purpose | Project Surface |
 | :--- | :--- | :--- |
-| Source of Truth | Defines the intended platform state | `tofu/`, `k3s/`, `systemd/`, `.github/workflows/`, `Makefile` |
-| Runtime | Runs the platform services | K3s workloads, host systemd services, databases, storage |
-| Signals | Captures runtime behavior | OpenTelemetry, Prometheus, Loki, Tempo, Hubble, Grafana dashboards |
-| Decisions | Turns signals into operator judgment | MCP tools, dashboards, runbooks, incident docs |
-| Actions | Applies controlled remediation | GitOps sync, service restart, pod inspection, pod deletion, config patches |
-| Memory | Preserves why and how the system changed | ADRs, RCAs, notes, workflows |
+| Source of Truth | Defines intended state | `tofu/`, `k3s/`, `systemd/`, `.github/workflows/`, `Makefile` |
+| Runtime | Runs the platform | K3s workloads, host services, databases, retained storage |
+| Signals | Captures behavior | OpenTelemetry, Prometheus, Loki, Tempo, Hubble, Grafana |
+| Decisions | Turns signals into judgment | MCP tools, dashboards, runbooks, incidents |
+| Actions | Applies controlled remediation | GitOps sync, Tofu apply, service restart, pod operation, config change |
+| Memory | Preserves why the system changed | ADRs, RCAs, notes, workflows |
 
-## Ownership Domains
+## Control Plane
 
-| Domain | Source of Truth | Runtime | Signals | Diagnostic Path | Remediation Path | Memory |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Host Tier | `systemd/`, `scripts/`, `makefiles/systemd.mk` | `proxy`, OpenBao, host automation | systemd logs, host metrics | journal logs, systemd runbooks | service restart, unit update, script fix | `docs/notes/`, `docs/incidents/` |
-| Cluster Tier | `k3s/`, `tofu/` | K3s workloads and namespaces | pod status, events, kube metrics | pod MCP tools, kube events | GitOps sync, rollout, pod deletion | `docs/workflows.md`, incident reports |
-| Delivery | `.github/workflows/`, image tags, ArgoCD manifests | GitHub Actions, GHCR, ArgoCD | workflow status, image tags, sync state | workflow logs, proxy logs, ArgoCD state | PR fix, image retag, reconciliation | `docs/workflows.md` |
-| Observability | `k3s/base/infra/`, telemetry config | OpenTelemetry, Loki, Tempo, Prometheus, Grafana | logs, metrics, traces, dashboards | telemetry MCP tools, Grafana queries | config patch, collector restart, datasource fix | observability docs, RCAs |
-| Resource Efficiency | `k3s/`, `tofu/`, worker schedules | K3s workloads, host resources, storage systems | CPU, memory, disk, network, energy, workload metrics | Prometheus/Thanos queries, Grafana dashboards, worker analytics | resource limit patch, workload tuning, capacity plan | notes, RCAs, architecture docs |
-| Data | `tofu/`, database manifests, backup config | Postgres, MinIO, object storage backups | DB health, PVC state, backup status | DB logs, dashboard panels, pod tools | failover, restore, storage fix | `docs/notes/postgres.md`, incidents |
-| Networking | Cilium policies, network docs | Cilium, Hubble, service networking | flows, drops, DNS behavior | network MCP tools, flow baseline | policy patch, DNS/service correction | `docs/notes/network-flow-baseline.md` |
-| Security | `config/openbao/`, secrets manifests | OpenBao, Kubernetes secrets, service accounts | auth failures, service logs, policy errors | host logs, pod logs, security docs | rotate secret, patch policy, tighten RBAC | security docs, ADRs |
-| Agentic Ops | `cmd/mcp-obs-hub`, `internal/mcp/`, `skills/` | MCP tools over telemetry, pods, and network | tool metrics, traces, logs | MCP tool calls and provider logs | bounded tool action, provider fix | MCP architecture docs, ADRs |
-| Documentation | `docs/`, `AGENTS.md` | Versioned project memory | ADRs, RCAs, notes, workflow docs | doc index, linked incidents | update doc, add ADR/RCA | docs tree |
+The control plane owns how changes enter and reconcile through the system.
 
-## Component Standard
+| Area | Owns | Diagnose With | Change Through |
+| :--- | :--- | :--- | :--- |
+| GitOps | ArgoCD apps, sync state, cluster manifest reconciliation | ArgoCD UI, app status, proxy logs | `k3s/`, GitHub PRs |
+| Infrastructure | Tofu-managed Helm releases, namespaces, storage classes, cloud-backed state | `tofu plan`, pod status, service status | `tofu/` |
+| Delivery | GitHub Actions, GHCR images, image tags, deployment references | workflow logs, image tags, ArgoCD sync | `.github/`, `docker/`, `k3s/base/*/kustomization.yaml` |
+| Host Services | Proxy, OpenBao, host automation, local service units | journal logs, service status, host metrics | `systemd/`, `scripts/`, `makefiles/` |
 
-Every platform component should be explainable with the same ownership questions:
+## Data Plane
 
-- What is the component responsible for?
-- Where is its desired state defined?
-- How is it deployed or reconciled?
-- What logs, metrics, traces, or flows prove it is healthy?
-- What resource signals show capacity pressure, waste, or cost risk?
-- Which tool or runbook diagnoses it?
-- What is the safe remediation path?
-- Where are decisions and incidents recorded?
+The data plane owns runtime state, telemetry, and the durable stores the platform depends on.
 
-This standard keeps the project from reading as a collection of tools. Each component has a place in the operating loop.
+| Area | Owns | Diagnose With | Change Through |
+| :--- | :--- | :--- | :--- |
+| Database | CNPG Postgres, database services, Azure-backed backups | pod tools, DB logs, backup status | CNPG manifests, `tofu/` |
+| Telemetry | OpenTelemetry, Prometheus, Loki, Tempo, retained local PVCs | MCP telemetry tools, Grafana, pod logs | `k3s/base/infra/`, `tofu/` |
+| Visualization | Grafana dashboards, datasources, operational views | Grafana UI, datasource checks, pod logs | Grafana values, dashboard files |
+| Resource Analytics | Worker analytics, host and cluster resource metrics, capacity history | Prometheus queries, worker logs, analytics tables | `internal/worker/`, `k3s/base/worker/` |
+
+## Operations Plane
+
+The operations plane owns diagnosis, response, safety boundaries, and institutional memory.
+
+| Area | Owns | Diagnose With | Change Through |
+| :--- | :--- | :--- | :--- |
+| Network | Cilium policies, Hubble flows, service connectivity | Hubble, MCP network tools, flow baseline | `k3s/cilium-policies/`, network docs |
+| Agentic Ops | MCP tools, providers, capability reporting | MCP tool calls, gateway logs, provider health | `cmd/mcp-obs-hub/`, `internal/mcp/` |
+| Security | OpenBao config, service accounts, secrets posture, access controls | host logs, pod logs, security docs | `config/openbao/`, Kubernetes manifests |
+| Memory | ADRs, RCAs, plans, runbooks, workflow docs | docs search, linked incidents, commit history | `docs/`, `AGENTS.md` |
+
+## Operating Rules
+
+- Source-of-truth changes should go through Git, Tofu, or ArgoCD depending on the ownership plane.
+- Runtime fixes should be followed by a source-of-truth update when the fix changes intended state.
+- Incidents that reveal architecture or operating-model gaps should update ADRs, RCAs, or notes.
+- Ownership docs should stay high level; implementation details belong in service, workflow, or incident docs.

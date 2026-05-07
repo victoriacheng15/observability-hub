@@ -32,7 +32,7 @@ flowchart LR
     Metrics --> Grafana
 ```
 
-The sections below expand this simplified story into the full implementation, including MCP access, eBPF network visibility, storage backends, and long-term retention.
+The sections below expand this simplified story into the full implementation, including MCP access, eBPF network visibility, storage backends, and local retention.
 
 ## 🛠️ The Unified Pipeline
 
@@ -71,12 +71,12 @@ flowchart TB
           Cilium["Cilium / Hubble (eBPF)"]
         end
 
-          LGTM["Loki, Tempo, Prometheus (Thanos)"]
+          LGTM["Loki, Tempo, Prometheus"]
         end
 
         subgraph Storage ["Data Engines"]
             PG[(HA Postgres - CNPG)]
-            S3[(MinIO - S3)]
+            PVC[(Retained Local PVCs)]
             Azure[(Azure Blob Storage)]
         end
     end
@@ -107,9 +107,8 @@ flowchart TB
     OTEL --> LGTM
     
     %% Resilience & Backup
-    LGTM -- "Offload" --> S3
+    LGTM -- "Local Retention" --> PVC
     PG -- "Streaming Backup" --> Azure
-    S3 -- "Replication" --> Azure
 ```
 
 ## 🪵 Logs
@@ -135,7 +134,7 @@ The platform implements a dual-path logging strategy: structured application log
   - **Application Logs**: Services are instrumented with the **OpenTelemetry SDK** to generate logs in OTLP format, sent to the central **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Loki**.
   - **System Logs**: Native host services (e.g., `gitops-sync`, `system-metrics`, `tailscale-gate`) are instrumented to emit structured logs directly to the **OpenTelemetry Collector** (running as a DaemonSet) via OTLP, which filters for specific units and pushes them to **Loki**.
 - **Persistence**:
-  - **Loki**: Stores logs with long-term persistence in MinIO S3 buckets (`loki-chunks`, `loki-ruler`, `loki-admin`).
+  - **Loki**: Stores logs on retained local PVC storage with `168h` retention.
 
 ## 📊 Metrics
 
@@ -144,11 +143,10 @@ The platform aggregates infrastructure metrics through Prometheus scraping, appl
 - **Collection Strategy**:
   - **Infrastructure Scrapes**: **Prometheus** actively pulls metrics from the Kubernetes API, nodes (cAdvisor), pods, service endpoints, and internal exporters (`kube-state-metrics`, `node-exporter`).
   - **Telemetry Ingestion**: The **OpenTelemetry Collector** exports OTLP metrics (including derived span-metrics from Tempo) to **Prometheus**, which is configured with the `remote-write-receiver` enabled to ingest these metrics.
-  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. The **Unified Worker (Analytics Mode)** then retrieves this data from **Prometheus** via **Thanos**, forwards it via the **OpenTelemetry Collector**, and exports it to **PostgreSQL** for long-term resource, capacity, and cost-aware analytical reporting.
+  - **Host Resource Metrics**: Host-level metrics (e.g., CPU, RAM, disk, network) are first collected by **Prometheus**. The **Unified Worker (Analytics Mode)** then retrieves this data directly from **Prometheus**, forwards it via the **OpenTelemetry Collector**, and exports it to **PostgreSQL** for long-term resource, capacity, and cost-aware analytical reporting.
   - **Network Metrics (eBPF)**: Cilium and Hubble export eBPF-level network metrics (e.g., packet drops, connection latency, and L7 protocol stats) directly to Prometheus via dedicated exporters.
 - **Persistence**:
-  - **Local Storage**: Prometheus maintains a high-resolution 24-hour local TSDB on `local-path` persistent volumes.
-  - **Long-term Retention**: The **Thanos** sidecar seamlessly offloads TSDB blocks to MinIO S3 (`prometheus-blocks`) for infinite metrics retention and historical analysis.
+  - **Local Storage**: Prometheus maintains a high-resolution `72h` local TSDB on `local-path-retain` persistent volumes.
 
 ## 🔭 Traces
 
@@ -159,7 +157,7 @@ Distributed tracing is powered by OpenTelemetry for correlation and performance 
   - **Ingestion**: Spans are sent to the **OpenTelemetry Collector** via gRPC (NodePort `30317`) or HTTP (NodePort `30318`), which batches and exports them to **Grafana Tempo**.
   - **Processing**: Tempo analyzes raw spans to generate derived **Service Graphs** and **Span Metrics**, which are pushed to Prometheus via `remote_write` for operational correlation.
 - **Persistence**:
-  - **Tempo**: Stores traces with long-term persistence in MinIO S3 buckets (`tempo-traces`).
+  - **Tempo**: Stores traces on retained local PVC storage with `48h` retention.
 
 ## 📡 Network Observability (eBPF)
 
@@ -173,7 +171,7 @@ The platform leverages **Cilium** and **Hubble** for deep, kernel-level network 
 ## 🗄️ Shared Data Stores
 
 - **PostgreSQL (CloudNativePG)**: Stores analytical metrics and specialized time-series data (TimescaleDB). Orchestrated by CNPG for high availability, with automated failover and streaming backups to Azure Blob Storage.
-- **MinIO S3**: Provides unified object storage for Loki logs, Tempo traces, and Prometheus/Thanos metrics blocks.
-- **Azure Blob Storage**: Serves as the durable off-site backup for PostgreSQL transactional data (WALs/Basebackups) and the global repository for Terraform state.
+- **Retained Local PVCs**: Store Prometheus metrics, Loki logs, and Tempo traces for short local retention windows without object storage.
+- **Azure Blob Storage**: Serves as the durable off-site backup for PostgreSQL transactional data (WALs/Basebackups) and the global repository for OpenTofu state.
 
-Access is secured via internal Kubernetes networking (`minio.observability.svc.cluster.local:9000`) and managed via specialized secrets (`minio-thanos-secret`, `azure-creds`, etc.).
+Access is secured via internal Kubernetes networking and managed through specialized secrets such as `azure-creds` for PostgreSQL backup.
