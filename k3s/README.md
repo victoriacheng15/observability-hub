@@ -11,7 +11,7 @@ For detailed operational procedures, including deployment commands, image sidelo
 - **base/**: Shared Kustomize base for cluster workloads and infrastructure.
 - **base/hub-apps/**: Hub-managed application objects, including Argo CD child
   apps that point at external workload repos such as `hardware-sim-lab`.
-- **base/infra/**: Helm values and provisioned assets for Grafana, Loki, MinIO,
+- **base/infra/**: Helm values and provisioned assets for Grafana, Loki,
   OpenTelemetry, Prometheus, and Tempo.
 - **base/rbac/**: Shared platform service accounts, roles, and bindings.
 - **base/worker/**: Worker CronJobs and their base image/tag configuration.

@@ -55,6 +55,3 @@ homelab:
         container_read_only_root_fs: false
         allow_privilege_escalation: true
         add_capabilities: ["CHOWN"]
-    minio:
-      make_bucket_job_read_only_root_fs: false
-      make_user_job_read_only_root_fs: false
