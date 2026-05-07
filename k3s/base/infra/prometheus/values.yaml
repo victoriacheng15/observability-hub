@@ -4,64 +4,18 @@ server:
       cluster: homelab
   extraArgs:
     web.enable-remote-write-receiver: null
-    storage.tsdb.retention.time: 72h # Standard 3-day local retention
+    storage.tsdb.retention.time: 72h
     storage.tsdb.min-block-duration: 2h
     storage.tsdb.max-block-duration: 2h
-  thanos:
-    sidecar:
-      enabled: false
-
-  sidecarContainers:
-    thanos-sidecar-manual:
-      image: quay.io/thanos/thanos:v0.32.2
-      securityContext:
-        runAsUser: 65534
-        runAsGroup: 65534
-      args:
-        - sidecar
-        - --tsdb.path=/data
-        - --grpc-address=0.0.0.0:10901
-        - --http-address=0.0.0.0:10902
-        - --prometheus.url=http://localhost:9090
-        - --objstore.config-file=/etc/thanos/objstore.yml
-      ports:
-        - name: grpc
-          containerPort: 10901
-        - name: http
-          containerPort: 10902
-      volumeMounts:
-        - name: storage-volume
-          mountPath: /data
-        - name: thanos-objstore-config
-          mountPath: /etc/thanos
-          readOnly: true
-  
-  retention: null # Disable default chart retention to avoid argument duplication
+  retention: null
   persistentVolume:
     enabled: true
+    storageClass: local-path-retain
   service:
     type: NodePort
     nodePort: 30091
 
-  extraServices:
-    - name: prometheus-thanos-grpc
-      ports:
-        - name: grpc
-          protocol: TCP
-          port: 10901
-          targetPort: 10901
-      selector:
-        app.kubernetes.io/component: server
-        app.kubernetes.io/name: prometheus
-        app.kubernetes.io/instance: prometheus
-
   extraVolumes:
-    - name: thanos-objstore-config
-      secret:
-        secretName: minio-thanos-secret
-        items:
-          - key: object-storage.yaml
-            path: objstore.yml
     - name: tmp
       emptyDir: {}
   extraVolumeMounts:
