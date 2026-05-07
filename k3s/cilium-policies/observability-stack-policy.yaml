@@ -80,7 +80,6 @@ spec:
           - loki
           - tempo
           - prometheus
-          - thanos
           - kepler
           - kube-state-metrics
           - emqx
@@ -100,10 +99,6 @@ spec:
           - port: "3200"
             protocol: TCP
           - port: "28282"
-            protocol: TCP
-          - port: "10901"
-            protocol: TCP
-          - port: "10902"
             protocol: TCP
           - port: "8080"
             protocol: TCP
@@ -132,10 +127,6 @@ spec:
           - port: "9090"
             protocol: TCP
           - port: "3200"
-            protocol: TCP
-          - port: "10901"
-            protocol: TCP
-          - port: "10902"
             protocol: TCP
           - port: "9000"
             protocol: TCP
@@ -468,10 +459,6 @@ spec:
           - port: "4318"
             protocol: TCP
           - port: "9090"
-            protocol: TCP
-          - port: "10901"
-            protocol: TCP
-          - port: "10902"
             protocol: TCP
     # 3. Allow access to databases (Postgres for Grafana/n8n)
     - toEndpoints:

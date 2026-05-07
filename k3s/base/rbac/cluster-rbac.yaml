@@ -69,27 +69,6 @@ automountServiceAccountToken: false
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: thanos-query
-  namespace: observability
-automountServiceAccountToken: false
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: thanos-storegateway
-  namespace: observability
-automountServiceAccountToken: false
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: thanos-compactor
-  namespace: observability
-automountServiceAccountToken: false
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   name: tempo
   namespace: observability
 automountServiceAccountToken: false

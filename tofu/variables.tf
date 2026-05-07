@@ -80,12 +80,6 @@ variable "prometheus_chart_version" {
   default     = "29.5.0"
 }
 
-variable "thanos_chart_version" {
-  description = "Helm chart version for Thanos."
-  type        = string
-  default     = "17.3.1"
-}
-
 variable "loki_chart_version" {
   description = "Helm chart version for Loki."
   type        = string
