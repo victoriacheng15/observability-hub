@@ -56,7 +56,7 @@ func (d *Dependencies) Close() {
 	}
 }
 
-// GetThanosURL returns the configured Thanos URL from environment.
-func (d *Dependencies) GetThanosURL() string {
-	return os.Getenv("THANOS_URL")
+// GetPrometheusURL returns the configured Prometheus URL from environment.
+func (d *Dependencies) GetPrometheusURL() string {
+	return os.Getenv("PROMETHEUS_URL")
 }

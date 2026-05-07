@@ -26,7 +26,7 @@ func newInMemoryHTTPClient(h http.Handler) *http.Client {
 	}
 }
 
-func TestThanosClient_QueryRange(t *testing.T) {
+func TestPrometheusClient_QueryRange(t *testing.T) {
 	tests := []struct {
 		name         string
 		responseJSON string
@@ -55,7 +55,7 @@ func TestThanosClient_QueryRange(t *testing.T) {
 				w.WriteHeader(tt.status)
 				fmt.Fprint(w, tt.responseJSON)
 			})
-			client := NewThanosClient("http://thanos")
+			client := NewPrometheusClient("http://prometheus")
 			client.HTTPClient = newInMemoryHTTPClient(h)
 			samples, err := client.QueryRange(context.Background(), "test", time.Now(), time.Now(), "1m")
 			if (err != nil) != tt.wantErr {
@@ -68,16 +68,16 @@ func TestThanosClient_QueryRange(t *testing.T) {
 	}
 }
 
-func TestThanosResourceProvider(t *testing.T) {
+func TestPrometheusResourceProvider(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("GetEnergyJoules", func(t *testing.T) {
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{},"values":[[1708531200,"100.5"]]}]}}`)
 		})
-		client := NewThanosClient("http://thanos")
+		client := NewPrometheusClient("http://prometheus")
 		client.HTTPClient = newInMemoryHTTPClient(h)
-		provider := NewThanosResourceProvider(client)
+		provider := NewPrometheusResourceProvider(client)
 
 		val, err := provider.GetEnergyJoules(ctx, time.Now(), time.Now())
 		if err != nil || val != 100.5 {
@@ -89,9 +89,9 @@ func TestThanosResourceProvider(t *testing.T) {
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"container_name":"c1"},"values":[[1708531200,"10"]]}]}}`)
 		})
-		client := NewThanosClient("http://thanos")
+		client := NewPrometheusClient("http://prometheus")
 		client.HTTPClient = newInMemoryHTTPClient(h)
-		provider := NewThanosResourceProvider(client)
+		provider := NewPrometheusResourceProvider(client)
 
 		res, _ := provider.GetContainerEnergy(ctx, time.Now(), time.Now())
 		want := map[string]float64{"c1": 10}
@@ -103,7 +103,7 @@ func TestThanosResourceProvider(t *testing.T) {
 	t.Run("Factors", func(t *testing.T) {
 		t.Setenv("CARBON_INTENSITY_G_KWH", "200.0")
 		t.Setenv("ENERGY_COST_CAD_KWH", "0.20")
-		provider := NewThanosResourceProvider(nil)
+		provider := NewPrometheusResourceProvider(nil)
 		carbon, _ := provider.GetCarbonIntensity(ctx)
 		cost, _ := provider.GetCostFactor(ctx)
 

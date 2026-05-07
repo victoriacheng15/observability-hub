@@ -73,9 +73,6 @@ func main() {
 
 	// --- Telemetry Provider ---
 	prometheusURL := os.Getenv("PROMETHEUS_URL")
-	if prometheusURL == "" {
-		prometheusURL = os.Getenv("THANOS_URL")
-	}
 	lokiURL := os.Getenv("LOKI_URL")
 	tempoURL := os.Getenv("TEMPO_URL")
 
