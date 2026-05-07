@@ -4,6 +4,8 @@
 - **Date:** 2026-02-25
 - **Author:** Victoria Cheng
 
+> **2026-05 update:** MinIO and Thanos were later retired from the active observability stack. OpenTofu remains the management path for cluster infrastructure, PostgreSQL Azure backup, and retained local storage.
+
 ## Context and Problem Statement
 
 Managing Kubernetes (K3s) Helm releases via `helm template → manifest.yaml → kubectl apply`
@@ -21,9 +23,9 @@ Terraform's HCL syntax and provider ecosystem.
 Adopt OpenTofu to declaratively manage all standard Helm-based Kubernetes services.
 Each service is defined as a `helm_release` resource referencing the existing
 `k3s/<service>/values.yaml`. Existing live releases are migrated via
-`tofu import` for zero-downtime adoption. MinIO serves as the S3-compatible
-state backend. Analytics is explicitly excluded due to its custom local image
-build and sideload workflow.
+`tofu import` for zero-downtime adoption. Azure Blob Storage serves as the
+remote state backend. Analytics is explicitly excluded due to its custom local
+image build and sideload workflow.
 
 ## Consequences
 

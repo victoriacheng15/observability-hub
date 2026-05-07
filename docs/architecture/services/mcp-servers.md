@@ -59,6 +59,6 @@ The MCP gateway adheres to a consistent, consolidated architectural standard:
 | Interface | Protocol | Connectivity | Role |
 | :--- | :--- | :--- | :--- |
 | **Agent Inbound** | MCP (Stdio) | Local Process | Unified reasoning interface |
-| **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access (Thanos/Loki/Tempo) |
+| **Telemetry Outbound**| HTTP/gRPC | `localhost:<NodePort>` | Data tier access (Prometheus/Loki/Tempo) |
 | **Cluster Outbound**| HTTPS | `K3s API` | Infrastructure state access |
 | **Self-Observability** | OTLP (gRPC) | `localhost:30317` | Telemetry pipeline (OTLP) |

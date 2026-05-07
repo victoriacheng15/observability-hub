@@ -86,7 +86,7 @@ To ensure dashboard compatibility across the entire fleet, all signals follow th
 **Traces:**
 
 - `worker.run`: Root Span for every execution.
-- `db.postgres.*`, `github.fetch`, `thanos.query`: Mode-specific child spans.
+- `db.postgres.*`, `github.fetch`, `prometheus.query`: Mode-specific child spans.
 
 **Logs:**
 

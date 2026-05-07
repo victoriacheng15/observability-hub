@@ -18,7 +18,7 @@ The worker operates in two primary modes, triggered via the `--mode` CLI flag:
 
 - **Mission**: Correlates infrastructure resource usage with platform outcomes so operators can reason about capacity, efficiency, and cost drivers from real telemetry.
 - **Sources**:
-  - **Thanos**: Retrieves energy (Kepler), Kubernetes, and host utilization metrics.
+  - **Prometheus**: Retrieves energy (Kepler), Kubernetes, and host utilization metrics.
   - **Tailscale**: Inspects Funnel and mesh connectivity status.
 - **Persistence**: Records high-fidelity resource samples into the PostgreSQL `analytics_metrics` table for trend analysis and operational reporting.
 - **Scheduling**: Every 15 minutes via Kubernetes `CronJob`.

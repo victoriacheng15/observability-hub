@@ -73,16 +73,12 @@ If a path is required by application configuration but is broader in policy than
 | `hub/grafana` | `observability/tempo` | `3200/TCP` | Trace queries | Explicitly allowed by `hub-security` |
 | `hub/grafana` | `databases/postgres-hub-rw` | `5432/TCP` | PostgreSQL datasource | Explicitly allowed by `hub-security` |
 | `hub/n8n` | `databases/postgres-hub-rw` | `5432/TCP` | Workflow state and application DB | Explicitly allowed by `hub-security` |
-| `hub` workloads | `databases/minio` | `9000/TCP` | S3-style storage access if needed from hub apps | Broadly allowed by `hub-security`; app-level use should be confirmed |
 | `observability/opentelemetry` | `observability/tempo` | `4317/TCP` | OTLP trace export | Allowed by `observability-core` |
 | `observability/opentelemetry` | `observability/loki` | `3100/TCP` | Log export | Allowed by `observability-core` |
 | `observability/opentelemetry` | `observability/prometheus-server` | `80/TCP` service to `/api/v1/write` | Remote write for metrics | Reaches Prometheus service; validate whether port `80` is sufficiently represented in policy intent |
-| `observability/tempo` | `databases/minio` | `9000/TCP` | Trace block storage | Allowed across namespace boundary by `databases-core` |
 | `observability/tempo` | `observability/prometheus-server` | `80/TCP` service to `/api/v1/write` | Metrics generator remote write | Reaches Prometheus service; validate whether port `80` is sufficiently represented in policy intent |
-| `observability/loki` | `databases/minio` | `9000/TCP` | Log chunk and ruler object storage | Allowed across namespace boundary by `databases-core` |
-| `observability/prometheus + thanos-sidecar` | `databases/minio` | object store via Thanos config | Long-term metrics block storage | Allowed across namespace boundary by `databases-core` |
 | `argocd` components | `argocd` components | `80,443,6379,7000,8080,8081/TCP` | Internal control-plane communication | Explicitly allowed by `argocd-security` |
-| `databases` components | `databases` components | `5432,8000,9000,9001/TCP` | Postgres and MinIO internal flows | Explicitly allowed by `databases-core` |
+| `databases` components | `databases` components | `5432,8000/TCP` | Postgres replication and CNPG management flows | Explicitly allowed by `databases-core` |
 
 ## Platform Dependency Flows
 
@@ -115,14 +111,12 @@ These are intentionally exposed today and should be part of every validation pas
 | `hub/ollama` | `11434/TCP` | model endpoint | Allowed from `world` by `hub-security` |
 | `argocd/server` | `80/TCP`, `443/TCP`, `8080/TCP` | GitOps UI and API access | Allowed from `world` by `argocd-security` |
 | `databases/postgres` | `5432/TCP` | Database access | Currently allowed from broad entities by `databases-core`; review whether this should remain externally reachable |
-| `databases/minio` | `9000/TCP`, `9001/TCP` | S3 API and console | Currently allowed from broad entities by `databases-core`; review whether this should remain externally reachable |
 
 ## Gaps To Confirm
 
 These items should be verified against live traffic before any tightening work:
 
 - which exact external domains n8n needs
-- whether any hub workload besides Grafana and n8n needs MinIO access
 - whether any observability service-port dependencies remain documented by container port instead of service port
 - whether `hardware-sim` needs its own namespace policy and baseline entries
 

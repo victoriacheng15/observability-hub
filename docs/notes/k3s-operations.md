@@ -27,11 +27,9 @@ helm repo update
 helm search repo grafana-community/grafana && \
 helm search repo grafana/loki && \
 helm search repo open-telemetry/opentelemetry-collector && \
-helm search repo minio/minio && \
 helm search repo cloudnative-pg/cloudnative-pg && \
 helm search repo prometheus-community/prometheus && \
-helm search repo grafana-community/tempo && \
-helm search repo bitnami/thanos
+helm search repo grafana-community/tempo
 ```
 
 #### Step 2: Update Configuration
@@ -69,7 +67,7 @@ tofu apply
 - **Notes**:
   - DaemonSet runs on every node for network policy enforcement
   - Opt-in policy mode: pods without policies allow all traffic
-  - L7 visibility enabled for: OTel, Loki, Tempo, Prometheus, MinIO, OpenTelemetry
+  - L7 visibility enabled for: OTel, Loki, Tempo, Prometheus, OpenTelemetry
   - Monitor via Hubble UI (`http://localhost:30080`) for traffic flows
 
 ### Grafana (Visualization)
@@ -84,22 +82,14 @@ tofu apply
 - **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/loki/values.yaml`
 - **Notes**:
-  - S3 credentials are injected from `minio-loki-secret` via environment variables
-  - Loki Helm values use `${MINIO_LOKI_ACCESS_KEY}` and `${MINIO_LOKI_SECRET_KEY}` placeholders
-  - Requires `-config.expand-env=true` flag (configured in `global.extraArgs`)
-  - Secret is injected via `global.extraEnvFrom` in values.yaml
+  - Uses filesystem-backed local PVC storage with `168h` retention.
+  - Persistence uses the `local-path-retain` storage class.
 
 ### OpenTelemetry (Collector)
 
 - **Chart**: `open-telemetry/opentelemetry-collector`
 - **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/opentelemetry/values.yaml`
-
-### MinIO (S3 Storage Backend)
-
-- **Chart**: `minio/minio`
-- **Tofu Configuration**: `tofu/databases.tf`
-- **Values**: `k3s/minio/values.yaml`
 
 ### HA PostgreSQL (CloudNativePG)
 
@@ -129,24 +119,17 @@ rm postgres-cnpg.tar
 - **Chart**: `prometheus-community/prometheus`
 - **Tofu Configuration**: `tofu/metrics.tf`
 - **Values**: `k3s/prometheus/values.yaml`
+- **Notes**:
+  - Uses local PVC storage with `72h` retention.
+  - MCP and Worker metrics queries use Prometheus directly.
 
 ### Grafana Tempo (Trace Store)
 
 - **Chart**: `grafana-community/tempo`
 - **Tofu Configuration**: `tofu/telemetry.tf`
 - **Values**: `k3s/tempo/values.yaml`
-
-### Thanos Store Gateway (Long-term Metrics Storage)
-
-- **Chart**: `bitnami/thanos`
-- **Tofu Configuration**: `tofu/metrics.tf`
-- **Values**: `k3s/thanos/values.yaml`
 - **Notes**:
-  - Uses official quay.io/thanos/thanos:v0.32.2 image (not bitnami variant)
-  - Requires existing secret: `minio-thanos-secret` (created via kubectl)
-  - Secret contains S3 credentials for MinIO `prometheus-blocks` bucket
-  - Store gateway only mode (querier, ruler, compactor, receive disabled)
-  - Reference: [bitnami/thanos Helm Chart](https://github.com/bitnami/charts/tree/main/bitnami/thanos)
+  - Uses filesystem-backed local PVC storage with `48h` retention.
 
 ## 🔌 Connectivity Bridge (MCP Era)
 
@@ -156,7 +139,7 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 | :--- | :--- | :--- | :--- |
 | **Grafana** | HTTP | 30000 | `http://localhost:30000` |
 | **Loki (Gateway)** | HTTP | 30100 | `http://localhost:30100` |
-| **Thanos (Query)** | HTTP | 30090 | `http://localhost:30090` |
+| **Prometheus** | HTTP | 30091 | `http://localhost:30091` |
 | **Tempo** | HTTP | 30200 | `http://localhost:30200` |
 | **OTel Collector**| gRPC | 30317 | `localhost:30317` |
 | **PostgreSQL** | TCP | 30432 | `localhost:30432` |
@@ -177,14 +160,12 @@ The platform utilizes **NodePort** to bridge host-based services (MCP agents, pr
 | **grafana** | Medium | 50m | 256Mi | 200m | 512Mi | Visualization |
 | **kepler** | None | — | — | — | — | Power/Energy Monitoring (DaemonSet) |
 | **loki** | Standard | 100m | 512Mi | 500m | 1Gi | Log Storage |
-| **minio** | Large | 200m | 512Mi | 1000m | 2Gi | S3 Storage Backend |
 | **n8n** | Standard | 100m | 512Mi | 500m | 1Gi | Workflow Automation |
 | **opentelemetry** | Medium | 50m | 256Mi | 200m | 512Mi | Trace/Metric/Log Collector |
 | **postgres** | Standard | 100m | 512Mi | 500m | 1Gi | Relational Database (HA x3) |
 | **prometheus** | Large | 200m | 512Mi | 1000m | 2Gi | Metrics Storage |
 | **prometheus-node-exporter** | Small | 10m | 64Mi | 50m | 128Mi | Node Metrics Collector (DaemonSet) |
 | **tempo** | Standard | 100m | 512Mi | 500m | 1Gi | Trace Storage |
-| **thanos** | Medium | 100m | 256Mi | 200m | 512Mi | Long-term Metrics Storage |
 
 **Understanding Usage Totals:**
 

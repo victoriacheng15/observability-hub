@@ -2,18 +2,18 @@
 
 {{define "header_extra"}}
 <div class="text-center grid gap-8" aria-label="{{ .Landing.Hero.Headline }}">
-    <h1 class="text-2xl md:text-3xl font-bold text-cyan-400">{{ .Landing.Hero.Headline }}</h1>
+    <h1 class="text-2xl md:text-3xl font-bold text-emerald-400">{{ .Landing.Hero.Headline }}</h1>
     <p class="text-lg md:text-xl text-slate-300">{{ .Landing.Hero.SubHeadline }}</p>
     <p class="text-slate-400 max-w-2xl mx-auto">{{ .Landing.Hero.BriefDescription }}</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto w-full px-4">
         <a href="{{ .Landing.Hero.CtaLink }}" target="_blank" rel="noopener noreferrer" 
-           class="flex items-center justify-center bg-cyan-400 text-slate-900 px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95 text-center shadow-lg shadow-cyan-400/10">
+           class="flex items-center justify-center bg-emerald-400 text-slate-900 px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 active:scale-95 text-center shadow-lg shadow-emerald-400/10">
            {{ .Landing.Hero.CtaText }}
         </a>
         
         {{if .Landing.Hero.SecondaryCtaText}}
         <a href="{{ .Landing.Hero.SecondaryCtaLink }}" 
-           class="flex items-center justify-center bg-slate-800 text-cyan-400 border border-cyan-400/30 px-6 py-3 rounded-lg font-bold transition-all hover:bg-slate-700 active:scale-95 text-center">
+           class="flex items-center justify-center bg-slate-800 text-emerald-400 border border-emerald-400/30 px-6 py-3 rounded-lg font-bold transition-all hover:bg-slate-700 active:scale-95 text-center">
            {{ .Landing.Hero.SecondaryCtaText }}
         </a>
         {{end}}
@@ -38,11 +38,11 @@
 {{define "content"}}
 <div class="grid gap-16">
     <section class="grid gap-6">
-        <h2 class="text-2xl font-bold text-white border-l-4 border-cyan-400 pl-4">{{ .Landing.WhatIs.Title }}</h2>
+        <h2 class="text-2xl font-bold text-white border-l-4 border-emerald-400 pl-4">{{ .Landing.WhatIs.Title }}</h2>
         <ul class="grid gap-4">
             {{range .Landing.WhatIs.Content}}
             <li class="flex gap-3 text-slate-300 leading-relaxed">
-                <span class="text-cyan-400">▹</span>
+                <span class="text-emerald-400">▹</span>
                 <span>{{ . }}</span>
             </li>
             {{end}}
@@ -50,14 +50,14 @@
     </section>
 
     <section class="grid gap-8" aria-label="Key Features">
-        <h2 class="text-2xl font-bold text-white border-l-4 border-cyan-400 pl-4">{{ .Landing.KeyFeatures.Title }}</h2>
+        <h2 class="text-2xl font-bold text-white border-l-4 border-emerald-400 pl-4">{{ .Landing.KeyFeatures.Title }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {{range .Landing.KeyFeatures.Features}}
-            <article class="grid gap-4 bg-slate-800/40 p-8 rounded-xl border border-white/5 transition-all hover:-translate-y-1 hover:border-cyan-400/50">
-                <div class="text-3xl text-cyan-400" aria-hidden="true">
+            <article class="grid gap-4 bg-slate-800/40 p-8 rounded-xl border border-white/5 transition-all hover:-translate-y-1 hover:border-emerald-400/50">
+                <div class="text-3xl text-emerald-400" aria-hidden="true">
                      {{if eq .Icon "rocket"}}🚀{{else if eq .Icon "database"}}💾{{else if eq .Icon "chart-line"}}📈{{else if eq .Icon "layers-half"}}🧱{{else if eq .Icon "shield-check"}}🛡️{{else if eq .Icon "cpu"}}🖥️{{else}}✨{{end}}
                 </div>
-                <h3 class="text-xl font-bold text-cyan-400">{{ .Name }}</h3>
+                <h3 class="text-xl font-bold text-emerald-400">{{ .Name }}</h3>
                 <p class="text-slate-300 leading-relaxed">{{ .Description }}</p>
             </article>
             {{end}}
@@ -65,11 +65,11 @@
     </section>
 
     <section class="grid gap-6">
-        <h2 class="text-2xl font-bold text-white border-l-4 border-cyan-400 pl-4">{{ .Landing.WhyItMatters.Title }}</h2>
+        <h2 class="text-2xl font-bold text-white border-l-4 border-emerald-400 pl-4">{{ .Landing.WhyItMatters.Title }}</h2>
         <ul class="grid gap-4">
             {{range .Landing.WhyItMatters.Points}}
             <li class="flex gap-3 text-slate-300 leading-relaxed">
-                <span class="text-cyan-400">▹</span>
+                <span class="text-emerald-400">▹</span>
                 <span>{{ . }}</span>
             </li>
             {{end}}

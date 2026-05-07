@@ -2,7 +2,7 @@
 
 {{define "header_extra"}}
 <div class="text-center grid gap-6">
-    <h1 class="text-3xl font-bold text-cyan-400">{{ .Evolution.PageTitle }}</h1>
+    <h1 class="text-3xl font-bold text-emerald-400">{{ .Evolution.PageTitle }}</h1>
     <p class="text-lg md:text-xl text-slate-300">{{ .Evolution.IntroText }}</p>
 </div>
 {{end}}
@@ -13,11 +13,11 @@
     {{ range $i, $c := .Evolution.Chapters }}
     {{ $isFirst := eq $i 0 }}
     <details
-        class="group bg-slate-800/40 rounded-xl border border-white/5 transition-all hover:border-cyan-400/30 overflow-hidden"
+        class="group bg-slate-800/40 rounded-xl border border-white/5 transition-all hover:border-emerald-400/30 overflow-hidden"
         {{ if $isFirst }}open{{ end }}>
         <summary class="p-6 cursor-pointer list-none flex flex-col gap-4 group-open:border-b group-open:border-white/5">
             <h2
-                class="text-xl md:text-2xl font-bold text-cyan-400 flex justify-between items-center w-full after:content-['→'] after:transition-transform group-open:after:rotate-90">
+                class="text-xl md:text-2xl font-bold text-emerald-400 flex justify-between items-center w-full after:content-['→'] after:transition-transform group-open:after:rotate-90">
                 Chapter {{ sub $total $i }}: {{ $c.Title }}
             </h2>
             <p class="italic text-slate-300 text-sm">{{ $c.Intro }}</p>
@@ -28,12 +28,12 @@
                 {{ range $c.Events }}
                 <li class="relative pl-12">
                     <time
-                        class="relative block font-bold text-cyan-400 text-sm mb-4 before:absolute before:-left-[39px] before:top-1/2 before:-translate-y-1/2 before:w-3 before:h-3 before:bg-cyan-400 before:rounded-full before:border-2 before:border-slate-900"
+                        class="relative block font-bold text-emerald-400 text-sm mb-4 before:absolute before:-left-[39px] before:top-1/2 before:-translate-y-1/2 before:w-3 before:h-3 before:bg-emerald-400 before:rounded-full before:border-2 before:border-slate-900"
                         datetime="{{ .Date }}">
                         {{ .FormattedDate }}
                     </time>
                     <article class="bg-slate-900/50 p-6 rounded-lg border border-white/5 flex flex-col gap-6">
-                        <h3 class="text-lg font-bold text-cyan-400">{{ .Title }}</h3>
+                        <h3 class="text-lg font-bold text-emerald-400">{{ .Title }}</h3>
                         <ul class="list-disc text-slate-100 grid gap-2 ml-4">
                             {{ range .DescriptionLines }}
                             <li class="pl-2 leading-relaxed">{{ . }}</li>
@@ -43,7 +43,7 @@
                         <div class="flex flex-col gap-3">
                             {{range .Artifacts}}
                             <a href="https://github.com/victoriacheng15/observability-hub/blob/main/{{ .URL }}"
-                                class="inline-flex items-center text-sm font-semibold px-3 py-1.5 bg-transparent text-cyan-400 border border-cyan-400/40 rounded-lg whitespace-nowrap transition-all hover:bg-cyan-400/5 active:scale-95 w-fit"
+                                class="inline-flex items-center text-sm font-semibold px-3 py-1.5 bg-transparent text-emerald-400 border border-emerald-400/40 rounded-lg whitespace-nowrap transition-all hover:bg-emerald-400/5 active:scale-95 w-fit"
                                 target="_blank" rel="noopener noreferrer">
                                 📄 {{ .Name }}
                             </a>

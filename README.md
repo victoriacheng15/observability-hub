@@ -1,6 +1,6 @@
 # Observability Hub
 
-Observability Hub is a self-hosted platform engineering lab built with Kubernetes, Argo CD, OpenTofu (Terraform-compatible), OpenTelemetry, Grafana, Loki, Tempo, Prometheus, Cilium/Hubble, OpenBao, and Go services.
+Observability Hub is a self-hosted platform engineering lab built with Kubernetes, GitOps, Terraform, OpenTelemetry, Prometheus, Grafana, Cilium/eBPF, PostgreSQL, and Go services.
 
 It proves an end-to-end platform ownership loop: declarative infrastructure runs host and cluster services, telemetry exposes behavior, operators and agents diagnose issues, bounded remediation applies fixes, and ADRs/RCAs preserve operational memory.
 
@@ -33,9 +33,9 @@ The main system flow starts from declarative source, runs through host and clust
 
 ```mermaid
 flowchart TB
-    Source["Source of Truth<br/>Git, Terraform, Kustomize, systemd"]
+    Source["Source of Truth<br/>Git, Terraform, Kustomize"]
     Runtime["Runtime<br/>Kubernetes, host services, databases"]
-    Signals["Signals<br/>OTel, Prometheus, Loki, Tempo, Hubble"]
+    Signals["Signals<br/>OTel, Prometheus"]
     Decisions["Decisions<br/>Grafana, MCP tools, workflows"]
     Actions["Actions<br/>GitOps sync, pod repair, service restart"]
     Memory["Memory<br/>ADRs, RCAs, notes, workflows"]
@@ -55,13 +55,13 @@ flowchart TB
 
 | Layer | Tools |
 | :--- | :--- |
-| Language | Go |
-| Infrastructure | Kubernetes, Terraform, Helm, Docker, systemd, Argo CD |
-| Data stores | PostgreSQL/CloudNativePG, MinIO, Azure Blob Storage |
-| Observability | OpenTelemetry, Grafana, Loki, Tempo, Prometheus, Cilium/Hubble |
-| Security | OpenBao, Trivy, Tailscale |
+| Language | Go, Rust |
+| Infrastructure | Kubernetes, Terraform, Helm, Docker, Argo CD |
+| Data stores | PostgreSQL, Azure Blob Storage |
+| Observability | OpenTelemetry, Prometheus, Grafana, Cilium |
+| Security | Trivy, Tailscale |
 | Testing | Go `testing` package, table-driven tests |
-| CI/CD | GitHub Actions, Argo CD, GitOps webhook reconciliation |
+| CI/CD | GitHub Actions, Argo CD |
 
 ---
 

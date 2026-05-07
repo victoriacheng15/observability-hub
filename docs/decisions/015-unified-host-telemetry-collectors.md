@@ -1,6 +1,8 @@
 # ADR 015: Unified Host Telemetry Analytics
 
 > **Note:** This service was originally named "Collectors" and was rebranded to **Analytics Engine** (or "Analytics Service") in March 2026 to better reflect its role in resource-to-value correlation and efficiency analysis.
+>
+> **2026-05 update:** The analytics metrics source moved from Thanos Query to direct Prometheus queries after MinIO/Thanos were retired from the active observability stack.
 
 - **Status:** Accepted
 - **Date:** 2026-02-21
@@ -22,7 +24,7 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 
 ### Key Architectural Shifts
 
-- **Thanos-Centric Metrics:** Host metric collection (CPU, RAM, Disk, Network, Temperature) is now retrieved from **Prometheus** (exposed via Thanos Query). This leverages the unified API for both real-time and long-term storage (MinIO).
+- **Prometheus-Centric Metrics:** Host metric collection (CPU, RAM, Disk, Network, Temperature) is retrieved directly from **Prometheus**.
 - **Batch Processing Model:** Move from 1-minute continuous polling to a **15-minute batch interval** (as a starting point). The service wakes up every 15 minutes, performs a range query with `step=1m` to maintain granularity, and batch-inserts results into PostgreSQL.
 - **Unified Tailscale Collection:** Incorporate Tailscale status and log collection (via `exec.Command`) directly into the Go service, exposing them via OpenTelemetry and PostgreSQL.
 - **Resource Optimization:** Configure the new service with tight resource requests (10m CPU / 40Mi RAM), releasing significant guaranteed memory back to the cluster.
@@ -54,7 +56,7 @@ Consolidate all host-level observability responsibilities into a single, re-arch
 ### Negative
 
 - **Increased Development Effort**: Requires custom Go code for Tailscale and PromQL parsing rather than using off-the-shelf Alloy modules.
-- **Dependency on Thanos**: Resource analytics depends on the availability of the Thanos Query service.
+- **Dependency on Prometheus**: Resource analytics depends on the availability of the Prometheus service.
 
 ## Verification
 
