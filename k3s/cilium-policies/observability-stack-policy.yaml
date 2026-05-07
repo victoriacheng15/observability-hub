@@ -128,8 +128,6 @@ spec:
             protocol: TCP
           - port: "3200"
             protocol: TCP
-          - port: "9000"
-            protocol: TCP
           - port: "8080"
             protocol: TCP
           - port: "8081"
@@ -170,7 +168,7 @@ spec:
 
 ################################################################################
 # NAMESPACE: databases
-# SCOPE: Postgres, MinIO
+# SCOPE: Postgres
 # PURPOSE: Secure data layer with controlled access for database operations
 ################################################################################
 apiVersion: "cilium.io/v2"
@@ -178,14 +176,14 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: "databases-core"
 spec:
-  description: "Database services (Postgres, MinIO). Enforces microsegmentation for data layer with restricted external access."
+  description: "Database services (Postgres). Enforces microsegmentation for data layer with restricted external access."
   endpointSelector:
     matchExpressions:
       - key: k8s:io.kubernetes.pod.namespace
         operator: In
         values: [databases]
   ingress:
-    # 1. Intra-namespace traffic (Postgres replication, MinIO internal)
+    # 1. Intra-namespace traffic (Postgres replication)
     - fromEndpoints:
       - matchLabels:
           "k8s:io.kubernetes.pod.namespace": databases
@@ -194,10 +192,6 @@ spec:
           - port: "5432"
             protocol: TCP
           - port: "8000"
-            protocol: TCP
-          - port: "9000"
-            protocol: TCP
-          - port: "9001"
             protocol: TCP
     # 2. Traffic from Observability Stack (Ingestion, Analytics, Grafana)
     - fromEndpoints:
@@ -209,8 +203,6 @@ spec:
         - ports:
           - port: "5432"
             protocol: TCP
-          - port: "9000"
-            protocol: TCP
     # 3. CNPG Operator management traffic
     - fromEndpoints:
       - matchLabels:
@@ -219,17 +211,13 @@ spec:
         - ports:
           - port: "8000"
             protocol: TCP
-    # 4. External access to Postgres and MinIO
+    # 4. External access to Postgres
     - fromEntities: [cluster, host, remote-node, world]
       toPorts:
         - ports:
           - port: "5432"
             protocol: TCP
           - port: "8000"
-            protocol: TCP
-          - port: "9000"
-            protocol: TCP
-          - port: "9001"
             protocol: TCP
   egress:
     # 1. Allow reaching other database nodes
@@ -241,10 +229,6 @@ spec:
           - port: "5432"
             protocol: TCP
           - port: "8000"
-            protocol: TCP
-          - port: "9000"
-            protocol: TCP
-          - port: "9001"
             protocol: TCP
     # 2. Allow DNS and K8s API
     - toEndpoints:
@@ -467,8 +451,6 @@ spec:
       toPorts:
         - ports:
           - port: "5432"
-            protocol: TCP
-          - port: "9000"
             protocol: TCP
     # 4. Allow DNS resolution
     - toEndpoints:

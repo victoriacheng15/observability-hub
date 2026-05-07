@@ -18,8 +18,6 @@ module "storage" {
 
   azurerm_storage_account_name = var.azurerm_storage_account_name
   azurerm_resource_group_name  = var.azurerm_resource_group_name
-  minio_chart_version          = var.minio_chart_version
-  databases_namespace          = module.foundation.databases_namespace
 }
 
 # --- Persistence ---

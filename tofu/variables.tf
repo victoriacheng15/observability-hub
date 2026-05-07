@@ -68,12 +68,6 @@ variable "azurerm_resource_group_name" {
   default     = "observability-rg"
 }
 
-variable "minio_chart_version" {
-  description = "Helm chart version for MinIO."
-  type        = string
-  default     = "5.4.0"
-}
-
 variable "prometheus_chart_version" {
   description = "Helm chart version for Prometheus."
   type        = string
