@@ -26,8 +26,11 @@ module "storage" {
 
 module "persistence" {
   source = "./modules/persistence"
-  emqx_chart_version      = var.emqx_chart_version
-  observability_namespace = module.foundation.observability_namespace
+
+  emqx_chart_version         = var.emqx_chart_version
+  observability_namespace    = module.foundation.observability_namespace
+  databases_namespace        = module.foundation.databases_namespace
+  azure_storage_account_name = module.storage.azure_storage_account_name
 }
 
 # --- Observability ---

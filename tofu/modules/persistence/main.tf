@@ -32,3 +32,34 @@ resource "helm_release" "emqx" {
     })
   ]
 }
+
+# --- Postgres: Backup Configuration ---
+
+resource "kubernetes_manifest" "postgres_backup_config" {
+  manifest = {
+    apiVersion = "postgresql.cnpg.io/v1"
+    kind       = "Cluster"
+    metadata = {
+      name      = "postgres-hub"
+      namespace = var.databases_namespace
+    }
+    spec = {
+      backup = {
+        barmanObjectStore = {
+          destinationPath = "https://${var.azure_storage_account_name}.blob.core.windows.net/pg-backup/"
+          azureCredentials = {
+            connectionString = {
+              name = "azure-creds"
+              key  = "AZURE_CONNECTION_STRING"
+            }
+          }
+        }
+      }
+    }
+  }
+
+  field_manager {
+    name            = "opentofu-cnpg-backup"
+    force_conflicts = true
+  }
+}
