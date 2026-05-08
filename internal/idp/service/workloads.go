@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
+
+	"observability-hub/internal/idp/workload"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -112,97 +112,38 @@ func (s *KubernetesService) workloads(ctx context.Context, namespace string) ([]
 }
 
 func (s *KubernetesService) deploymentDetails(deployment appsv1.Deployment) Details {
-	desired := int32(1)
-	if deployment.Spec.Replicas != nil {
-		desired = *deployment.Spec.Replicas
-	}
-
-	return Details{
-		Summary: Summary{
-			Name:      deployment.Name,
-			Namespace: deployment.Namespace,
-			Kind:      "Deployment",
-			Ready:     fmt.Sprintf("%d/%d", deployment.Status.ReadyReplicas, desired),
-			Age:       s.age(deployment.CreationTimestamp.Time),
-		},
-		Images:      containerImages(deployment.Spec.Template.Spec),
-		Labels:      copyMap(deployment.Labels),
-		Annotations: copyMap(deployment.Annotations),
-		Selector:    deployment.Spec.Selector.MatchLabels,
-	}
+	return serviceDetails(workload.DeploymentDetails(deployment, s.now()))
 }
 
 func (s *KubernetesService) statefulSetDetails(statefulSet appsv1.StatefulSet) Details {
-	desired := int32(1)
-	if statefulSet.Spec.Replicas != nil {
-		desired = *statefulSet.Spec.Replicas
-	}
-
-	return Details{
-		Summary: Summary{
-			Name:      statefulSet.Name,
-			Namespace: statefulSet.Namespace,
-			Kind:      "StatefulSet",
-			Ready:     fmt.Sprintf("%d/%d", statefulSet.Status.ReadyReplicas, desired),
-			Age:       s.age(statefulSet.CreationTimestamp.Time),
-		},
-		Images:      containerImages(statefulSet.Spec.Template.Spec),
-		Labels:      copyMap(statefulSet.Labels),
-		Annotations: copyMap(statefulSet.Annotations),
-		Selector:    statefulSet.Spec.Selector.MatchLabels,
-	}
+	return serviceDetails(workload.StatefulSetDetails(statefulSet, s.now()))
 }
 
 func (s *KubernetesService) daemonSetDetails(daemonSet appsv1.DaemonSet) Details {
-	return Details{
-		Summary: Summary{
-			Name:      daemonSet.Name,
-			Namespace: daemonSet.Namespace,
-			Kind:      "DaemonSet",
-			Ready:     fmt.Sprintf("%d/%d", daemonSet.Status.NumberReady, daemonSet.Status.DesiredNumberScheduled),
-			Age:       s.age(daemonSet.CreationTimestamp.Time),
-		},
-		Images:      containerImages(daemonSet.Spec.Template.Spec),
-		Labels:      copyMap(daemonSet.Labels),
-		Annotations: copyMap(daemonSet.Annotations),
-		Selector:    daemonSet.Spec.Selector.MatchLabels,
-	}
+	return serviceDetails(workload.DaemonSetDetails(daemonSet, s.now()))
 }
 
 func (s *KubernetesService) jobDetails(job batchv1.Job) Details {
-	desired := int32(1)
-	if job.Spec.Completions != nil {
-		desired = *job.Spec.Completions
-	}
-
-	return Details{
-		Summary: Summary{
-			Name:      job.Name,
-			Namespace: job.Namespace,
-			Kind:      "Job",
-			Ready:     fmt.Sprintf("%d/%d", job.Status.Succeeded, desired),
-			Age:       s.age(job.CreationTimestamp.Time),
-		},
-		Images:      containerImages(job.Spec.Template.Spec),
-		Labels:      copyMap(job.Labels),
-		Annotations: copyMap(job.Annotations),
-		Selector:    map[string]string{},
-	}
+	return serviceDetails(workload.JobDetails(job, s.now()))
 }
 
 func (s *KubernetesService) cronJobDetails(cronJob batchv1.CronJob) Details {
+	return serviceDetails(workload.CronJobDetails(cronJob, s.now()))
+}
+
+func serviceDetails(detail workload.Details) Details {
 	return Details{
 		Summary: Summary{
-			Name:      cronJob.Name,
-			Namespace: cronJob.Namespace,
-			Kind:      "CronJob",
-			Ready:     fmt.Sprintf("active:%d", len(cronJob.Status.Active)),
-			Age:       s.age(cronJob.CreationTimestamp.Time),
+			Name:      detail.Name,
+			Namespace: detail.Namespace,
+			Kind:      detail.Kind,
+			Ready:     detail.Ready,
+			Age:       detail.Age,
 		},
-		Images:      containerImages(cronJob.Spec.JobTemplate.Spec.Template.Spec),
-		Labels:      copyMap(cronJob.Labels),
-		Annotations: copyMap(cronJob.Annotations),
-		Selector:    map[string]string{},
+		Images:      detail.Images,
+		Labels:      detail.Labels,
+		Annotations: detail.Annotations,
+		Selector:    detail.Selector,
 	}
 }
 
@@ -221,24 +162,4 @@ func serviceMatches(detail Details, name string) bool {
 	}
 
 	return false
-}
-
-func containerImages(spec corev1.PodSpec) []string {
-	images := make([]string, 0, len(spec.InitContainers)+len(spec.Containers))
-	for _, container := range spec.InitContainers {
-		images = append(images, container.Image)
-	}
-	for _, container := range spec.Containers {
-		images = append(images, container.Image)
-	}
-	sort.Strings(images)
-	return images
-}
-
-func copyMap(values map[string]string) map[string]string {
-	copied := make(map[string]string, len(values))
-	for key, value := range values {
-		copied[key] = value
-	}
-	return copied
 }

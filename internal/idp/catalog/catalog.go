@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"observability-hub/internal/idp/kube"
+	"observability-hub/internal/idp/workload"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -153,67 +154,62 @@ func (c *KubernetesCatalog) serviceEntry(service corev1.Service) Entry {
 }
 
 func (c *KubernetesCatalog) deploymentEntry(deployment appsv1.Deployment) Entry {
-	desired := int32(1)
-	if deployment.Spec.Replicas != nil {
-		desired = *deployment.Spec.Replicas
-	}
+	summary := workload.DeploymentSummary(deployment, c.now())
 
 	return Entry{
-		Name:      deployment.Name,
-		Namespace: deployment.Namespace,
-		Kind:      "Deployment",
-		Status:    fmt.Sprintf("%d/%d", deployment.Status.ReadyReplicas, desired),
-		Age:       c.age(deployment.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Status:    summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCatalog) statefulSetEntry(statefulSet appsv1.StatefulSet) Entry {
-	desired := int32(1)
-	if statefulSet.Spec.Replicas != nil {
-		desired = *statefulSet.Spec.Replicas
-	}
+	summary := workload.StatefulSetSummary(statefulSet, c.now())
 
 	return Entry{
-		Name:      statefulSet.Name,
-		Namespace: statefulSet.Namespace,
-		Kind:      "StatefulSet",
-		Status:    fmt.Sprintf("%d/%d", statefulSet.Status.ReadyReplicas, desired),
-		Age:       c.age(statefulSet.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Status:    summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCatalog) daemonSetEntry(daemonSet appsv1.DaemonSet) Entry {
+	summary := workload.DaemonSetSummary(daemonSet, c.now())
+
 	return Entry{
-		Name:      daemonSet.Name,
-		Namespace: daemonSet.Namespace,
-		Kind:      "DaemonSet",
-		Status:    fmt.Sprintf("%d/%d", daemonSet.Status.NumberReady, daemonSet.Status.DesiredNumberScheduled),
-		Age:       c.age(daemonSet.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Status:    summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCatalog) jobEntry(job batchv1.Job) Entry {
-	desired := int32(1)
-	if job.Spec.Completions != nil {
-		desired = *job.Spec.Completions
-	}
+	summary := workload.JobSummary(job, c.now())
 
 	return Entry{
-		Name:      job.Name,
-		Namespace: job.Namespace,
-		Kind:      "Job",
-		Status:    fmt.Sprintf("%d/%d", job.Status.Succeeded, desired),
-		Age:       c.age(job.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Status:    summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCatalog) cronJobEntry(cronJob batchv1.CronJob) Entry {
+	summary := workload.CronJobSummary(cronJob, c.now())
+
 	return Entry{
-		Name:      cronJob.Name,
-		Namespace: cronJob.Namespace,
-		Kind:      "CronJob",
-		Status:    fmt.Sprintf("active:%d", len(cronJob.Status.Active)),
-		Age:       c.age(cronJob.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Status:    summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
