@@ -59,35 +59,6 @@ var newService = func() (serviceClient, error) {
 	return idpservice.NewKubernetesService()
 }
 
-const helpText = `Hub CLI (IDP)
-
-Usage:
-  hub-cli <command> [arguments]
-
-Service commands:
-  service list
-  service describe <service>
-  service health <service>
-  service logs <service>
-  service events <service>
-  service metrics <service>
-  service traces <service>
-  service ownership <service>
-
-Cluster commands:
-  cluster status
-  cluster namespaces
-  cluster workloads
-
-Catalog commands:
-  catalog list
-  catalog validate
-
-Environment commands:
-  env list
-  env describe <name>
-`
-
 // Run executes the local IDP CLI command dispatcher.
 func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if len(args) == 0 || isHelp(args[0]) {
@@ -678,14 +649,14 @@ func parseClusterWorkloadOptions(args []string, stderr io.Writer) (cluster.Workl
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown cluster workloads option: %s\n", args[i])
+			unknownOption(stderr, "cluster workloads", args[i])
 			return opts, false
 		}
 	}
@@ -697,14 +668,14 @@ func parseServiceListOptions(args []string, stderr io.Writer) (idpservice.ListOp
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service list option: %s\n", args[i])
+			unknownOption(stderr, "service list", args[i])
 			return opts, false
 		}
 	}
@@ -716,14 +687,14 @@ func parseServiceDescribeOptions(args []string, stderr io.Writer) (idpservice.De
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service describe option: %s\n", args[i])
+			unknownOption(stderr, "service describe", args[i])
 			return opts, false
 		}
 	}
@@ -735,14 +706,14 @@ func parseServiceHealthOptions(args []string, stderr io.Writer) (idpservice.Heal
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service health option: %s\n", args[i])
+			unknownOption(stderr, "service health", args[i])
 			return opts, false
 		}
 	}
@@ -754,18 +725,18 @@ func parseServiceLogsOptions(args []string, stderr io.Writer) (idpservice.LogsOp
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		case "--container", "-c":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing container for %s\n", args[i])
+			container, ok := requireValue(args, i, "container", stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Container = args[i+1]
+			opts.Container = container
 			i++
 		case "--tail":
 			tail, ok := parsePositiveInt64(args, i, "tail", stderr)
@@ -784,7 +755,7 @@ func parseServiceLogsOptions(args []string, stderr io.Writer) (idpservice.LogsOp
 		case "--previous":
 			opts.Previous = true
 		default:
-			fmt.Fprintf(stderr, "unknown service logs option: %s\n", args[i])
+			unknownOption(stderr, "service logs", args[i])
 			return opts, false
 		}
 	}
@@ -796,11 +767,11 @@ func parseServiceEventsOptions(args []string, stderr io.Writer) (idpservice.Even
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		case "--tail":
 			tail, ok := parsePositiveInt(args, i, "tail", stderr)
@@ -817,7 +788,7 @@ func parseServiceEventsOptions(args []string, stderr io.Writer) (idpservice.Even
 			opts.Since = since
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service events option: %s\n", args[i])
+			unknownOption(stderr, "service events", args[i])
 			return opts, false
 		}
 	}
@@ -829,11 +800,11 @@ func parseServiceMetricsOptions(args []string, stderr io.Writer) (idpservice.Met
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		case "--window":
 			window, ok := parseDurationOption(args, i, "window", stderr)
@@ -843,7 +814,7 @@ func parseServiceMetricsOptions(args []string, stderr io.Writer) (idpservice.Met
 			opts.Window = window
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service metrics option: %s\n", args[i])
+			unknownOption(stderr, "service metrics", args[i])
 			return opts, false
 		}
 	}
@@ -855,11 +826,11 @@ func parseServiceTracesOptions(args []string, stderr io.Writer) (idpservice.Trac
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		case "--hours":
 			hours, ok := parsePositiveInt(args, i, "hours", stderr)
@@ -876,7 +847,7 @@ func parseServiceTracesOptions(args []string, stderr io.Writer) (idpservice.Trac
 			opts.Limit = limit
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service traces option: %s\n", args[i])
+			unknownOption(stderr, "service traces", args[i])
 			return opts, false
 		}
 	}
@@ -888,14 +859,14 @@ func parseServiceOwnershipOptions(args []string, stderr io.Writer) (idpservice.O
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown service ownership option: %s\n", args[i])
+			unknownOption(stderr, "service ownership", args[i])
 			return opts, false
 		}
 	}
@@ -907,14 +878,14 @@ func parseCatalogOptions(args []string, stderr io.Writer) (catalog.ListOptions, 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown catalog option: %s\n", args[i])
+			unknownOption(stderr, "catalog", args[i])
 			return opts, false
 		}
 	}
@@ -926,14 +897,14 @@ func parseEnvListOptions(args []string, stderr io.Writer) (idpenv.ListOptions, b
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown env list option: %s\n", args[i])
+			unknownOption(stderr, "env list", args[i])
 			return opts, false
 		}
 	}
@@ -945,21 +916,21 @@ func parseEnvDescribeOptions(args []string, stderr io.Writer) (idpenv.DescribeOp
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--namespace", "-n":
-			if i+1 >= len(args) {
-				fmt.Fprintf(stderr, "missing namespace for %s\n", args[i])
+			namespace, ok := parseNamespaceOption(args, i, stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Namespace = args[i+1]
+			opts.Namespace = namespace
 			i++
 		case "--kind":
-			if i+1 >= len(args) {
-				fmt.Fprint(stderr, "missing kind for --kind\n")
+			kind, ok := requireValue(args, i, "kind", stderr)
+			if !ok {
 				return opts, false
 			}
-			opts.Kind = args[i+1]
+			opts.Kind = kind
 			i++
 		default:
-			fmt.Fprintf(stderr, "unknown env describe option: %s\n", args[i])
+			unknownOption(stderr, "env describe", args[i])
 			return opts, false
 		}
 	}
@@ -985,58 +956,45 @@ func parsePositiveInt(args []string, index int, name string, stderr io.Writer) (
 }
 
 func parsePositiveInt64(args []string, index int, name string, stderr io.Writer) (int64, bool) {
-	if index+1 >= len(args) {
-		fmt.Fprintf(stderr, "missing %s for %s\n", name, args[index])
+	raw, ok := requireValue(args, index, name, stderr)
+	if !ok {
 		return 0, false
 	}
-	value, err := strconv.ParseInt(args[index+1], 10, 64)
+
+	value, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil || value < 1 {
-		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], args[index+1])
+		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], raw)
 		return 0, false
 	}
 	return value, true
 }
 
 func parseDurationOption(args []string, index int, name string, stderr io.Writer) (time.Duration, bool) {
-	if index+1 >= len(args) {
-		fmt.Fprintf(stderr, "missing %s for %s\n", name, args[index])
+	raw, ok := requireValue(args, index, name, stderr)
+	if !ok {
 		return 0, false
 	}
-	value, err := time.ParseDuration(args[index+1])
+
+	value, err := time.ParseDuration(raw)
 	if err != nil || value <= 0 {
-		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], args[index+1])
+		fmt.Fprintf(stderr, "invalid %s for %s: %s\n", name, args[index], raw)
 		return 0, false
 	}
 	return value, true
 }
 
-func serviceHelpText() string {
-	return strings.TrimSpace(`Usage:
-  hub-cli service list [--namespace <namespace>|-n <namespace>]
-  hub-cli service describe <service> [--namespace <namespace>|-n <namespace>]
-  hub-cli service health <service> [--namespace <namespace>|-n <namespace>]
-  hub-cli service logs <service> [--namespace <namespace>|-n <namespace>] [--container <container>|-c <container>] [--tail <lines>] [--since <duration>] [--previous]
-  hub-cli service events <service> [--namespace <namespace>|-n <namespace>] [--tail <count>] [--since <duration>]
-  hub-cli service metrics <service> [--namespace <namespace>|-n <namespace>] [--window <duration>]
-  hub-cli service traces <service> [--namespace <namespace>|-n <namespace>] [--hours <hours>] [--limit <count>]
-  hub-cli service ownership <service> [--namespace <namespace>|-n <namespace>]`) + "\n"
+func parseNamespaceOption(args []string, index int, stderr io.Writer) (string, bool) {
+	return requireValue(args, index, "namespace", stderr)
 }
 
-func clusterHelpText() string {
-	return strings.TrimSpace(`Usage:
-  hub-cli cluster status
-  hub-cli cluster namespaces
-  hub-cli cluster workloads [--namespace <namespace>]`) + "\n"
+func requireValue(args []string, index int, name string, stderr io.Writer) (string, bool) {
+	if index+1 >= len(args) {
+		fmt.Fprintf(stderr, "missing %s for %s\n", name, args[index])
+		return "", false
+	}
+	return args[index+1], true
 }
 
-func catalogHelpText() string {
-	return strings.TrimSpace(`Usage:
-  hub-cli catalog list [--namespace <namespace>]
-  hub-cli catalog validate [--namespace <namespace>]`) + "\n"
-}
-
-func envHelpText() string {
-	return strings.TrimSpace(`Usage:
-  hub-cli env list [--namespace <namespace>]
-  hub-cli env describe <name> [--namespace <namespace>] [--kind <ConfigMap|Secret>]`) + "\n"
+func unknownOption(stderr io.Writer, command string, option string) {
+	fmt.Fprintf(stderr, "unknown %s option: %s\n", command, option)
 }
