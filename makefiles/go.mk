@@ -9,6 +9,10 @@ format:
 
 test:
 	@echo "Running Go tests..." && \
+	go test ./internal/...
+
+test-verbose:
+	@echo "Running Go tests..." && \
 	go test ./internal/... -v
 
 test-cov:
