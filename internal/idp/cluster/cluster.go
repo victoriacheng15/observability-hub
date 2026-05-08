@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"observability-hub/internal/idp/kube"
+	"observability-hub/internal/idp/workload"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -184,67 +185,62 @@ func nodeReady(node corev1.Node) bool {
 }
 
 func (c *KubernetesCluster) deploymentWorkload(deployment appsv1.Deployment) Workload {
-	desired := int32(1)
-	if deployment.Spec.Replicas != nil {
-		desired = *deployment.Spec.Replicas
-	}
+	summary := workload.DeploymentSummary(deployment, c.now())
 
 	return Workload{
-		Name:      deployment.Name,
-		Namespace: deployment.Namespace,
-		Kind:      "Deployment",
-		Ready:     fmt.Sprintf("%d/%d", deployment.Status.ReadyReplicas, desired),
-		Age:       c.age(deployment.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Ready:     summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCluster) statefulSetWorkload(statefulSet appsv1.StatefulSet) Workload {
-	desired := int32(1)
-	if statefulSet.Spec.Replicas != nil {
-		desired = *statefulSet.Spec.Replicas
-	}
+	summary := workload.StatefulSetSummary(statefulSet, c.now())
 
 	return Workload{
-		Name:      statefulSet.Name,
-		Namespace: statefulSet.Namespace,
-		Kind:      "StatefulSet",
-		Ready:     fmt.Sprintf("%d/%d", statefulSet.Status.ReadyReplicas, desired),
-		Age:       c.age(statefulSet.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Ready:     summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCluster) daemonSetWorkload(daemonSet appsv1.DaemonSet) Workload {
+	summary := workload.DaemonSetSummary(daemonSet, c.now())
+
 	return Workload{
-		Name:      daemonSet.Name,
-		Namespace: daemonSet.Namespace,
-		Kind:      "DaemonSet",
-		Ready:     fmt.Sprintf("%d/%d", daemonSet.Status.NumberReady, daemonSet.Status.DesiredNumberScheduled),
-		Age:       c.age(daemonSet.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Ready:     summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCluster) jobWorkload(job batchv1.Job) Workload {
-	desired := int32(1)
-	if job.Spec.Completions != nil {
-		desired = *job.Spec.Completions
-	}
+	summary := workload.JobSummary(job, c.now())
 
 	return Workload{
-		Name:      job.Name,
-		Namespace: job.Namespace,
-		Kind:      "Job",
-		Ready:     fmt.Sprintf("%d/%d", job.Status.Succeeded, desired),
-		Age:       c.age(job.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Ready:     summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
 func (c *KubernetesCluster) cronJobWorkload(cronJob batchv1.CronJob) Workload {
+	summary := workload.CronJobSummary(cronJob, c.now())
+
 	return Workload{
-		Name:      cronJob.Name,
-		Namespace: cronJob.Namespace,
-		Kind:      "CronJob",
-		Ready:     fmt.Sprintf("active:%d", len(cronJob.Status.Active)),
-		Age:       c.age(cronJob.CreationTimestamp.Time),
+		Name:      summary.Name,
+		Namespace: summary.Namespace,
+		Kind:      summary.Kind,
+		Ready:     summary.Ready,
+		Age:       summary.Age,
 	}
 }
 
