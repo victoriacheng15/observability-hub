@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -22,10 +21,9 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"observability-hub/internal/env"
+	"observability-hub/internal/idp/kube"
 )
 
 type KubernetesService struct {
@@ -162,23 +160,9 @@ type Ownership struct {
 func NewKubernetesService() (*KubernetesService, error) {
 	env.Load()
 
-	config, err := rest.InClusterConfig()
+	clientset, err := kube.NewClientset()
 	if err != nil {
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			home, _ := os.UserHomeDir()
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		}
-
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return nil, fmt.Errorf("load kubeconfig: %w", err)
-		}
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("create kubernetes client: %w", err)
+		return nil, err
 	}
 
 	return NewKubernetesServiceWithClientset(clientset), nil

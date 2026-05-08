@@ -3,17 +3,15 @@ package env
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"observability-hub/internal/idp/kube"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type KubernetesEnvironment struct {
@@ -46,23 +44,9 @@ type DescribeOptions struct {
 }
 
 func NewKubernetesEnvironment() (*KubernetesEnvironment, error) {
-	config, err := rest.InClusterConfig()
+	clientset, err := kube.NewClientset()
 	if err != nil {
-		kubeconfig := os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			home, _ := os.UserHomeDir()
-			kubeconfig = filepath.Join(home, ".kube", "config")
-		}
-
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			return nil, fmt.Errorf("load kubeconfig: %w", err)
-		}
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("create kubernetes client: %w", err)
+		return nil, err
 	}
 
 	return NewKubernetesEnvironmentWithClientset(clientset), nil
