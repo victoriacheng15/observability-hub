@@ -2,6 +2,8 @@
 
 This directory serves as the visual gallery for the **Observability Hub**. It showcases the real-time monitoring, network flows, and GitOps orchestration that power the infrastructure running on the local Mini PC lab.
 
+All screenshots are captured from live services in the homelab environment, not static mockups or diagrams.
+
 ## 🛠️ Cluster Operations & Introspection
 
 ### k9s: Live Workloads
@@ -12,11 +14,37 @@ The "Ground Truth" for the entire platform. This view provides real-time, termin
 
 ## 🚀 GitOps & Orchestration
 
+These views demonstrate single-control-plane GitOps across this repository and an external hardware lab repository, with separate development and production reconciliation targets.
+
 ### ArgoCD UI
 
 The control plane for declarative infrastructure. Shows the 'App-of-Apps' pattern in action, reconciling the state of the K3s cluster against the Git repository.
 
 ![ArgoCD UI](./argocd-ui.png)
+
+### Hardware Lab Production
+
+Production `hw-lab` application state in ArgoCD. This screenshot demonstrates cross-repository GitOps: ArgoCD reconciles an application sourced from a separate hardware lab repository while keeping production state visible from the Observability Hub control plane.
+
+![Hardware Lab Production](./argocd-hw-lab-prod.png)
+
+### Hardware Lab Development
+
+Development `hw-lab` application state in ArgoCD. This view pairs with production to show the dev/prod environment split and validates that the same external repository can be promoted through separate GitOps targets.
+
+![Hardware Lab Development](./argocd-hw-lab-dev.png)
+
+### CloudNativePG Operator
+
+ArgoCD-managed deployment view for the CloudNativePG operator. This shows the database control plane reconciled as part of the cluster's declarative GitOps state.
+
+![CloudNativePG Operator](./argocd-cnpg-operator.png)
+
+### CloudNativePG Database
+
+Application view for the CloudNativePG database resources. Captures the reconciled Postgres layer that backs platform services requiring persistent state.
+
+![CloudNativePG Database](./argocd-cnpg-db.png)
 
 ### Cilium Policies (ArgoCD Managed)
 
